@@ -1,58 +1,37 @@
 
-# Plano: Menu de Opcoes (tres pontinhos) nos Horarios Vazios da Agenda Diaria
+# Correcao: "Disponivel" marca diretamente o horario
 
-## Visao Geral
+## Problema
 
-Adicionar um botao discreto "..." (MoreVertical) em cada horario vazio na DailyView. Ao clicar, abre um dropdown com 3 opcoes:
+Ao clicar em "Disponivel" no menu de tres pontinhos, o sistema abre o modal completo de configuracao de disponibilidade. O comportamento esperado e marcar o horario como disponivel imediatamente, sem abrir nenhum modal -- igual ao "Bloquear" que ja funciona de forma direta.
 
-1. **Disponivel** - Abre o AvailabilityConfigModal pre-configurado para aquele horario (funcionalidade existente)
-2. **Bloquear** - Marca o horario com fundo avermelhado e badge "Bloqueado". Clicar no slot bloqueado pergunta se quer desbloquear (em vez de abrir modal de agendamento)
-3. **Excluir** - Remove o horario da lista do dia (mesmo que seja padrao)
+## Solucao
 
-## Como Funciona o Bloqueio
-
-O bloqueio sera implementado reutilizando o sistema de **availability slots** ja existente, criando um slot com um `typeId` especial de tipo "bloqueado". Isso garante persistencia no Supabase sem criar tabelas novas.
-
-- Ao bloquear: cria um `AvailabilitySlot` com label "Bloqueado" e cor vermelha
-- Ao clicar num slot bloqueado: exibe AlertDialog perguntando "Deseja liberar este horario?" em vez de abrir o modal de agendamento
-- A deteccao de bloqueio e feita verificando `slot.label === 'Bloqueado'` no availability
+Criar uma funcao `handleMarkAvailable` no `DailyView.tsx` que marca o horario diretamente como "Disponivel" usando `addAvailabilitySlots`, seguindo o mesmo padrao do `handleBlockSlot`. O primeiro tipo de disponibilidade cadastrado sera usado como padrao (nome e cor).
 
 ## Alteracoes
 
-### 1. `src/components/agenda/DailyView.tsx` (principal)
+### `src/components/agenda/DailyView.tsx`
 
-- Importar `MoreVertical` do lucide-react e `DropdownMenu` do radix
-- Importar `AlertDialog` para confirmacao de desbloqueio
-- Adicionar estado para controlar o slot bloqueado selecionado (`unlockConfirmTime`)
-- No trecho onde renderiza slots vazios (sem eventos):
-  - Adicionar botao "..." que abre DropdownMenu com 3 opcoes
-  - Detectar se o horario esta bloqueado (availability com label "Bloqueado")
-  - Se bloqueado: mostrar fundo avermelhado + badge "Bloqueado" e interceptar o clique para perguntar se quer desbloquear
-  - Se nao bloqueado: manter comportamento atual (clique abre modal de agendamento)
-- Funcao `handleBlock(time)`: cria availability slot com label "Bloqueado" e cor vermelha
-- Funcao `handleUnblock(time)`: remove o availability slot de bloqueio
-- Funcao `handleRemoveTimeSlot(time)`: remove o horario da lista usando `saveTimeSlots` do hook (filtra o horario e salva o array sem ele)
+1. Importar `availabilityTypes` do hook `useAvailability`
+2. Criar funcao `handleMarkAvailable(time: string)`:
+   - Remove availability existente para aquele horario (evitar duplicatas)
+   - Pega o primeiro tipo de disponibilidade cadastrado (`availabilityTypes[0]`)
+   - Cria um slot com `label` e `color` desse tipo (ou fallback "Disponivel" / cor verde)
+   - Exibe toast de confirmacao
+3. Alterar o `onAvailable` do `TimeSlotOptionsMenu` nos slots vazios para chamar `handleMarkAvailable(time)` em vez de `onOpenAvailability`
+4. Manter o `onOpenAvailability` apenas no menu dos slots **ja marcados como disponiveis** (para permitir reconfigurar se necessario)
 
-### 2. `src/hooks/useCustomTimeSlots.ts` (adicionar removeTimeSlot)
+### Logica da funcao
 
-- Adicionar funcao `removeTimeSlot(time: string)` que filtra o horario do array e salva via `saveTimeSlots`
-- Retornar `removeTimeSlot` no objeto de retorno do hook
+```text
+handleMarkAvailable(time):
+  1. Remover availability existente para (dateKey, time)
+  2. tipo = availabilityTypes[0] || { name: 'Disponivel', color: '#10b981' }
+  3. addAvailabilitySlots([{ date, time, duration: 60, label: tipo.name, color: tipo.color }])
+  4. toast.success('Horario marcado como disponivel')
+```
 
-### Nenhuma tabela nova necessaria
+### Nenhum outro arquivo precisa ser alterado
 
-O bloqueio usa a tabela `availability_slots` existente. A exclusao usa a tabela `custom_time_slots` existente.
-
-## Comportamento Visual
-
-| Estado do slot | Fundo | Conteudo | Clique |
-|---|---|---|---|
-| Vazio normal | branco | "Clique para criar agendamento" + botao "..." | Abre modal de agendamento |
-| Disponivel | cor do tipo | Badge "Disponivel" + botao remover + "..." | Abre modal de agendamento |
-| Bloqueado | vermelho claro | Badge "Bloqueado" + "..." | Pergunta se quer desbloquear |
-| Com evento | azul | Card do evento | Abre detalhes do evento |
-
-## Compatibilidade
-
-- Desktop: dropdown abre normalmente ao clicar no "..."
-- Mobile: DropdownMenu do Radix ja funciona com touch nativamente
-- O botao "..." fica discreto (opacidade baixa) e aparece mais visivel no hover/focus
+A mudanca e apenas no `DailyView.tsx` -- a logica do menu e dos callbacks.
