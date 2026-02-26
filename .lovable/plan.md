@@ -1,90 +1,80 @@
 
-# Analise e Correcao: Pagamento de Fotos Extras nao Contabilizado no valor_pago
 
-## Diagnostico Completo
+# Diagnostico e Correcao: Deslogamento, Agenda Vazia e Status Cinza
 
-### Linha do Tempo do Problema
+## Causas Raiz Identificadas
 
-```text
-01:26:27  Gallery cria cobranca (R$25, InfinitePay, status: pendente)
-01:28:32  Gallery detecta pagamento e atualiza cobranca para "pago"
-           -> galerias.status_pagamento = "pago"
-           -> trigger sync_gallery_status_to_session executa
-           -> clientes_sessoes.status_pagamento_fotos_extra = "pago"
-           -> Badge "Pago" aparece no card da sessao
-01:28:48  Webhook InfinitePay chega (16 segundos depois)
-           -> Encontra cobranca ja com status "pago"
-           -> Retorna "already_processed" SEM criar transacao
-           -> clientes_transacoes NAO recebe o registro de R$25
-           -> valor_pago permanece em R$130 (apenas pagamento manual)
-           -> Saldo pendente: R$25
-```
+### 1. Status cinza apos re-login: `isInitialized` singleton
+`ConfigurationContext.tsx` linha 11 e 302-308: variavel module-level `let isInitialized = false` nunca reseta. Como o `ConfigurationProvider` esta montado FORA do `ProtectedRoute` (App.tsx linha 107), apos logout+login o componente **nao remonta** e o `isInitialized` continua `true` — dados nunca recarregam, etapas ficam vazias, cores ficam cinza.
 
-### Causa Raiz
+### 2. Agenda vazia apos re-login: sem reatividade a auth
+`AgendaContext.tsx` linha 131-199: o `useEffect` que carrega dados e configura realtime roda uma unica vez (deps estavel). Nao reage a mudancas de autenticacao. O realtime usa `getUser()` (request HTTP) que pode falhar durante transicao de auth.
 
-O `infinitepay-webhook` (linhas 185-198) tem um **early return** quando encontra a cobranca ja marcada como "pago". Ele simplesmente retorna sem verificar se a transacao financeira (`clientes_transacoes`) foi criada.
+### 3. Carregamento de TODOS agendamentos
+`SupabaseAgendaAdapter.loadAppointments()` linha 25-41: faz SELECT sem filtro de data — carrega TUDO.
 
-O projeto Gallery atualiza a cobranca para "pago" ANTES do webhook chegar (via polling ou Realtime). Quando o webhook finalmente chega, ele ve "ja pago" e pula a criacao da transacao. Resultado: o badge visual mostra "Pago", mas o `valor_pago` da sessao nunca e atualizado porque nao existe transacao no banco.
+### 4. Providers fora do ProtectedRoute
+`ConfigurationProvider`, `WorkflowCacheProvider`, `AppProvider` e `AgendaProvider` estao todos montados permanentemente no App.tsx (linhas 107-220), independente do estado de auth. Nunca remontam apos logout/login.
 
-### O que funciona vs o que falhou
+---
 
-| Componente | Status |
-|---|---|
-| Cobranca atualizada para "pago" | OK (Gallery fez) |
-| galerias.status_pagamento = "pago" | OK (Gallery fez) |
-| status_pagamento_fotos_extra = "pago" | OK (trigger sync) |
-| Badge "Pago" no card | OK (le status_pagamento_fotos_extra) |
-| Transacao em clientes_transacoes | FALHOU (webhook pulou) |
-| valor_pago recalculado | FALHOU (sem transacao, trigger nao dispara) |
-| status_financeiro correto | FALHOU (valor_pago incorreto) |
+## Plano de Correcao
 
-## Solucao
+### Correcao 1: ConfigurationContext — remover singleton e reagir a auth
 
-### Correcao 1: `infinitepay-webhook` — Garantir transacao mesmo quando "already paid"
+**Arquivo: `src/contexts/ConfigurationContext.tsx`**
+- Remover variaveis module-level `isInitialized` e `activeInstances`
+- Adicionar dependencia de `user.id` via `useAuth()` ao `useEffect` de carga inicial
+- Quando `user` muda (login/logout), recarregar todos os dados
+- Limpar estado quando user for null (logout)
+- Resetar `RealtimeSubscriptionManager` no logout para recriar canais com novo user
 
-No trecho do "already paid" (linhas 185-198), em vez de retornar imediatamente, verificar se existe transacao vinculada e criar uma se estiver faltando.
+### Correcao 2: AgendaContext — reagir a auth
 
-**Logica:**
-```text
-SE cobranca.status === "pago":
-  SE cobranca.session_id existe:
-    Buscar transacao em clientes_transacoes com descricao contendo "InfinitePay"
-      e session_id correspondente e valor = cobranca.valor
-    SE nao encontrou transacao:
-      Buscar sessao (por session_id texto ou UUID)
-      Criar transacao (mesmo padrao do fluxo normal)
-      Log: "Transaction missing, created retroactively"
-  Retornar "already_processed"
-```
+**Arquivo: `src/contexts/AgendaContext.tsx`**
+- Importar `useAuth` e usar `user` como dependencia no efeito principal
+- Substituir `getUser()` por `getSession()` no setup de realtime (evitar HTTP request)
+- Quando `user` muda para null, limpar state (appointments, availability, etc.)
+- Quando `user` muda para um valor valido, recarregar dados e reconectar realtime
 
-### Correcao 2: `mercadopago-webhook` — Mesma protecao
+### Correcao 3: Smart loading de agendamentos (mes atual ± 1)
 
-O `mercadopago-webhook` tem a mesma vulnerabilidade (nao verificada neste caso, mas preventiva). Aplicar a mesma logica de verificacao de transacao existente quando o pagamento ja esta marcado como "pago".
+**Arquivo: `src/adapters/SupabaseAgendaAdapter.ts`**
+- Alterar `loadAppointments()` para aceitar parametro de range de datas (opcional)
+- Criar novo metodo `loadAppointmentsByRange(startDate, endDate)` que filtra por `.gte('date', start).lte('date', end)`
+- Default: mes atual - 1 mes ate mes atual + 1 mes (3 meses)
 
-### Correcao 3: Reparar a sessao afetada agora
+**Arquivo: `src/services/AgendaService.ts`**
+- Propagar parametros de range para o adapter
 
-Inserir a transacao faltante para a sessao `workflow-1770819329231-lt1vtcjy9n` via SQL, para corrigir o problema imediato. O trigger `recompute_session_paid` recalculara o `valor_pago` automaticamente.
+**Arquivo: `src/contexts/AgendaContext.tsx`**
+- No `loadData`, calcular range automatico (mes anterior, atual, proximo)
+- Ao navegar para mes fora do range, carregar sob demanda e adicionar ao state
+- Expor funcao `loadMonthData(year, month)` no contexto para carregamento on-demand
 
-## Detalhes Tecnicos
+### Correcao 4: RealtimeSubscriptionManager — reset no logout
 
-### Arquivo: `supabase/functions/infinitepay-webhook/index.ts`
+**Arquivo: `src/services/RealtimeSubscriptionManager.ts`**
+- Chamar `cleanupAll()` quando usuario desloga
+- Integrar com onAuthStateChange ou ser chamado pelo ConfigurationContext/AgendaContext no cleanup
 
-Substituir o bloco de early return (linhas 184-198) por uma verificacao que:
-1. Verifica se existe transacao para esta cobranca/sessao
-2. Se nao existir, busca a sessao e cria a transacao
-3. Retorna normalmente depois
+### Correcao 5: getUser() → getSession() nos hot paths
 
-### Arquivo: `supabase/functions/mercadopago-webhook/index.ts`
+**Arquivos afetados:**
+- `src/adapters/SupabaseAgendaAdapter.ts` (linhas 26, 66, 330, etc.)
+- `src/contexts/AgendaContext.tsx` (linha 136)
 
-Nao tem o mesmo early return explicito, mas no trecho onde verifica duplicatas (linha com `ilike`), garantir que a logica de criacao de transacao e robusta contra race conditions similares.
+Substituir `supabase.auth.getUser()` por `supabase.auth.getSession()` em todas as operacoes de leitura (hot paths) para evitar requests HTTP redundantes — usar `session.user` em vez de `data.user`.
 
-### Nenhuma alteracao em triggers ou tabelas
+---
 
-Os triggers `recompute_session_paid` e `sync_gallery_status_to_session` estao corretos. O problema e exclusivamente na logica dos webhooks que pulam a criacao de transacao.
+## Resumo de Impacto
 
-## Impacto
+| Problema | Causa | Correcao |
+|---|---|---|
+| Status cinza | `isInitialized` singleton | Remover singleton, reagir a auth |
+| Agenda vazia | Sem reatividade a auth | Adicionar `user` como dependencia |
+| Performance | Carrega TODOS agendamentos | Smart loading mes ± 1 |
+| Lentidao auth | `getUser()` HTTP em hot paths | `getSession()` local |
+| Realtime morto | Canais nao recriados | Reset no logout/login |
 
-- Corrige 100% dos casos onde o Gallery (ou qualquer outro sistema) marca a cobranca como "pago" antes do webhook
-- Nao quebra nenhuma logica existente (a verificacao de duplicata por descricao ja existe no fluxo normal)
-- Protege contra webhooks duplicados (verifica se transacao ja existe antes de criar)
-- Aplica para ambos provedores (InfinitePay e Mercado Pago)
