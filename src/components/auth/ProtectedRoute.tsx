@@ -79,7 +79,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/escolher-plano" replace />;
   }
 
-  // 6. Verificar sem subscription - permitir páginas de assinatura e conta
+  // 6. Verificar onboarding ANTES da subscription wall
+  // (novos usuários sem trial precisam completar onboarding para ativar o trial)
+  if (location.pathname !== '/onboarding') {
+    const needsOnboarding = !profile || 
+      !profile.is_onboarding_complete || 
+      !profile.nome?.trim() || 
+      !profile.nicho?.trim() ||
+      !profile.cidade_ibge_id;
+      
+    if (needsOnboarding) {
+      return <Navigate to="/onboarding" replace />;
+    }
+  }
+
+  // 7. Verificar sem subscription - permitir páginas de assinatura e conta
   if (accessState.status === 'no_subscription') {
     // Permitir acesso às páginas isentas (inclui /minha-conta para sync pós-checkout)
     if (SUBSCRIPTION_EXEMPT_ROUTES.includes(location.pathname)) {
@@ -111,19 +125,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         </Card>
       </div>
     );
-  }
-
-  // 7. Verificar onboarding (exceto se já estiver na rota /onboarding)
-  if (location.pathname !== '/onboarding') {
-    const needsOnboarding = !profile || 
-      !profile.is_onboarding_complete || 
-      !profile.nome?.trim() || 
-      !profile.nicho?.trim() ||
-      !profile.cidade_ibge_id;
-      
-    if (needsOnboarding) {
-      return <Navigate to="/onboarding" replace />;
-    }
   }
 
   return <>{children}</>;
