@@ -135,11 +135,9 @@ export function useAsaasSubscription() {
         .gte('next_due_date', new Date().toISOString())
         .order('created_at', { ascending: false });
 
-      if (cancelledSubs) {
-        const activePlanTypes = new Set(results.map(s => s.plan_type));
-        for (const cs of cancelledSubs as unknown as AsaasSubscription[]) {
-          if (!activePlanTypes.has(cs.plan_type)) results.push(cs);
-        }
+      // Only show cancelled subs if user has NO active subscriptions at all
+      if (results.length === 0 && cancelledSubs) {
+        results.push(...(cancelledSubs as unknown as AsaasSubscription[]));
       }
 
       return results;
