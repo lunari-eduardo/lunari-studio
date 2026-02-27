@@ -41,7 +41,7 @@ export function PlanRestrictionGuard({
   }
 
   // Admin, VIP, Autorizado ou Pro sempre tem acesso total
-  if (accessState?.isAdmin || accessState?.isVip || accessState?.isAuthorized || hasPro) {
+  if (accessState?.isAdmin || accessState?.isVip || hasPro) {
     return <>{children}</>;
   }
 
