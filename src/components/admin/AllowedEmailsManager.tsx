@@ -50,23 +50,31 @@ interface AllowedEmail {
 
 const PLAN_OPTIONS = [
   {
-    value: 'pro_galery_monthly',
-    label: 'PRO + Gallery',
-    description: 'Acesso total ao sistema + integração Gallery',
+    value: 'combo_completo',
+    label: 'Combo Completo',
+    description: 'Studio + Select + Transfer',
     icon: Image,
     color: 'text-amber-500',
     badgeClass: 'bg-amber-500/20 text-amber-500 border-amber-500/30'
   },
   {
-    value: 'pro_monthly',
-    label: 'PRO',
-    description: 'Todas as funcionalidades exceto Gallery',
+    value: 'combo_pro_select2k',
+    label: 'Studio Pro + Select 2k',
+    description: 'Studio Pro + Select com 2k créditos',
+    icon: Image,
+    color: 'text-pink-500',
+    badgeClass: 'bg-pink-500/20 text-pink-500 border-pink-500/30'
+  },
+  {
+    value: 'studio_pro',
+    label: 'Studio Pro',
+    description: 'Todas as funcionalidades do Studio',
     icon: Crown,
     color: 'text-primary',
     badgeClass: 'bg-primary/20 text-primary border-primary/30'
   },
   {
-    value: 'starter_monthly',
+    value: 'studio_starter',
     label: 'Starter',
     description: 'Agenda, CRM, Workflow e Configurações',
     icon: User,
@@ -76,22 +84,31 @@ const PLAN_OPTIONS = [
 ];
 
 function PlanBadge({ planCode }: { planCode: string | null }) {
-  const plan = planCode || 'pro_galery_monthly';
+  const plan = planCode || 'combo_completo';
   
-  if (plan.startsWith('pro_galery')) {
+  if (plan === 'combo_completo') {
     return (
       <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 gap-1">
         <Image className="h-3 w-3" />
-        PRO + Gallery
+        Combo Completo
       </Badge>
     );
   }
   
-  if (plan.startsWith('pro')) {
+  if (plan === 'combo_pro_select2k') {
+    return (
+      <Badge className="bg-pink-500/20 text-pink-500 border-pink-500/30 gap-1">
+        <Image className="h-3 w-3" />
+        Pro + Select 2k
+      </Badge>
+    );
+  }
+  
+  if (plan === 'studio_pro') {
     return (
       <Badge className="bg-primary/20 text-primary border-primary/30 gap-1">
         <Crown className="h-3 w-3" />
-        PRO
+        Studio Pro
       </Badge>
     );
   }
@@ -112,7 +129,7 @@ export default function AllowedEmailsManager() {
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState('');
   const [newNote, setNewNote] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('pro_galery_monthly');
+  const [selectedPlan, setSelectedPlan] = useState('combo_completo');
   const [submitting, setSubmitting] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState<string | null>(null);
 
@@ -175,7 +192,7 @@ export default function AllowedEmailsManager() {
       }
 
       // Se plano inclui Gallery, provisionar status de sistema
-      if (selectedPlan.startsWith('pro_galery')) {
+      if (selectedPlan.startsWith('combo')) {
         console.log('🔧 Provisionando status de sistema para:', emailLower);
         await supabase.functions.invoke('provision-gallery-workflow-statuses', {
           body: { email: emailLower, action: 'provision' }
@@ -186,7 +203,7 @@ export default function AllowedEmailsManager() {
       setAddModalOpen(false);
       setNewEmail('');
       setNewNote('');
-      setSelectedPlan('pro_galery_monthly');
+      setSelectedPlan('combo_completo');
       loadEmails();
     } catch (error) {
       console.error('Error adding email:', error);
@@ -210,7 +227,7 @@ export default function AllowedEmailsManager() {
       if (error) throw error;
 
       // Se novo plano inclui Gallery, provisionar status de sistema
-      if (selectedPlan.startsWith('pro_galery')) {
+      if (selectedPlan.startsWith('combo')) {
         console.log('🔧 Provisionando status de sistema para:', editingEmail);
         await supabase.functions.invoke('provision-gallery-workflow-statuses', {
           body: { email: editingEmail, action: 'provision' }
@@ -252,7 +269,7 @@ export default function AllowedEmailsManager() {
 
   const openEditPlanModal = (email: string, currentPlan: string | null) => {
     setEditingEmail(email);
-    setSelectedPlan(currentPlan || 'pro_galery_monthly');
+    setSelectedPlan(currentPlan || 'combo_completo');
     setEditPlanModalOpen(true);
   };
 
