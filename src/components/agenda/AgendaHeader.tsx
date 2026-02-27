@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Settings, Share2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, Share2, Crown } from "lucide-react";
 import { formatDateTitle, formatDayTitle, ViewType } from '@/utils/dateFormatters';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useAccessControl } from '@/hooks/useAccessControl';
+import { toast } from 'sonner';
 
 interface AgendaHeaderProps {
   view: ViewType;
@@ -25,6 +27,7 @@ export default function AgendaHeader({
   onOpenShare
 }: AgendaHeaderProps) {
   const { isMobile, isTablet, classes } = useResponsiveLayout();
+  const { hasPro } = useAccessControl();
 
   const viewButtons = [
     { key: 'day' as const, label: 'Dia' },
@@ -93,10 +96,24 @@ export default function AgendaHeader({
     </div>
   );
 
+  const handleManageClick = () => {
+    if (!hasPro) {
+      toast('Recurso exclusivo do plano Pro', {
+        description: 'Faça upgrade para gerenciar horários de disponibilidade.',
+        action: {
+          label: 'Ver planos',
+          onClick: () => window.location.href = '/escolher-plano',
+        },
+      });
+      return;
+    }
+    onOpenAvailability();
+  };
+
   const ManageButton = () => (
     <Button
       variant="outline"
-      onClick={onOpenAvailability}
+      onClick={handleManageClick}
       className={`bg-lunar-surface hover:bg-lunar-border border-lunar-border ${
         isMobile 
           ? `${classes.iconButton}` 
@@ -106,11 +123,10 @@ export default function AgendaHeader({
       }`}
       title={isMobile ? "Gerenciar Horários" : undefined}
     >
-      <Settings className="h-4 w-4" />
+      {!hasPro && <Crown className="h-3.5 w-3.5 text-primary" />}
+      {hasPro && <Settings className="h-4 w-4" />}
       {!isMobile && (
-        <>
-          <span className="ml-2">Gerenciar Horários</span>
-        </>
+        <span className="ml-1">Gerenciar Horários</span>
       )}
     </Button>
   );

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plug, CreditCard, Calendar } from 'lucide-react';
+import { Plug, CreditCard, Calendar, Crown, Lock } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PagamentosTab } from '@/components/integracoes/PagamentosTab';
 import { GoogleCalendarCard } from '@/components/integracoes/GoogleCalendarCard';
 import { useIntegracoes } from '@/hooks/useIntegracoes';
 import { useGoogleCalendarIntegration } from '@/hooks/useGoogleCalendarIntegration';
+import { useAccessControl } from '@/hooks/useAccessControl';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -35,6 +36,7 @@ export function IntegracoesTab() {
   } = useIntegracoes();
 
   const { refetch: refetchGoogleCalendar } = useGoogleCalendarIntegration();
+  const { hasPro } = useAccessControl();
 
   // Handle OAuth callbacks (Mercado Pago and Google Calendar)
   useEffect(() => {
@@ -113,9 +115,26 @@ export function IntegracoesTab() {
             <CreditCard className="h-4 w-4" />
             Pagamentos
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2">
+          <TabsTrigger 
+            value="calendar" 
+            className="gap-2"
+            onClick={(e) => {
+              if (!hasPro) {
+                e.preventDefault();
+                toast('Recurso exclusivo do plano Pro', {
+                  description: 'Faça upgrade para integrar com o Google Calendar.',
+                  action: {
+                    label: 'Ver planos',
+                    onClick: () => window.location.href = '/escolher-plano',
+                  },
+                });
+              }
+            }}
+            disabled={!hasPro}
+          >
             <Calendar className="h-4 w-4" />
             Google Calendar
+            {!hasPro && <Crown className="h-3.5 w-3.5 text-primary" />}
           </TabsTrigger>
         </TabsList>
 

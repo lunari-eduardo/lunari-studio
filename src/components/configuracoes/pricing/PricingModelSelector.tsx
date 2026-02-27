@@ -8,8 +8,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Crown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAccessControl } from '@/hooks/useAccessControl';
 
 interface PricingModelSelectorProps {
   currentModel: 'fixo' | 'global' | 'categoria';
@@ -19,12 +20,22 @@ interface PricingModelSelectorProps {
 export function PricingModelSelector({ currentModel, onModelChange }: PricingModelSelectorProps) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [novoModelo, setNovoModelo] = useState<'fixo' | 'global' | 'categoria' | null>(null);
+  const { hasPro } = useAccessControl();
 
   const handleModeloChange = (modelo: 'fixo' | 'global' | 'categoria') => {
-    // If same model, do nothing
     if (modelo === currentModel) return;
 
-    // Store new model and show confirmation
+    if (!hasPro && (modelo === 'global' || modelo === 'categoria')) {
+      toast('Recurso exclusivo do plano Pro', {
+        description: 'Faça upgrade para usar tabelas progressivas.',
+        action: {
+          label: 'Ver planos',
+          onClick: () => window.location.href = '/escolher-plano',
+        },
+      });
+      return;
+    }
+
     setNovoModelo(modelo);
     setShowConfirmModal(true);
   };
@@ -63,11 +74,12 @@ export function PricingModelSelector({ currentModel, onModelChange }: PricingMod
               </div>
             </div>
 
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="global" id="global" className="mt-1" />
+            <div className={`flex items-start space-x-2 ${!hasPro ? 'opacity-60' : ''}`}>
+              <RadioGroupItem value="global" id="global" className="mt-1" disabled={!hasPro} />
               <div className="space-y-1">
-                <Label htmlFor="global" className="font-medium">
+                <Label htmlFor="global" className="font-medium flex items-center gap-1.5">
                   Tabela Progressiva Global
+                  {!hasPro && <Crown className="h-3.5 w-3.5 text-primary" />}
                 </Label>
                 <p className="text-muted-foreground text-xs">
                   Uma única tabela de preços progressivos aplicada a todos os pacotes.
@@ -76,11 +88,12 @@ export function PricingModelSelector({ currentModel, onModelChange }: PricingMod
               </div>
             </div>
 
-            <div className="flex items-start space-x-2">
-              <RadioGroupItem value="categoria" id="categoria" className="mt-1" />
+            <div className={`flex items-start space-x-2 ${!hasPro ? 'opacity-60' : ''}`}>
+              <RadioGroupItem value="categoria" id="categoria" className="mt-1" disabled={!hasPro} />
               <div className="space-y-1">
-                <Label htmlFor="categoria" className="font-medium">
+                <Label htmlFor="categoria" className="font-medium flex items-center gap-1.5">
                   Tabela Progressiva por Categoria
+                  {!hasPro && <Crown className="h-3.5 w-3.5 text-primary" />}
                 </Label>
                 <p className="text-muted-foreground text-xs">
                   Cada categoria de serviço tem sua própria tabela de preços progressivos.
