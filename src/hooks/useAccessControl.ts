@@ -235,7 +235,6 @@ export const useAccessControl = () => {
   const hasPro = accessState.status === 'ok' && 
     (accessState.isAdmin || 
      accessState.isVip || 
-     accessState.isAuthorized ||
      accessState.planCode?.includes('pro') ||
      accessState.planCode?.includes('combo') ||
      accessState.isTrial);
