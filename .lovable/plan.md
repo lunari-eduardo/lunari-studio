@@ -1,48 +1,52 @@
 
 
-# Fix: Checkout UX Issues (3 items)
+# Fix: Authorized emails ignoring plan_code for Pro access
 
-## Issue 1: Remove address fields from checkout
+## Root Cause
 
-**File**: `src/pages/EscolherPlanoPagamento.tsx`
-
-Remove the CEP and "Nº endereço" fields (lines 462-471), remove `postalCode` and `addressNumber` state variables, remove CEP validation from `validatePersonalData`, and hardcode `postalCode: "00000000"` and `addressNumber: "S/N"` in the `holderPayload` (lines 222-223) since Asaas requires these fields but we don't need to collect them from the user.
-
-Also remove from `CardData` interface (lines 286-287).
-
-## Issue 2: Autofilled inputs appear gray
-
-**File**: `src/components/ui/input.tsx`
-
-Add CSS to override browser autofill styling. Add these classes to the input:
-```
-autofill:bg-lunar-surface autofill:text-lunar-text
-[-webkit-autofill]:bg-lunar-surface [-webkit-autofill]:text-lunar-text
-```
-And add a `<style>` or use Tailwind's `autofill:` variant with `shadow-[inset_0_0_0px_1000px]` trick to force background color on autofill.
-
-## Issue 3: After upgrade, hide cancelled old subscription
-
-**File**: `src/hooks/useAsaasSubscription.ts`
-
-In the query function, after fetching active subscriptions, modify the fallback logic for CANCELLED subs (around line 125-131). Currently it adds cancelled subs if no active sub has the same `plan_type`. After an upgrade, the old plan has a different plan_type so it passes the filter.
-
-Fix: If any ACTIVE subscription exists, skip the cancelled fallback entirely. The cancelled sub from a replaced plan should not show. Only show cancelled subs when there are zero active/pending/overdue subscriptions (meaning user explicitly cancelled, not upgraded).
+In `useAccessControl.ts` line 238, `hasPro` treats ALL `isAuthorized` users as Pro:
 
 ```typescript
-// Only show cancelled subs if user has NO active subscriptions at all
-if (results.length === 0 && cancelledSubs) {
-  results.push(...(cancelledSubs as unknown as AsaasSubscription[]));
-}
+const hasPro = accessState.status === 'ok' && 
+  (accessState.isAdmin || 
+   accessState.isVip || 
+   accessState.isAuthorized ||  // ← BUG: ignores planCode
+   ...);
 ```
 
-This way: upgrade → old sub cancelled → new sub ACTIVE → only new sub shows. Manual cancel → no active subs → cancelled sub shows with "active until" notice.
+When admin sets an allowed email to `studio_starter`, `get_access_state()` correctly returns `planCode: 'studio_starter'` and `isAuthorized: true`. But the client-side `hasPro` flag blindly returns `true` for any authorized user, regardless of their actual plan.
+
+Same issue exists in `PlanRestrictionGuard.tsx` line 48 which checks `accessState?.isAuthorized` directly.
+
+## Fix
+
+### Step 1: Fix `hasPro` in `useAccessControl.ts`
+
+Remove `accessState.isAuthorized` from the `hasPro` calculation. Authorized users should be evaluated by their `planCode` just like everyone else:
+
+```typescript
+const hasPro = accessState.status === 'ok' && 
+  (accessState.isAdmin || 
+   accessState.isVip || 
+   accessState.planCode?.includes('pro') ||
+   accessState.planCode?.includes('combo') ||
+   accessState.isTrial);
+```
+
+### Step 2: Fix `PlanRestrictionGuard.tsx`
+
+Remove `accessState?.isAuthorized` from the bypass condition:
+
+```typescript
+if (accessState?.isAdmin || accessState?.isVip || hasPro) {
+  return <>{children}</>;
+}
+```
 
 ## Files to modify
 
 | File | Change |
 |------|--------|
-| `src/pages/EscolherPlanoPagamento.tsx` | Remove CEP/address fields, hardcode in payload |
-| `src/components/ui/input.tsx` | Fix autofill styling |
-| `src/hooks/useAsaasSubscription.ts` | Only show cancelled subs when no active subs exist |
+| `src/hooks/useAccessControl.ts` | Remove `isAuthorized` from `hasPro` |
+| `src/components/auth/PlanRestrictionGuard.tsx` | Remove `isAuthorized` from bypass |
 
