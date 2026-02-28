@@ -220,7 +220,15 @@ Deno.serve(async (req) => {
         billing_cycle: billingCycle,
         status: asaasData.status || "ACTIVE",
         value_cents: valueCents,
-        next_due_date: asaasData.nextDueDate,
+        next_due_date: (() => {
+          const periodEnd = new Date();
+          if (billingCycle === "YEARLY") {
+            periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          } else {
+            periodEnd.setDate(periodEnd.getDate() + 30);
+          }
+          return periodEnd.toISOString().split("T")[0];
+        })(),
         metadata: {
           creditCardToken,
           creditCardBrand: asaasData.creditCard?.creditCardBrand || null,

@@ -212,22 +212,28 @@ Deno.serve(async (req) => {
     // Handle payment events
     if (event === "PAYMENT_CONFIRMED" || event === "PAYMENT_RECEIVED") {
       if (payment?.subscription) {
-        await adminClient
-          .from("subscriptions_asaas")
-          .update({
-            status: "ACTIVE",
-            next_due_date: payment.dueDate,
-          })
-          .eq("asaas_subscription_id", payment.subscription);
-
-        console.log("Subscription activated:", payment.subscription);
-
-        // Check for pending downgrade
+        // Fetch subscription first to get billing_cycle
         const { data: sub } = await adminClient
           .from("subscriptions_asaas")
           .select("*")
           .eq("asaas_subscription_id", payment.subscription)
           .single();
+
+        // Calculate next period end from payment date
+        const paymentDate = new Date(payment.dueDate || new Date());
+        const cycleDays = sub?.billing_cycle === "YEARLY" ? 365 : 30;
+        const nextPeriodEnd = new Date(paymentDate);
+        nextPeriodEnd.setDate(nextPeriodEnd.getDate() + cycleDays);
+
+        await adminClient
+          .from("subscriptions_asaas")
+          .update({
+            status: "ACTIVE",
+            next_due_date: nextPeriodEnd.toISOString().split("T")[0],
+          })
+          .eq("asaas_subscription_id", payment.subscription);
+
+        console.log("Subscription activated:", payment.subscription, "next_due_date:", nextPeriodEnd.toISOString().split("T")[0]);
 
         if (sub?.pending_downgrade_plan) {
           await applyDowngrade(adminClient, sub);
@@ -290,18 +296,26 @@ Deno.serve(async (req) => {
     if (event === "SUBSCRIPTION_RENEWED") {
       const subId = subscription?.id || body.id;
       if (subId) {
-        await adminClient
-          .from("subscriptions_asaas")
-          .update({ status: "ACTIVE" })
-          .eq("asaas_subscription_id", subId);
-
-        console.log("Subscription renewed:", subId);
-
         const { data: sub } = await adminClient
           .from("subscriptions_asaas")
           .select("*")
           .eq("asaas_subscription_id", subId)
           .single();
+
+        // Calculate next period end
+        const cycleDays = sub?.billing_cycle === "YEARLY" ? 365 : 30;
+        const nextPeriodEnd = new Date();
+        nextPeriodEnd.setDate(nextPeriodEnd.getDate() + cycleDays);
+
+        await adminClient
+          .from("subscriptions_asaas")
+          .update({
+            status: "ACTIVE",
+            next_due_date: nextPeriodEnd.toISOString().split("T")[0],
+          })
+          .eq("asaas_subscription_id", subId);
+
+        console.log("Subscription renewed:", subId, "next_due_date:", nextPeriodEnd.toISOString().split("T")[0]);
 
         if (sub) {
           // Renew subscription credits if plan includes them

@@ -246,13 +246,13 @@ Deno.serve(async (req) => {
       cycle: billingCycle,
       value: newValueReais,
       nextDueDate: (() => {
+        const d = new Date();
         if (billingCycle === 'YEARLY') {
-          // Monthly→Annual: restart cycle, next due = now + 1 year
-          const d = new Date();
           d.setFullYear(d.getFullYear() + 1);
-          return d.toISOString().split("T")[0];
+        } else {
+          d.setDate(d.getDate() + 30);
         }
-        return latestNextDueDate || getNextBusinessDay();
+        return d.toISOString().split("T")[0];
       })(),
       description: `${newPlan.name} - ${billingCycle === "YEARLY" ? "Anual" : "Mensal"}`,
       externalReference: userId,
@@ -303,7 +303,15 @@ Deno.serve(async (req) => {
         billing_cycle: billingCycle,
         status: newSubData.status || "ACTIVE",
         value_cents: newPriceCents,
-        next_due_date: newSubData.nextDueDate,
+        next_due_date: (() => {
+          const d = new Date();
+          if (billingCycle === "YEARLY") {
+            d.setFullYear(d.getFullYear() + 1);
+          } else {
+            d.setDate(d.getDate() + 30);
+          }
+          return d.toISOString().split("T")[0];
+        })(),
         metadata: {
           creditCardToken,
           creditCardBrand: newSubData.creditCard?.creditCardBrand || null,
