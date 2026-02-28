@@ -220,7 +220,7 @@ function SubscriptionForm({ pkg, formattedPrice }: { pkg: SubscriptionPayment; f
             name: cardData.name,
             email: user?.email || "",
             cpfCnpj: cardData.cpfCnpj.replace(/\D/g, ""),
-            postalCode: "00000000",
+            postalCode: cardData.postalCode.replace(/\D/g, ""),
             addressNumber: "S/N",
             phone: cardData.phone.replace(/\D/g, ""),
           };
@@ -285,6 +285,7 @@ interface CardData {
   name: string;
   cpfCnpj: string;
   phone: string;
+  postalCode: string;
   cardNumber: string;
   cardHolderName: string;
   expiryMonth: string;
@@ -308,6 +309,7 @@ function CardCheckoutForm({ onSubmit, submitLabel, isProcessing }: CardCheckoutF
   const [name, setName] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
+  const [postalCode, setPostalCode] = useState("");
 
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolderName, setCardHolderName] = useState("");
@@ -326,6 +328,8 @@ function CardCheckoutForm({ onSubmit, submitLabel, isProcessing }: CardCheckoutF
     if (cleanCpf.length !== 11 && cleanCpf.length !== 14) { toast({ title: "CPF ou CNPJ inválido.", variant: "destructive" }); return false; }
     const cleanPhone = phone.replace(/\D/g, "");
     if (cleanPhone.length < 10) { toast({ title: "Telefone inválido.", variant: "destructive" }); return false; }
+    const cleanCep = postalCode.replace(/\D/g, "");
+    if (cleanCep.length !== 8) { toast({ title: "CEP inválido. Informe 8 dígitos.", variant: "destructive" }); return false; }
     return true;
   };
 
@@ -346,7 +350,7 @@ function CardCheckoutForm({ onSubmit, submitLabel, isProcessing }: CardCheckoutF
     setStep("processing");
     setErrorMessage("");
     try {
-      await onSubmit({ name, cpfCnpj, phone, cardNumber, cardHolderName, expiryMonth, expiryYear, ccv });
+      await onSubmit({ name, cpfCnpj, phone, postalCode, cardNumber, cardHolderName, expiryMonth, expiryYear, ccv });
       setStep("success");
     } catch (error) {
       setStep("error");
@@ -454,6 +458,10 @@ function CardCheckoutForm({ onSubmit, submitLabel, isProcessing }: CardCheckoutF
       <div className="space-y-1.5">
         <Label htmlFor="phone">Telefone</Label>
         <Input id="phone" placeholder="(00) 00000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="postalCode">CEP</Label>
+        <Input id="postalCode" placeholder="00000-000" maxLength={9} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
       </div>
 
       <Button className="w-full" size="lg" onClick={() => { if (validatePersonalData()) setStep("card"); }}>
