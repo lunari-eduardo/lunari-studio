@@ -1,36 +1,35 @@
 
 
-# Problem: Edge functions were edited but never deployed
+# Fix: Navigation loop between EscolherPlano and EscolherPlanoPagamento
 
-The code fixes for `next_due_date` are correct in the source files, but the Supabase Edge Functions were **never deployed to production**. The old code is still running, storing wrong dates.
+## Problem
 
-**Proof from DB:**
-- `studio_starter` created `2026-02-28` → `next_due_date: 2026-03-02` (should be `2026-03-30`)
-- `transfer_5gb` created `2026-02-28` → `next_due_date: 2026-03-02` (should be `2026-03-30`)
+The "Voltar" button on `EscolherPlano.tsx` uses `navigate(-1)` (browser history back). When the user flow is:
 
-## Steps
+1. MinhaAssinatura → EscolherPlano → Pagamento
+2. User clicks "Voltar" on Pagamento → goes to `/escolher-plano` (correct)
+3. User clicks "Voltar" on EscolherPlano → `navigate(-1)` goes back to `/escolher-plano/pagamento` (loop!)
 
-### 1. Deploy all 3 edge functions
-- `asaas-create-subscription` — stores correct period end
-- `asaas-upgrade-subscription` — calculates fresh period end for new sub
-- `asaas-webhook` — advances `next_due_date` correctly on payment/renewal
+The history stack becomes: `[..., /escolher-plano, /pagamento, /escolher-plano]`, so `-1` goes right back to pagamento.
 
-### 2. Fix existing broken records in DB
-Run a corrective query to set `next_due_date = created_at + 30 days` (monthly) or `+ 1 year` (yearly) for all active subscriptions that currently have wrong dates:
+## Fix
 
-```sql
-UPDATE subscriptions_asaas
-SET next_due_date = 
-  CASE 
-    WHEN billing_cycle = 'YEARLY' THEN (created_at + interval '1 year')::date
-    ELSE (created_at + interval '30 days')::date
-  END
-WHERE status IN ('ACTIVE', 'PENDING')
-  AND next_due_date < (created_at + interval '5 days')::date;
+Replace `navigate(-1)` in `EscolherPlano.tsx` with an explicit route. The primary entry point is `/minha-assinatura`, with fallbacks from the access wall or trial banner. Using `/minha-assinatura` as the explicit back target is the safest choice since that's the main management page.
+
+### `src/pages/EscolherPlano.tsx` (line 262)
+
+Change:
+```typescript
+onClick={() => navigate(-1)}
+```
+To:
+```typescript
+onClick={() => navigate("/minha-assinatura")}
 ```
 
-This targets only records where `next_due_date` is suspiciously close to `created_at` (within 5 days — the telltale sign of the old `getNextBusinessDay()` bug).
+### Files to modify
 
-### No code changes needed
-The source code is already correct. This is purely a deployment + data fix.
+| File | Change |
+|------|--------|
+| `src/pages/EscolherPlano.tsx` | Replace `navigate(-1)` with `navigate("/minha-assinatura")` on back button |
 
