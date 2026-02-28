@@ -1,91 +1,50 @@
 
 
-# Unify Edge Functions + UI Fixes for Cross-Project Compatibility
+# Fix: Cross-product upgrade prorata for Gallery → Combo
 
-## Problem
+## Root Cause
 
-Both Gestão and Gallery deploy to the **same Supabase instance**. Whichever project deploys last overwrites the shared edge functions. The Gestão versions are outdated — missing transfer plans, credit handling, storage over-limit logic, auto-healing, and webhook logging. The Gallery versions are the source of truth per the technical handoff document.
+`EscolherPlano.tsx` line 99 filters `activeSub` to only Studio-family plans (`isStudioFamilyPlan`). When the user has only `transfer_5gb`, `studioSub` is null, `isUpgradeMode` is false, and the page treats any selection as a brand new subscription — no prorata discount.
 
-## Comparison: What Gestão is Missing
+The edge function `asaas-upgrade-subscription` already supports `subscriptionIdsToCancel[]` for cross-product upgrades, but the frontend never sends it.
 
-| Edge Function | Missing in Gestão |
-|---|---|
-| `asaas-create-subscription` | transfer_* plans, `PLAN_SUBSCRIPTION_CREDITS`, `renew_subscription_credits()` call for combos |
-| `asaas-upgrade-subscription` | transfer_* plans, over-limit cleanup, gallery reactivation, `STORAGE_LIMITS` |
-| `asaas-create-payment` | transfer_* plans, `select` productType, auto-healing for invalid customer, `requestId` |
-| `asaas-webhook` | credit expiry/renewal (`expire_subscription_credits`, `renew_subscription_credits`), storage over-limit mode, webhook logging |
-| `asaas-downgrade-subscription` | transfer_* plans in `PLAN_ORDER`, storage over-limit check |
+## Fix
 
-## Plan
+### Step 1: Update `EscolherPlano.tsx` — detect cross-product upgrades
 
-### Step 1: Update `asaas-create-subscription/index.ts`
+Instead of only checking for a studio subscription, check ALL active subscriptions. When selecting a combo/plan that "includes" a capability the user already has via another subscription, treat it as an upgrade with prorata.
 
-Sync with Gallery version. Key additions:
-- Add all transfer plans to `PLANS` map
-- Add `PLAN_SUBSCRIPTION_CREDITS` map (`combo_pro_select2k: 2000`, `combo_completo: 2000`)
-- After inserting subscription, call `renew_subscription_credits` RPC if plan includes credits
+**Logic:**
+- Get all active subs from `useAsaasSubscription().subscriptions`
+- For each plan card, check if the new plan's `PLAN_INCLUDES` overlaps with any active subscription's capabilities
+- If overlap exists, calculate combined prorata from ALL overlapping subscriptions
+- Pass `subscriptionIdsToCancel: string[]` (array) to payment page instead of single `currentSubscriptionId`
 
-### Step 2: Update `asaas-upgrade-subscription/index.ts`
+**Concrete changes:**
+- Replace `const { subscription: activeSub, ... }` with `const { subscriptions: allSubs, subscription: activeSub, ... }`
+- Compute `overlappingSubs` for each plan card: active subs whose product capabilities are included in the new plan
+- Calculate combined `creditCents` from all overlapping subs
+- Pass `subscriptionIdsToCancel` array + combined prorata to payment page
 
-Sync with Gallery version. Key additions:
-- Add all transfer plans to `PLANS` map
-- After upgrade: clear `account_over_limit`, `over_limit_since`, `deletion_scheduled_at` flags
-- Reactivate galleries with status `expired_due_to_plan` if new plan has storage
+### Step 2: Update `EscolherPlanoPagamento.tsx` — send array to edge function
 
-### Step 3: Update `asaas-create-payment/index.ts`
+**Changes to `SubscriptionPayment` interface:**
+- Add `subscriptionIdsToCancel?: string[]` (replaces `currentSubscriptionId` for cross-product)
 
-Sync with Gallery version. Key additions:
-- Add all transfer plans to `PLANS` map
-- Support `productType = "select"` (credit purchases via Asaas card)
-- Auto-healing: if Asaas returns customer error, clear `asaas_customer_id`, recreate, retry 1x
-- Add `requestId` to all responses for tracing
+**Changes to `SubscriptionForm` onSubmit:**
+- When `isUpgrade`, send `subscriptionIdsToCancel` array to `upgradeSubscription()` instead of single `currentSubscriptionId`
 
-### Step 4: Update `asaas-webhook/index.ts`
+### Step 3: Update `useAsaasSubscription.ts` — support `subscriptionIdsToCancel`
 
-Sync with Gallery version. Key additions:
-- Add `PLAN_SUBSCRIPTION_CREDITS` and `PLAN_PRICES` maps (all plans)
-- `SUBSCRIPTION_DELETED/INACTIVATED`: call `expire_subscription_credits` if plan had credits
-- `SUBSCRIPTION_RENEWED`: call `renew_subscription_credits` if plan has credits
-- `applyDowngrade`: add storage over-limit check (set `account_over_limit`, expire galleries)
-- Add webhook logging to `webhook_logs` table
+**Changes to `UpgradeSubscriptionParams`:**
+- Add optional `subscriptionIdsToCancel?: string[]`
+- In `mutationFn`, send `subscriptionIdsToCancel` to the edge function body (the edge function already supports it)
 
-### Step 5: Update `asaas-downgrade-subscription/index.ts`
-
-Add transfer plans to `PLAN_ORDER` so cross-product downgrades work:
-```
-const PLAN_ORDER = [
-  "studio_starter", "transfer_5gb", "transfer_20gb",
-  "studio_pro", "transfer_50gb",
-  "combo_pro_select2k", "transfer_100gb",
-  "combo_completo",
-];
-```
-
-### Step 6: Update `src/lib/planConfig.ts`
-
-Add transfer plan display names and prices:
-```typescript
-transfer_5gb: 'Transfer 5GB',
-transfer_20gb: 'Transfer 20GB',
-transfer_50gb: 'Transfer 50GB',
-transfer_100gb: 'Transfer 100GB',
-```
-
-### Step 7: Update `src/pages/EscolherPlano.tsx`
-
-- Remove the `<Badge>Gestão</Badge>` (line 186-188)
-- Filter `activeSub` in upgrade banner to only show studio/combo plans (not transfer-only)
-- If user has a non-studio subscription (e.g., `transfer_5gb`), show subtle inline note with plan icon and marketing name instead of full upgrade banner
-
-## Files to Modify
+## Files to modify
 
 | File | Change |
 |------|--------|
-| `supabase/functions/asaas-create-subscription/index.ts` | Add all plans + credit granting |
-| `supabase/functions/asaas-upgrade-subscription/index.ts` | Add all plans + over-limit cleanup + gallery reactivation |
-| `supabase/functions/asaas-create-payment/index.ts` | Add all plans + select support + auto-healing |
-| `supabase/functions/asaas-webhook/index.ts` | Add credit lifecycle + storage over-limit + logging |
-| `supabase/functions/asaas-downgrade-subscription/index.ts` | Add transfer plans to PLAN_ORDER |
-| `src/lib/planConfig.ts` | Add transfer plan names + prices |
-| `src/pages/EscolherPlano.tsx` | Remove badge, filter upgrade banner |
+| `src/pages/EscolherPlano.tsx` | Detect cross-product overlaps, calculate combined prorata, pass `subscriptionIdsToCancel[]` |
+| `src/pages/EscolherPlanoPagamento.tsx` | Accept and forward `subscriptionIdsToCancel[]` |
+| `src/hooks/useAsaasSubscription.ts` | Add `subscriptionIdsToCancel` to upgrade params |
 
