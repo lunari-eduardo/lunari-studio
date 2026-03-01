@@ -32,22 +32,22 @@ export function WorkflowCard({
       data-card-id={session.id}
       className={cn(
         // Base styles
-        "rounded-2xl transition-all duration-200 ease-in-out",
-        // Gradient background - light mode (neutral white/gray)
-        "bg-gradient-to-br from-white via-gray-50/50 to-stone-50/30",
+        "rounded-2xl transition-all duration-200 ease-in-out w-full",
+        // Gradient background - light mode (visible contrast)
+        "bg-gradient-to-br from-white via-gray-100/60 to-gray-50/80",
         // Gradient background - dark mode (warm grays, no blue)
-        "dark:from-[#1a1a1a] dark:via-[#1f1f1f] dark:to-[#1a1a1a]",
+        "dark:bg-gradient-to-br dark:from-[#1a1a1a] dark:via-[#1f1f1f] dark:to-[#1a1a1a]",
+        // Border for card separation
+        "border border-gray-200/60 dark:border-gray-700/40",
         // Minimal base shadow
-        "shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.2)]",
-        // Width: 70% no desktop, 100% no mobile
-        "w-full lg:w-[70%]",
-        "ml-0",
-        // Hover state - adds shadow
-        "hover:shadow-[0_6px_20px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_6px_20px_rgba(0,0,0,0.4)]",
-        // Expanded state
+        "shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.15)]",
+        // Hover state - strong lift
+        !isExpanded && "hover:shadow-[0_8px_28px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_8px_28px_rgba(0,0,0,0.5)]",
+        // Expanded state - moderate shadow (less than hover so hover still adds depth)
         isExpanded && [
-          "shadow-[0_8px_24px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.45)]",
-          "from-white via-gray-50/70 to-stone-50/40",
+          "shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.35)]",
+          "hover:shadow-[0_10px_32px_rgba(0,0,0,0.14)] dark:hover:shadow-[0_10px_32px_rgba(0,0,0,0.55)]",
+          "from-white via-gray-100/70 to-gray-50/90",
           "dark:from-[#1c1c1c] dark:via-[#222] dark:to-[#1c1c1c]"
         ]
       )}
