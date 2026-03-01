@@ -50,14 +50,14 @@ export function WorkflowCardList({
   return (
     <div 
       ref={containerRef}
-      className="h-full w-full overflow-auto p-4 md:p-6 bg-gradient-to-b from-gray-50/60 via-white to-gray-50/40 dark:from-[#111] dark:via-[#141414] dark:to-[#111]"
+      className="h-full w-full overflow-auto p-4 md:p-6 bg-gradient-to-b from-gray-100/80 via-gray-50 to-gray-100/60 dark:bg-gradient-to-b dark:from-[#0e0e0e] dark:via-[#131313] dark:to-[#0e0e0e]"
       style={{ 
         height: 'calc(100vh - 280px)'
       }}
     >
-      <div className="flex flex-col gap-3 md:gap-4 overflow-x-auto md:overflow-x-visible">
+      <div className="flex flex-col gap-3 md:gap-4 overflow-x-auto">
         {sessions.map(session => (
-          <div key={session.id} className="min-w-[360px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+          <div key={session.id} className="min-w-[1100px] flex-shrink-0">
           <WorkflowCard
             session={session}
             isExpanded={expandedCardId === session.id}
