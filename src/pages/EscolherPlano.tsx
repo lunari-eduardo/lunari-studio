@@ -115,7 +115,9 @@ export default function EscolherPlano() {
     : 0;
 
   const daysRemaining = nextDueDate ? Math.max(0, differenceInDays(new Date(nextDueDate), new Date())) : 0;
-  const totalCycleDays = currentBillingCycle === "YEARLY" ? 365 : 30;
+  const totalCycleDays = (nextDueDate && studioSub?.created_at)
+    ? Math.max(1, differenceInDays(new Date(nextDueDate), new Date(studioSub.created_at)))
+    : (currentBillingCycle === "YEARLY" ? 365 : 30);
 
   /** Find active subs whose capabilities overlap with the target plan */
   function getOverlappingSubs(targetPlanType: string): AsaasSubscription[] {
@@ -145,8 +147,11 @@ export default function EscolherPlano() {
       const subDaysRemaining = sub.next_due_date
         ? Math.max(0, differenceInDays(new Date(sub.next_due_date), new Date()))
         : 0;
-      const subTotalDays = sub.billing_cycle === "YEARLY" ? 365 : 30;
-      totalCreditCents += Math.round(subPriceCents * (subDaysRemaining / subTotalDays));
+      const subTotalDays = (sub.next_due_date && sub.created_at)
+        ? Math.max(1, differenceInDays(new Date(sub.next_due_date), new Date(sub.created_at)))
+        : (sub.billing_cycle === "YEARLY" ? 365 : 30);
+      const rawCredit = Math.round(subPriceCents * (subDaysRemaining / subTotalDays));
+      totalCreditCents += Math.min(rawCredit, subPriceCents); // cap at plan price
       idsToCancel.push(sub.id);
     }
     return {
@@ -187,8 +192,7 @@ export default function EscolherPlano() {
       const newPriceCents = selectedCycle === "YEARLY"
         ? (newPlanPrices?.yearly || priceCents)
         : (newPlanPrices?.monthly || priceCents);
-      const creditCents = Math.round(currentPriceCents * (daysRemaining / totalCycleDays));
-      const prorataValueCents = Math.max(0, newPriceCents - creditCents);
+      const creditCents = Math.min(Math.round(currentPriceCents * (daysRemaining / totalCycleDays)), currentPriceCents);
 
       // Also check for additional cross-product overlaps (e.g., user has studio + transfer, upgrading to combo)
       const crossProduct = getCrossProductProrata(planType, newPriceCents);
@@ -335,7 +339,7 @@ export default function EscolherPlano() {
 
             let prorataValue: number | null = null;
             if (isUpgrade) {
-              const creditCents = Math.round(currentPriceCents * (daysRemaining / totalCycleDays));
+              const creditCents = Math.min(Math.round(currentPriceCents * (daysRemaining / totalCycleDays)), currentPriceCents);
               const crossProduct = getCrossProductProrata(plan.code, price);
               let combinedCredit = creditCents;
               if (crossProduct) {
@@ -463,7 +467,7 @@ export default function EscolherPlano() {
 
             let prorataValue: number | null = null;
             if (isUpgradeFlag) {
-              const creditCents = Math.round(currentPriceCents * (daysRemaining / totalCycleDays));
+              const creditCents = Math.min(Math.round(currentPriceCents * (daysRemaining / totalCycleDays)), currentPriceCents);
               const crossProduct = getCrossProductProrata(plan.code, price);
               let combinedCredit = creditCents;
               if (crossProduct) {
