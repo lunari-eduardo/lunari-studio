@@ -1,37 +1,94 @@
 
 
-# Diagnóstico e Correção: Página de Planos Travando
+# Plano: Créditos no Admin + Sistema de Cupons de Desconto
 
-## Causa Raiz
+## Resumo
 
-A página `EscolherPlano.tsx` foi refatorada para usar `useUnifiedPlans()`, mas **não trata o estado de loading**. Enquanto a query carrega, `getAllPlanPrices()` retorna `{}`. O código acessa `prices.yearly` sem null check (linhas 338 e 466), causando crash imediato (`Cannot read properties of undefined`).
+Adicionar ao painel Admin a gestão de pacotes de créditos Select (já existem na tabela `gallery_credit_packages`) e criar um sistema completo de cupons de desconto compartilhado entre Gestão e Gallery.
 
-## Correção
+---
 
-### 1. Adicionar loading guard + null safety em `EscolherPlano.tsx`
+## 1. Gestão de Créditos no Admin
 
-- Mostrar `<Loader2>` enquanto `plansLoading` for `true`
-- Adicionar null checks em todos os acessos a `prices` (linhas 338, 398, 464, 466) com fallback `{ monthly: 0, yearly: 0 }`
-- Filtrar planos que não existem no banco (safety net)
+A tabela `gallery_credit_packages` já existe com a estrutura correta (name, credits, price_cents, active, sort_order). Basta adicionar uma seção no `AdminPlanos.tsx`:
 
-### 2. Adicionar fallback no hook `useUnifiedPlans`
+- Nova seção "Créditos Select" com tabela editável (nome, créditos, preço em centavos, ativo)
+- Mesma lógica de edição inline que já existe para planos
+- Botão "Salvar" unificado salva planos + créditos de uma vez
+- Possibilidade de adicionar/remover pacotes
 
-Se a query falhar (rede, RLS, etc), o hook deve retornar os valores hardcoded de `planConfig.ts` como fallback, garantindo que a página nunca trave.
+## 2. Nova Tabela: `coupons`
 
-## Sobre a Arquitetura: Um Admin ou Dois?
+Criar tabela para cupons de desconto:
 
-**Um único admin no Gestão é suficiente.** A tabela `unified_plans` é compartilhada no mesmo Supabase. O que falta é:
+```sql
+CREATE TABLE public.coupons (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  description text,
+  discount_type text NOT NULL DEFAULT 'percentage', -- 'percentage' | 'fixed_cents'
+  discount_value integer NOT NULL, -- % (ex: 10) ou centavos (ex: 1000)
+  applies_to text NOT NULL DEFAULT 'all', -- 'all' | 'studio' | 'transfer' | 'combo' | 'credits'
+  plan_codes text[] DEFAULT '{}', -- códigos específicos, vazio = todos da família
+  max_uses integer, -- NULL = ilimitado
+  current_uses integer NOT NULL DEFAULT 0,
+  valid_from timestamptz NOT NULL DEFAULT now(),
+  valid_until timestamptz, -- NULL = sem expiração
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-- **Gestão**: Já usa `useUnifiedPlans` (só precisa do fix de loading)
-- **Gallery**: Ainda usa hardcoded `ALL_PLAN_PRICES` em `transferPlans.ts` -- precisa da mesma migração para `useUnifiedPlans` (tarefa separada, no projeto Gallery)
-- **Edge Functions**: Já foram migradas para ler do banco
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
-Não é necessário duplicar o painel admin. O Gallery só precisa **ler** da mesma tabela.
+CREATE POLICY "Admins can manage coupons"
+  ON public.coupons FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'))
+  WITH CHECK (has_role(auth.uid(), 'admin'));
 
-## Arquivos a modificar
+CREATE POLICY "Authenticated users can read active coupons"
+  ON public.coupons FOR SELECT
+  TO authenticated
+  USING (is_active = true);
+```
 
-| Arquivo | Acao |
+## 3. Admin UI para Cupons
+
+Nova seção no `AdminPlanos.tsx` (ou sub-tab):
+
+- Listagem de cupons existentes
+- Criar novo cupom: código, tipo (% ou fixo), valor, aplica-se a (família ou plano específico), limite de usos, validade
+- Ativar/desativar cupom
+- Ver quantidade de usos
+
+## 4. Leitura nos Projetos (Gestão + Gallery)
+
+**Hook compartilhado** `useCouponValidation`:
+- Recebe código digitado pelo usuário
+- Valida: ativo, dentro da validade, usos < max_uses, aplica-se ao plano selecionado
+- Retorna desconto calculado
+
+**Edge Functions** (asaas-create-subscription, asaas-create-payment):
+- Recebem `couponCode` opcional no body
+- Validam no banco antes de aplicar desconto
+- Incrementam `current_uses` após uso bem-sucedido
+- Registram o cupom usado nos metadados da assinatura/pagamento
+
+## 5. Arquivos a Modificar
+
+| Arquivo | Ação |
 |---------|------|
-| `src/pages/EscolherPlano.tsx` | Loading state + null safety nos acessos a prices |
-| `src/hooks/useUnifiedPlans.ts` | Fallback para hardcoded se query falhar |
+| Migration SQL | **Criar** tabela `coupons` |
+| `src/pages/AdminPlanos.tsx` | **Editar** — adicionar seções Créditos + Cupons |
+| `src/hooks/useCouponValidation.ts` | **Criar** — validação client-side de cupons |
+| `supabase/functions/asaas-create-subscription/index.ts` | **Editar** — aceitar + validar cupom |
+| `supabase/functions/asaas-create-payment/index.ts` | **Editar** — aceitar + validar cupom |
+
+## Para o Gallery
+
+Enviar ao projeto Gallery:
+- Instruções para criar `useCouponValidation` (mesma lógica)
+- Ler `gallery_credit_packages` do banco em vez de hardcoded (se ainda não faz)
+- Adicionar campo de cupom no checkout
 
