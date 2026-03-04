@@ -297,14 +297,6 @@ Deno.serve(async (req) => {
 
     // Increment coupon usage
     if (couponId) {
-      await adminClient.rpc("increment_coupon_usage", { _coupon_id: couponId }).catch((err: any) => {
-        // Fallback: direct update if RPC doesn't exist yet
-        adminClient
-          .from("coupons")
-          .update({ current_uses: (await adminClient.from("coupons").select("current_uses").eq("id", couponId).single()).data?.current_uses + 1 })
-          .eq("id", couponId);
-      });
-      // Simple increment
       const { data: couponData } = await adminClient
         .from("coupons")
         .select("current_uses")
