@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ALL_PLAN_PRICES } from "@/lib/planConfig";
 
 export interface UnifiedPlan {
   id: string;
@@ -18,6 +19,11 @@ export interface UnifiedPlan {
   is_active: boolean;
 }
 
+/** Hardcoded fallback plans derived from planConfig.ts — used when DB is unreachable */
+function buildFallbackPrices(): Record<string, { monthly: number; yearly: number }> {
+  return { ...ALL_PLAN_PRICES };
+}
+
 export function useUnifiedPlans() {
   const query = useQuery({
     queryKey: ["unified-plans"],
@@ -32,6 +38,7 @@ export function useUnifiedPlans() {
       return (data as unknown as UnifiedPlan[]) || [];
     },
     staleTime: 5 * 60 * 1000, // 5 min
+    retry: 2,
   });
 
   const plans = query.data || [];
@@ -50,8 +57,9 @@ export function useUnifiedPlans() {
     return { monthly: plan.monthly_price_cents, yearly: plan.yearly_price_cents };
   }
 
-  /** Build a map equivalent to old ALL_PLAN_PRICES */
+  /** Build a map equivalent to old ALL_PLAN_PRICES — returns hardcoded fallback if DB empty/error */
   function getAllPlanPrices(): Record<string, { monthly: number; yearly: number }> {
+    if (plans.length === 0) return buildFallbackPrices();
     const map: Record<string, { monthly: number; yearly: number }> = {};
     for (const p of plans) {
       map[p.code] = { monthly: p.monthly_price_cents, yearly: p.yearly_price_cents };

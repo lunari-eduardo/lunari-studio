@@ -97,6 +97,7 @@ export default function EscolherPlano() {
   const { getAllPlanPrices, isLoading: plansLoading } = useUnifiedPlans();
   const ALL_PLAN_PRICES = getAllPlanPrices();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+  const defaultPrices = { monthly: 0, yearly: 0 };
 
   // Current plan detection — only consider Studio/Combo plans for upgrade mode
   const studioSub = activeSub && isStudioFamilyPlan(activeSub.plan_type) ? activeSub : null;
@@ -112,10 +113,8 @@ export default function EscolherPlano() {
   // All active subs for cross-product overlap detection
   const activeSubs = allSubscriptions.filter(s => s.status === "ACTIVE" || s.status === "PENDING");
 
-  const currentPlanPrices = ALL_PLAN_PRICES[currentPlanType];
-  const currentPriceCents = currentPlanPrices
-    ? (currentBillingCycle === "YEARLY" ? currentPlanPrices.yearly : currentPlanPrices.monthly)
-    : 0;
+  const currentPlanPrices = ALL_PLAN_PRICES[currentPlanType] || defaultPrices;
+  const currentPriceCents = currentBillingCycle === "YEARLY" ? currentPlanPrices.yearly : currentPlanPrices.monthly;
 
   const stdCycleDays = currentBillingCycle === "YEARLY" ? 365 : 30;
   const totalCycleDays = stdCycleDays;
@@ -333,7 +332,7 @@ export default function EscolherPlano() {
       <section className="container max-w-5xl pb-16 relative z-[1]">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {STUDIO_PLANS.map((plan) => {
-            const prices = ALL_PLAN_PRICES[plan.code];
+            const prices = ALL_PLAN_PRICES[plan.code] || defaultPrices;
             const effectiveCycle = billingPeriod === "monthly" ? "MONTHLY" : "YEARLY";
             const price = effectiveCycle === "YEARLY" ? prices.yearly : prices.monthly;
             const isCurrentPlan = isUpgradeMode && plan.code === currentPlanType;
@@ -393,7 +392,7 @@ export default function EscolherPlano() {
                   </span>
                 </p>
 
-                {billingPeriod === "yearly" && (
+                {billingPeriod === "yearly" && prices.yearly > 0 && (
                   <p className="text-xs text-primary/80 mt-1">
                     Equivale a {formatPrice(Math.round(prices.yearly / 12))}/mês (~15% off)
                   </p>
@@ -461,7 +460,7 @@ export default function EscolherPlano() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {COMBO_PLANS.map((plan) => {
-            const prices = ALL_PLAN_PRICES[plan.code];
+            const prices = ALL_PLAN_PRICES[plan.code] || defaultPrices;
             const effectiveCycle = billingPeriod === "monthly" ? "MONTHLY" : "YEARLY";
             const price = effectiveCycle === "YEARLY" ? prices.yearly : prices.monthly;
             const isCurrentPlan = isUpgradeMode && plan.code === currentPlanType;
@@ -527,7 +526,7 @@ export default function EscolherPlano() {
                     /{billingPeriod === "monthly" ? "mês" : "ano"}
                   </span>
                 </p>
-                {billingPeriod === "yearly" && (
+                {billingPeriod === "yearly" && prices.yearly > 0 && (
                   <p className="text-xs text-primary/80 mt-1">
                     Equivale a {formatPrice(Math.round(prices.yearly / 12))}/mês
                   </p>
