@@ -107,11 +107,8 @@ export function SessionPaymentsManager({
     }));
   };
 
-  // Update when payments change
-  useEffect(() => {
-    const legacyPayments = convertToLegacyPayments(payments);
-    onPaymentUpdate(sessionData.id, totalPago, legacyPayments);
-  }, [payments, totalPago, sessionData.id, onPaymentUpdate]);
+  // Removed: useEffect that called onPaymentUpdate on every payments change.
+  // valor_pago is now managed entirely by DB triggers. No frontend sync needed.
 
   const getStatusBadge = (payment: SessionPaymentExtended) => {
     const { statusPagamento } = payment;

@@ -76,19 +76,7 @@ export function WorkflowHistoryTable({ cliente }: WorkflowHistoryTableProps) {
   }
   return (
     <div className="space-y-4">
-      {/* FASE 5: Migration button */}
-      <div className="flex justify-end mb-4">
-        <Button
-          onClick={handleMigrateValores}
-          disabled={isMigrating || sessions.length === 0}
-          variant="outline"
-          size="sm"
-          className="gap-2"
-        >
-          <RefreshCcw className={`h-4 w-4 ${isMigrating ? 'animate-spin' : ''}`} />
-          {isMigrating ? 'Corrigindo...' : 'Corrigir Valores do Histórico'}
-        </Button>
-      </div>
+      {/* Migration button hidden - no longer needed for daily use */}
       
       <Accordion type="single" collapsible className="w-full">
         {sessions.map((item) => (

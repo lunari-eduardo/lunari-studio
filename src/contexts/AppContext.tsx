@@ -859,57 +859,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
       console.log('📢 Evento payment-created disparado para sessão (TEXT):', textSessionId);
 
-      // 2. OPCIONAL: Atualizar localStorage SE a sessão existir lá (compatibilidade)
-      try {
-        const savedSessions = JSON.parse(localStorage.getItem('workflow_sessions') || '[]');
-        const sessionIndex = savedSessions.findIndex((s: any) => 
-          s.id === id || s.sessionId === id || s.session_id === id
-        );
-        
-        if (sessionIndex !== -1) {
-          const session = savedSessions[sessionIndex];
-          // FASE 3: Tratar valorPago que pode ser número ou string
-          let currentPaid = 0;
-          if (typeof session.valorPago === 'number') {
-            currentPaid = session.valorPago;
-          } else if (typeof session.valorPago === 'string') {
-            currentPaid = parseFloat((session.valorPago || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-          }
-          const newPaidTotal = currentPaid + valor;
-
-          const novoPagamento = {
-            id: paymentId, // Usar o mesmo ID rastreável
-            valor,
-            data: getCurrentDateString(),
-            forma_pagamento: 'dinheiro',
-            observacoes: 'Pagamento rápido',
-            tipo: 'pago' as const,
-            statusPagamento: 'pago' as const,
-            origem: 'workflow_rapido' as const,
-            editavel: true
-          };
-
-          savedSessions[sessionIndex] = {
-            ...session,
-            valorPago: `R$ ${newPaidTotal.toFixed(2).replace('.', ',')}`,
-            pagamentos: [...(session.pagamentos || []), novoPagamento]
-          };
-
-          const total = parseFloat((session.total || '0').replace(/[^\d,]/g, '').replace(',', '.')) || 0;
-          const restante = Math.max(0, total - newPaidTotal);
-          savedSessions[sessionIndex].restante = `R$ ${restante.toFixed(2).replace('.', ',')}`;
-
-          localStorage.setItem('workflow_sessions', JSON.stringify(savedSessions));
-          console.log('✅ Pagamento também atualizado no localStorage (compatibilidade)');
-
-          // TODO: Criar transação financeira via hook useNovoFinancas
-          // (precisa ser refatorado para usar o sistema Supabase)
-        } else {
-          console.log('ℹ️ Sessão não encontrada no localStorage (pode ser só do Supabase) - OK');
-        }
-      } catch (localStorageError) {
-        console.warn('⚠️ Erro ao atualizar localStorage (não crítico):', localStorageError);
-      }
+      // localStorage sync removed — Supabase triggers are the single source of truth for valor_pago.
 
       // 3. Exibir toast de sucesso
       toast({
