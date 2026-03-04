@@ -152,9 +152,11 @@ export default function Workflow() {
           filtered.some((s) => {
             const prev = prevSessions.find(p => p.id === s.id);
             if (!prev) return true; // Sessão nova
-            // Comparação primária: updated_at é a fonte de verdade do Supabase
-            // Isso é mais confiável que comparar campos individuais
-            return s.updated_at !== prev.updated_at;
+            // Comparar updated_at E valor_pago para detectar mudanças de pagamento
+            // O trigger recompute_session_paid atualiza ambos, mas valor_pago é crítico
+            return s.updated_at !== prev.updated_at || 
+                   s.valor_pago !== prev.valor_pago ||
+                   s.valor_total !== prev.valor_total;
           });
         
         if (hasChanges) {
