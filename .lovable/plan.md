@@ -1,51 +1,80 @@
 
 
-# Plan: Workflow Visual Fixes and Metrics Improvement
+# Diagnóstico: Pagamento de R$115 Reaparecendo como Pendente
 
-## Issues Identified
+## Causa Raiz Identificada
 
-1. **Description input too wide**: Uses `1fr` in the grid, making it fill all remaining space. Different text lengths cause cards to misalign.
-2. **Layout shift on month change**: Cards render with different description widths before settling, causing a visible "flash".
-3. **Metrics bar looks sparse**: Four plain text values on the left, eye toggle isolated on far right — poor visual hierarchy.
-4. **Minor alignment inconsistencies** between card columns.
+O problema está na **cadeia de callbacks `onPaymentUpdate`** no Workflow. Quando o pagamento rápido de R$130 é adicionado:
 
-## Changes
+1. **`addPayment` no AppContext** (linha 810) insere a transação de R$130 no Supabase via `PaymentSupabaseService.saveSinglePaymentTracked`
+2. O trigger `recompute_session_paid` recalcula `valor_pago` = 130 + 115 = **R$ 245,00** ✅
+3. O evento `payment-created` é disparado
+4. **`WorkflowCacheContext`** (linha 531) recebe o evento, aguarda 350ms, e faz re-fetch da sessão do Supabase com `valor_pago = 245` ✅
 
-### 1. Fix Description Input — `WorkflowCardCollapsed.tsx`
+**Até aqui tudo correto.** O problema acontece quando o usuário **abre o modal de pagamentos** (ou o CRM):
 
-**Desktop grid** (line 310): Change `1fr` to a fixed width for description (e.g., `200px`) and give `1fr` to name column instead, or cap description with `max-w-[200px]`:
+5. O `SessionPaymentsManager` monta e chama `useSessionPayments(sessionData.id, initialPayments)`
+6. `useSessionPayments` faz fetch das transações do Supabase (encontra 2: R$130 manual + R$115 InfinitePay)
+7. O `useEffect` na **linha 111-114** do `SessionPaymentsManager` dispara `onPaymentUpdate(sessionId, totalPago, legacyPayments)` toda vez que `payments` muda
+8. No Workflow, o callback `onPaymentUpdate` chama `onFieldUpdate(sessionId, 'valorPago', ...)` — mas o campo `'valorPago'` é **ignorado** pelo `updateSession` (linha 531 do useWorkflowRealtime: `case 'valorPago': break`)
 
-- Change grid template from `36px_50px_180px_1fr_150px_140px_90px_80px_90px_auto` to `36px_50px_180px_200px_150px_140px_90px_80px_90px_auto`
-- Make the description input fixed-width with `max-w-[200px]`, `text-xs`, and allow up to 2 lines via a `textarea` (rows=1, auto-expand to 2) or simply truncate with `line-clamp-2`
-- Use a simpler approach: keep `Input` but constrain its container to fixed width, add `truncate` on overflow
+**O campo `valorPago` nunca chega ao banco.** Isso significa que o valor exibido na UI depende inteiramente do cache local, e qualquer re-render pode resetar para o valor antigo.
 
-**Tablet grid** (line 456): Same fix — constrain description column width.
+Além disso, o **`onFieldUpdate` com `'pagamentos'`** também é ignorado pelo banco (linha 533). Ou seja, toda a sincronização via `onPaymentUpdate` → `onFieldUpdate` é efetivamente um **no-op** que só afeta estado local temporário.
 
-### 2. Prevent Layout Flash — `WorkflowCardCollapsed.tsx`
+### O verdadeiro bug
 
-- Add `min-h-[56px]` to the card row container (line 307) so all cards have a consistent minimum height regardless of content
-- This prevents layout shift when cards load with different description lengths
+O `valor_pago` no banco **está correto** (R$ 245). O problema é que a UI do Workflow card lê de `session.valorPago` (formato string `"R$ 130,00"`) que vem do **cache local/localStorage** e não é atualizado corretamente após o re-fetch. O campo `pendente` no card é calculado como `total - valorPago`, e se `valorPago` estiver desatualizado, mostra R$ 115 pendente.
 
-### 3. Redesign Metrics Bar — `Workflow.tsx` (lines 812-857)
+A inconsistência visual é causada por **dois sistemas de dados concorrendo**: o Supabase (correto) e o localStorage/cache (desatualizado).
 
-Replace the current sparse text layout with a compact, styled bar:
+## Sobre os itens marcados pelo usuário nas imagens
 
-- Group all 4 metrics + eye toggle into a single row with a subtle background (`bg-muted/50 rounded-lg p-3`)
-- Each metric gets a colored dot indicator instead of just text color
-- Eye toggle button sits right next to the metrics (not on the far right)
-- When hidden, show a minimal "Mostrar métricas" link instead of an isolated icon
+- **"Corrigir Valores do Histórico"**: botão de migração de dados antigos — pode ser removido ou escondido (já não é necessário rotineiramente)
+- **"Nenhuma sessão precisou ser corrigida"**: toast do botão acima — confirma que os dados do banco estão corretos
+- **Ícone vermelho com X**: esses itens de UI obsoletos devem ser limpos
 
-Layout:
-```text
-┌─────────────────────────────────────────────────────────┐
-│ ● Receita R$ 1.460  ● Previsto R$ 7.270  ● A Receber R$ 5.810  ● 22 sessões  👁 │
-└─────────────────────────────────────────────────────────┘
-```
+## Correções Propostas
 
-### 4. Files to Modify
+### 1. Eliminar `onPaymentUpdate` → `onFieldUpdate` como mecanismo de sync (raiz do bug)
 
-| File | Change |
-|------|--------|
-| `src/components/workflow/WorkflowCardCollapsed.tsx` | Fix description width (desktop + tablet grids), add min-height to prevent flash |
-| `src/pages/Workflow.tsx` | Redesign metrics bar with better visual grouping and eye toggle placement |
+O `valor_pago` já é mantido pelo trigger do banco. O frontend **não deve tentar setá-lo manualmente**. A UI do Workflow deve ler `valor_pago` diretamente do Supabase (já faz via WorkflowCacheContext).
+
+**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx` e `WorkflowCardExpanded.tsx`
+- Remover o callback `onPaymentUpdate` que tenta setar `valorPago` via `onFieldUpdate`
+- Substituir por: apenas disparar um evento `payment-created` para forçar re-fetch do cache
+
+### 2. Forçar re-fetch após fechar modal de pagamentos
+
+**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx` e `WorkflowCardExpanded.tsx`
+- No `onClose` do `WorkflowPaymentsModal`, disparar `window.dispatchEvent(new CustomEvent('payment-created', { detail: { sessionId } }))` para forçar o `WorkflowCacheContext` a buscar dados frescos do banco
+
+### 3. Corrigir cálculo de `pendente` no card
+
+**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx`
+- O cálculo de `pendente` deve usar `valor_pago` do banco (campo numérico) em vez de parsear a string `session.valorPago`
+
+### 4. Limpar UI obsoleta no CRM
+
+**Arquivo**: `src/components/crm/WorkflowHistoryTable.tsx`
+- Remover ou esconder o botão "Corrigir Valores do Histórico" (já fez seu trabalho, não é necessário no dia a dia)
+
+### 5. Remover escrita de `valorPago` no localStorage do AppContext
+
+**Arquivo**: `src/contexts/AppContext.tsx` (linhas 862-912)
+- O bloco que atualiza `localStorage` com `valorPago` é redundante e causa dessincronização. Remover essa lógica — o Supabase é a fonte da verdade.
+
+## Resumo de Arquivos
+
+| Arquivo | Ação |
+|---------|------|
+| `src/components/workflow/WorkflowCardCollapsed.tsx` | Simplificar `onPaymentUpdate`, forçar re-fetch no close |
+| `src/components/workflow/WorkflowCardExpanded.tsx` | Mesma correção |
+| `src/contexts/AppContext.tsx` | Remover bloco localStorage de `addPayment` |
+| `src/components/crm/WorkflowHistoryTable.tsx` | Esconder botão "Corrigir Valores" |
+| `src/components/payments/SessionPaymentsManager.tsx` | Revisar useEffect de sync para não causar loops |
+
+## Sobre Escalabilidade
+
+A arquitetura atual (trigger SQL como fonte da verdade para `valor_pago`) é **correta e escalável**. O problema não é o banco — é o frontend tentando manter um estado paralelo via localStorage/callbacks que conflita com o dado real. A correção acima elimina essa duplicidade.
 
