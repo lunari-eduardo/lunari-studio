@@ -489,14 +489,17 @@ export function WorkflowCardExpanded({
       {workflowPaymentsOpen && (
         <WorkflowPaymentsModal
           isOpen={workflowPaymentsOpen}
-          onClose={() => setWorkflowPaymentsOpen(false)}
+          onClose={() => {
+            setWorkflowPaymentsOpen(false);
+            // Force re-fetch from Supabase to get fresh valor_pago
+            window.dispatchEvent(new CustomEvent('payment-created', {
+              detail: { sessionId: session.sessionId || session.id }
+            }));
+          }}
           sessionData={session}
           valorTotalCalculado={total}
-          onPaymentUpdate={(sessionId, totalPaid, fullPaymentsArray) => {
-            onFieldUpdate(sessionId, 'valorPago', `R$ ${totalPaid.toFixed(2).replace('.', ',')}`);
-            if (fullPaymentsArray) {
-              onFieldUpdate(sessionId, 'pagamentos', fullPaymentsArray);
-            }
+          onPaymentUpdate={() => {
+            // No-op: valor_pago is managed by DB trigger. Re-fetch happens via event.
           }}
         />
       )}
