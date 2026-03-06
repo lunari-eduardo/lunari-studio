@@ -8,7 +8,6 @@ import { useSupabaseTaskStatuses } from '@/hooks/useSupabaseTaskStatuses';
 
 function daysUntil(dateIso?: string) {
   if (!dateIso) return undefined;
-  // Parse due date safely (supports 'YYYY-MM-DD' without timezone shift)
   let due: Date;
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateIso)) {
     const [y, m, d] = dateIso.split('-').map(Number);
@@ -16,10 +15,19 @@ function daysUntil(dateIso?: string) {
   } else {
     due = new Date(dateIso);
   }
-  // Normalize "today" to local midnight to avoid off-by-one issues
   const now = new Date();
   const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return differenceInCalendarDays(due, todayLocal);
+}
+
+/** Convert hex to "r, g, b" for CSS */
+function hexToRgb(hex: string): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return '107, 114, 128';
+  return `${r}, ${g}, ${b}`;
 }
 
 const priorityLabel: Record<TaskPriority, string> = {
@@ -50,10 +58,7 @@ export default function TaskCard({
   onDelete: () => void;
   onRequestMove?: (status: string) => void;
   isDone: boolean;
-  statusOptions: {
-    value: string;
-    label: string;
-  }[];
+  statusOptions: { value: string; label: string }[];
   dndRef?: (node: HTMLElement | null) => void;
   dndListeners?: any;
   dndAttributes?: any;
@@ -61,22 +66,20 @@ export default function TaskCard({
   isDragging?: boolean;
 }) {
   const { statuses } = useSupabaseTaskStatuses();
-  
+
   const dueInfo = useMemo(() => {
     if (isDone || t.completedAt) return null;
     const d = daysUntil(t.dueDate);
     if (d === undefined) return null;
-    if (d < 0) return <span className="text-lunar-error">Vencida há {Math.abs(d)} dia(s)</span>;
-    if (d === 1) return <span className="text-lunar-accent">Falta 1 dia</span>;
-    if (d <= 2) return <span className="text-lunar-accent">Faltam {d} dia(s)</span>;
+    if (d < 0) return <span className="text-lunar-error font-medium">Vencida há {Math.abs(d)} dia(s)</span>;
+    if (d === 1) return <span className="text-lunar-accent font-medium">Falta 1 dia</span>;
+    if (d <= 2) return <span className="text-lunar-accent font-medium">Faltam {d} dia(s)</span>;
     return null;
   }, [t.dueDate, isDone, t.completedAt]);
 
-  const currentStatus = useMemo(() => {
-    return statuses.find(s => s.key === t.status);
-  }, [statuses, t.status]);
-
-  const statusColor = currentStatus?.color || '#3b82f6';
+  const currentStatus = useMemo(() => statuses.find(s => s.key === t.status), [statuses, t.status]);
+  const statusColor = currentStatus?.color || '#6b7280';
+  const statusRgb = hexToRgb(statusColor);
 
   const priorityBadgeClasses = useMemo(() => {
     switch (t.priority) {
@@ -90,12 +93,15 @@ export default function TaskCard({
   }, [t.priority]);
 
   return (
-    <li 
-      className={`relative overflow-hidden rounded-md border border-lunar-border/60 bg-lunar-surface p-3 transition-none cursor-grab active:cursor-grabbing select-none touch-none transform-gpu ${isDragging ? 'opacity-70 border-dashed ring-1 ring-lunar-accent/40' : ''}`} 
-      ref={dndRef as any} 
-      style={dndStyle} 
-      {...dndAttributes || {}} 
-      {...dndListeners || {}} 
+    <li
+      className={`glass-task-card relative overflow-hidden p-3 cursor-grab active:cursor-grabbing select-none touch-none transform-gpu ${isDragging ? 'glass-task-card-placeholder' : ''}`}
+      ref={dndRef as any}
+      style={{
+        ...dndStyle,
+        '--card-color': statusRgb,
+      } as React.CSSProperties}
+      {...dndAttributes || {}}
+      {...dndListeners || {}}
       onPointerDownCapture={e => {
         const target = e.target as HTMLElement;
         if (target?.closest('[data-no-drag="true"]')) {
@@ -103,31 +109,24 @@ export default function TaskCard({
         }
       }}
     >
-      {/* Status color bar */}
-      <span 
-        aria-hidden 
-        className="pointer-events-none absolute inset-y-0 left-0 w-1" 
-        style={{ backgroundColor: statusColor }}
-      />
-      
-      {/* Title - up to 2 lines */}
-      <h3 
-        className="text-sm font-medium text-lunar-text line-clamp-2 cursor-pointer hover:text-lunar-accent mb-2" 
-        onClick={onEdit} 
-        data-no-drag="true" 
+      {/* Title */}
+      <h3
+        className="text-sm font-medium text-lunar-text line-clamp-2 cursor-pointer hover:text-lunar-accent transition-colors duration-200 mb-2"
+        onClick={onEdit}
+        data-no-drag="true"
         title="Abrir detalhes"
       >
         {t.title}
       </h3>
-      
+
       {/* Priority badge */}
       <div className="mb-2">
-        <Badge variant="outline" className={`text-xs ${priorityBadgeClasses}`}>
+        <Badge variant="outline" className={`text-xs backdrop-blur-sm ${priorityBadgeClasses}`}>
           {priorityLabel[t.priority]}
         </Badge>
       </div>
-      
-      {/* Tags side by side */}
+
+      {/* Tags */}
       {(t.tags?.length || 0) > 0 && (
         <div className="flex flex-wrap items-center gap-1 mb-3">
           {t.tags!.map(tag => (
@@ -137,8 +136,8 @@ export default function TaskCard({
           ))}
         </div>
       )}
-      
-      {/* Creation date and due date */}
+
+      {/* Dates */}
       <div className="flex flex-wrap items-center gap-3 text-xs text-lunar-textSecondary mb-3">
         <span>Criada: {new Date(t.createdAt).toLocaleDateString('pt-BR')}</span>
         {t.dueDate && (
@@ -147,35 +146,35 @@ export default function TaskCard({
           </span>
         )}
       </div>
-      
+
       {/* Bottom buttons */}
       <div className="flex items-center justify-between">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-8 text-xs" 
-          onClick={onEdit} 
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 text-xs hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
+          onClick={onEdit}
           data-no-drag="true"
         >
           Ver detalhes
         </Button>
-        
+
         {!isDone ? (
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="h-8 text-xs" 
-            onClick={onComplete} 
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-8 text-xs hover:bg-white/50 dark:hover:bg-white/10 transition-colors"
+            onClick={onComplete}
             data-no-drag="true"
           >
             Concluído
           </Button>
         ) : (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-8 text-xs" 
-            onClick={onReopen} 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
+            onClick={onReopen}
             data-no-drag="true"
           >
             Reabrir
