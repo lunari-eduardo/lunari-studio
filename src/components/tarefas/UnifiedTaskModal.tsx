@@ -280,7 +280,7 @@ export default function UnifiedTaskModal({ open, onOpenChange, onSubmit, initial
 
   return (
     <Dialog open={open} onOpenChange={handleModalClose}>
-      <DialogContent className="sm:max-w-2xl bg-lunar-surface border-lunar-border max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-modal sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-xl font-bold text-lunar-text">
             {mode === 'create' ? 'Nova tarefa' : 'Editar tarefa'}
