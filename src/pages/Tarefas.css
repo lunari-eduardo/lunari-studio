@@ -1,0 +1,224 @@
+/* src/pages/Tarefas.css */
+
+/* Define a custom modern font if requested or fallback to Inter */
+.page-tarefas-modern {
+  /* Dynamic abstract gradient background that gives the glass something to blur */
+  background:
+    radial-gradient(circle at 10% 20%, hsl(18, 55%, 55%, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, hsl(210, 60%, 70%, 0.1) 0%, transparent 40%),
+    linear-gradient(135deg, hsl(var(--lunar-bg)) 0%, hsl(var(--lunar-surface)) 100%);
+  background-attachment: fixed;
+  color: hsl(var(--lunar-text));
+  min-height: 100vh;
+}
+
+/* Dark mode specific animated/richer background */
+.dark .page-tarefas-modern {
+  background:
+    radial-gradient(circle at 15% 30%, hsl(18, 55%, 55%, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 85% 70%, hsl(220, 40%, 40%, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, hsl(var(--lunar-bg)) 0%, hsl(0, 0%, 5%) 100%);
+  background-attachment: fixed;
+}
+
+
+/* =========================================================================
+   Glassmorphism Base Classes
+   ========================================================================= */
+
+.page-tarefas-modern .glass-panel {
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+.dark .page-tarefas-modern .glass-panel {
+  background: rgba(20, 20, 20, 0.4) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.page-tarefas-modern .glass-card {
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04), inset 0 2px 4px rgba(255, 255, 255, 0.4) !important;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.dark .page-tarefas-modern .glass-card {
+  background: rgba(30, 30, 30, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Hover over cards */
+.page-tarefas-modern .glass-card:hover {
+  transform: translateY(-2px) scale(1.01) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark .page-tarefas-modern .glass-card:hover {
+  background: rgba(40, 40, 40, 0.5) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+
+/* =========================================================================
+   Overrides nas Classes do Projeto (via hierarquia forte)
+   ========================================================================= */
+
+/* Kanban Column (Card Wrapper) */
+.page-tarefas-modern section>.flex-1.p-2.border-lunar-border\/60 {
+  background: rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(12px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.dark .page-tarefas-modern section>.flex-1.p-2.border-lunar-border\/60 {
+  background: rgba(15, 15, 15, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+/* Kanban Cards (TaskCard root <li> elements) */
+.page-tarefas-modern section ul>li,
+/* List View Cards (CleanTaskCard) */
+.page-tarefas-modern .grid.gap-2>div {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.03), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, background 0.2s !important;
+}
+
+.dark .page-tarefas-modern section ul>li,
+.dark .page-tarefas-modern .grid.gap-2>div {
+  background: rgba(25, 25, 25, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Hover no Kanban card */
+.page-tarefas-modern section ul>li:hover,
+.page-tarefas-modern .grid.gap-2>div:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.dark .page-tarefas-modern section ul>li:hover,
+.dark .page-tarefas-modern .grid.gap-2>div:hover {
+  background: rgba(35, 35, 35, 0.5) !important;
+  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Focus and Dragging states for Kanban Cards */
+.page-tarefas-modern section ul>li:active {
+  transform: scale(0.98) !important;
+}
+
+.page-tarefas-modern section ul>li[style*="opacity: 0.7"],
+.page-tarefas-modern section ul>li.opacity-70 {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.1), 0 0 0 2px hsl(var(--lunar-accent)) !important;
+  border-style: solid !important;
+  opacity: 0.95 !important;
+  z-index: 50 !important;
+}
+
+.dark .page-tarefas-modern section ul>li[style*="opacity: 0.7"],
+.dark .page-tarefas-modern section ul>li.opacity-70 {
+  background: rgba(45, 45, 45, 0.8) !important;
+  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.4), 0 0 0 2px hsl(var(--lunar-accent)) !important;
+  opacity: 0.95 !important;
+}
+
+
+/* Checklist Sidebar Panel (when opened/closed) */
+.page-tarefas-modern .checklist-panel {
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(14px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+.dark .page-tarefas-modern .checklist-panel {
+  background: rgba(15, 15, 15, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.02) !important;
+}
+
+/* TaskFiltersBar and Header Actions wrapper */
+.page-tarefas-modern .flex-shrink-0>div:not(header):not(.flex-wrap),
+.page-tarefas-modern .filters-bar-wrapper {
+  background: rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+}
+
+.dark .page-tarefas-modern .flex-shrink-0>div:not(header):not(.flex-wrap),
+.dark .page-tarefas-modern .filters-bar-wrapper {
+  background: rgba(20, 20, 20, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Button overrides to give them a glass feel inside this page only */
+.page-tarefas-modern button[variant="outline"],
+.page-tarefas-modern button.variant-outline {
+  background: rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(4px) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.dark .page-tarefas-modern button[variant="outline"],
+.dark .page-tarefas-modern button.variant-outline {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.page-tarefas-modern button[variant="outline"]:hover,
+.page-tarefas-modern button.variant-outline:hover {
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+.dark .page-tarefas-modern button[variant="outline"]:hover,
+.dark .page-tarefas-modern button.variant-outline:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* inputs / selects in filters */
+.page-tarefas-modern input,
+.page-tarefas-modern [role="combobox"] {
+  background: rgba(255, 255, 255, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.dark .page-tarefas-modern input,
+.dark .page-tarefas-modern [role="combobox"] {
+  background: rgba(20, 20, 20, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}

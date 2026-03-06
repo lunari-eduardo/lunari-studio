@@ -69,16 +69,16 @@ const queryClient = new QueryClient({
 function AppContent() {
   // Initialize workflow cache manager (non-blocking)
   useWorkflowCacheInit();
-  
+
   // Global appointment→workflow sync - DEVE estar DENTRO do WorkflowCacheProvider
   useAppointmentWorkflowSync();
-  
+
   // Show trial welcome toast on first access
   useTrialWelcomeToast();
-  
+
   // Auto-provisionar status de sistema Gallery para usuários PRO + Gallery
   useProvisionGalleryStatuses();
-  
+
   return null;
 }
 
@@ -86,10 +86,10 @@ function AppContent() {
 function App() {
   // Bootstrap pricing system early
   const { isInitialized: pricingInitialized, error: pricingError } = usePricingBootstrap();
-  
+
   // PWA auto-update via vite-plugin-pwa (detecta novas versões automaticamente)
   usePWAUpdate();
-  
+
   // Enable force update mechanism for all devices (botão manual via Supabase)
   useAppForceUpdate();
 
@@ -100,7 +100,7 @@ function App() {
       console.warn('⚠️ Pricing system had initialization issues:', pricingError);
     }
   }, [pricingError]);
-  
+
   return (
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
@@ -111,124 +111,124 @@ function App() {
                 <AppContent />
                 <AppProvider>
                   <AgendaProvider>
-                  <TooltipProvider>
-                    <BuildMonitor />
-                    <Toaster />
-                    <Sonner />
-                  <Routes>
-                    {/* ============ PUBLIC ROUTES (SEO) ============ */}
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/conteudos" element={<Conteudos />} />
-                    <Route path="/conteudos/:slug" element={<ConteudoDetalhe />} />
-                    <Route path="/sitemap.xml" element={<SitemapProxy />} />
-                    
-                    {/* Redirect antigo /landing para / */}
-                    <Route path="/landing" element={<Navigate to="/" replace />} />
-                    
-                    {/* Protected subscription routes (outside main layout) */}
-                    <Route path="/escolher-plano" element={
-                      <ProtectedRoute>
-                        <EscolherPlano />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/minha-assinatura" element={
-                      <ProtectedRoute>
-                        <MinhaAssinatura />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/escolher-plano/pagamento" element={
-                      <ProtectedRoute>
-                        <EscolherPlanoPagamento />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* Semi-protected: onboarding (requires auth but not complete profile) */}
-                    <Route path="/onboarding" element={
-                      <ProtectedRoute>
-                        <Onboarding />
-                      </ProtectedRoute>
-                    } />
-                    
-                    {/* ============ PROTECTED ROUTES (/app) ============ */}
-                    <Route path="/app" element={
-                      <ProtectedRoute>
-                        <Layout />
-                      </ProtectedRoute>
-                    }>
-                      <Route index element={<Index />} />
-                      <Route path="agenda" element={<Agenda />} />
-                      <Route path="clientes" element={<Clientes />} />
-                      <Route path="clientes/:id" element={<ClienteDetalhe />} />
-                      <Route path="leads" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <Leads />
-                        </PlanRestrictionGuard>
-                      } />
-                      <Route path="financas" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <NovaFinancas />
-                        </PlanRestrictionGuard>
-                      } />
-                      <Route path="precificacao" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <Precificacao />
-                        </PlanRestrictionGuard>
-                      } />
-                      <Route path="workflow" element={<Workflow />} />
-                      <Route path="analise-vendas" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <AnaliseVendas />
-                        </PlanRestrictionGuard>
-                      } />
-                      <Route path="configuracoes" element={<Configuracoes />} />
-                      <Route path="minha-conta" element={<MinhaConta />} />
-                      <Route path="integracoes" element={<Integracoes />} />
-                      <Route path="tarefas" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <Tarefas />
-                        </PlanRestrictionGuard>
-                      } />
-                      <Route path="feed-test" element={
-                        <PlanRestrictionGuard requiredPlan="pro">
-                          <FeedTest />
-                        </PlanRestrictionGuard>
-                      } />
-                      {/* Legacy redirect for old preferencias route */}
-                      <Route path="preferencias" element={<Navigate to="/app/integracoes" replace />} />
-                      <Route path="admin/usuarios" element={
-                        <AdminRoute>
-                          <AdminUsuarios />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/conteudos" element={
-                        <AdminRoute>
-                          <AdminConteudos />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/conteudos/novo" element={
-                        <AdminRoute>
-                          <AdminConteudoNovo />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/conteudos/editar/:id" element={
-                        <AdminRoute>
-                          <AdminConteudoEditar />
-                        </AdminRoute>
-                      } />
-                      <Route path="admin/planos" element={
-                        <AdminRoute>
-                          <AdminPlanos />
-                        </AdminRoute>
-                      } />
-                      <Route path="*" element={<NotFound />} />
-                    </Route>
-                    
-                    {/* Catch-all para rotas não encontradas */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  </TooltipProvider>
+                    <TooltipProvider>
+                      <BuildMonitor />
+                      <Toaster />
+                      <Sonner />
+                      <Routes>
+                        {/* ============ PUBLIC ROUTES (SEO) ============ */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/conteudos" element={<Conteudos />} />
+                        <Route path="/conteudos/:slug" element={<ConteudoDetalhe />} />
+                        <Route path="/sitemap.xml" element={<SitemapProxy />} />
+
+                        {/* Redirect antigo /landing para / */}
+                        <Route path="/landing" element={<Navigate to="/" replace />} />
+
+                        {/* Protected subscription routes (outside main layout) */}
+                        <Route path="/escolher-plano" element={
+                          <ProtectedRoute>
+                            <EscolherPlano />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/minha-assinatura" element={
+                          <ProtectedRoute>
+                            <MinhaAssinatura />
+                          </ProtectedRoute>
+                        } />
+                        <Route path="/escolher-plano/pagamento" element={
+                          <ProtectedRoute>
+                            <EscolherPlanoPagamento />
+                          </ProtectedRoute>
+                        } />
+
+                        {/* Semi-protected: onboarding (requires auth but not complete profile) */}
+                        <Route path="/onboarding" element={
+                          <ProtectedRoute>
+                            <Onboarding />
+                          </ProtectedRoute>
+                        } />
+
+                        {/* ============ PROTECTED ROUTES (/app) ============ */}
+                        <Route path="/app" element={
+                          <ProtectedRoute>
+                            <Layout />
+                          </ProtectedRoute>
+                        }>
+                          <Route index element={<Index />} />
+                          <Route path="agenda" element={<Agenda />} />
+                          <Route path="clientes" element={<Clientes />} />
+                          <Route path="clientes/:id" element={<ClienteDetalhe />} />
+                          <Route path="leads" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <Leads />
+                            </PlanRestrictionGuard>
+                          } />
+                          <Route path="financas" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <NovaFinancas />
+                            </PlanRestrictionGuard>
+                          } />
+                          <Route path="precificacao" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <Precificacao />
+                            </PlanRestrictionGuard>
+                          } />
+                          <Route path="workflow" element={<Workflow />} />
+                          <Route path="analise-vendas" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <AnaliseVendas />
+                            </PlanRestrictionGuard>
+                          } />
+                          <Route path="configuracoes" element={<Configuracoes />} />
+                          <Route path="minha-conta" element={<MinhaConta />} />
+                          <Route path="integracoes" element={<Integracoes />} />
+                          <Route path="tarefas" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <Tarefas />
+                            </PlanRestrictionGuard>
+                          } />
+                          <Route path="feed-test" element={
+                            <PlanRestrictionGuard requiredPlan="pro">
+                              <FeedTest />
+                            </PlanRestrictionGuard>
+                          } />
+                          {/* Legacy redirect for old preferencias route */}
+                          <Route path="preferencias" element={<Navigate to="/app/integracoes" replace />} />
+                          <Route path="admin/usuarios" element={
+                            <AdminRoute>
+                              <AdminUsuarios />
+                            </AdminRoute>
+                          } />
+                          <Route path="admin/conteudos" element={
+                            <AdminRoute>
+                              <AdminConteudos />
+                            </AdminRoute>
+                          } />
+                          <Route path="admin/conteudos/novo" element={
+                            <AdminRoute>
+                              <AdminConteudoNovo />
+                            </AdminRoute>
+                          } />
+                          <Route path="admin/conteudos/editar/:id" element={
+                            <AdminRoute>
+                              <AdminConteudoEditar />
+                            </AdminRoute>
+                          } />
+                          <Route path="admin/planos" element={
+                            <AdminRoute>
+                              <AdminPlanos />
+                            </AdminRoute>
+                          } />
+                          <Route path="*" element={<NotFound />} />
+                        </Route>
+
+                        {/* Catch-all para rotas não encontradas */}
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </TooltipProvider>
                   </AgendaProvider>
                 </AppProvider>
               </WorkflowCacheProvider>

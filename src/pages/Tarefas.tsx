@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import './Tarefas.css';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -86,7 +87,7 @@ export default function Tarefas() {
   const {
     toast
   } = useToast();
-  
+
   useEffect(() => {
     document.title = 'Tarefas | Lunari';
   }, []);
@@ -161,26 +162,26 @@ export default function Tarefas() {
     } = useDroppable({
       id: statusKey
     });
-    
+
     return <section className="flex-1 min-w-[280px] h-full flex flex-col">
-        <header className="flex items-center justify-between mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{
+      <header className="flex items-center justify-between mb-3 px-1">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full" style={{
             backgroundColor: color || '#6b7280'
           }} />
-            <h2 className="text-sm font-semibold text-lunar-text">{title}</h2>
-          </div>
-          <Badge variant="outline" className="text-2xs">{groups[statusKey]?.length || 0}</Badge>
-        </header>
-        
-        <Card ref={setNodeRef} className={cn("flex-1 p-2 border-lunar-border/60 transition-colors overflow-hidden flex flex-col", isOver ? "ring-2 ring-lunar-accent/60" : "")} style={{
+          <h2 className="text-sm font-semibold text-lunar-text">{title}</h2>
+        </div>
+        <Badge variant="outline" className="text-2xs">{groups[statusKey]?.length || 0}</Badge>
+      </header>
+
+      <Card ref={setNodeRef} className={cn("flex-1 p-2 border-lunar-border/60 transition-colors overflow-hidden flex flex-col", isOver ? "ring-2 ring-lunar-accent/60" : "")} style={{
         backgroundColor: `${color || '#6b7280'}08`,
         borderColor: `${color || '#6b7280'}40`
       }}>
-          <div className="flex-1 overflow-y-auto scrollbar-kanban">
-            <ul className="space-y-2 pb-2">
-              {(groups[statusKey] || []).map(t => <li key={t.id}>
-                  <DraggableTaskCard task={t} onComplete={() => {
+        <div className="flex-1 overflow-y-auto scrollbar-kanban">
+          <ul className="space-y-2 pb-2">
+            {(groups[statusKey] || []).map(t => <li key={t.id}>
+              <DraggableTaskCard task={t} onComplete={() => {
                 updateTask(t.id, {
                   status: doneKey as any
                 });
@@ -207,21 +208,21 @@ export default function Tarefas() {
                   title: 'Tarefa movida'
                 });
               }} isDone={t.status === doneKey as any} statusOptions={statusOptions} activeId={activeId} />
-                </li>)}
-                
-              {(groups[statusKey] || []).length === 0 && <li className="text-center text-sm text-lunar-textSecondary py-8">
-                  Nenhuma tarefa neste status
-                </li>}
-            </ul>
-          </div>
-        </Card>
-      </section>;
+            </li>)}
+
+            {(groups[statusKey] || []).length === 0 && <li className="text-center text-sm text-lunar-textSecondary py-8">
+              Nenhuma tarefa neste status
+            </li>}
+          </ul>
+        </div>
+      </Card>
+    </section>;
   };
   const ListView = () => <div className="space-y-2">
-      <ChecklistPanel items={checklistItems} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} doneKey={doneKey} defaultOpenKey={defaultOpenKey} variant="section" />
-      <Card className="p-2 bg-lunar-surface border-lunar-border/60">
-        <div className="grid gap-2">
-          {filtered.map(t => <CleanTaskCard key={t.id} task={t} onComplete={() => {
+    <ChecklistPanel items={checklistItems} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} doneKey={doneKey} defaultOpenKey={defaultOpenKey} variant="section" />
+    <Card className="p-2 bg-lunar-surface border-lunar-border/60">
+      <div className="grid gap-2">
+        {filtered.map(t => <CleanTaskCard key={t.id} task={t} onComplete={() => {
           updateTask(t.id, {
             status: doneKey as any
           });
@@ -229,47 +230,47 @@ export default function Tarefas() {
             title: 'Tarefa concluída'
           });
         }} onView={() => setSelectedTask(t)} isDone={t.status === doneKey as any} />)}
-          {filtered.length === 0 && <div className="py-8 text-center text-sm text-lunar-textSecondary">
-              Nenhuma tarefa encontrada.
-            </div>}
-        </div>
-      </Card>
-    </div>;
-  return <div className="h-[calc(100vh-4rem)] flex flex-col bg-lunar-bg">
-      {/* Header e Filtros */}
-      <div className="flex-shrink-0 px-2 pt-3 space-y-3">
-        <header className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-            <Select value={view} onValueChange={v => {
+        {filtered.length === 0 && <div className="py-8 text-center text-sm text-lunar-textSecondary">
+          Nenhuma tarefa encontrada.
+        </div>}
+      </div>
+    </Card>
+  </div>;
+  return <div className="page-tarefas-modern h-[calc(100vh-4rem)] flex flex-col bg-lunar-bg transition-colors duration-500">
+    {/* Header e Filtros */}
+    <div className="flex-shrink-0 px-2 pt-3 space-y-3">
+      <header className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-1 md:gap-2 flex-wrap">
+          <Select value={view} onValueChange={v => {
             setView(v as any);
             localStorage.setItem('lunari_tasks_view', v);
           }}>
-              <SelectTrigger className="h-8 w-[100px] md:w-[120px] text-xs md:text-sm"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kanban">Kanban</SelectItem>
-                <SelectItem value="list">Lista</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={() => setManageStatusesOpen(true)} className="text-xs md:text-sm">
-              <span className="hidden md:inline">Gerenciar</span>
-              <span className="md:hidden">Config</span>
-            </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="text-xs md:text-sm">
-              Nova tarefa
-            </Button>
-          </div>
-        </header>
+            <SelectTrigger className="h-8 w-[100px] md:w-[120px] text-xs md:text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="kanban">Kanban</SelectItem>
+              <SelectItem value="list">Lista</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={() => setManageStatusesOpen(true)} className="text-xs md:text-sm">
+            <span className="hidden md:inline">Gerenciar</span>
+            <span className="md:hidden">Config</span>
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)} className="text-xs md:text-sm">
+            Nova tarefa
+          </Button>
+        </div>
+      </header>
 
-        <TaskFiltersBar filters={filters} onFiltersChange={setFilters} statusOptions={statusOptions} assigneeOptions={assigneeOptions} />
+      <TaskFiltersBar filters={filters} onFiltersChange={setFilters} statusOptions={statusOptions} assigneeOptions={assigneeOptions} />
 
-        <PriorityLegend />
-      </div>
+      <PriorityLegend />
+    </div>
 
-      {/* Kanban - Ajustado para ocupar espaço restante */}
-      <div className="flex-1 overflow-hidden">
-        {view === 'kanban' ? (
-          <div className="flex flex-col h-full">
-            <DndContext sensors={sensors} collisionDetection={rectIntersection} modifiers={[restrictToFirstScrollableAncestor]} onDragStart={e => {
+    {/* Kanban - Ajustado para ocupar espaço restante */}
+    <div className="flex-1 overflow-hidden">
+      {view === 'kanban' ? (
+        <div className="flex flex-col h-full">
+          <DndContext sensors={sensors} collisionDetection={rectIntersection} modifiers={[restrictToFirstScrollableAncestor]} onDragStart={e => {
             setActiveId(String(e.active.id));
             console.log('[DND] drag start', e.active.id);
           }} onDragEnd={e => {
@@ -291,33 +292,33 @@ export default function Tarefas() {
             }
             setActiveId(null);
           }} onDragCancel={() => setActiveId(null)}>
-              
-              {/* Kanban Columns - Scrollable horizontally */}
-              <div className="flex-1 relative">
-                <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
-                  <div className="flex h-full gap-2 min-w-max px-2">
-                    <ChecklistPanel items={checklistItems} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} doneKey={doneKey} defaultOpenKey={defaultOpenKey} variant="column" />
-                    {statuses.map(col => <StatusColumn key={col.id} title={col.name} statusKey={col.key as any} color={col.color} />)}
-                  </div>
+
+            {/* Kanban Columns - Scrollable horizontally */}
+            <div className="flex-1 relative">
+              <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
+                <div className="flex h-full gap-2 min-w-max px-2">
+                  <ChecklistPanel items={checklistItems} addTask={addTask} updateTask={updateTask} deleteTask={deleteTask} doneKey={doneKey} defaultOpenKey={defaultOpenKey} variant="column" />
+                  {statuses.map(col => <StatusColumn key={col.id} title={col.name} statusKey={col.key as any} color={col.color} />)}
                 </div>
               </div>
+            </div>
 
-              <DragOverlay>
-                <div className="pointer-events-none">
-                  {activeId ? (() => {
-                const at = tasks.find(tt => tt.id === activeId);
-                return at ? <TaskCard task={at} onComplete={() => {}} onReopen={() => {}} onEdit={() => {}} onDelete={() => {}} onRequestMove={() => {}} isDone={at.status === doneKey as any} statusOptions={statusOptions} isDragging={true} /> : null;
-              })() : null}
-                </div>
-              </DragOverlay>
-            </DndContext>
-          </div>
-        ) : (
-          <ListView />
-        )}
-      </div>
+            <DragOverlay>
+              <div className="pointer-events-none">
+                {activeId ? (() => {
+                  const at = tasks.find(tt => tt.id === activeId);
+                  return at ? <TaskCard task={at} onComplete={() => { }} onReopen={() => { }} onEdit={() => { }} onDelete={() => { }} onRequestMove={() => { }} isDone={at.status === doneKey as any} statusOptions={statusOptions} isDragging={true} /> : null;
+                })() : null}
+              </div>
+            </DragOverlay>
+          </DndContext>
+        </div>
+      ) : (
+        <ListView />
+      )}
+    </div>
 
-      <UnifiedTaskModal open={createOpen} onOpenChange={setCreateOpen} mode="create" onSubmit={async (data: any) => {
+    <UnifiedTaskModal open={createOpen} onOpenChange={setCreateOpen} mode="create" onSubmit={async (data: any) => {
       const t = await addTask({
         ...data,
         source: 'manual'
@@ -328,8 +329,8 @@ export default function Tarefas() {
       });
     }} />
 
-      <ManageTaskStatusesModal open={manageStatusesOpen} onOpenChange={setManageStatusesOpen} />
+    <ManageTaskStatusesModal open={manageStatusesOpen} onOpenChange={setManageStatusesOpen} />
 
-      <TaskDetailsModal task={selectedTask} open={!!selectedTask} onOpenChange={open => !open && setSelectedTask(null)} onUpdate={updateTask} onDelete={deleteTask} statusOptions={statusOptions} />
-    </div>;
+    <TaskDetailsModal task={selectedTask} open={!!selectedTask} onOpenChange={open => !open && setSelectedTask(null)} onUpdate={updateTask} onDelete={deleteTask} statusOptions={statusOptions} />
+  </div>;
 }
