@@ -6,7 +6,7 @@ function Dot({ className }: { className: string }) {
 
 export default function PriorityLegend() {
   return (
-    <nav aria-label="Legenda de prioridade" className="flex flex-wrap items-center gap-2 md:gap-4 text-2xs text-lunar-textSecondary px-1">
+    <nav aria-label="Legenda de prioridade" className="glass-legend flex flex-wrap items-center gap-2 md:gap-4 text-2xs text-lunar-textSecondary px-1">
       <span className="flex items-center gap-1">
         <Dot className="bg-lunar-error" />
         <span className="hidden sm:inline">Alta prioridade</span>

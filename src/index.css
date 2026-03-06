@@ -527,26 +527,7 @@
   *:not(.dashboard-card):not(.dashboard-card *):not(.dashboard-card-inner):not(.dashboard-card-inner *):not(.dashboard-badge):not(.dashboard-badge *):hover::after {
     opacity: inherit !important;
   }
-  /* Disable hover background highlight on tables ONLY on Tasks page */
-  .page-tarefas table tr:hover td,
-  .page-tarefas .table-lunar tr:hover td {
-    background: none !important;
-    background-color: inherit !important;
-  }
-  /* Desativar efeitos de hover na página de Tarefas */
-  .page-tarefas * {
-    @apply transition-none;
-  }
-  .page-tarefas :is(button, .card, .card-lunar, li, .hover-scale, .story-link, .nav-item-lunar):hover {
-    background: none !important;
-    background-color: inherit !important;
-    box-shadow: none !important;
-    text-decoration: none !important;
-    filter: none !important;
-  }
-  .page-tarefas .table-lunar tr:hover td {
-    @apply bg-transparent;
-  }
+  /* page-tarefas legacy rules removed — now using .page-tarefas-modern */
 
   /* Custom scrollbar styles for kanban view */
   .overflow-x-auto::-webkit-scrollbar {

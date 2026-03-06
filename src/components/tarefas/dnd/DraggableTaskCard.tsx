@@ -5,6 +5,7 @@ import type { Task } from '@/types/tasks';
 
 export default function DraggableTaskCard(props: {
   task: Task;
+  statusColor?: string;
   onComplete: () => void;
   onReopen: () => void;
   onEdit: () => void;
@@ -14,10 +15,13 @@ export default function DraggableTaskCard(props: {
   statusOptions: { value: string; label: string }[];
   activeId?: string | null;
 }) {
-  const { task, activeId, ...rest } = props as any;
+  const { task, activeId, statusColor, ...rest } = props;
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id, data: { task } });
 
-  const style = isDragging ? { opacity: 0, pointerEvents: 'none' } : (transform ? { transform: CSS.Transform.toString(transform) } : undefined);
+  // Placeholder stays visible but faded; overlay handles the "flying" card
+  const style = transform && !isDragging
+    ? { transform: CSS.Transform.toString(transform) }
+    : undefined;
 
   return (
     <TaskCard

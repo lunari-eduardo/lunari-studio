@@ -138,7 +138,7 @@ export default function TaskDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-lunar-surface border-lunar-border">
+      <DialogContent className="glass-modal max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-lunar-text">
             {isEditing ? 'Editar Tarefa' : 'Detalhes da Tarefa'}

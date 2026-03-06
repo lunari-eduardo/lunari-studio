@@ -1,224 +1,364 @@
-/* src/pages/Tarefas.css */
+/* src/pages/Tarefas.css — Glassmorphism Redesign */
 
-/* Define a custom modern font if requested or fallback to Inter */
+/* =========================================================================
+   Page Background — subtle top-to-bottom gradient
+   ========================================================================= */
 .page-tarefas-modern {
-  /* Dynamic abstract gradient background that gives the glass something to blur */
-  background:
-    radial-gradient(circle at 10% 20%, hsl(18, 55%, 55%, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, hsl(210, 60%, 70%, 0.1) 0%, transparent 40%),
-    linear-gradient(135deg, hsl(var(--lunar-bg)) 0%, hsl(var(--lunar-surface)) 100%);
+  background: linear-gradient(
+    180deg,
+    hsl(220 15% 96%) 0%,
+    hsl(220 10% 92%) 100%
+  );
   background-attachment: fixed;
   color: hsl(var(--lunar-text));
   min-height: 100vh;
 }
 
-/* Dark mode specific animated/richer background */
 .dark .page-tarefas-modern {
-  background:
-    radial-gradient(circle at 15% 30%, hsl(18, 55%, 55%, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 85% 70%, hsl(220, 40%, 40%, 0.08) 0%, transparent 50%),
-    linear-gradient(135deg, hsl(var(--lunar-bg)) 0%, hsl(0, 0%, 5%) 100%);
+  background: linear-gradient(
+    180deg,
+    hsl(0 0% 6%) 0%,
+    hsl(0 0% 4%) 100%
+  );
   background-attachment: fixed;
 }
 
-
 /* =========================================================================
-   Glassmorphism Base Classes
+   Glass Columns — tinted by status color via --col-color
    ========================================================================= */
-
-.page-tarefas-modern .glass-panel {
-  background: rgba(255, 255, 255, 0.4) !important;
-  backdrop-filter: blur(12px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
-}
-
-.dark .page-tarefas-modern .glass-panel {
-  background: rgba(20, 20, 20, 0.4) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-
-.page-tarefas-modern .glass-card {
-  background: rgba(255, 255, 255, 0.6) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04), inset 0 2px 4px rgba(255, 255, 255, 0.4) !important;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background 0.2s ease !important;
-}
-
-.dark .page-tarefas-modern .glass-card {
-  background: rgba(30, 30, 30, 0.4) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.03) !important;
-}
-
-/* Hover over cards */
-.page-tarefas-modern .glass-card:hover {
-  transform: translateY(-2px) scale(1.01) !important;
-  background: rgba(255, 255, 255, 0.75) !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.5) !important;
-}
-
-.dark .page-tarefas-modern .glass-card:hover {
-  background: rgba(40, 40, 40, 0.5) !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
-}
-
-
-/* =========================================================================
-   Overrides nas Classes do Projeto (via hierarquia forte)
-   ========================================================================= */
-
-/* Kanban Column (Card Wrapper) */
-.page-tarefas-modern section>.flex-1.p-2.border-lunar-border\/60 {
-  background: rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(12px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+.glass-column {
+  --col-color: 107, 114, 128; /* fallback gray */
+  background: linear-gradient(
+    180deg,
+    rgba(var(--col-color), 0.08) 0%,
+    rgba(var(--col-color), 0.02) 100%
+  );
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(var(--col-color), 0.15);
+  border-top: 3px solid rgba(var(--col-color), 0.6);
   border-radius: 16px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 4px 24px -4px rgba(var(--col-color), 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.dark .page-tarefas-modern section>.flex-1.p-2.border-lunar-border\/60 {
-  background: rgba(15, 15, 15, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+.dark .glass-column {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--col-color), 0.06) 0%,
+    rgba(var(--col-color), 0.01) 100%
+  );
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  border: 1px solid rgba(var(--col-color), 0.12);
+  border-top: 3px solid rgba(var(--col-color), 0.5);
+  box-shadow:
+    0 4px 24px -4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* Kanban Cards (TaskCard root <li> elements) */
-.page-tarefas-modern section ul>li,
-/* List View Cards (CleanTaskCard) */
-.page-tarefas-modern .grid.gap-2>div {
-  background: rgba(255, 255, 255, 0.5) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+/* Column header badge */
+.glass-column-badge {
+  background: rgba(var(--col-color), 0.12);
+  color: rgba(var(--col-color), 1);
+  border: 1px solid rgba(var(--col-color), 0.2);
+  font-weight: 600;
+}
+
+.dark .glass-column-badge {
+  background: rgba(var(--col-color), 0.15);
+  border-color: rgba(var(--col-color), 0.25);
+}
+
+/* Drop zone active glow */
+.glass-column-over {
+  box-shadow:
+    0 0 0 2px rgba(var(--col-color), 0.4),
+    0 0 30px -4px rgba(var(--col-color), 0.15) !important;
+  border-color: rgba(var(--col-color), 0.5) !important;
+}
+
+/* =========================================================================
+   Glass Cards — frosted, more opaque than column
+   ========================================================================= */
+.glass-task-card {
+  --card-color: 107, 114, 128;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 12px;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.03), inset 0 1px 2px rgba(255, 255, 255, 0.4) !important;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, background 0.2s !important;
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease;
+  will-change: transform;
 }
 
-.dark .page-tarefas-modern section ul>li,
-.dark .page-tarefas-modern .grid.gap-2>div {
-  background: rgba(25, 25, 25, 0.4) !important;
+.dark .glass-task-card {
+  background: linear-gradient(
+    180deg,
+    rgba(35, 35, 35, 0.6) 0%,
+    rgba(25, 25, 25, 0.5) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 2px 8px -2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* Card status tint stripe (top) */
+.glass-task-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(var(--card-color), 0.5);
+  border-radius: 12px 12px 0 0;
+}
+
+/* Card hover */
+.glass-task-card:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  border-color: rgba(var(--card-color), 0.35);
+  box-shadow:
+    0 8px 28px -6px rgba(var(--card-color), 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.dark .glass-task-card:hover {
+  transform: translateY(-3px);
+  background: linear-gradient(
+    180deg,
+    rgba(45, 45, 45, 0.7) 0%,
+    rgba(35, 35, 35, 0.6) 100%
+  );
+  border-color: rgba(var(--card-color), 0.3);
+  box-shadow:
+    0 8px 28px -6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Placeholder (card left behind during drag) */
+.glass-task-card-placeholder {
+  opacity: 0.3;
+  transform: scale(0.97);
+  filter: grayscale(0.4);
+  pointer-events: none;
+}
+
+/* =========================================================================
+   Drag Overlay Card — elevated glass
+   ========================================================================= */
+.glass-drag-overlay {
+  --card-color: 107, 114, 128;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 2px solid rgba(var(--card-color), 0.4);
+  border-radius: 12px;
+  box-shadow:
+    0 20px 40px -8px rgba(var(--card-color), 0.18),
+    0 8px 16px -4px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transform: scale(1.03);
+}
+
+.dark .glass-drag-overlay {
+  background: linear-gradient(
+    180deg,
+    rgba(50, 50, 50, 0.9) 0%,
+    rgba(40, 40, 40, 0.85) 100%
+  );
+  border: 2px solid rgba(var(--card-color), 0.35);
+  box-shadow:
+    0 20px 40px -8px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(var(--card-color), 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-drag-overlay::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(var(--card-color), 0.7);
+  border-radius: 12px 12px 0 0;
+}
+
+/* =========================================================================
+   Glass Filters Bar
+   ========================================================================= */
+.glass-filters {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  box-shadow:
+    0 2px 12px -4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-filters {
+  background: rgba(20, 20, 20, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 2px 12px -4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* =========================================================================
+   Glass Buttons
+   ========================================================================= */
+.page-tarefas-modern button {
+  transition: all 0.2s ease !important;
+}
+
+.glass-btn-primary {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--lunar-accent)) 0%,
+    hsl(var(--lunar-accent) / 0.85) 100%
+  );
+  border: 1px solid hsl(var(--lunar-accent) / 0.3);
+  box-shadow: 0 4px 16px -4px hsl(var(--lunar-accent) / 0.3);
+  color: hsl(var(--lunar-accent-foreground));
+  transition: all 0.2s ease;
+}
+
+.glass-btn-primary:hover {
+  box-shadow: 0 6px 24px -4px hsl(var(--lunar-accent) / 0.4);
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   Glass Modal
+   ========================================================================= */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.dark .glass-modal {
+  background: rgba(20, 20, 20, 0.88) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.04) !important;
+  box-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
-/* Hover no Kanban card */
-.page-tarefas-modern section ul>li:hover,
-.page-tarefas-modern .grid.gap-2>div:hover {
-  transform: translateY(-2px) !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.06), inset 0 2px 4px rgba(255, 255, 255, 0.6) !important;
-  border-color: rgba(255, 255, 255, 0.9) !important;
+/* Modal inputs */
+.glass-modal input,
+.glass-modal textarea,
+.glass-modal [role="combobox"] {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(4px);
 }
 
-.dark .page-tarefas-modern section ul>li:hover,
-.dark .page-tarefas-modern .grid.gap-2>div:hover {
-  background: rgba(35, 35, 35, 0.5) !important;
-  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+.dark .glass-modal input,
+.dark .glass-modal textarea,
+.dark .glass-modal [role="combobox"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Focus and Dragging states for Kanban Cards */
-.page-tarefas-modern section ul>li:active {
-  transform: scale(0.98) !important;
+/* Modal section blocks */
+.glass-modal .border.border-lunar-border.rounded-lg {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  backdrop-filter: blur(4px);
 }
 
-.page-tarefas-modern section ul>li[style*="opacity: 0.7"],
-.page-tarefas-modern section ul>li.opacity-70 {
-  background: rgba(255, 255, 255, 0.9) !important;
-  backdrop-filter: blur(16px) !important;
-  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.1), 0 0 0 2px hsl(var(--lunar-accent)) !important;
-  border-style: solid !important;
-  opacity: 0.95 !important;
-  z-index: 50 !important;
+.dark .glass-modal .border.border-lunar-border.rounded-lg {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
 }
 
-.dark .page-tarefas-modern section ul>li[style*="opacity: 0.7"],
-.dark .page-tarefas-modern section ul>li.opacity-70 {
-  background: rgba(45, 45, 45, 0.8) !important;
-  box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.4), 0 0 0 2px hsl(var(--lunar-accent)) !important;
-  opacity: 0.95 !important;
+/* =========================================================================
+   Priority Legend — subtle
+   ========================================================================= */
+.glass-legend {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
 }
 
+.glass-legend:hover {
+  opacity: 1;
+}
 
-/* Checklist Sidebar Panel (when opened/closed) */
+/* =========================================================================
+   Checklist Panel
+   ========================================================================= */
 .page-tarefas-modern .checklist-panel {
-  background: rgba(255, 255, 255, 0.4) !important;
-  backdrop-filter: blur(14px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 16px;
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+  box-shadow:
+    0 4px 16px -4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .dark .page-tarefas-modern .checklist-panel {
-  background: rgba(15, 15, 15, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.02) !important;
+  background: rgba(15, 15, 15, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 4px 16px -4px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
-/* TaskFiltersBar and Header Actions wrapper */
-.page-tarefas-modern .flex-shrink-0>div:not(header):not(.flex-wrap),
-.page-tarefas-modern .filters-bar-wrapper {
-  background: rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-radius: 12px;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+/* =========================================================================
+   Inputs / Selects in filters
+   ========================================================================= */
+.page-tarefas-modern .glass-filters input,
+.page-tarefas-modern .glass-filters [role="combobox"] {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
 }
 
-.dark .page-tarefas-modern .flex-shrink-0>div:not(header):not(.flex-wrap),
-.dark .page-tarefas-modern .filters-bar-wrapper {
-  background: rgba(20, 20, 20, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.02) !important;
+.page-tarefas-modern .glass-filters input:focus,
+.page-tarefas-modern .glass-filters [role="combobox"]:focus {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: hsl(var(--lunar-accent) / 0.4);
+  box-shadow: 0 0 0 2px hsl(var(--lunar-accent) / 0.1);
 }
 
-/* Button overrides to give them a glass feel inside this page only */
-.page-tarefas-modern button[variant="outline"],
-.page-tarefas-modern button.variant-outline {
-  background: rgba(255, 255, 255, 0.3) !important;
-  backdrop-filter: blur(4px) !important;
-  border-color: rgba(255, 255, 255, 0.6) !important;
-}
-
-.dark .page-tarefas-modern button[variant="outline"],
-.dark .page-tarefas-modern button.variant-outline {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.page-tarefas-modern button[variant="outline"]:hover,
-.page-tarefas-modern button.variant-outline:hover {
-  background: rgba(255, 255, 255, 0.6) !important;
-}
-
-.dark .page-tarefas-modern button[variant="outline"]:hover,
-.dark .page-tarefas-modern button.variant-outline:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* inputs / selects in filters */
-.page-tarefas-modern input,
-.page-tarefas-modern [role="combobox"] {
-  background: rgba(255, 255, 255, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  backdrop-filter: blur(4px) !important;
-}
-
-.dark .page-tarefas-modern input,
-.dark .page-tarefas-modern [role="combobox"] {
-  background: rgba(20, 20, 20, 0.5) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+.dark .page-tarefas-modern .glass-filters input,
+.dark .page-tarefas-modern .glass-filters [role="combobox"] {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

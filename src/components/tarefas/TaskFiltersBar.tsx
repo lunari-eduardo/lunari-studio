@@ -65,7 +65,7 @@ export default function TaskFiltersBar({
     medium: 'Média prioridade',
     low: 'Baixa prioridade'
   };
-  return <div className="bg-card border border-border rounded-lg space-y-2">
+  return <div className="glass-filters space-y-2">
       {/* Desktop Layout - Single line with all filters */}
       <div className="hidden md:flex items-center gap-3 p-2">
         {/* Search */}
