@@ -1,18 +1,14 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CalendarClock, UserCheck, Settings, Filter, Wallet, Menu, X, User, Tag, GitBranch, ChevronRight, ChevronLeft, PieChart, LayoutGrid, CheckSquare, FlaskConical, CreditCard, Shield, Crown, FileText, Plug, Package } from 'lucide-react';
+import { CalendarClock, UserCheck, Settings, Filter, Wallet, Menu, X, Tag, GitBranch, ChevronRight, ChevronLeft, PieChart, LayoutGrid, CheckSquare, FlaskConical, Crown, Plug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useUserProfile } from '@/hooks/useUserProfile';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAccessControl } from '@/hooks/useAccessControl';
 import { cn } from '@/lib/utils';
 
 // Crown badge component for PRO features
 const ProCrown = ({ className }: { className?: string }) => (
-  <Crown size={8} className={cn("text-lunar-accent fill-lunar-accent", className)} />
+  <Crown size={8} className={cn("text-primary fill-primary", className)} />
 );
 
 interface NavItemProps {
@@ -46,106 +42,14 @@ const NavItem = ({
       {!iconOnly && <span className="text-xs font-medium whitespace-nowrap">{label}</span>}
     </NavLink>;
 };
+
 export default function Sidebar() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
   const { accessState } = useAccessControl();
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
-  const { profile, getProfileOrDefault } = useUserProfile();
-  
-  const currentProfile = getProfileOrDefault();
-  
-  // Get user initials for fallback
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-  
-  const userInitials = getInitials(currentProfile.nome || currentProfile.empresa || 'Usuario');
-  
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/auth');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
-    }
-  };
-  
-  const UserAvatar = ({ className }: { className?: string }) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className={cn("rounded-full hover:bg-lunar-surface/50", className)} size="icon">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={currentProfile.logo_url || currentProfile.avatar_url || undefined} />
-            <AvatarFallback className="bg-lunar-accent text-lunar-text text-sm font-medium">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48 bg-lunar-bg shadow-lunar-md border border-lunar-border/50">
-        <DropdownMenuLabel className="text-xs text-lunar-text">
-          {currentProfile.nome || currentProfile.empresa || 'Minha Conta'}
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-lunar-border/30" />
-        <DropdownMenuItem 
-          className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-          onClick={() => navigate('/app/minha-conta')}
-        >
-          <User className="mr-2 h-3 w-3" />
-          <span>Minha Conta</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem 
-          className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-          onClick={() => navigate('/minha-assinatura')}
-        >
-          <CreditCard className="mr-2 h-3 w-3" />
-          <span>Minha Assinatura</span>
-        </DropdownMenuItem>
-        {accessState.isAdmin && (
-          <>
-            <DropdownMenuItem 
-              className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-              onClick={() => navigate('/app/admin/usuarios')}
-            >
-              <Shield className="mr-2 h-3 w-3" />
-              <span>Painel Admin</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-              onClick={() => navigate('/app/admin/conteudos')}
-            >
-              <FileText className="mr-2 h-3 w-3" />
-              <span>Conteúdos</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-              onClick={() => navigate('/app/admin/planos')}
-            >
-              <Package className="mr-2 h-3 w-3" />
-              <span>Produtos & Planos</span>
-            </DropdownMenuItem>
-          </>
-        )}
-        <DropdownMenuSeparator className="bg-lunar-border/30" />
-        <DropdownMenuItem 
-          className="text-xs text-lunar-text hover:bg-lunar-surface/50 rounded cursor-pointer"
-          onClick={handleSignOut}
-        >
-          Sair
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 
-  // Rotas agora são relativas ao /app (sem barra inicial = relativo)
   const navItems = [{
     to: "/app",
     icon: <LayoutGrid size={14} />,
@@ -202,18 +106,13 @@ export default function Sidebar() {
     label: "Integrações"
   }];
 
-  // Determine if user should see PRO badges (Starter plan without special access)
   const isStarterPlan = accessState.planCode?.startsWith('starter') && 
     !accessState.isAdmin && 
     !accessState.isVip && 
     !accessState.isAuthorized;
 
-  const toggleDesktopSidebar = () => {
-    setIsDesktopExpanded(!isDesktopExpanded);
-  };
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
+  const toggleDesktopSidebar = () => setIsDesktopExpanded(!isDesktopExpanded);
+  const toggleSidebar = () => setIsOpen(!isOpen);
 
   // Mobile bottom navigation
   if (isMobile) {
@@ -243,16 +142,13 @@ export default function Sidebar() {
 
         {/* Mobile side menu */}
         <div className={cn("fixed inset-0 bg-black/20 backdrop-blur-sm z-50 transition-opacity duration-200", isOpen ? "opacity-100" : "opacity-0 pointer-events-none")} onClick={toggleSidebar}>
-          <div className={cn("absolute right-0 top-0 bottom-0 w-64 bg-lunar-bg shadow-lunar-md transition-transform transform duration-200", isOpen ? "translate-x-0" : "translate-x-full")} onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-4 border-b border-lunar-border/50">
+          <div className={cn("absolute right-0 top-0 bottom-0 w-64 bg-background shadow-lunar-md transition-transform transform duration-200", isOpen ? "translate-x-0" : "translate-x-full")} onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-4 border-b border-border/50">
               <div className="flex items-center">
-                <UserAvatar />
-                <div className="ml-2">
-                  <span className="font-semibold text-sm text-lunar-text">Lunari</span>
-                  <div className="text-2xs text-lunar-textSecondary">
-                    Seu negócio em perfeita órbita
-                  </div>
-                </div>
+                <span className="font-semibold text-sm text-foreground">Lunari</span>
+                <span className="ml-2 text-2xs text-muted-foreground">
+                  Seu negócio em perfeita órbita
+                </span>
               </div>
               <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-8 w-8">
                 <X size={14} />
@@ -263,37 +159,19 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-
       </>;
   }
 
-  // Desktop sidebar - colapsável
-  return <div className={cn("flex flex-col h-screen p-2 bg-lunar-bg border-r border-lunar-border/50 transition-all duration-300", isDesktopExpanded ? "w-48" : "w-16")}>
-      
-      {/* Avatar do usuário no topo do desktop */}
-      <div className="pt-4 pb-2 border-b border-lunar-border/50 mb-4">
-        <div className={cn("flex items-center transition-all duration-200", isDesktopExpanded ? "gap-3 px-3 py-2" : "w-12 h-12 rounded-lg justify-center")}>
-          <UserAvatar className="flex-shrink-0" />
-          {isDesktopExpanded && <div>
-              <span className="font-semibold text-sm text-lunar-text">
-                {currentProfile.nome || currentProfile.empresa || 'Minha Conta'}
-              </span>
-              <div className="text-2xs text-lunar-textSecondary">
-                Lunari
-              </div>
-            </div>}
-        </div>
-      </div>
-
-      <div className="flex-1">
+  // Desktop sidebar
+  return <div className={cn("flex flex-col h-screen p-2 bg-background border-r border-border/50 transition-all duration-300", isDesktopExpanded ? "w-48" : "w-16")}>
+      <div className="flex-1 pt-4">
         <div className="space-y-2">
           {navItems.map(item => <NavItem key={item.to} {...item} iconOnly={!isDesktopExpanded} showProBadge={isStarterPlan} />)}
         </div>
       </div>
       
-      {/* Toggle button at bottom */}
       <div className="flex justify-center pb-2">
-        <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="h-8 w-8 text-lunar-textSecondary hover:text-lunar-text hover:bg-lunar-surface/50" title={isDesktopExpanded ? "Recolher menu" : "Expandir menu"}>
+        <Button variant="ghost" size="icon" onClick={toggleDesktopSidebar} className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50" title={isDesktopExpanded ? "Recolher menu" : "Expandir menu"}>
           {isDesktopExpanded ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </Button>
       </div>
