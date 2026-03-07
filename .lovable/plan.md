@@ -1,80 +1,33 @@
 
 
-# Diagnóstico: Pagamento de R$115 Reaparecendo como Pendente
+# Fix Workflow Cards: Tamanho, Hover e Glassmorphism
 
-## Causa Raiz Identificada
+## Problemas Identificados
 
-O problema está na **cadeia de callbacks `onPaymentUpdate`** no Workflow. Quando o pagamento rápido de R$130 é adicionado:
+1. **Card cortado a 100% zoom**: `WorkflowCardList.tsx` linha 60 usa `w-[70%]` com `min-w-[1100px]`. O grid desktop do `WorkflowCardCollapsed` tem ~1016px de colunas fixas + coluna auto (Galerias). A 100% zoom, o `w-[70%]` limita a largura e o conteúdo é cortado à direita.
 
-1. **`addPayment` no AppContext** (linha 810) insere a transação de R$130 no Supabase via `PaymentSupabaseService.saveSinglePaymentTracked`
-2. O trigger `recompute_session_paid` recalcula `valor_pago` = 130 + 115 = **R$ 245,00** ✅
-3. O evento `payment-created` é disparado
-4. **`WorkflowCacheContext`** (linha 531) recebe o evento, aguarda 350ms, e faz re-fetch da sessão do Supabase com `valor_pago = 245` ✅
+2. **Hover invertido**: `WorkflowCard.tsx` aplica `bg-gradient-to-br from-white via-gray-100/60 to-gray-50/80` + shadow base, criando um visual já "elevado" por padrão. O hover adiciona shadow maior, mas a diferença visual é mínima — parece que o efeito já está ativo.
 
-**Até aqui tudo correto.** O problema acontece quando o usuário **abre o modal de pagamentos** (ou o CRM):
+3. **Sem glassmorphism**: Os cards usam gradientes opacos sólidos sem backdrop-filter.
 
-5. O `SessionPaymentsManager` monta e chama `useSessionPayments(sessionData.id, initialPayments)`
-6. `useSessionPayments` faz fetch das transações do Supabase (encontra 2: R$130 manual + R$115 InfinitePay)
-7. O `useEffect` na **linha 111-114** do `SessionPaymentsManager` dispara `onPaymentUpdate(sessionId, totalPago, legacyPayments)` toda vez que `payments` muda
-8. No Workflow, o callback `onPaymentUpdate` chama `onFieldUpdate(sessionId, 'valorPago', ...)` — mas o campo `'valorPago'` é **ignorado** pelo `updateSession` (linha 531 do useWorkflowRealtime: `case 'valorPago': break`)
+## Plano
 
-**O campo `valorPago` nunca chega ao banco.** Isso significa que o valor exibido na UI depende inteiramente do cache local, e qualquer re-render pode resetar para o valor antigo.
+### 1. Fix largura do card (WorkflowCardList.tsx)
+- Linha 60: Trocar `w-[70%] min-w-[1100px]` por `w-full` — o card deve preencher o container e o overflow horizontal fica no scroll container pai.
 
-Além disso, o **`onFieldUpdate` com `'pagamentos'`** também é ignorado pelo banco (linha 533). Ou seja, toda a sincronização via `onPaymentUpdate` → `onFieldUpdate` é efetivamente um **no-op** que só afeta estado local temporário.
+### 2. Glassmorphism + Fix hover (WorkflowCard.tsx)
+- **Base**: Remover gradientes opacos. Aplicar fundo translúcido: `bg-white/40 backdrop-blur-xl border border-white/50` com shadow mínima (`shadow-sm`).
+- **Hover**: Aumentar opacidade para `bg-white/60`, shadow elevada (`shadow-lg`), borda mais brilhante. `translateY(-1px)`.
+- **Expanded**: Shadow moderada entre base e hover. Hover no expanded adiciona mais elevação.
+- **Dark mode**: `bg-white/[0.04]` base → `bg-white/[0.08]` hover, bordas `border-white/10`.
 
-### O verdadeiro bug
+### 3. Background do container (WorkflowCardList.tsx)
+- Manter o gradiente cinza no container para que o blur dos cards tenha algo para "embaçar", mas torná-lo mais contrastante para o efeito glass funcionar.
 
-O `valor_pago` no banco **está correto** (R$ 245). O problema é que a UI do Workflow card lê de `session.valorPago` (formato string `"R$ 130,00"`) que vem do **cache local/localStorage** e não é atualizado corretamente após o re-fetch. O campo `pendente` no card é calculado como `total - valorPago`, e se `valorPago` estiver desatualizado, mostra R$ 115 pendente.
+## Arquivos
 
-A inconsistência visual é causada por **dois sistemas de dados concorrendo**: o Supabase (correto) e o localStorage/cache (desatualizado).
-
-## Sobre os itens marcados pelo usuário nas imagens
-
-- **"Corrigir Valores do Histórico"**: botão de migração de dados antigos — pode ser removido ou escondido (já não é necessário rotineiramente)
-- **"Nenhuma sessão precisou ser corrigida"**: toast do botão acima — confirma que os dados do banco estão corretos
-- **Ícone vermelho com X**: esses itens de UI obsoletos devem ser limpos
-
-## Correções Propostas
-
-### 1. Eliminar `onPaymentUpdate` → `onFieldUpdate` como mecanismo de sync (raiz do bug)
-
-O `valor_pago` já é mantido pelo trigger do banco. O frontend **não deve tentar setá-lo manualmente**. A UI do Workflow deve ler `valor_pago` diretamente do Supabase (já faz via WorkflowCacheContext).
-
-**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx` e `WorkflowCardExpanded.tsx`
-- Remover o callback `onPaymentUpdate` que tenta setar `valorPago` via `onFieldUpdate`
-- Substituir por: apenas disparar um evento `payment-created` para forçar re-fetch do cache
-
-### 2. Forçar re-fetch após fechar modal de pagamentos
-
-**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx` e `WorkflowCardExpanded.tsx`
-- No `onClose` do `WorkflowPaymentsModal`, disparar `window.dispatchEvent(new CustomEvent('payment-created', { detail: { sessionId } }))` para forçar o `WorkflowCacheContext` a buscar dados frescos do banco
-
-### 3. Corrigir cálculo de `pendente` no card
-
-**Arquivo**: `src/components/workflow/WorkflowCardCollapsed.tsx`
-- O cálculo de `pendente` deve usar `valor_pago` do banco (campo numérico) em vez de parsear a string `session.valorPago`
-
-### 4. Limpar UI obsoleta no CRM
-
-**Arquivo**: `src/components/crm/WorkflowHistoryTable.tsx`
-- Remover ou esconder o botão "Corrigir Valores do Histórico" (já fez seu trabalho, não é necessário no dia a dia)
-
-### 5. Remover escrita de `valorPago` no localStorage do AppContext
-
-**Arquivo**: `src/contexts/AppContext.tsx` (linhas 862-912)
-- O bloco que atualiza `localStorage` com `valorPago` é redundante e causa dessincronização. Remover essa lógica — o Supabase é a fonte da verdade.
-
-## Resumo de Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/components/workflow/WorkflowCardCollapsed.tsx` | Simplificar `onPaymentUpdate`, forçar re-fetch no close |
-| `src/components/workflow/WorkflowCardExpanded.tsx` | Mesma correção |
-| `src/contexts/AppContext.tsx` | Remover bloco localStorage de `addPayment` |
-| `src/components/crm/WorkflowHistoryTable.tsx` | Esconder botão "Corrigir Valores" |
-| `src/components/payments/SessionPaymentsManager.tsx` | Revisar useEffect de sync para não causar loops |
-
-## Sobre Escalabilidade
-
-A arquitetura atual (trigger SQL como fonte da verdade para `valor_pago`) é **correta e escalável**. O problema não é o banco — é o frontend tentando manter um estado paralelo via localStorage/callbacks que conflita com o dado real. A correção acima elimina essa duplicidade.
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/workflow/WorkflowCardList.tsx` | Fix `w-[70%]` → `w-full` |
+| `src/components/workflow/WorkflowCard.tsx` | Glassmorphism + fix hover hierarchy |
 
