@@ -243,7 +243,7 @@ export default function Tarefas() {
                 </div>
               </div>
 
-              <DragOverlay dropAnimation={{ duration: 200, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+              <DragOverlay dropAnimation={null}>
                 {activeTask ? (
                   <div
                     className="glass-drag-overlay pointer-events-none relative overflow-hidden"
