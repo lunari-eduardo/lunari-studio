@@ -6246,6 +6246,7 @@ export type Database = {
       profiles: {
         Row: {
           account_status: string | null
+          assinatura_grafica: string | null
           avatar_url: string | null
           cidade: string | null
           cidade_ibge_id: number | null
@@ -6275,6 +6276,7 @@ export type Database = {
         }
         Insert: {
           account_status?: string | null
+          assinatura_grafica?: string | null
           avatar_url?: string | null
           cidade?: string | null
           cidade_ibge_id?: number | null
@@ -6304,6 +6306,7 @@ export type Database = {
         }
         Update: {
           account_status?: string | null
+          assinatura_grafica?: string | null
           avatar_url?: string | null
           cidade?: string | null
           cidade_ibge_id?: number | null

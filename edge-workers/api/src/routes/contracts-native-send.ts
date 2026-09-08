@@ -73,6 +73,24 @@ export async function contractsNativeSendRoute(c: Context<{ Bindings: Bindings }
       return c.json({ error: "Erro ao atualizar status do contrato: " + updateErr?.message }, 500);
     }
 
+    // 5. Salvar a assinatura do emissor se fornecida
+    const signatureImage = body.signature_image || null;
+    const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'Desconhecido';
+    const userAgent = c.req.header('user-agent') || 'Desconhecido';
+    
+    // Buscar perfil do fotógrafo para nome e CPF
+    const { data: prof } = await supabase.from('profiles').select('nome, cpf_cnpj').eq('id', user.id).single();
+    
+    await supabase.from('contrato_audit_logs').insert({
+      contrato_id: contrato.id,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      signed_name: prof?.nome || user.email,
+      signed_cpf: prof?.cpf_cnpj || 'Não informado',
+      role: 'emissor',
+      signature_image: signatureImage
+    });
+
     // Email dispatcher can be called by frontend to keep responsibilities separate.
     return c.json({
       success: true,

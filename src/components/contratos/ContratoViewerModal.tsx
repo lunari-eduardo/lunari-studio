@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { ContratoRichEditor } from './ContratoRichEditor';
 import { ContratoStatusBadge } from './ContratoStatusBadge';
+import { ContratoEmissorSignatureModal } from './ContratoEmissorSignatureModal';
 import { useContratos } from '@/hooks/useContratos';
 import { useAutentiqueIntegration } from '@/hooks/useAutentiqueIntegration';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -75,6 +76,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmSendModal, setConfirmSendModal] = useState<'native' | 'autentique' | null>(null);
+  const [emissorSignatureModalOpen, setEmissorSignatureModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -272,7 +274,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
     }
   };
 
-  const handleEnviarParaAssinaturaNativa = async () => {
+  const handleEnviarParaAssinaturaNativa = async (signatureImage: string | null) => {
     const ok = await preFlightCheck();
     if (!ok) return;
 
@@ -281,6 +283,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
       const res = await enviarParaAssinaturaNativa({
         contratoId: contrato.id,
         pdfBlob: blob,
+        signatureImage,
       });
 
       const token = res?.signature_token;
@@ -358,6 +361,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -858,7 +862,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
                   const mode = confirmSendModal;
                   setConfirmSendModal(null);
                   if (mode === 'native') {
-                    await handleEnviarParaAssinaturaNativa();
+                    setEmissorSignatureModalOpen(true);
                   } else if (mode === 'autentique') {
                     await handleEnviarParaAssinaturaAutentique();
                   }
@@ -871,5 +875,14 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
         </AlertDialog>
       </DialogContent>
     </Dialog>
+    
+    <ContratoEmissorSignatureModal
+      open={emissorSignatureModalOpen}
+      onClose={() => setEmissorSignatureModalOpen(false)}
+      onConfirm={handleEnviarParaAssinaturaNativa}
+      profileId={profile?.id}
+      savedSignature={(profile as any)?.assinatura_grafica}
+    />
+    </>
   );
 }

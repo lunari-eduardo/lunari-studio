@@ -89,5 +89,7 @@ export interface ContratoAuditLog {
   signed_name?: string;
   signed_cpf?: string;
   document_hash?: string;
+  signature_image?: string;
+  role?: string;
   created_at: string;
 }

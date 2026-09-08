@@ -220,9 +220,11 @@ export function useContratos(opts: UseContratosOpts = {}) {
     mutationFn: async ({
       contratoId,
       pdfBlob,
+      signatureImage,
     }: {
       contratoId: string;
       pdfBlob: Blob;
+      signatureImage?: string | null;
     }) => {
       const pdfBase64 = await blobToBase64(pdfBlob);
       
@@ -238,7 +240,8 @@ export function useContratos(opts: UseContratosOpts = {}) {
         },
         body: JSON.stringify({
           contrato_id: contratoId,
-          pdf_base64: pdfBase64
+          pdf_base64: pdfBase64,
+          signature_image: signatureImage || null,
         })
       });
 

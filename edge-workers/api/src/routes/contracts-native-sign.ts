@@ -65,14 +65,44 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
     
     const originalPdfBytes = await originalPdfObject.arrayBuffer();
 
+    // Calcular Hash SHA-256 do arquivo original
+    const originalHashBuffer = await crypto.subtle.digest('SHA-256', originalPdfBytes);
+    const originalHashArray = Array.from(new Uint8Array(originalHashBuffer));
+    const originalDocumentHash = originalHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
     // 3. Processar PDF com pdf-lib
     const pdfDoc = await PDFDocument.load(originalPdfBytes);
-    
-    // Anexar folha de auditoria
-    const page = pdfDoc.addPage();
-    const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    // Buscar logs anteriores (ex: emissor)
+    const { data: logs } = await supabase
+      .from("contrato_audit_logs")
+      .select("*")
+      .eq("contrato_id", contrato.id)
+      .order("created_at", { ascending: true });
+
+    const timestamp = new Date().toISOString();
+    
+    const clientLog = {
+      id: crypto.randomUUID(),
+      contrato_id: contrato.id,
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      geolocation: geolocation || null,
+      signed_name: name,
+      signed_cpf: cpf,
+      role: 'cliente',
+      signature_image: signature_image,
+      created_at: timestamp
+    };
+
+    const allSigners = [...(logs || []), clientLog];
+
+    // Anexar folhas de auditoria (uma por signatário para caber corretamente)
+    for (const signer of allSigners) {
+      const page = pdfDoc.addPage();
+      const { width, height } = page.getSize();
     
     // Faixa superior decorativa
     page.drawRectangle({
@@ -91,15 +121,14 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
       color: rgb(1, 1, 1),
     });
 
-    const timestamp = new Date().toISOString();
-    const formattedDate = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const signerDate = new Date(signer.created_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
 
     // Caixa de Informações
     page.drawRectangle({
       x: 40,
-      y: height - 240,
+      y: height - 260,
       width: width - 80,
-      height: 165,
+      height: 185,
       borderColor: rgb(0.85, 0.88, 0.92),
       borderWidth: 1,
       color: rgb(0.98, 0.99, 1),
@@ -107,12 +136,14 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
 
     const metadataLines = [
       `ID do Documento: ${contrato.id}`,
-      `Data e Hora (Brasilia): ${formattedDate} (UTC: ${timestamp})`,
-      `Signatario: ${sanitizePdfText(name)}`,
-      `CPF: ${cpf.replace(/[^\d.-]/g, '')}`,
-      `Endereco IP: ${ipAddress.substring(0, 45)}`,
-      `Dispositivo / Navegador: ${sanitizePdfText(userAgent).substring(0, 80)}`,
-      `Geolocalizacao aproximada: ${geolocation ? `${geolocation.latitude}, ${geolocation.longitude}` : 'Nao autorizada pelo usuario'}`,
+      `Hash SHA-256 do Documento Original: ${originalDocumentHash}`,
+      `Papel: ${signer.role === 'emissor' ? 'Emissor (Fotógrafo)' : 'Signatário (Cliente)'}`,
+      `Data e Hora (Brasilia): ${signerDate} (UTC: ${signer.created_at})`,
+      `Nome: ${sanitizePdfText(signer.signed_name)}`,
+      `CPF: ${signer.signed_cpf.replace(/[^\d.-]/g, '')}`,
+      `Endereco IP: ${signer.ip_address.substring(0, 45)}`,
+      `Dispositivo: ${sanitizePdfText(signer.user_agent).substring(0, 80)}`,
+      `Geolocalizacao: ${signer.geolocation ? `${signer.geolocation.latitude}, ${signer.geolocation.longitude}` : 'Nao autorizada pelo usuario'}`,
     ];
 
     let yOffset = height - 90;
@@ -124,22 +155,28 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
         font: font,
         color: rgb(0.2, 0.25, 0.3),
       });
-      yOffset -= 20;
+      yOffset -= 17;
     }
 
-    // Texto legal
-    page.drawText('Documento assinado em conformidade com a MP 2.200-2/2001 e a Lei 14.063/2020.', {
+    // Texto legal e de Consentimento
+    const consentText = 'O signatario declarou concordancia com todas as clausulas contratuais e';
+    const consentText2 = 'manifestou consentimento para utilizacao deste meio eletronico nos termos da legislacao vigente.';
+    const legalText = 'Documento assinado em conformidade com a MP 2.200-2/2001 e a Lei 14.063/2020.';
+
+    page.drawText(consentText, { x: 55, y: height - 245, size: 8.5, font: font, color: rgb(0.3, 0.4, 0.5) });
+    page.drawText(consentText2, { x: 55, y: height - 255, size: 8.5, font: font, color: rgb(0.3, 0.4, 0.5) });
+    page.drawText(legalText, {
       x: 55,
-      y: height - 230,
+      y: height - 275,
       size: 8.5,
       font: fontBold,
-      color: rgb(0.3, 0.4, 0.5),
+      color: rgb(0.2, 0.3, 0.4),
     });
 
     // Bloco da Assinatura Gráfica
     page.drawRectangle({
       x: 40,
-      y: height - 420,
+      y: height - 445,
       width: width - 80,
       height: 160,
       borderColor: rgb(0.85, 0.88, 0.92),
@@ -149,7 +186,7 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
 
     page.drawText('Representacao Grafica da Assinatura:', {
       x: 55,
-      y: height - 275,
+      y: height - 300,
       size: 11,
       font: fontBold,
       color: rgb(0.1, 0.1, 0.1),
@@ -157,30 +194,34 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
 
     // Embutir imagem do desenho
     try {
-      const cleanBase64 = signature_image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
-      const imageBytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
-      
-      let signatureImage;
-      if (signature_image.includes('image/jpeg') || signature_image.includes('image/jpg')) {
-        signatureImage = await pdfDoc.embedJpg(imageBytes);
+      if (signer.signature_image) {
+        const cleanBase64 = signer.signature_image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
+        const imageBytes = Uint8Array.from(atob(cleanBase64), c => c.charCodeAt(0));
+        
+        let signatureImage;
+        if (signer.signature_image.includes('image/jpeg') || signer.signature_image.includes('image/jpg')) {
+          signatureImage = await pdfDoc.embedJpg(imageBytes);
+        } else {
+          signatureImage = await pdfDoc.embedPng(imageBytes);
+        }
+        
+        const sigDims = signatureImage.scale(0.45);
+        const targetHeight = Math.min(sigDims.height, 90);
+        const targetWidth = (sigDims.width / sigDims.height) * targetHeight;
+        
+        page.drawImage(signatureImage, {
+          x: 55,
+          y: height - 415,
+          width: Math.min(targetWidth, width - 120),
+          height: targetHeight,
+        });
       } else {
-        signatureImage = await pdfDoc.embedPng(imageBytes);
+        page.drawText('[Registro gráfico não disponível ou assinatura eletrônica simples]', { x: 55, y: height - 350, size: 10, font: font, color: rgb(0.5, 0.5, 0.5) });
       }
-      
-      const sigDims = signatureImage.scale(0.45);
-      const targetHeight = Math.min(sigDims.height, 90);
-      const targetWidth = (sigDims.width / sigDims.height) * targetHeight;
-      
-      page.drawImage(signatureImage, {
-        x: 55,
-        y: height - 390,
-        width: Math.min(targetWidth, width - 120),
-        height: targetHeight,
-      });
 
-      page.drawText(`Assinado digitalmente por ${sanitizePdfText(name)}`, {
+      page.drawText(`Assinado digitalmente por ${sanitizePdfText(signer.signed_name)}`, {
         x: 55,
-        y: height - 410,
+        y: height - 435,
         size: 8,
         font: font,
         color: rgb(0.5, 0.5, 0.5),
@@ -198,6 +239,8 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
       font: font,
       color: rgb(0.5, 0.5, 0.5),
     });
+    
+    } // FIM DO LOOP DOS SIGNATÁRIOS
 
     const finalPdfBytes = await pdfDoc.save();
 
@@ -249,7 +292,9 @@ export async function contractsNativeSignRoute(c: Context<{ Bindings: Bindings }
         geolocation: geolocation || null,
         signed_name: name,
         signed_cpf: cpf,
-        document_hash: documentHash
+        document_hash: documentHash,
+        role: 'cliente',
+        signature_image: signature_image
       });
 
     if (auditErr) {
