@@ -14,10 +14,11 @@ import { useAgendaSettings } from '@/hooks/useAgendaSettings';
 import type { AvailabilitySlot } from '@/types/availability';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Plus, X, Clock, Settings } from 'lucide-react';
+import { Plus, X, Clock, Settings, Tag } from 'lucide-react';
 import { formatDateForInput } from '@/utils/dateUtils';
 import type { DateRange } from 'react-day-picker';
 import { dialogSize, DIALOG_SHELL, DIALOG_BODY, DIALOG_TITLE_CLS, FIELD_LABEL } from '@/lib/dialogTokens';
+import { AvailabilityTypesManagerModal } from './AvailabilityTypesManagerModal';
 
 type Action = 'liberar' | 'bloquear';
 type WeekdayMode = 'all' | 'specific';
@@ -63,6 +64,8 @@ export default function AvailabilityConfigModal({
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [blockMode, setBlockMode] = useState<BlockMode>('fullDay');
   const [liberarMode, setLiberarMode] = useState<LiberarMode>('create');
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('');
+  const [isTypesManagerOpen, setIsTypesManagerOpen] = useState(false);
   const [timeSlots, setTimeSlots] = useState<{ start: string; end?: string }[]>([]);
   const [fullDayDescription, setFullDayDescription] = useState('');
   const [showWorkingHours, setShowWorkingHours] = useState(false);
@@ -80,10 +83,11 @@ export default function AvailabilityConfigModal({
       setSelectedWeekdays([]);
       setBlockMode('fullDay');
       setLiberarMode('create');
+      setSelectedTypeId(availabilityTypes[0]?.id || '1');
       setTimeSlots(initialTime ? [{ start: initialTime }] : []);
       setFullDayDescription('');
     }
-  }, [isOpen, date, initialTime]);
+  }, [isOpen, date, initialTime, availabilityTypes]);
 
   // === Helpers ===
   const toggleWeekday = (idx: number) => {
@@ -141,7 +145,7 @@ export default function AvailabilityConfigModal({
       })
     );
 
-    const tipo = availabilityTypes[0];
+    const tipo = availabilityTypes.find(t => t.id === selectedTypeId) || availabilityTypes[0];
     const defaultLabel = tipo?.name || 'Disponível';
     const defaultColor = tipo?.color || '#10b981';
 
@@ -149,7 +153,7 @@ export default function AvailabilityConfigModal({
       if (action === 'bloquear') {
         await handleBloquear(targetDates, appointmentKeys);
       } else {
-        await handleLiberar(targetDates, appointmentKeys, defaultLabel, defaultColor);
+        await handleLiberar(targetDates, appointmentKeys, defaultLabel, defaultColor, tipo?.id);
       }
       onClose();
     } catch (error) {
@@ -232,7 +236,8 @@ export default function AvailabilityConfigModal({
     targetDates: Date[],
     appointmentKeys: Set<string>,
     label: string,
-    color: string
+    color: string,
+    typeId?: string
   ) => {
     const validTimes = timeSlots.map(s => s.start).filter(isValidTime);
     if (validTimes.length === 0) {
@@ -285,7 +290,7 @@ export default function AvailabilityConfigModal({
           duration: 60,
           label,
           color,
-          typeId: availabilityTypes[0]?.id,
+          typeId: typeId || availabilityTypes[0]?.id,
         });
       }
     }
@@ -646,6 +651,39 @@ export default function AvailabilityConfigModal({
                     Adicionar horário
                   </Button>
                 </div>
+
+                {/* === Seletor de Tipo de Disponibilidade === */}
+                <div className="space-y-2 pt-3 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Tipo de disponibilidade</Label>
+                    <button
+                      type="button"
+                      onClick={() => setIsTypesManagerOpen(true)}
+                      className="text-[11px] text-primary hover:underline flex items-center gap-1 font-medium"
+                    >
+                      <Tag className="h-3 w-3" />
+                      Gerenciar tipos
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {availabilityTypes.map((type) => (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => setSelectedTypeId(type.id)}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-all',
+                          selectedTypeId === type.id
+                            ? 'ring-2 ring-primary border-primary bg-primary/10 font-medium'
+                            : 'border-border/60 hover:bg-muted/40 text-muted-foreground'
+                        )}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: type.color }} />
+                        {type.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -671,6 +709,11 @@ export default function AvailabilityConfigModal({
           </div>
         </div>
       </DialogContent>
+
+      <AvailabilityTypesManagerModal
+        isOpen={isTypesManagerOpen}
+        onClose={() => setIsTypesManagerOpen(false)}
+      />
     </Dialog>
   );
 }

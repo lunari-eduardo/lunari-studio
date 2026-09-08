@@ -69,10 +69,11 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
     const types = await this.types.list();
 
     return (data || []).map((slot) => {
+      const slotTypeId = (slot as any).availability_type_id;
       const matching = types.find(
-        (t) => t.id === slot.type || t.name.toLowerCase() === slot.type?.toLowerCase(),
+        (t) => (slotTypeId && t.id === slotTypeId) || t.id === slot.type || t.name.toLowerCase() === slot.type?.toLowerCase(),
       );
-      const typeKey = slot.type ?? "disponivel";
+      const typeKey = slotTypeId || slot.type ?? "disponivel";
       return {
         id: slot.id,
         date: slot.date,
@@ -90,12 +91,15 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
 
   async addMany(slots: NewAvailabilitySlot[]): Promise<void> {
     const userId = await requireUserId();
+    const isUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
     const payload = slots.map((slot) => ({
       user_id: userId,
       date: slot.date,
       start_time: slot.time,
       end_time: calcEndTime(slot.time, slot.duration || 60),
       type: slot.typeId || "disponivel",
+      availability_type_id: isUuid(slot.typeId) ? slot.typeId : null,
       description: slot.label || null,
       color: slot.color || null,
       is_full_day: slot.isFullDay || false,

@@ -47,6 +47,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AgendaLegend } from '@/components/agenda/AgendaLegend';
 import { PersonalEventModal } from '@/components/agenda/PersonalEventModal';
 import { MeetingModal } from '@/components/agenda/MeetingModal';
+import { AgendaOnlineLinksModal } from '@/components/agenda/AgendaOnlineLinksModal';
 
 
 /** Shell de largura: ano usa 1600px (grade de 12 meses), demais views usam o padrão. */
@@ -74,6 +75,9 @@ export default function Agenda() {
   // Meeting modal state
   const [isMeetingModalOpen, setIsMeetingModalOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Appointment | null>(null);
+
+  // Online Booking Links modal state
+  const [isOnlineBookingModalOpen, setIsOnlineBookingModalOpen] = useState(false);
 
   // Slot info for new item
   const [newItemSlot, setNewItemSlot] = useState<{ date: Date; time: string } | null>(null);
@@ -423,6 +427,7 @@ export default function Agenda() {
           onNavigateNext={handleNavigateNext}
           onNavigateToday={handleNavigateToday}
           onOpenAvailability={openAvailabilityModal}
+          onOpenOnlineBooking={() => setIsOnlineBookingModalOpen(true)}
           onOpenShare={view === 'day' ? openShareModal : undefined}
           extraAction={
             !showSidebar && sidebarApplicable ? (
@@ -569,6 +574,11 @@ export default function Agenda() {
         onViewFullBudget={handleViewFullBudget}
       />
       <SlotConflictDialog {...conflictDialogProps} />
+
+      <AgendaOnlineLinksModal
+        isOpen={isOnlineBookingModalOpen}
+        onClose={() => setIsOnlineBookingModalOpen(false)}
+      />
     </div>
   );
 }

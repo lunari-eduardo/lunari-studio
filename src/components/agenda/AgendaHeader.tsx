@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Settings, Share2, Crown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, Share2, Crown, Globe } from "lucide-react";
 import { formatDateTitle, formatDayTitle, ViewType } from '@/utils/dateFormatters';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
@@ -13,6 +13,7 @@ interface AgendaHeaderProps {
   onNavigateNext: () => void;
   onNavigateToday: () => void;
   onOpenAvailability: () => void;
+  onOpenOnlineBooking?: () => void;
   onOpenShare?: () => void;
   extraAction?: React.ReactNode;
 }
@@ -25,6 +26,7 @@ export default function AgendaHeader({
   onNavigateNext,
   onNavigateToday,
   onOpenAvailability,
+  onOpenOnlineBooking,
   onOpenShare,
   extraAction
 }: AgendaHeaderProps) {
@@ -135,6 +137,27 @@ export default function AgendaHeader({
     </Button>
   );
 
+  const OnlineBookingButton = () => (
+    <Button
+      variant="outline"
+      onClick={onOpenOnlineBooking}
+      size="sm"
+      className={`${
+        isMobile 
+          ? `${classes.iconButton}` 
+          : isTablet 
+            ? "h-6 px-3 py-0 my-0 text-xs"
+            : "h-8 px-3 text-xs"
+      } border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-primary`}
+      title={isMobile ? "Agendamento Online" : undefined}
+    >
+      <Globe className="h-3.5 w-3.5" />
+      {!isMobile && (
+        <span className="ml-1">Agendamento Online</span>
+      )}
+    </Button>
+  );
+
   if (isMobile) {
     return (
       <div className="flex flex-col items-center justify-center mb-2 gap-2">
@@ -144,13 +167,14 @@ export default function AgendaHeader({
         </div>
         
         {/* View Toggle and Manage Button */}
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-1.5 w-full">
           <div className="flex flex-1 items-center gap-0.5 rounded-lg border border-border/40 bg-muted/40 p-1">
             {viewButtons.map(({ key, label }) => (
               <ViewToggleButton key={key} viewKey={key} label={label} />
             ))}
           </div>
           {extraAction}
+          {onOpenOnlineBooking && <OnlineBookingButton />}
           <ManageButton />
         </div>
 
@@ -177,6 +201,7 @@ export default function AgendaHeader({
           <ViewToggleGroup />
           <div className="flex items-center gap-2">
             {extraAction}
+            {onOpenOnlineBooking && <OnlineBookingButton />}
             <ManageButton />
           </div>
         </div>
@@ -203,6 +228,7 @@ export default function AgendaHeader({
         {/* Manage Schedules Button & Extra Actions - Far Right */}
         <div className="flex items-center gap-2">
           {extraAction}
+          {onOpenOnlineBooking && <OnlineBookingButton />}
           <ManageButton />
         </div>
       </div>
