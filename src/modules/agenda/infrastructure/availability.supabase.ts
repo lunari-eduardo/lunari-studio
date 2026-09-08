@@ -73,7 +73,7 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
       const matching = types.find(
         (t) => (slotTypeId && t.id === slotTypeId) || t.id === slot.type || t.name.toLowerCase() === slot.type?.toLowerCase(),
       );
-      const typeKey = slotTypeId || slot.type ?? "disponivel";
+      const typeKey = slotTypeId || slot.type || "disponivel";
       return {
         id: slot.id,
         date: slot.date,
