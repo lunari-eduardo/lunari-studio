@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ContratoRichEditor } from './ContratoRichEditor';
@@ -97,7 +97,7 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
   const { data: auditLog } = useQuery({
     queryKey: ['contrato_audit_log', contrato.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('contrato_audit_logs')
         .select('*')
         .eq('contrato_id', contrato.id)

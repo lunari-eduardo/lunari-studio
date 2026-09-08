@@ -66,7 +66,7 @@ export function NovoContratoModal({ open, onClose, clienteId, clienteNome, sessi
     if (!open || !clienteId) return;
     (async () => {
       const [cli, sess] = await Promise.all([
-        supabase.from('clientes').select('id, nome, email, telefone, whatsapp, endereco').eq('id', clienteId).single(),
+        supabase.from('clientes').select('id, nome, email, telefone, whatsapp, endereco, cpf_cnpj, cidade, estado').eq('id', clienteId).single(),
         supabase
           .from('clientes_sessoes')
           .select('id, session_id, data_sessao, hora_sessao, categoria, pacote, descricao, valor_total')

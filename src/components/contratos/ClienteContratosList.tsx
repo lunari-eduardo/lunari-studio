@@ -37,7 +37,7 @@ interface ClienteContratosListProps {
 }
 
 export function ClienteContratosList({ clienteId, clienteNome }: ClienteContratosListProps) {
-  const { contratos, isLoading, remove, setStatus } = useContratos({ clienteId });
+  const { contratos, isLoading, remove, setStatus, getSignedUrl } = useContratos({ clienteId });
   const { profile } = useUserProfile();
   const { user } = useAuth();
   const [novoOpen, setNovoOpen] = useState(false);
@@ -48,12 +48,10 @@ export function ClienteContratosList({ clienteId, clienteNome }: ClienteContrato
     try {
       // PDF assinado tem prioridade
       if (c.arquivo_assinado_path) {
-        const { data } = await import('@/integrations/supabase/client').then(({ supabase }) =>
-          supabase.storage.from('contratos-assinados').createSignedUrl(c.arquivo_assinado_path!, 60 * 5)
-        );
-        if (data?.signedUrl) {
+        const url = await getSignedUrl(c.arquivo_assinado_path);
+        if (url) {
           const a = document.createElement('a');
-          a.href = data.signedUrl;
+          a.href = url;
           a.download = c.arquivo_assinado_nome || `${c.titulo}-assinado.pdf`;
           a.target = '_blank';
           document.body.appendChild(a);

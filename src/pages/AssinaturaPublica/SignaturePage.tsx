@@ -44,7 +44,7 @@ export default function SignaturePage() {
   useEffect(() => {
     async function fetchContract() {
       try {
-        const res = await fetch(`${API_BASE}/contracts/native/get/${token}`);
+        const res = await fetch(`${API_BASE}/api/contracts/native/get/${token}`);
         const json = await res.json();
         
         if (!res.ok) {
@@ -154,7 +154,7 @@ export default function SignaturePage() {
         }
       }
 
-      const res = await fetch(`${API_BASE}/contracts/native/sign`, {
+      const res = await fetch(`${API_BASE}/api/contracts/native/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -182,7 +182,7 @@ export default function SignaturePage() {
     }
   };
 
-  const downloadUrl = `${API_BASE}/contracts/native/download/${token}`;
+  const downloadUrl = `${API_BASE}/api/contracts/native/download/${token}`;
 
   // Estado de Carregamento
   if (loading) {

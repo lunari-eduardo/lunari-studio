@@ -26,7 +26,7 @@ export async function contractsNativeGetRoute(c: Context<{ Bindings: Bindings }>
         original_file_path,
         arquivo_assinado_path,
         user_id,
-        cliente:clientes(nome, email, documento)
+        cliente:clientes(nome, email, cpf_cnpj)
       `)
       .eq("signature_token", signatureToken)
       .single();
@@ -55,7 +55,7 @@ export async function contractsNativeGetRoute(c: Context<{ Bindings: Bindings }>
         download_url: `/api/contracts/native/download/${signatureToken}`,
         cliente: {
           nome: Array.isArray(contrato.cliente) ? contrato.cliente[0]?.nome : contrato.cliente?.nome,
-          documento: Array.isArray(contrato.cliente) ? contrato.cliente[0]?.documento : contrato.cliente?.documento
+          documento: Array.isArray(contrato.cliente) ? contrato.cliente[0]?.cpf_cnpj : contrato.cliente?.cpf_cnpj
         },
         fotografo: {
           nome: prof?.nome || "Fotógrafo"

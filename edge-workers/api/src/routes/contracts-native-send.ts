@@ -55,10 +55,12 @@ export async function contractsNativeSendRoute(c: Context<{ Bindings: Bindings }
     });
 
     // 4. Update Supabase
+    const signatureToken = crypto.randomUUID();
     const { data: updatedContrato, error: updateErr } = await supabase
       .from("contratos")
       .update({
         signature_provider: "native",
+        signature_token: signatureToken,
         status: "enviado",
         enviado_em: new Date().toISOString(),
         original_file_path: storagePath

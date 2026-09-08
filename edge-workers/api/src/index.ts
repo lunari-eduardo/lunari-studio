@@ -59,4 +59,10 @@ app.get('/api/contracts/native/get/:token', contractsNativeGetRoute);
 app.post('/api/contracts/native/sign', contractsNativeSignRoute);
 app.get('/api/contracts/native/download/:token', contractsNativeDownloadRoute);
 
+// Atalhos legados sem /api para evitar quebra de cache/PWA antigos
+app.post('/contracts/native/send', contractsNativeSendRoute);
+app.get('/contracts/native/get/:token', contractsNativeGetRoute);
+app.post('/contracts/native/sign', contractsNativeSignRoute);
+app.get('/contracts/native/download/:token', contractsNativeDownloadRoute);
+
 export default app;
