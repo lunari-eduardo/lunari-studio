@@ -4,9 +4,8 @@ import { forceCleanReload } from '@/lib/chunkRecovery';
 import { toast } from 'sonner';
 
 /**
- * Hook para verificar se há nova versão do app no servidor.
- * Compara BUILD_COMMIT local com version.json remoto em intervalos regulares
- * e quando o usuário retorna à aba (visibilitychange / focus).
+ * @deprecated As notificações e ciclo de atualização são centralizados no `usePWAUpdate` (via vite-plugin-pwa).
+ * Evite chamar este hook concorrentemente no App.tsx para não duplicar avisos.
  */
 export function useVersionCheck() {
   const [needsUpdate, setNeedsUpdate] = useState(false);
@@ -36,7 +35,7 @@ export function useVersionCheck() {
         if (!hasNotifiedRef.current) {
           hasNotifiedRef.current = true;
           toast('Nova versão do Lunari disponível!', {
-            id: 'lunari-version-update',
+            id: 'lunari-app-update',
             description: 'Uma nova versão foi publicada. Clique em Atualizar para carregar os recursos mais recentes.',
             duration: 30000,
             action: {

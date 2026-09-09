@@ -46,7 +46,7 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
     }
 
     const totalAmount = Number(pacote.valor_base) || 0;
-    let depositAmount = totalAmount;
+    let depositAmount = 0;
 
     if (linkData.require_deposit) {
        const dVal = Number(linkData.deposit_value) || 0;
@@ -55,10 +55,10 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
        } else {
           depositAmount = dVal;
        }
-    }
 
-    if (depositAmount <= 0) {
-      return c.json({ success: false, error: 'Sinal configurado incorretamente. Valor deve ser maior que 0.' }, 400);
+       if (depositAmount <= 0) {
+         return c.json({ success: false, error: 'Sinal configurado incorretamente. Valor deve ser maior que 0.' }, 400);
+       }
     }
 
     // 3. Match Cliente Oculto (Evitar duplicação no banco)

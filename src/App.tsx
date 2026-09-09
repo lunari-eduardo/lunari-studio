@@ -23,7 +23,6 @@ import "@/modules/gallery";
 import { usePricingBootstrap } from "./hooks/usePricingBootstrap";
 import { useAppForceUpdate } from "./hooks/useAppForceUpdate";
 import { usePWAUpdate } from "./hooks/usePWAUpdate";
-import { useVersionCheck } from "./hooks/useVersionCheck";
 
 import { detectAppContext } from "./lib/appContext";
 
@@ -58,7 +57,6 @@ function App() {
   const { error: pricingError } = usePricingBootstrap();
   usePWAUpdate();
   useAppForceUpdate();
-  useVersionCheck();
 
   const context = React.useMemo(() => detectAppContext(), []);
 

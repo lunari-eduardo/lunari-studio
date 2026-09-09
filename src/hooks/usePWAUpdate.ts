@@ -33,11 +33,12 @@ export function usePWAUpdate() {
       onNeedRefresh() {
         console.log('🔄 [PWA] Nova versão detectada! Preparando atualização...');
         
-        toast('Nova versão disponível!', {
-          description: 'Clique aqui para atualizar',
-          duration: 10000,
+        toast('Nova versão do Lunari disponível!', {
+          id: 'lunari-app-update',
+          description: 'Uma nova versão foi publicada. Clique em Atualizar para carregar os recursos mais recentes.',
+          duration: 30000,
           action: {
-            label: 'Atualizar',
+            label: 'Atualizar agora',
             onClick: () => {
               console.log('🚀 [PWA] Aplicando atualização...');
               updateSW(true);
@@ -54,6 +55,11 @@ export function usePWAUpdate() {
         console.log('✅ [PWA] Service Worker registrado:', swUrl);
         
         if (registration) {
+          // Checagem imediata ao registrar
+          registration.update().catch((err) => {
+            console.warn('⚠️ [PWA] Erro na checagem inicial de atualização:', err);
+          });
+
           // 1. Polling periódico a cada 60 segundos enquanto ativo
           const intervalId = setInterval(() => {
             registration.update().catch((err) => {
