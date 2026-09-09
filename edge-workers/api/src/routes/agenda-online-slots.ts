@@ -122,6 +122,7 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
       data: {
         link: {
           id: linkData.id,
+          userId: linkData.user_id,
           title: linkData.title,
           description: linkData.description,
           requireDeposit: linkData.require_deposit,

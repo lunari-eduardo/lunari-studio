@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle2, Calendar, Clock, Package, User, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Calendar, Clock, Package, ArrowRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatCurrency } from '@/utils/financialUtils';
@@ -36,55 +36,55 @@ export function BookingSuccess({
   };
 
   return (
-    <div className="max-w-md mx-auto py-12 px-4">
-      <Card className="border shadow-lg bg-card/80 backdrop-blur">
+    <div className="max-w-md w-full mx-auto py-12 px-4">
+      <Card className="border border-neutral-200/80 shadow-md bg-white rounded-2xl">
         <CardContent className="pt-8 pb-8 px-6 text-center space-y-6">
-          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
             <CheckCircle2 className="w-10 h-10" />
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">Horário Reservado!</h2>
-            <p className="text-sm text-muted-foreground">
-              Olá, <span className="font-medium text-foreground">{clientName}</span>! Seu horário foi pré-agendado com{' '}
-              <span className="font-semibold text-foreground">{photographerName || 'o fotógrafo'}</span>.
+            <h2 className="text-2xl font-bold tracking-tight text-neutral-900">Horário Reservado!</h2>
+            <p className="text-sm text-neutral-600">
+              Olá, <span className="font-semibold text-neutral-900">{clientName}</span>! Seu horário foi pré-agendado com{' '}
+              <span className="font-semibold text-neutral-900">{photographerName || 'o fotógrafo'}</span>.
             </p>
           </div>
 
-          <div className="bg-muted/40 rounded-xl p-4 text-left space-y-3 border text-sm">
-            <div className="flex items-center gap-2.5">
+          <div className="bg-neutral-50 rounded-xl p-4 text-left space-y-3 border border-neutral-200 text-sm">
+            <div className="flex items-center gap-2.5 text-neutral-800">
               <Calendar className="w-4 h-4 text-primary shrink-0" />
               <span className="capitalize">{formattedDate}</span>
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 text-neutral-800">
               <Clock className="w-4 h-4 text-primary shrink-0" />
               <span>{selectedTime}</span>
             </div>
 
             {selectedPackage && (
-              <div className="flex items-center justify-between border-t pt-2 mt-2">
+              <div className="flex items-center justify-between border-t border-neutral-200 pt-2 mt-2">
                 <div className="flex items-center gap-2.5">
                   <Package className="w-4 h-4 text-primary shrink-0" />
-                  <span className="font-medium">{selectedPackage.nome}</span>
+                  <span className="font-medium text-neutral-900">{selectedPackage.nome}</span>
                 </div>
-                <span className="font-semibold">{formatCurrency(Number(selectedPackage.valor_base) || 0)}</span>
+                <span className="font-semibold text-neutral-900">{formatCurrency(Number(selectedPackage.valor_base) || 0)}</span>
               </div>
             )}
           </div>
 
           {requireDeposit && cobrancaId ? (
             <div className="space-y-3 pt-2">
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-300">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
                 Para garantir e confirmar definitivamente seu horário, realize o pagamento do sinal pelo link seguro abaixo.
               </div>
-              <Button onClick={handleGoToCheckout} className="w-full h-11 text-base shadow-md">
+              <Button onClick={handleGoToCheckout} className="w-full h-11 text-base shadow-md font-medium">
                 Pagar Sinal de Reserva
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
           ) : (
-            <div className="p-4 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+            <div className="p-4 bg-neutral-50 rounded-xl text-xs text-neutral-600 border border-neutral-200">
               O fotógrafo recebeu seu pedido e entrará em contato para confirmar todos os detalhes do seu ensaio.
             </div>
           )}

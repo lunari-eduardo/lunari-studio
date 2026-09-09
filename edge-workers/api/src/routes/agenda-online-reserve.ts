@@ -91,7 +91,7 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
 
     if (rpcError) {
       console.error('RPC Error:', rpcError);
-      return c.json({ success: false, error: 'Falha ao processar reserva' }, 500);
+      return c.json({ success: false, error: rpcError.message || 'Falha ao processar reserva' }, 500);
     }
 
     if (!rpcResult.success) {
