@@ -21,7 +21,7 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
     // 1. Fetch Link Data
     const { data: linkData, error: linkError } = await supabase
       .from('agenda_online_links')
-      .select('id, pacotes_permitidos, require_deposit, deposit_type, deposit_value, deposit_gateway')
+      .select('id, user_id, pacotes_permitidos, require_deposit, deposit_type, deposit_value, deposit_gateway')
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();
@@ -61,21 +61,25 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
        }
     }
 
-    // 3. Match Cliente Oculto (Evitar duplicação no banco)
-    let clienteId = null;
-    const { data: matchedClient } = await supabase
-      .from('clientes')
-      .select('id')
-      .or(`email.ilike.${clienteData.email},telefone.ilike.${clienteData.telefone}`)
-      .maybeSingle();
+    // 3. Match Cliente (se cliente_id_matched foi confirmado pelo usuário, usa ele; senão, busca pelo telefone/email)
+    let clienteId = clienteData.cliente_id_matched || null;
+    if (!clienteId) {
+      const { data: matchedClient } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('user_id', linkData.user_id)
+        .or(`email.ilike.${clienteData.email},telefone.ilike.${clienteData.telefone},whatsapp.ilike.${clienteData.telefone}`)
+        .maybeSingle();
 
-    if (matchedClient) {
-      clienteId = matchedClient.id;
+      if (matchedClient) {
+        clienteId = matchedClient.id;
+      }
     }
 
     const finalClienteData = {
       ...clienteData,
-      cliente_id_matched: clienteId
+      cliente_id_matched: clienteId,
+      cpf_cnpj: clienteData.cpfCnpj || clienteData.cpf_cnpj || null
     };
 
     // Limpar reservas expiradas antes de validar e travar o slot
@@ -101,9 +105,49 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
       return c.json({ success: false, error: rpcResult.error }, 409); // Conflict
     }
 
+    // 5. Se exigir sinal, gerar link direto para o gateway configurado
+    let checkoutUrl: string | null = null;
+    if (linkData.require_deposit && rpcResult.cobrancaId) {
+      const depositGateway = (linkData.deposit_gateway || 'asaas').toLowerCase();
+
+      if (depositGateway === 'infinitepay') {
+        try {
+          const ipRes = await fetch(`${c.env.SUPABASE_URL}/functions/v1/pay-infinitepay-finalize`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${c.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+            body: JSON.stringify({
+              cobrancaId: rpcResult.cobrancaId,
+              payerPatch: {
+                nome: clienteData.nome?.trim(),
+                email: clienteData.email?.trim()?.toLowerCase(),
+                telefone: clienteData.telefone,
+                cpfCnpj: clienteData.cpfCnpj || clienteData.cpf_cnpj,
+              },
+            }),
+          });
+          const ipJson: any = await ipRes.json();
+          if (ipRes.ok && ipJson?.success && ipJson?.checkoutUrl) {
+            checkoutUrl = ipJson.checkoutUrl;
+          }
+        } catch (ipErr) {
+          console.error('Erro ao emitir link InfinitePay antecipadamente:', ipErr);
+        }
+      }
+
+      // Fallback para checkout unificado caso não seja link externo direto
+      if (!checkoutUrl) {
+        checkoutUrl = `/checkout/${rpcResult.cobrancaId}`;
+      }
+    }
+
     return c.json({
       success: true,
-      cobrancaId: rpcResult.cobrancaId
+      cobrancaId: rpcResult.cobrancaId,
+      checkoutUrl: checkoutUrl,
+      requireDeposit: Boolean(linkData.require_deposit)
     });
 
   } catch (err: any) {

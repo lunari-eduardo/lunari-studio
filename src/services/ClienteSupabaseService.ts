@@ -91,26 +91,22 @@ export class ClienteSupabaseService {
   // ============= DOCUMENT URL =============
 
   static async getDocumentUrl(documento: ClienteDocumento): Promise<string> {
-    const r2Path = documento.r2_storage_path || (documento.storage_path?.startsWith('client-documents/') ? documento.storage_path : null);
+    const r2Path = documento.r2_storage_path || documento.storage_path;
     if (r2Path) {
       const url = await resolveR2SignedUrl(r2Path);
       if (!url) throw new Error('Falha ao gerar URL');
       return url;
     }
-    // Legacy Supabase Storage
-    const { data } = supabase.storage.from('client-documents').getPublicUrl(documento.storage_path);
-    return data.publicUrl;
+    throw new Error('Documento sem caminho de armazenamento');
   }
 
   // ============= DELETE DOCUMENT =============
 
   static async deleteDocument(documento: ClienteDocumento): Promise<void> {
     try {
-      const r2Path = documento.r2_storage_path || (documento.storage_path?.startsWith('client-documents/') ? documento.storage_path : null);
+      const r2Path = documento.r2_storage_path || documento.storage_path;
       if (r2Path) {
         await deleteR2Object(r2Path);
-      } else if (documento.storage_path) {
-        await supabase.storage.from('client-documents').remove([documento.storage_path]);
       }
 
       const { error: dbError } = await supabase

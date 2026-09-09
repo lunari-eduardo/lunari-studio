@@ -26,7 +26,7 @@ export type Provedor = 'mercadopago' | 'pix_manual' | 'infinitepay';
 const REQUIRED_BY_PROVIDER: Record<Provedor, Array<keyof PayerValue>> = {
   mercadopago: ['nome', 'email', 'telefone'],
   pix_manual: ['nome'],
-  infinitepay: ['nome', 'telefone', 'cpfCnpj', 'email'],
+  infinitepay: ['nome', 'telefone', 'email'],
 };
 
 export interface ProviderBlock {

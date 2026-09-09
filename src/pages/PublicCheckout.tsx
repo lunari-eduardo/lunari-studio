@@ -40,7 +40,19 @@ export default function PublicCheckout() {
   }
 
   if (isConfirmed) {
-    return <PublicCheckoutSuccess primaryColor={data?.theme?.primaryColor || undefined} />;
+    const isBookingDeposit = Boolean(data?.cobranca?.descricao?.includes('Sinal de Agendamento'));
+    return (
+      <PublicCheckoutSuccess
+        primaryColor={data?.theme?.primaryColor || undefined}
+        title={isBookingDeposit ? 'Horário Reservado e Confirmado!' : undefined}
+        description={
+          isBookingDeposit
+            ? 'O pagamento do seu sinal foi confirmado e seu horário na agenda está garantido com sucesso!'
+            : undefined
+        }
+        studioName={data?.photographer?.name || undefined}
+      />
+    );
   }
 
   const provedorAtual = (data.provedor ?? 'asaas') as string;

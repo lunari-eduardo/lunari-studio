@@ -163,16 +163,7 @@ export function useContratos(opts: UseContratosOpts = {}) {
 
   const getSignedUrl = async (path: string): Promise<string | null> => {
     if (!path) return null;
-    // Novo: caminho do R2 (contratos-assinados/...)
-    if (path.startsWith('contratos-assinados/') || path.startsWith('gestao/contratos-assinados/')) {
-      return resolveR2SignedUrl(path);
-    }
-    // Legado: bucket Supabase
-    const { data, error } = await supabase.storage
-      .from('contratos-assinados')
-      .createSignedUrl(path, 60 * 5);
-    if (error) return null;
-    return data?.signedUrl || null;
+    return resolveR2SignedUrl(path);
   };
 
   /**

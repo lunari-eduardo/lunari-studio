@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, Clock, Check, AlertCircle, ArrowLeft, ArrowRight, Package } from 'lucide-react';
+import { Loader2, Calendar, Clock, Check, AlertCircle, ArrowLeft, ArrowRight, Package, UserCheck, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BookingCalendar } from './components/BookingCalendar';
 import { BookingSuccess } from './components/BookingSuccess';
 import { maskPhoneBR } from '@/lib/phoneBR';
+import { maskCpfCnpj } from '@/lib/validateCpfCnpj';
 import { formatCurrency } from '@/utils/financialUtils';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -38,6 +39,18 @@ export default function PublicBookingPage() {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientEmail, setClientEmail] = useState('');
+  const [clientCpf, setClientCpf] = useState('');
+
+  // CRM Match State
+  const [matchedClient, setMatchedClient] = useState<{
+    id: string;
+    nome: string;
+    email: string;
+    telefone: string;
+    cpf_cnpj?: string | null;
+  } | null>(null);
+  const [clientConfirmed, setClientConfirmed] = useState<boolean | null>(null);
+  const [isSearchingClient, setIsSearchingClient] = useState(false);
 
   // Result
   const [reservationResult, setReservationResult] = useState<{ cobrancaId?: string } | null>(null);
@@ -113,6 +126,61 @@ export default function PublicBookingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Efeito de busca do cliente no CRM a partir do telefone ou e-mail digitado
+  useEffect(() => {
+    if (!slug || currentStep !== 'contact') return;
+    const cleanPhone = clientPhone.replace(/\D/g, '');
+    const validEmail = clientEmail.trim().toLowerCase();
+    const hasValidPhone = cleanPhone.length >= 10;
+    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(validEmail);
+
+    if (!hasValidPhone && !hasValidEmail) {
+      if (clientConfirmed === null) setMatchedClient(null);
+      return;
+    }
+
+    // Se o cliente já rejeitou este contato, não reabre
+    if (clientConfirmed === false) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingClient(true);
+        const params = new URLSearchParams();
+        if (hasValidPhone) params.append('phone', cleanPhone);
+        if (hasValidEmail) params.append('email', validEmail);
+
+        const res = await fetch(`${API_BASE}/api/agenda/online/${slug}/lookup-client?${params.toString()}`);
+        const json = await res.json();
+        if (json.success && json.found && json.client) {
+          setMatchedClient(json.client);
+        } else if (clientConfirmed === null) {
+          setMatchedClient(null);
+        }
+      } catch (err) {
+        console.warn('Erro ao consultar CRM:', err);
+      } finally {
+        setIsSearchingClient(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [slug, clientPhone, clientEmail, currentStep, clientConfirmed]);
+
+  const handleConfirmIdentity = () => {
+    if (!matchedClient) return;
+    setClientConfirmed(true);
+    if (matchedClient.nome) setClientName(matchedClient.nome);
+    if (matchedClient.email && !clientEmail) setClientEmail(matchedClient.email);
+    if (matchedClient.telefone && !clientPhone) setClientPhone(maskPhoneBR(matchedClient.telefone));
+    if (matchedClient.cpf_cnpj) setClientCpf(maskCpfCnpj(matchedClient.cpf_cnpj));
+    toast.success('Cadastro identificado! Seus dados foram vinculados.');
+  };
+
+  const handleRejectIdentity = () => {
+    setClientConfirmed(false);
+    setMatchedClient(null);
+  };
+
   const handleSubmitReservation = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -132,6 +200,7 @@ export default function PublicBookingPage() {
 
     setSubmitting(true);
     try {
+      const cleanCpf = clientCpf.replace(/\D/g, '');
       const payload = {
         date: selectedDate,
         startTime: selectedTime,
@@ -140,6 +209,8 @@ export default function PublicBookingPage() {
           nome: clientName.trim(),
           telefone: cleanPhone,
           email: clientEmail.trim().toLowerCase(),
+          cpfCnpj: cleanCpf || undefined,
+          cliente_id_matched: clientConfirmed ? matchedClient?.id : undefined,
         },
       };
 
@@ -156,18 +227,20 @@ export default function PublicBookingPage() {
       }
 
       setReservationResult(json);
-      setCurrentStep('success');
 
-      // Se exigir sinal, redirecionar diretamente após breve pausa
-      if (data.link.requireDeposit && json.cobrancaId) {
-        toast.success('Horário reservado! Redirecionando para o pagamento do sinal...');
-        setTimeout(() => {
-          window.location.href = `/checkout/${json.cobrancaId}`;
-        }, 1800);
+      // Se exigir sinal: NÃO exibe tela de "Horário Reservado!" prematuramente.
+      // Redireciona diretamente para o checkout do gateway!
+      if (data.link.requireDeposit) {
+        const targetUrl = json.checkoutUrl || `/checkout/${json.cobrancaId}`;
+        toast.success('Horário pré-selecionado! Redirecionando para o pagamento seguro...');
+        window.location.href = targetUrl;
+        return;
       }
+
+      // Se não exigir sinal, confirma imediatamente e exibe a tela de sucesso
+      setCurrentStep('success');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao confirmar agendamento.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -337,7 +410,7 @@ export default function PublicBookingPage() {
                         </span>
                       </div>
                       <span className="text-xs text-amber-800/80 font-normal hidden sm:inline">
-                        Necessário para confirmação
+                        10 min para pagamento após confirmar
                       </span>
                     </div>
                   )}
@@ -419,6 +492,57 @@ export default function PublicBookingPage() {
 
               <CardContent>
                 <form onSubmit={handleSubmitReservation} className="space-y-4">
+                  {/* Reconhecimento Inteligente de Cliente no CRM */}
+                  {matchedClient && clientConfirmed === null && (
+                    <div className="p-3.5 rounded-xl bg-primary/[0.07] border border-primary/20 space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <UserCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <div className="text-xs text-neutral-700 flex-1">
+                          <p className="font-semibold text-neutral-900 text-sm">Já existe um cadastro no sistema com seus dados!</p>
+                          <p className="mt-0.5 text-neutral-600">
+                            Encontramos um cadastro no estúdio em nome de <strong className="text-neutral-900">{matchedClient.nome}</strong>. É você?
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pl-7">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleConfirmIdentity}
+                          className="h-8 text-xs font-medium px-3.5 shadow-xs"
+                        >
+                          <Check className="w-3.5 h-3.5 mr-1.5" />
+                          Sim, sou eu
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRejectIdentity}
+                          className="h-8 text-xs text-neutral-600 hover:text-neutral-900"
+                        >
+                          Não, sou outra pessoa
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {clientConfirmed === true && matchedClient && (
+                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Cadastro vinculado ao estúdio: <strong>{matchedClient.nome}</strong></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRejectIdentity}
+                        className="text-xs text-neutral-500 hover:text-neutral-800 underline ml-2"
+                      >
+                        Trocar
+                      </button>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="nome" className="text-neutral-700">Nome Completo <span className="text-destructive">*</span></Label>
                     <Input
@@ -434,7 +558,15 @@ export default function PublicBookingPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-neutral-700">WhatsApp / Telefone <span className="text-destructive">*</span></Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="phone" className="text-neutral-700">WhatsApp / Telefone <span className="text-destructive">*</span></Label>
+                        {isSearchingClient && (
+                          <span className="text-[11px] text-neutral-400 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                            Buscando...
+                          </span>
+                        )}
+                      </div>
                       <Input
                         id="phone"
                         value={clientPhone}
@@ -461,6 +593,21 @@ export default function PublicBookingPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="cpfCnpj" className="text-neutral-700">CPF ou CNPJ</Label>
+                      <span className="text-[11px] text-neutral-400">Opcional para emissão fiscal</span>
+                    </div>
+                    <Input
+                      id="cpfCnpj"
+                      value={clientCpf}
+                      onChange={(e) => setClientCpf(maskCpfCnpj(e.target.value))}
+                      placeholder="000.000.000-00"
+                      disabled={submitting}
+                      className="h-10 bg-neutral-50 border-neutral-200"
+                    />
+                  </div>
+
                   {/* Resumo Financeiro */}
                   <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200 space-y-2 text-sm mt-4">
                     <div className="flex justify-between text-neutral-600">
@@ -482,6 +629,19 @@ export default function PublicBookingPage() {
                     )}
                   </div>
 
+                  {/* Aviso de Reserva Temporária de 10 Minutos */}
+                  {data.link.requireDeposit && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/[0.08] border border-amber-500/20 text-amber-950 text-xs mt-3">
+                      <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-amber-900">Reserva temporária de 10 minutos</p>
+                        <p className="text-amber-800/90 leading-relaxed text-[11px]">
+                          Ao avançar para o pagamento, este horário fica reservado exclusivamente para você por <strong>10 minutos</strong>. Conclua o pagamento do sinal para confirmar definitivamente o seu agendamento antes que o horário seja liberado.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="pt-2 flex justify-end gap-3">
                     <Button
                       type="button"
@@ -496,7 +656,7 @@ export default function PublicBookingPage() {
                       {submitting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Confirmando...
+                          {data.link.requireDeposit ? 'Gerando pagamento seguro...' : 'Confirmando...'}
                         </>
                       ) : data.link.requireDeposit ? (
                         'Ir para Pagamento do Sinal'

@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAgendaOnlinePanel, slugify } from './useAgendaOnlinePanel';
-import { Globe, Plus, Copy, ExternalLink, Edit, Trash2, Calendar, DollarSign, ArrowLeft, Share2 } from 'lucide-react';
+import { Globe, Plus, Copy, ExternalLink, Edit, Trash2, Calendar, DollarSign, ArrowLeft, Share2, Clock } from 'lucide-react';
 import { formatCurrency } from '@/utils/financialUtils';
 import { ProviderSelector } from '@/components/cobranca/ProviderSelector';
 import { cn } from '@/lib/utils';
@@ -224,6 +224,17 @@ export function AgendaOnlinePanel({ isOpen, onClose }: AgendaOnlinePanelProps) {
                         <p className="text-[11px] text-muted-foreground">
                           O cliente será direcionado para pagar o sinal através deste gateway.
                         </p>
+                      </div>
+
+                      {/* Alerta de Liberação Automática em 10 Minutos */}
+                      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-950 dark:text-amber-200 text-xs">
+                        <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="font-semibold text-amber-900 dark:text-amber-300">Reserva temporária de 10 minutos</p>
+                          <p className="text-amber-800/90 dark:text-amber-300/80 leading-relaxed text-[11px]">
+                            Ao exigir sinal, o horário escolhido pelo cliente fica pré-reservado por <strong>10 minutos</strong> para a realização do pagamento. Se o sinal não for pago nesse prazo, o agendamento e a cobrança são automaticamente cancelados e o horário volta a ficar livre para outros clientes.
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}

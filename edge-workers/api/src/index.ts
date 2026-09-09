@@ -14,6 +14,7 @@ import { contractsNativeSignRoute } from './routes/contracts-native-sign.js';
 import { contractsNativeDownloadRoute } from './routes/contracts-native-download.js';
 import { getAgendaOnlineSlotsRoute } from './routes/agenda-online-slots.js';
 import { reserveAgendaOnlineSlotRoute } from './routes/agenda-online-reserve.js';
+import { lookupAgendaOnlineClientRoute } from './routes/agenda-online-client-lookup.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -68,6 +69,7 @@ app.post('/contracts/native/sign', contractsNativeSignRoute);
 app.get('/contracts/native/download/:token', contractsNativeDownloadRoute);
 
 app.get('/api/agenda/online/:slug/slots', getAgendaOnlineSlotsRoute);
+app.get('/api/agenda/online/:slug/lookup-client', lookupAgendaOnlineClientRoute);
 app.post('/api/agenda/online/:slug/reserve', reserveAgendaOnlineSlotRoute);
 
 export default app;

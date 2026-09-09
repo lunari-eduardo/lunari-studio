@@ -178,12 +178,6 @@ export class ProfileService {
           console.warn('Falha ao remover avatar do R2:', e);
         }
       }
-    } else {
-      // Compatibilidade com avatares legados no Supabase Storage
-      const urlParts = currentUrl.split('/avatars/');
-      if (urlParts.length >= 2) {
-        await supabase.storage.from('avatars').remove([urlParts[1]]);
-      }
     }
 
     await this.updateProfile(userId, { avatar_url: null });
@@ -239,11 +233,6 @@ export class ProfileService {
         } catch (e) {
           console.warn('Falha ao remover logo do R2:', e);
         }
-      }
-    } else {
-      const urlParts = currentUrl.split('/avatars/');
-      if (urlParts.length >= 2) {
-        await supabase.storage.from('avatars').remove([urlParts[1]]);
       }
     }
 
