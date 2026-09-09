@@ -1,4 +1,4 @@
-﻿import { Label } from '@/components/ui/label';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, X, Clock } from 'lucide-react';
 import { TimeInput } from '@/components/ui/time-input';
@@ -25,11 +25,11 @@ export function TimeSlotList({ panel, isBlockMode = false }: { panel: any, isBlo
           {timeSlots.map((slot: any, idx: number) => (
             <div key={idx} className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Clock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <TimeInput
                   value={slot.start}
                   onChange={(v) => updateTimeSlot(idx, 'start', v)}
-                  className="pl-9"
+                  className="h-9 pl-9 text-sm rounded-md bg-background border"
                   placeholder="00:00"
                 />
               </div>

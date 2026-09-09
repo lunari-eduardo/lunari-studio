@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useAvailability } from '@/hooks/useAvailability';
 import { useAvailabilityTypes } from '@/hooks/useAvailabilityTypes';
 import { useAppointmentsRangeQuery } from '@/modules/agenda/presentation';
@@ -15,7 +15,7 @@ export function useAvailabilityPanel(date: Date, initialTime?: string, onClose?:
   const [weekdayMode, setWeekdayMode] = useState<'all' | 'specific'>('all');
   const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState<string>('');
-  const [timeSlots, setTimeSlots] = useState<{ start: string; end?: string }[]>(initialTime ? [{ start: initialTime }] : []);
+  const [timeSlots, setTimeSlots] = useState<{ start: string; end?: string }[]>(initialTime ? [{ start: initialTime }] : [{ start: '09:00' }]);
   
   const [blockMode, setBlockMode] = useState<'fullDay' | 'specific'>('fullDay');
   const [liberarMode, setLiberarMode] = useState<'create' | 'replace'>('create');
@@ -23,9 +23,11 @@ export function useAvailabilityPanel(date: Date, initialTime?: string, onClose?:
   const [isSaving, setIsSaving] = useState(false);
 
   // set default type ID when types are loaded
-  if (!selectedTypeId && availabilityTypes.length > 0) {
-    setSelectedTypeId(availabilityTypes[0].id);
-  }
+  useEffect(() => {
+    if (!selectedTypeId && availabilityTypes.length > 0) {
+      setSelectedTypeId(availabilityTypes[0].id);
+    }
+  }, [selectedTypeId, availabilityTypes]);
 
   const apptRange = useMemo(() => {
     const today = new Date();
@@ -218,6 +220,19 @@ export function useAvailabilityPanel(date: Date, initialTime?: string, onClose?:
     }
   };
 
+  const addTimeSlot = () => {
+    setTimeSlots(prev => {
+      if (prev.length === 0) return [{ start: '09:00' }];
+      const last = prev[prev.length - 1]?.start;
+      if (last && /^([01]\d|2[0-3]):([0-5]\d)$/.test(last)) {
+        const [h, m] = last.split(':').map(Number);
+        const nextH = (h + 1) % 24;
+        return [...prev, { start: `${String(nextH).padStart(2, '0')}:${String(m).padStart(2, '0')}` }];
+      }
+      return [...prev, { start: '' }];
+    });
+  };
+
   return {
     dateRange, setDateRange,
     weekdayMode, setWeekdayMode,
@@ -225,7 +240,7 @@ export function useAvailabilityPanel(date: Date, initialTime?: string, onClose?:
     blockMode, setBlockMode,
     liberarMode, setLiberarMode,
     selectedTypeId, setSelectedTypeId,
-    timeSlots, setTimeSlots, addTimeSlot: () => setTimeSlots(prev => [...prev, { start: '' }]),
+    timeSlots, setTimeSlots, addTimeSlot,
     updateTimeSlot: (idx: number, field: 'start'|'end', val: string) => setTimeSlots(prev => prev.map((t, i) => i === idx ? { ...t, [field]: val } : t)),
     removeTimeSlot: (idx: number) => setTimeSlots(prev => prev.filter((_, i) => i !== idx)),
     handleLiberar, handleBloquear, handleRemoveInRange,

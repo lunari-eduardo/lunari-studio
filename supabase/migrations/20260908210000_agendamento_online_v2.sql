@@ -1,4 +1,4 @@
-﻿-- ====================================================================
+-- ====================================================================
 -- FASE 1: Agendamento Online MVP
 -- Tabelas base e atualizações estruturais (Substitui migrations anteriores corrompidas)
 -- ====================================================================
@@ -91,7 +91,7 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $EXACT_DOLLAR$
+AS $$
 DECLARE
     v_appointment RECORD;
     v_pacote RECORD;
@@ -203,7 +203,7 @@ BEGIN
     WHERE cobranca_id = p_cobranca_id;
 
 END;
-$EXACT_DOLLAR$;
+$$;
 
 -- 6. Trigger
 CREATE OR REPLACE FUNCTION public.tg_cobranca_paid_online_booking()
@@ -211,14 +211,14 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $EXACT_DOLLAR$
+AS $$
 BEGIN
     IF OLD.status IS DISTINCT FROM 'pago' AND NEW.status = 'pago' THEN
         PERFORM public.confirm_online_appointment(NEW.id);
     END IF;
     RETURN NEW;
 END;
-$EXACT_DOLLAR$;
+$$;
 
 DROP TRIGGER IF EXISTS tr_cobranca_paid_online_booking ON public.cobrancas;
 CREATE TRIGGER tr_cobranca_paid_online_booking
@@ -240,7 +240,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $EXACT_DOLLAR$
+AS $$
 DECLARE
     v_link RECORD;
     v_slot RECORD;
@@ -368,10 +368,10 @@ BEGIN
         'reservaId', v_reserva_id
     );
 END;
-$EXACT_DOLLAR$;
+$$;
 
 -- 8. Semeadura de dados legados
-DO $EXACT_DOLLAR$
+DO $$
 DECLARE
     u RECORD;
     v_type_disponivel uuid;
@@ -400,7 +400,7 @@ BEGIN
         END IF;
     END LOOP;
 END;
-$EXACT_DOLLAR$;
+$$;
 
 -- Recarregar schema postgrest
 NOTIFY pgrst, 'reload schema';
