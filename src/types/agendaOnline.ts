@@ -11,6 +11,7 @@ export interface AgendaOnlineLink {
   deposit_type?: 'fixed' | 'percentage' | null;
   deposit_value?: number | null;
   deposit_gateway?: string | null;
+  show_package_price?: boolean;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

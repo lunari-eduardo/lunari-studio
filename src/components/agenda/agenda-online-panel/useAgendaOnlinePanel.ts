@@ -43,6 +43,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
   const [depositType, setDepositType] = useState<'fixed' | 'percentage'>('percentage');
   const [depositValue, setDepositValue] = useState<number>(30);
   const [depositGateway, setDepositGateway] = useState<SelectedProvider | null>(null);
+  const [showPackagePrice, setShowPackagePrice] = useState(true);
   const [isActive, setIsActive] = useState(true);
 
   const availablePackages = useMemo(() => {
@@ -73,6 +74,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     setDepositType('percentage');
     setDepositValue(30);
     setDepositGateway(null);
+    setShowPackagePrice(true);
     setIsActive(true);
     setEditingLink(null);
   };
@@ -90,6 +92,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       setDepositType(linkToEdit.deposit_type || 'percentage');
       setDepositValue(linkToEdit.deposit_value || 0);
       setDepositGateway(toSelectorProvider(linkToEdit.deposit_gateway));
+      setShowPackagePrice(linkToEdit.show_package_price !== false);
       setIsActive(linkToEdit.is_active);
     } else {
       resetForm();
@@ -137,6 +140,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       deposit_type: depositType,
       deposit_value: depositValue,
       deposit_gateway: toDatabaseProvider(depositGateway),
+      show_package_price: showPackagePrice,
       is_active: isActive,
     };
 
@@ -204,6 +208,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     depositType, setDepositType,
     depositValue, setDepositValue,
     depositGateway, setDepositGateway,
+    showPackagePrice, setShowPackagePrice,
     isActive, setIsActive,
     handleOpenForm, handleCloseForm, handleSubmit, handleDelete,
     copyToClipboard, getFullUrl

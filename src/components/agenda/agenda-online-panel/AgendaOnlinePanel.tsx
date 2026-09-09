@@ -169,6 +169,17 @@ export function AgendaOnlinePanel({ isOpen, onClose }: AgendaOnlinePanelProps) {
                 </div>
                 {p.categoriaId && (
                   <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                    <div className="flex items-center justify-between pb-2 border-b border-border/50">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="show-package-price" className="text-sm font-medium cursor-pointer">Exibir valor dos pacotes</Label>
+                        <p className="text-[11px] text-muted-foreground">Mostra os preços dos pacotes na página pública de agendamento.</p>
+                      </div>
+                      <Switch
+                        id="show-package-price"
+                        checked={p.showPackagePrice}
+                        onCheckedChange={p.setShowPackagePrice}
+                      />
+                    </div>
                     <Label>Pacotes Permitidos <span className="text-destructive">*</span></Label>
                     {p.availablePackages.length === 0 ? (
                       <p className="text-sm text-muted-foreground italic">Nenhum pacote nesta categoria.</p>

@@ -25,6 +25,7 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
         require_deposit,
         deposit_type,
         deposit_value,
+        show_package_price,
         is_active
       `)
       .eq('slug', slug)
@@ -143,7 +144,8 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
           description: linkData.description,
           requireDeposit: linkData.require_deposit,
           depositType: linkData.deposit_type,
-          depositValue: linkData.deposit_value
+          depositValue: linkData.deposit_value,
+          showPackagePrice: linkData.show_package_price !== false
         },
         photographer: profile,
         packages: pacotes,

@@ -15,6 +15,7 @@ interface BookingSuccessProps {
   clientName: string;
   cobrancaId?: string;
   requireDeposit: boolean;
+  showPackagePrice?: boolean;
 }
 
 export function BookingSuccess({
@@ -26,6 +27,7 @@ export function BookingSuccess({
   clientName,
   cobrancaId,
   requireDeposit,
+  showPackagePrice = true,
 }: BookingSuccessProps) {
   const formattedDate = format(parseISO(selectedDate), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
@@ -68,7 +70,9 @@ export function BookingSuccess({
                   <Package className="w-4 h-4 text-primary shrink-0" />
                   <span className="font-medium text-neutral-900">{selectedPackage.nome}</span>
                 </div>
-                <span className="font-semibold text-neutral-900">{formatCurrency(Number(selectedPackage.valor_base) || 0)}</span>
+                {showPackagePrice && (
+                  <span className="font-semibold text-neutral-900">{formatCurrency(Number(selectedPackage.valor_base) || 0)}</span>
+                )}
               </div>
             )}
           </div>

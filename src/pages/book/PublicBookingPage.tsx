@@ -288,6 +288,7 @@ export default function PublicBookingPage() {
             clientName={clientName}
             cobrancaId={reservationResult?.cobrancaId}
             requireDeposit={Boolean(data.link.requireDeposit)}
+            showPackagePrice={data.link.showPackagePrice !== false}
           />
         </div>
       </PublicThemeWrapper>
@@ -383,11 +384,13 @@ export default function PublicBookingPage() {
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
-                            <span className="font-bold text-sm text-neutral-900">
-                              {formatCurrency(Number(pkg.valor_base) || 0)}
-                            </span>
-                          </div>
+                          {data.link.showPackagePrice !== false && (
+                            <div className="text-right shrink-0">
+                              <span className="font-bold text-sm text-neutral-900">
+                                {formatCurrency(Number(pkg.valor_base) || 0)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -402,7 +405,7 @@ export default function PublicBookingPage() {
                         </span>
                         <span>
                           Sinal de Reserva: <strong className="font-bold">{formatCurrency(depositCalculation)}</strong>
-                          {data.link.depositType === 'percentage' && (
+                          {data.link.depositType === 'percentage' && data.link.showPackagePrice !== false && (
                             <span className="text-amber-800/80 text-xs font-normal ml-1.5">
                               ({data.link.depositValue}% do pacote)
                             </span>
@@ -448,7 +451,10 @@ export default function PublicBookingPage() {
                       </span>
                       {selectedPackage && (
                         <span className="text-neutral-500 ml-1">
-                          ({selectedPackage.nome} • {formatCurrency(Number(selectedPackage.valor_base) || 0)})
+                          ({selectedPackage.nome}
+                          {data.link.showPackagePrice !== false && (
+                            <> • {formatCurrency(Number(selectedPackage.valor_base) || 0)}</>
+                          )})
                         </span>
                       )}
                     </div>
@@ -614,12 +620,14 @@ export default function PublicBookingPage() {
                       <span>Pacote escolhido:</span>
                       <span className="font-medium text-neutral-900">{selectedPackage?.nome}</span>
                     </div>
-                    <div className="flex justify-between text-neutral-600">
-                      <span>Valor total:</span>
-                      <span className="font-semibold text-neutral-900">
-                        {formatCurrency(Number(selectedPackage?.valor_base) || 0)}
-                      </span>
-                    </div>
+                    {data.link.showPackagePrice !== false && (
+                      <div className="flex justify-between text-neutral-600">
+                        <span>Valor total:</span>
+                        <span className="font-semibold text-neutral-900">
+                          {formatCurrency(Number(selectedPackage?.valor_base) || 0)}
+                        </span>
+                      </div>
+                    )}
 
                     {data.link.requireDeposit && depositCalculation && (
                       <div className="flex justify-between text-amber-700 font-medium border-t border-neutral-200 pt-2 mt-2">
