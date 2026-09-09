@@ -22,6 +22,7 @@ export { cancelAppointment } from "./application/commands/cancelAppointment";
 export { addAvailabilitySlots } from "./application/commands/addAvailabilitySlots";
 export { clearAvailabilityForDate } from "./application/commands/clearAvailabilityForDate";
 export { deleteAvailabilitySlot } from "./application/commands/deleteAvailabilitySlot";
+export { deleteAvailabilitySlots } from "./application/commands/deleteAvailabilitySlots";
 export { blockDate } from "./application/commands/blockDate";
 export { unblockDate } from "./application/commands/unblockDate";
 export { blockSlot } from "./application/commands/blockSlot";
@@ -77,6 +78,7 @@ import { cancelAppointment as _c4 } from "./application/commands/cancelAppointme
 import { addAvailabilitySlots as _c5 } from "./application/commands/addAvailabilitySlots";
 import { clearAvailabilityForDate as _c6 } from "./application/commands/clearAvailabilityForDate";
 import { deleteAvailabilitySlot as _c7 } from "./application/commands/deleteAvailabilitySlot";
+import { deleteAvailabilitySlots as _c7b } from "./application/commands/deleteAvailabilitySlots";
 import { blockDate as _c8 } from "./application/commands/blockDate";
 import { unblockDate as _c9 } from "./application/commands/unblockDate";
 import { blockSlot as _c10 } from "./application/commands/blockSlot";
@@ -87,7 +89,7 @@ import { createSession as _c14 } from "./application/commands/createSession";
 
 export const agendaCapabilities = [
   _l1, _l2, _l3, _l4, _l5,
-  _c1, _c2, _c3, _c3b, _c4, _c5, _c6, _c7,
+  _c1, _c2, _c3, _c3b, _c4, _c5, _c6, _c7, _c7b,
   _c8, _c9, _c10, _c11, _c12, _c13, _c14,
 ] as const;
 

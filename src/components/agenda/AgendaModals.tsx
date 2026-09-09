@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SessionPanel from "./session-panel/SessionPanel";
 import BudgetAppointmentDetails from "./BudgetAppointmentDetails";
-import AvailabilityConfigModal from "./AvailabilityConfigModal";
+import { AvailabilityPanel } from "./availability-panel/AvailabilityPanel";
 import ShareAvailabilityModal from "./ShareAvailabilityModal";
 import { Appointment } from "@/modules/agenda/presentation";
 import { Orcamento } from "@/types/orcamento";
@@ -128,8 +128,8 @@ export default function AgendaModals({
         </Dialog>
       )}
 
-      {/* Availability Config Modal */}
-      <AvailabilityConfigModal
+      {/* Availability Panel */}
+      <AvailabilityPanel
         isOpen={isAvailabilityModalOpen}
         onClose={() => setIsAvailabilityModalOpen(false)}
         date={selectedSlot?.date && selectedSlot.date instanceof Date && !isNaN(selectedSlot.date.getTime()) 

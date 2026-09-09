@@ -4,6 +4,7 @@ import {
   useAddAvailabilityMutation,
   useClearAvailabilityMutation,
   useDeleteAvailabilitySlotMutation,
+  useDeleteAvailabilitySlotsMutation,
 } from '@/modules/agenda/presentation';
 import { useAvailabilityTypes } from './useAvailabilityTypes';
 import type { AvailabilitySlot } from '@/types/availability';
@@ -24,6 +25,7 @@ export const useAvailability = () => {
   const addMut = useAddAvailabilityMutation();
   const clearMut = useClearAvailabilityMutation();
   const deleteMut = useDeleteAvailabilitySlotMutation();
+  const deleteSlotsMut = useDeleteAvailabilitySlotsMutation();
 
   const availability = (data ?? []) as AvailabilitySlot[];
 
@@ -40,10 +42,13 @@ export const useAvailability = () => {
       deleteAvailabilitySlot: async (id: string) => {
         await deleteMut.mutateAsync({ id });
       },
+      deleteAvailabilitySlots: async (ids: string[]) => {
+        await deleteSlotsMut.mutateAsync({ ids });
+      },
       addAvailabilityType: types.addAvailabilityType,
       updateAvailabilityType: types.updateAvailabilityType,
       deleteAvailabilityType: types.deleteAvailabilityType,
     }),
-    [availability, types, addMut, clearMut, deleteMut],
+    [availability, types, addMut, clearMut, deleteMut, deleteSlotsMut],
   );
 };

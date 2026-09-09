@@ -8,4 +8,5 @@ export interface AvailabilityRepository {
   addMany(slots: NewAvailabilitySlot[]): Promise<void>;
   clearForDate(date: string): Promise<void>;
   delete(id: string): Promise<void>;
+  deleteMany(ids: string[]): Promise<void>;
 }

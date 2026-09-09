@@ -9,7 +9,7 @@ import { z } from "zod";
 export const AppointmentStatusSchema = z.enum(["confirmado", "a confirmar"]);
 export type AppointmentStatus = z.infer<typeof AppointmentStatusSchema>;
 
-export const AppointmentOriginSchema = z.enum(["agenda", "orcamento"]);
+export const AppointmentOriginSchema = z.enum(["agenda", "orcamento", "online_booking"]);
 export type AppointmentOrigin = z.infer<typeof AppointmentOriginSchema>;
 
 export const IsoDateSchema = z

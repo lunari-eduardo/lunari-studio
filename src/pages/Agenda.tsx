@@ -47,7 +47,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AgendaLegend } from '@/components/agenda/AgendaLegend';
 import { PersonalEventModal } from '@/components/agenda/PersonalEventModal';
 import { MeetingModal } from '@/components/agenda/MeetingModal';
-import { AgendaOnlineLinksModal } from '@/components/agenda/AgendaOnlineLinksModal';
+import { AgendaOnlinePanel } from '@/components/agenda/agenda-online-panel/AgendaOnlinePanel';
 
 
 /** Shell de largura: ano usa 1600px (grade de 12 meses), demais views usam o padrão. */
@@ -573,9 +573,10 @@ export default function Agenda() {
         onSaveBudgetAppointment={handleSaveBudgetAppointment}
         onViewFullBudget={handleViewFullBudget}
       />
-      <SlotConflictDialog {...conflictDialogProps} />
+      <SlotConflictDialog />
 
-      <AgendaOnlineLinksModal
+      {/* Agendamento Online Panel */}
+      <AgendaOnlinePanel
         isOpen={isOnlineBookingModalOpen}
         onClose={() => setIsOnlineBookingModalOpen(false)}
       />

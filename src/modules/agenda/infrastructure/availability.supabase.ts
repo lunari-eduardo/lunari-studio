@@ -140,4 +140,19 @@ export class SupabaseAvailabilityRepository implements AvailabilityRepository {
       throw error;
     }
   }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    const userId = await requireUserId();
+    const { error } = await supabase
+      .from("availability_slots")
+      .delete()
+      .in("id", ids)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("❌ Erro ao deletar slots em lote:", error);
+      throw error;
+    }
+  }
 }

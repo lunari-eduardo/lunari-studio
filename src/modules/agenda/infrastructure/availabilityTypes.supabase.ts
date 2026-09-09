@@ -63,10 +63,35 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
         .eq("is_active", true)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        // Table might not exist yet if migration pending
+        if (error.code === '42P01') return DEFAULTS;
+        throw error;
+      }
       
-      // Se não há dados, retorna defaults para evitar quebrar a UX antes de qualquer adição
-      return data && data.length > 0 ? data : DEFAULTS;
+      if (!data || data.length === 0) {
+        // Insere os defaults reais no banco em vez de usar IDs simulados
+        const inserts = DEFAULTS.map(d => ({
+          user_id: user.id,
+          name: d.name,
+          color: d.color,
+          is_active: true
+        }));
+        
+        const { data: inserted, error: insertError } = await supabase
+          .from("availability_types")
+          .insert(inserts)
+          .select("id, name, color");
+          
+        if (insertError) {
+          console.error("Falha ao criar tipos padrões:", insertError);
+          return DEFAULTS;
+        }
+        
+        return inserted as AvailabilityType[];
+      }
+      
+      return data;
     } catch (error) {
       console.error("Erro listando tipos de disponibilidade:", error);
       return DEFAULTS;
@@ -74,57 +99,71 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
   }
 
   async add(data: Omit<AvailabilityType, "id">): Promise<AvailabilityType> {
-    const user = await requireUser();
-    const { data: inserted, error } = await supabase
-      .from("availability_types")
-      .insert({
-        user_id: user.id,
-        name: data.name,
-        color: data.color
-      })
-      .select("id, name, color")
-      .single();
+    try {
+      const user = await requireUser();
+      const { data: inserted, error } = await supabase
+        .from("availability_types")
+        .insert({
+          user_id: user.id,
+          name: data.name,
+          color: data.color
+        })
+        .select("id, name, color")
+        .single();
 
-    if (error) throw error;
-    return inserted as AvailabilityType;
+      if (error) throw error;
+      return inserted as AvailabilityType;
+    } catch (error: any) {
+      console.error("Erro ao adicionar tipo de disponibilidade:", error);
+      throw new Error(error.message || "Falha ao adicionar tipo de disponibilidade");
+    }
   }
 
   async update(id: string, updates: Partial<AvailabilityType>): Promise<void> {
-    const user = await requireUser();
-    // Impede alteração dos IDs defaults (se exibidos simuladamente)
-    if (id === "1" || id === "2") return;
-    
-    const patch: any = {};
-    if (updates.name !== undefined) patch.name = updates.name;
-    if (updates.color !== undefined) patch.color = updates.color;
+    try {
+      const user = await requireUser();
+      
+      const patch: any = {};
+      if (updates.name !== undefined) patch.name = updates.name;
+      if (updates.color !== undefined) patch.color = updates.color;
 
-    const { error } = await supabase
-      .from("availability_types")
-      .update(patch)
-      .eq("id", id)
-      .eq("user_id", user.id);
+      const { error } = await supabase
+        .from("availability_types")
+        .update(patch)
+        .eq("id", id)
+        .eq("user_id", user.id);
 
-    if (error) throw error;
+      if (error) throw error;
+    } catch (error: any) {
+      console.error("Erro ao atualizar tipo de disponibilidade:", error);
+      throw new Error(error.message || "Falha ao atualizar tipo de disponibilidade");
+    }
   }
 
   async delete(id: string): Promise<void> {
-    const user = await requireUser();
-    if (id === "1" || id === "2") return;
+    try {
+      const user = await requireUser();
 
-    // Tenta hard delete
-    const { error } = await supabase
-      .from("availability_types")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
-
-    if (error) {
-      console.warn("Delete falhou (possível uso em link de agenda), inativando...", error);
-      await supabase
+      // Tenta hard delete
+      const { error } = await supabase
         .from("availability_types")
-        .update({ is_active: false })
+        .delete()
         .eq("id", id)
         .eq("user_id", user.id);
+
+      if (error) {
+        console.warn("Delete falhou (possível uso em link de agenda), inativando...", error);
+        const { error: updateError } = await supabase
+          .from("availability_types")
+          .update({ is_active: false })
+          .eq("id", id)
+          .eq("user_id", user.id);
+          
+        if (updateError) throw updateError;
+      }
+    } catch (error: any) {
+      console.error("Erro ao excluir tipo de disponibilidade:", error);
+      throw new Error(error.message || "Falha ao excluir tipo de disponibilidade");
     }
   }
 }

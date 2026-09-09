@@ -21,6 +21,7 @@ export {
   useAddAvailabilityMutation,
   useClearAvailabilityMutation,
   useDeleteAvailabilitySlotMutation,
+  useDeleteAvailabilitySlotsMutation,
 } from "./mutations";
 export { AgendaInvalidationBridge } from "./AgendaInvalidationBridge";
 export { AgendaRealtimeListener } from "./AgendaRealtimeListener";

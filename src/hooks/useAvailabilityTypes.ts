@@ -12,13 +12,14 @@ export function useAvailabilityTypes() {
   const queryClient = useQueryClient();
   const { availabilityTypes: repo } = getAgendaDeps();
 
-  const { data } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: agendaKeys.availabilityTypes(),
     queryFn: () => repo.list(),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    retry: 1,
   });
 
   const availabilityTypes = useMemo<AvailabilityType[]>(() => data ?? [], [data]);
@@ -45,6 +46,8 @@ export function useAvailabilityTypes() {
 
   return {
     availabilityTypes,
+    isLoading,
+    isError,
     addAvailabilityType: (typeData: Omit<AvailabilityType, 'id'>) => addMut.mutateAsync(typeData),
     updateAvailabilityType: (id: string, updates: Partial<AvailabilityType>) =>
       updateMut.mutateAsync({ id, updates }),
