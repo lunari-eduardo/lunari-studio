@@ -46,12 +46,14 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
     // pacotes_permitidos é um JSON array de IDs
     let pacotes = [];
     if (Array.isArray(linkData.pacotes_permitidos) && linkData.pacotes_permitidos.length > 0) {
-      const { data: pkgs } = await supabase
+      const { data: pkgs, error: pkgsError } = await supabase
         .from('pacotes')
-        .select('id, nome, valor_base, descricao, duracao_minutos, fotos_incluidas')
+        .select('id, nome, valor_base, duracao_minutos, fotos_incluidas')
         .in('id', linkData.pacotes_permitidos)
-        .eq('user_id', linkData.user_id)
-        .eq('is_active', true);
+        .eq('user_id', linkData.user_id);
+      if (pkgsError) {
+        console.error('Error fetching pacotes:', pkgsError);
+      }
       pacotes = pkgs || [];
     }
 

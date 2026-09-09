@@ -1,90 +1,83 @@
-import { useEffect, useState } from 'react';
-import { BUILD_VERSION } from '@/version';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { BUILD_COMMIT } from '@/version';
+import { forceCleanReload } from '@/lib/chunkRecovery';
+import { toast } from 'sonner';
 
 /**
- * Hook para verificar se há nova versão do app
- * Compara BUILD_VERSION local com version.json remoto
+ * Hook para verificar se há nova versão do app no servidor.
+ * Compara BUILD_COMMIT local com version.json remoto em intervalos regulares
+ * e quando o usuário retorna à aba (visibilitychange / focus).
  */
 export function useVersionCheck() {
   const [needsUpdate, setNeedsUpdate] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const hasNotifiedRef = useRef(false);
 
-  useEffect(() => {
-    checkVersion();
-  }, []);
+  const checkVersion = useCallback(async () => {
+    // Ignora checagem em ambiente de desenvolvimento local
+    if (BUILD_COMMIT === 'local-dev') return;
 
-  async function checkVersion() {
     try {
       setIsChecking(true);
-      
-      // Buscar version.json com cache-busting
-      const response = await fetch(`/version.json?t=${Date.now()}`);
-      const remoteVersion = await response.json();
+      const response = await fetch(`/version.json?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
 
-      console.log('🔍 [Version Check] Local:', BUILD_VERSION, 'Remote:', remoteVersion.version);
+      if (!response.ok) return;
 
-      if (remoteVersion.version !== BUILD_VERSION) {
-        console.warn('⚠️ [Version Check] Nova versão detectada, atualizando...');
+      const remote = await response.json();
+      const remoteCommit = remote?.commit;
+
+      if (remoteCommit && remoteCommit !== 'local-dev' && remoteCommit !== BUILD_COMMIT) {
+        console.warn('⚠️ [Version Check] Nova versão detectada:', remoteCommit, 'Atual:', BUILD_COMMIT);
         setNeedsUpdate(true);
-        
-        // Aguardar 2s e acionar limpeza
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await forceUnregisterAndReload();
-      } else {
-        console.log('✅ [Version Check] Versão atualizada');
+
+        if (!hasNotifiedRef.current) {
+          hasNotifiedRef.current = true;
+          toast('Nova versão do Lunari disponível!', {
+            id: 'lunari-version-update',
+            description: 'Uma nova versão foi publicada. Clique em Atualizar para carregar os recursos mais recentes.',
+            duration: 30000,
+            action: {
+              label: 'Atualizar agora',
+              onClick: () => {
+                forceCleanReload(false);
+              },
+            },
+          });
+        }
       }
     } catch (error) {
-      console.error('❌ [Version Check] Erro ao verificar versão:', error);
+      console.debug('[Version Check] Verificação silenciosa de versão:', error);
     } finally {
       setIsChecking(false);
     }
-  }
+  }, []);
 
-  async function forceUnregisterAndReload() {
-    try {
-      console.log('🔄 [Version Check] Limpeza agressiva...');
-      
-      // 1. Unregister TODOS os Service Workers
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      console.log(`🧹 Removendo ${registrations.length} service worker(s)...`);
-      await Promise.all(registrations.map(registration => registration.unregister()));
-      
-      // 2. Limpar TODOS os caches
-      const cacheNames = await caches.keys();
-      console.log(`🧹 Limpando ${cacheNames.length} cache(s)...`);
-      await Promise.all(cacheNames.map(name => caches.delete(name)));
-      
-      // 3. Limpar IndexedDB (Safari não suporta indexedDB.databases())
-      try {
-        const knownDbs = ['photoflow-app', 'workbox-precache', 'workbox-runtime', 'vite-cache'];
-        if ('databases' in indexedDB) {
-          const dbs = await (indexedDB as any).databases();
-          dbs.forEach((db: any) => {
-            if (db.name && (db.name.includes('workbox') || db.name.includes('vite'))) {
-              console.log(`🧹 Removendo IndexedDB: ${db.name}`);
-              indexedDB.deleteDatabase(db.name);
-            }
-          });
-        } else {
-          // Safari fallback: deletar por nomes conhecidos
-          knownDbs.forEach((name) => {
-            try { indexedDB.deleteDatabase(name); } catch { /* noop */ }
-          });
-        }
-      } catch (idbError) {
-        console.warn('⚠️ Erro ao limpar IndexedDB:', idbError);
+  useEffect(() => {
+    // 1. Checagem inicial após montagem
+    checkVersion();
+
+    // 2. Checagem a cada 5 minutos
+    const interval = setInterval(checkVersion, 5 * 60 * 1000);
+
+    // 3. Checagem imediata quando o usuário volta para a aba
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkVersion();
       }
+    };
 
-      
-      console.log('✅ Limpeza completa, recarregando...');
-      
-      // 4. Hard reload
-      window.location.reload();
-    } catch (error) {
-      console.error('❌ Erro na limpeza:', error);
-      window.location.reload();
-    }
-  }
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [checkVersion]);
 
   return {
     needsUpdate,
@@ -92,3 +85,4 @@ export function useVersionCheck() {
     checkVersion,
   };
 }
+

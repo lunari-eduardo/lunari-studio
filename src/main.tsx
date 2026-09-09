@@ -9,37 +9,16 @@ import { bootstrapContext } from './shared/context/bootstrap' // Onda 4 — Cont
 bootstrapContext();
 
 
-// Auto-reload quando chunk fica obsoleto após deploy
-const handleChunkError = (reason?: any) => {
-  const msg = String(reason?.message || reason || '').toLowerCase();
-  const isChunkError =
-    msg.includes('failed to fetch dynamically imported module') ||
-    msg.includes('importing a module script failed') ||
-    msg.includes('error loading dynamically imported module') ||
-    msg.includes('loading chunk') ||
-    msg.includes('dynamically imported module') ||
-    msg.includes('load failed') ||
-    msg.includes('failed to load resource') ||
-    msg.includes('unable to preload') ||
-    msg.includes("unexpected token '<'") ||
-    msg.includes('mime type');
+import { handleChunkErrorWithAutoReload } from './lib/chunkRecovery'
 
-  if (isChunkError) {
-    const key = 'chunk-reload-ts';
-    const last = Number(sessionStorage.getItem(key) || '0');
-    if (Date.now() - last > 10_000) {
-      sessionStorage.setItem(key, String(Date.now()));
-      window.location.reload();
-    }
-  }
-};
-
-window.addEventListener('vite:preloadError', () => {
-  handleChunkError('failed to fetch dynamically imported module');
+// Auto-recuperação limpa quando chunks ficam obsoletos após novo deploy
+window.addEventListener('vite:preloadError', (event: any) => {
+  event?.preventDefault?.();
+  handleChunkErrorWithAutoReload(event?.payload || 'failed to fetch dynamically imported module');
 });
 
-window.addEventListener('unhandledrejection', (e) => {
-  handleChunkError(e.reason);
+window.addEventListener('unhandledrejection', (event) => {
+  handleChunkErrorWithAutoReload(event.reason);
 });
 
 // Handle legacy ?redirect= URLs from old 404.html before React mounts

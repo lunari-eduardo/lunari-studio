@@ -11,23 +11,7 @@ interface State {
   error: Error | null;
 }
 
-function isChunkLoadError(error: Error | null): boolean {
-  if (!error) return false;
-  const msg = (error.message || error.toString() || '').toLowerCase();
-  return (
-    msg.includes('failed to fetch dynamically imported module') ||
-    msg.includes('importing a module script failed') ||
-    msg.includes('error loading dynamically imported module') ||
-    msg.includes('loading chunk') ||
-    msg.includes('dynamically imported module') ||
-    msg.includes('load failed') || // Padrão clássico do Safari / iOS ao acordar com script 404
-    msg.includes('failed to load resource') ||
-    msg.includes('unable to preload') ||
-    msg.includes("unexpected token '<'") || // Quando chunk 404 retorna o HTML do index
-    msg.includes('mime type') ||
-    msg.includes('network error when attempting to fetch resource')
-  );
-}
+import { isChunkLoadError, forceCleanReload, handleChunkErrorWithAutoReload } from '@/lib/chunkRecovery';
 
 export class RootErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -42,63 +26,18 @@ export class RootErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("RootErrorBoundary pegou um erro:", error, errorInfo);
 
-    // Auto-recuperação para chunks obsoletos pós-deploy
+    // Auto-recuperação transparente para chunks obsoletos pós-deploy
     if (isChunkLoadError(error)) {
-      const key = 'chunk_auto_reload_ts';
-      const last = Number(sessionStorage.getItem(key) || '0');
-      
-      // Se não tentou auto-recuperar nos últimos 15s, executa a recuperação completa
-      if (Date.now() - last > 15_000) {
-        sessionStorage.setItem(key, String(Date.now()));
-        this.handleRefresh();
-      }
+      handleChunkErrorWithAutoReload(error);
     }
   }
 
   handleRefresh = async () => {
-    try {
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map(r => r.unregister()));
-      }
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-    } catch (e) {
-      console.warn('Erro ao atualizar workers/caches:', e);
-    } finally {
-      window.location.href = window.location.origin + window.location.pathname + '?_v=' + Date.now();
-    }
+    await forceCleanReload(false);
   };
 
   handleClearCacheAndReload = async () => {
-    try {
-      // Preserva tokens de autenticação do Supabase para não deslogar o fotógrafo
-      const authBackup: Record<string, string> = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && (k.startsWith('sb-') || k.includes('auth-token') || k.includes('supabase'))) {
-          authBackup[k] = localStorage.getItem(k) || '';
-        }
-      }
-      localStorage.clear();
-      Object.entries(authBackup).forEach(([k, v]) => localStorage.setItem(k, v));
-      sessionStorage.clear();
-
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map(r => r.unregister()));
-      }
-    } catch (e) {
-      console.warn('Erro ao limpar caches:', e);
-    } finally {
-      window.location.href = window.location.origin + window.location.pathname + '?_v=' + Date.now();
-    }
+    await forceCleanReload(true);
   };
 
   render() {

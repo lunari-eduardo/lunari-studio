@@ -30,6 +30,7 @@ import PublicProposalViewer from "@/pages/comercial/PublicProposalViewer";
 import GalleryDashboard from '@/pages/gallery/GalleryDashboard';
 import GalleryHome from '@/pages/gallery/GalleryHome';
 import SignaturePage from "@/pages/AssinaturaPublica/SignaturePage";
+import PublicBookingPage from "@/pages/book/PublicBookingPage";
 
 import HomePage from "@/pages/site/HomePage";
 import StudioPage from "@/pages/site/StudioPage";
@@ -344,6 +345,9 @@ export default function PhotographerApp() {
               {/* Assinatura Nativa de Contrato */}
               <Route path="/assinar/:token" element={<SignaturePage />} />
               
+              {/* Agendamento Online Público */}
+              <Route path="/book/:slug" element={<PublicBookingPage />} />
+              <Route path="/agendar/:slug" element={<PublicBookingPage />} />
               
               {/* Rota Pública de Proposta por Slug (deve vir após as rotas prefixadas) */}
               <Route path="/:slug" element={<PublicProposalViewer mode="public" />} />
