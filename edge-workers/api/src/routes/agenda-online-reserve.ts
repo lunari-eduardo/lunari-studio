@@ -78,6 +78,9 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
       cliente_id_matched: clienteId
     };
 
+    // Limpar reservas expiradas antes de validar e travar o slot
+    await supabase.rpc('cleanup_expired_online_reservations');
+
     // 4. Executar RPC com PostgreSQL Lock
     const { data: rpcResult, error: rpcError } = await supabase.rpc('reserve_online_slot', {
       p_link_id: linkData.id,

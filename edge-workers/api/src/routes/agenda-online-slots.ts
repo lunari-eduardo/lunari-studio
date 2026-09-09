@@ -62,6 +62,9 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
        return c.json({ success: false, error: 'Nenhum pacote disponível neste agendamento' }, 400);
     }
 
+    // Limpar reservas expiradas antes de calcular a disponibilidade
+    await supabase.rpc('cleanup_expired_online_reservations');
+
     // 4. Fetch Slots for this availability_type_id
     // Pegar slots a partir de hoje
     const today = new Date().toISOString().split('T')[0];
