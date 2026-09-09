@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Calendar, Clock, Package, ArrowRight } from 'lucide-react';
@@ -47,7 +47,7 @@ export function BookingSuccess({
             <h2 className="text-2xl font-bold tracking-tight text-neutral-900">Horário Reservado!</h2>
             <p className="text-sm text-neutral-600">
               Olá, <span className="font-semibold text-neutral-900">{clientName}</span>! Seu horário foi pré-agendado com{' '}
-              <span className="font-semibold text-neutral-900">{photographerName || 'o fotógrafo'}</span>.
+              <span className="font-semibold text-neutral-900">{photographerName || 'o estúdio'}</span>.
             </p>
           </div>
 

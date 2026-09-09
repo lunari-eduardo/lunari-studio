@@ -10,6 +10,7 @@ export interface AgendaOnlineLink {
   require_deposit: boolean;
   deposit_type?: 'fixed' | 'percentage' | null;
   deposit_value?: number | null;
+  deposit_gateway?: string | null;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

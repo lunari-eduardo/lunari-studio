@@ -35,16 +35,29 @@ export async function getAgendaOnlineSlotsRoute(c: Context<{ Bindings: Bindings 
       return c.json({ success: false, error: 'Página de agendamento não encontrada ou inativa' }, 404);
     }
 
-    // 2. Fetch Photographer Profile
+    // 1b. Bloquear se o tipo for Ocupado
+    if (linkData.availability_type_id) {
+      const { data: availType } = await supabase
+        .from('availability_types')
+        .select('name')
+        .eq('id', linkData.availability_type_id)
+        .maybeSingle();
+
+      if (availType && availType.name.trim().toLowerCase() === 'ocupado') {
+        return c.json({ success: false, error: 'Tipo de disponibilidade inválido para agendamento online' }, 400);
+      }
+    }
+
+    // 2. Fetch Photographer Profile (apenas nome fantasia / empresa)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('nome, avatar_url, logo_url')
+      .select('empresa, avatar_url, logo_url')
       .eq('user_id', linkData.user_id)
       .maybeSingle();
 
     // 3. Fetch Packages
     // pacotes_permitidos é um JSON array de IDs
-    let pacotes = [];
+    let pacotes: any[] = [];
     if (Array.isArray(linkData.pacotes_permitidos) && linkData.pacotes_permitidos.length > 0) {
       const { data: pkgs, error: pkgsError } = await supabase
         .from('pacotes')

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -207,7 +207,7 @@ export default function PublicBookingPage() {
       <PublicThemeWrapper primaryColor={primaryColor || undefined}>
         <div className="min-h-screen py-8 px-4 flex items-center justify-center">
           <BookingSuccess
-            photographerName={data.photographer?.nome || data.photographer?.empresa}
+            photographerName={data.photographer?.empresa?.trim() || undefined}
             linkTitle={data.link.title}
             selectedPackage={selectedPackage}
             selectedDate={selectedDate!}
@@ -221,7 +221,7 @@ export default function PublicBookingPage() {
     );
   }
 
-  const photographerName = data.photographer?.nome || data.photographer?.empresa || 'Estúdio Fotográfico';
+  const studioName = data.photographer?.empresa?.trim() || '';
   const avatarUrl = data.photographer?.avatar_url || data.photographer?.logo_url;
 
   return (
@@ -232,16 +232,18 @@ export default function PublicBookingPage() {
           <div className="bg-white rounded-2xl border border-neutral-200/80 p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
               <Avatar className="w-16 h-16 border shadow-sm shrink-0">
-                <AvatarImage src={avatarUrl} alt={photographerName} />
+                <AvatarImage src={avatarUrl} alt={studioName || 'Estúdio'} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                  {photographerName.slice(0, 2).toUpperCase()}
+                  {(studioName || 'LS').slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
               <div className="space-y-1 flex-1">
-                <div className="text-xs uppercase tracking-wider font-semibold text-neutral-500">
-                  {photographerName}
-                </div>
+                {studioName ? (
+                  <div className="text-xs uppercase tracking-wider font-semibold text-neutral-500">
+                    {studioName}
+                  </div>
+                ) : null}
                 <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{data.link.title}</h1>
                 {data.link.description && (
                   <p className="text-sm text-neutral-600 max-w-2xl whitespace-pre-line">
@@ -249,26 +251,28 @@ export default function PublicBookingPage() {
                   </p>
                 )}
               </div>
-
-              {data.link.requireDeposit && depositCalculation && (
-                <Badge variant="outline" className="px-3 py-1.5 text-xs bg-amber-500/10 text-amber-700 border-amber-500/20 shrink-0 font-medium">
-                  Sinal de Reserva: {formatCurrency(depositCalculation)}
-                </Badge>
-              )}
             </div>
           </div>
 
           {currentStep === 'selection' ? (
             <div className="space-y-6">
-              {/* Escolha de Pacote (se houver mais de 1) */}
-              {data.packages.length > 1 && (
-                <div className="bg-white rounded-2xl border border-neutral-200/80 p-6 shadow-sm space-y-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
-                    <Package className="w-4 h-4 text-primary" />
-                    <span>1. Escolha o Pacote</span>
+              {/* Escolha de Pacote */}
+              {data.packages?.length > 0 && (
+                <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 sm:p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
+                      <Package className="w-4 h-4 text-primary" />
+                      <span>{data.packages.length > 1 ? '1. Escolha o Pacote' : '1. Pacote Incluso'}</span>
+                    </div>
+                    {data.packages.length > 1 && (
+                      <span className="text-xs text-neutral-400 font-normal">
+                        {data.packages.length} opções disponíveis
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {/* Grid compacto e elegante (suporta até 8 pacotes sem poluição visual) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-0.5">
                     {data.packages.map((pkg: any) => {
                       const isSelected = selectedPackageId === pkg.id;
                       return (
@@ -276,22 +280,38 @@ export default function PublicBookingPage() {
                           key={pkg.id}
                           onClick={() => setSelectedPackageId(pkg.id)}
                           className={cn(
-                            'border rounded-xl p-4 cursor-pointer transition-all bg-neutral-50/50',
+                            'group relative flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer select-none text-left',
                             isSelected
-                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm'
-                              : 'hover:border-neutral-300 hover:bg-white'
+                              ? 'border-primary bg-primary/[0.04] shadow-xs ring-1 ring-primary/30'
+                              : 'border-neutral-200/90 bg-neutral-50/40 hover:bg-neutral-50 hover:border-neutral-300'
                           )}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-semibold text-sm leading-tight text-neutral-900">{pkg.nome}</h4>
-                            <div className={cn('w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5', isSelected ? 'border-primary bg-primary text-primary-foreground' : 'border-neutral-300')}>
-                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div
+                              className={cn(
+                                'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors',
+                                isSelected
+                                  ? 'border-primary bg-primary text-primary-foreground'
+                                  : 'border-neutral-300 group-hover:border-neutral-400 bg-white'
+                              )}
+                            >
+                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm text-neutral-900 truncate leading-tight">
+                                {pkg.nome}
+                              </p>
+                              {pkg.fotos_incluidas ? (
+                                <p className="text-[11px] text-neutral-500 mt-0.5 leading-tight">
+                                  {pkg.fotos_incluidas} {pkg.fotos_incluidas === 1 ? 'foto' : 'fotos'}
+                                </p>
+                              ) : null}
                             </div>
                           </div>
 
-                          <div className="mt-2 flex items-baseline justify-between text-xs text-neutral-500">
-                            {pkg.fotos_incluidas ? <span>{pkg.fotos_incluidas} fotos</span> : <span />}
-                            <span className="font-bold text-neutral-900 text-sm">
+                          <div className="text-right shrink-0">
+                            <span className="font-bold text-sm text-neutral-900">
                               {formatCurrency(Number(pkg.valor_base) || 0)}
                             </span>
                           </div>
@@ -299,17 +319,37 @@ export default function PublicBookingPage() {
                       );
                     })}
                   </div>
+
+                  {/* Informação de valor de sinal a pagar abaixo dos pacotes */}
+                  {data.link.requireDeposit && depositCalculation && (
+                    <div className="mt-3 flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-950 text-xs sm:text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-900 text-xs font-bold shrink-0">
+                          R$
+                        </span>
+                        <span>
+                          Sinal de Reserva: <strong className="font-bold">{formatCurrency(depositCalculation)}</strong>
+                          {data.link.depositType === 'percentage' && (
+                            <span className="text-amber-800/80 text-xs font-normal ml-1.5">
+                              ({data.link.depositValue}% do pacote)
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-xs text-amber-800/80 font-normal hidden sm:inline">
+                        Necessário para confirmação
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Calendário e Seleção de Horário */}
               <div className="space-y-3">
-                {data.packages.length > 1 && (
-                  <div className="flex items-center gap-2 text-sm font-semibold px-1 text-neutral-900">
-                    <Calendar className="w-4 h-4 text-primary" />
-                    <span>2. Escolha o Dia e Horário</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm font-semibold px-1 text-neutral-900">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span>{data.packages?.length > 0 ? '2. Escolha o Dia e Horário' : 'Escolha o Dia e Horário'}</span>
+                </div>
 
                 <BookingCalendar
                   availableDates={availableDates}

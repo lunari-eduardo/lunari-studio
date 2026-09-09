@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,10 +28,21 @@ export function TiposTab() {
   const [editColor, setEditColor] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isSystemType = (name?: string | null) => {
+    if (!name) return false;
+    const n = name.trim().toLowerCase();
+    return n === 'disponível' || n === 'disponivel' || n === 'ocupado';
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
       toast.error('Informe o nome do tipo');
+      return;
+    }
+
+    if (isSystemType(newName)) {
+      toast.error('Já existe um tipo padrão do sistema com esse nome');
       return;
     }
 
@@ -167,20 +178,29 @@ export function TiposTab() {
                 );
               }
 
+              const isSystem = isSystemType(type.name);
+
               return (
                 <div key={type.id} className="flex items-center justify-between p-3 border rounded-lg bg-card group">
                   <div className="flex items-center gap-3">
                     <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: type.color }} />
                     <span className="text-sm font-medium truncate">{type.name}</span>
+                    {isSystem && (
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                        Padrão
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleStartEdit(type)} disabled={isSubmitting}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(type.id)} disabled={isSubmitting}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {!isSystem ? (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleStartEdit(type)} disabled={isSubmitting}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(type.id)} disabled={isSubmitting}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}

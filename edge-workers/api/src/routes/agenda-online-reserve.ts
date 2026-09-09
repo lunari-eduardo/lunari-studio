@@ -21,7 +21,7 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
     // 1. Fetch Link Data
     const { data: linkData, error: linkError } = await supabase
       .from('agenda_online_links')
-      .select('id, pacotes_permitidos, require_deposit, deposit_type, deposit_value')
+      .select('id, pacotes_permitidos, require_deposit, deposit_type, deposit_value, deposit_gateway')
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();

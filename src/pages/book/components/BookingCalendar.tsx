@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Clock, Calendar as CalendarIcon } from 'lucide-react';
@@ -68,7 +68,15 @@ export function BookingCalendar({
               available: (date) => isDayAvailable(date),
             }}
             modifiersClassNames={{
-              available: "font-bold text-primary hover:bg-primary/10 cursor-pointer",
+              available: "!text-neutral-950 font-semibold hover:bg-neutral-100 cursor-pointer",
+            }}
+            classNames={{
+              cell: "h-9 w-9 text-center text-sm p-0 relative bg-transparent focus-within:relative focus-within:z-20",
+              day: "h-9 w-9 p-0 font-normal rounded-full transition-all flex items-center justify-center mx-auto text-neutral-800",
+              day_selected: "!bg-primary !text-primary-foreground font-bold rounded-full shadow-sm hover:!bg-primary hover:!text-primary-foreground focus:!bg-primary focus:!text-primary-foreground",
+              day_today: "font-bold text-neutral-950 bg-transparent",
+              day_disabled: "!text-neutral-300 opacity-40 cursor-not-allowed pointer-events-none select-none",
+              day_outside: "!text-neutral-200 opacity-25 pointer-events-none select-none",
             }}
             className="rounded-md"
           />

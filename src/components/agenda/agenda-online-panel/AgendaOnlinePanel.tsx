@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAgendaOnlinePanel, slugify } from './useAgendaOnlinePanel';
 import { Globe, Plus, Copy, ExternalLink, Edit, Trash2, Calendar, DollarSign, ArrowLeft, Share2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/financialUtils';
+import { ProviderSelector } from '@/components/cobranca/ProviderSelector';
 import { cn } from '@/lib/utils';
 
 interface AgendaOnlinePanelProps {
@@ -144,7 +145,7 @@ export function AgendaOnlinePanel({ isOpen, onClose }: AgendaOnlinePanelProps) {
                     <Select value={p.availabilityTypeId} onValueChange={p.setAvailabilityTypeId}>
                       <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                       <SelectContent>
-                        {p.availabilityTypes.map(t => (
+                        {p.onlineAvailabilityTypes.map(t => (
                           <SelectItem key={t.id} value={t.id}>
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: t.color }} />
@@ -189,25 +190,40 @@ export function AgendaOnlinePanel({ isOpen, onClose }: AgendaOnlinePanelProps) {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label className="text-base">Exigir Sinal (Reserva)</Label>
-                      <p className="text-xs text-muted-foreground">Cliente deve pagar via Asaas para confirmar.</p>
+                      <p className="text-xs text-muted-foreground">Cliente deve pagar o sinal via gateway para confirmar.</p>
                     </div>
                     <Switch checked={p.requireDeposit} onCheckedChange={p.setRequireDeposit} />
                   </div>
                   {p.requireDeposit && (
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t">
-                      <div className="space-y-2">
-                        <Label>Tipo de Sinal</Label>
-                        <Select value={p.depositType} onValueChange={(val: any) => p.setDepositType(val)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="percentage">Porcentagem (%)</SelectItem>
-                            <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <div className="space-y-4 pt-3 border-t">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Tipo de Sinal</Label>
+                          <Select value={p.depositType} onValueChange={(val: any) => p.setDepositType(val)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                              <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Valor</Label>
+                          <Input type="number" min="1" value={p.depositValue} onChange={e => p.setDepositValue(Number(e.target.value))} />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Valor</Label>
-                        <Input type="number" min="1" value={p.depositValue} onChange={e => p.setDepositValue(Number(e.target.value))} />
+
+                      <div className="space-y-1.5 pt-1">
+                        <Label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                          Gateway de Pagamento
+                        </Label>
+                        <ProviderSelector
+                          selectedProvider={p.depositGateway}
+                          onSelect={p.setDepositGateway}
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          O cliente será direcionado para pagar o sinal através deste gateway.
+                        </p>
                       </div>
                     </div>
                   )}

@@ -90,6 +90,28 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
         
         return inserted as AvailabilityType[];
       }
+
+      // Garante que ambos Disponível e Ocupado existam
+      const hasDisponivel = data.some(t => t.name.trim().toLowerCase() === 'disponível' || t.name.trim().toLowerCase() === 'disponivel');
+      const hasOcupado = data.some(t => t.name.trim().toLowerCase() === 'ocupado');
+      const missingInserts: any[] = [];
+
+      if (!hasDisponivel) {
+        missingInserts.push({ user_id: user.id, name: 'Disponível', color: '#10b981', is_active: true });
+      }
+      if (!hasOcupado) {
+        missingInserts.push({ user_id: user.id, name: 'Ocupado', color: '#ef4444', is_active: true });
+      }
+
+      if (missingInserts.length > 0) {
+        const { data: newInserted } = await supabase
+          .from("availability_types")
+          .insert(missingInserts)
+          .select("id, name, color");
+        if (newInserted) {
+          return [...data, ...newInserted] as AvailabilityType[];
+        }
+      }
       
       return data;
     } catch (error) {
@@ -101,6 +123,11 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
   async add(data: Omit<AvailabilityType, "id">): Promise<AvailabilityType> {
     try {
       const user = await requireUser();
+      const norm = data.name.trim().toLowerCase();
+      if (norm === 'ocupado' || norm === 'disponível' || norm === 'disponivel') {
+        throw new Error("Já existe um tipo padrão do sistema com esse nome");
+      }
+
       const { data: inserted, error } = await supabase
         .from("availability_types")
         .insert({
@@ -122,6 +149,20 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
   async update(id: string, updates: Partial<AvailabilityType>): Promise<void> {
     try {
       const user = await requireUser();
+
+      const { data: existing } = await supabase
+        .from("availability_types")
+        .select("name")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        const norm = existing.name.trim().toLowerCase();
+        if (norm === 'ocupado' || norm === 'disponível' || norm === 'disponivel') {
+          throw new Error("Tipos padrão do sistema não podem ser alterados");
+        }
+      }
       
       const patch: any = {};
       if (updates.name !== undefined) patch.name = updates.name;
@@ -143,6 +184,20 @@ export class SupabaseAvailabilityTypesRepository implements AvailabilityTypesRep
   async delete(id: string): Promise<void> {
     try {
       const user = await requireUser();
+
+      const { data: existing } = await supabase
+        .from("availability_types")
+        .select("name")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (existing) {
+        const norm = existing.name.trim().toLowerCase();
+        if (norm === 'ocupado' || norm === 'disponível' || norm === 'disponivel') {
+          throw new Error("Tipos padrão do sistema não podem ser excluídos");
+        }
+      }
 
       // Tenta hard delete
       const { error } = await supabase

@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useAgendaOnlineLinks } from '@/hooks/useAgendaOnlineLinks';
 import { useAvailabilityTypes } from '@/hooks/useAvailabilityTypes';
 import { useConfiguration } from '@/hooks/useConfiguration';
-import type { AgendaOnlineLink } from '@/types/agendaOnline';
+import type { AgendaOnlineLink, NewAgendaOnlineLink } from '@/types/agendaOnline';
+import type { SelectedProvider } from '@/components/cobranca/ProviderRow';
 import { toast } from 'sonner';
 
 export function slugify(text: string): string {
@@ -22,6 +23,13 @@ export function useAgendaOnlinePanel(onClose: () => void) {
   const { availabilityTypes } = useAvailabilityTypes();
   const { categorias, pacotes } = useConfiguration();
 
+  // Filtrar tipo "Ocupado" para não aparecer nas opções de agendamento online
+  const onlineAvailabilityTypes = useMemo(() => {
+    return availabilityTypes.filter(
+      (t) => t.name?.trim().toLowerCase() !== 'ocupado'
+    );
+  }, [availabilityTypes]);
+
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [editingLink, setEditingLink] = useState<AgendaOnlineLink | null>(null);
 
@@ -34,6 +42,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
   const [requireDeposit, setRequireDeposit] = useState(false);
   const [depositType, setDepositType] = useState<'fixed' | 'percentage'>('percentage');
   const [depositValue, setDepositValue] = useState<number>(30);
+  const [depositGateway, setDepositGateway] = useState<SelectedProvider | null>(null);
   const [isActive, setIsActive] = useState(true);
 
   const availablePackages = useMemo(() => {
@@ -41,16 +50,29 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     return pacotes.filter((p) => p.categoria_id === categoriaId);
   }, [pacotes, categoriaId]);
 
+  const toSelectorProvider = (val?: string | null): SelectedProvider | null => {
+    if (!val) return null;
+    if (val === 'mercadopago') return 'mercadopago_link';
+    return val as SelectedProvider;
+  };
+
+  const toDatabaseProvider = (val?: SelectedProvider | null): string | null => {
+    if (!val) return null;
+    if (val === 'mercadopago_link') return 'mercadopago';
+    return val;
+  };
+
   const resetForm = () => {
     setTitle('');
     setSlug('');
     setDescription('');
-    setAvailabilityTypeId('');
+    setAvailabilityTypeId(onlineAvailabilityTypes[0]?.id || '');
     setCategoriaId('');
     setSelectedPackageIds([]);
     setRequireDeposit(false);
     setDepositType('percentage');
     setDepositValue(30);
+    setDepositGateway(null);
     setIsActive(true);
     setEditingLink(null);
   };
@@ -67,6 +89,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       setRequireDeposit(linkToEdit.require_deposit);
       setDepositType(linkToEdit.deposit_type || 'percentage');
       setDepositValue(linkToEdit.deposit_value || 0);
+      setDepositGateway(toSelectorProvider(linkToEdit.deposit_gateway));
       setIsActive(linkToEdit.is_active);
     } else {
       resetForm();
@@ -87,6 +110,12 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       return;
     }
 
+    const chosenType = availabilityTypes.find(t => t.id === availabilityTypeId);
+    if (chosenType && chosenType.name?.trim().toLowerCase() === 'ocupado') {
+      toast.error('O tipo "Ocupado" não pode ser utilizado para agendamentos online.');
+      return;
+    }
+
     if (selectedPackageIds.length === 0) {
       toast.error('Selecione pelo menos um pacote permitido.');
       return;
@@ -97,7 +126,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       return;
     }
 
-    const payload = {
+    const payload: NewAgendaOnlineLink = {
       title,
       slug,
       description,
@@ -107,6 +136,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       require_deposit: requireDeposit,
       deposit_type: depositType,
       deposit_value: depositValue,
+      deposit_gateway: toDatabaseProvider(depositGateway),
       is_active: isActive,
     };
 
@@ -161,7 +191,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
 
   return {
     links, isLoading, isSubmitting, toggleLinkActive,
-    availabilityTypes, categorias, availablePackages,
+    availabilityTypes, onlineAvailabilityTypes, categorias, availablePackages,
     viewMode, setViewMode,
     editingLink,
     title, handleTitleChange,
@@ -173,6 +203,7 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     requireDeposit, setRequireDeposit,
     depositType, setDepositType,
     depositValue, setDepositValue,
+    depositGateway, setDepositGateway,
     isActive, setIsActive,
     handleOpenForm, handleCloseForm, handleSubmit, handleDelete,
     copyToClipboard, getFullUrl

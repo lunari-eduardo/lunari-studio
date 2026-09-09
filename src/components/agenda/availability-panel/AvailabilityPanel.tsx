@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAvailabilityPanel } from './useAvailabilityPanel';
@@ -15,6 +16,10 @@ interface AvailabilityPanelProps {
 
 export function AvailabilityPanel({ isOpen, onClose, date, initialTime }: AvailabilityPanelProps) {
   const panel = useAvailabilityPanel(date, initialTime, onClose);
+  const [activeTab, setActiveTab] = useState<'liberar' | 'bloquear' | 'tipos'>('liberar');
+
+  const goToTiposTab = () => setActiveTab('tipos');
+  const panelWithNav = { ...panel, goToTiposTab };
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -26,7 +31,7 @@ export function AvailabilityPanel({ isOpen, onClose, date, initialTime }: Availa
           </SheetHeader>
         </div>
 
-        <Tabs defaultValue="liberar" className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex-1 flex flex-col min-h-0">
           <div className="px-6 pt-3 pb-2 shrink-0">
             <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="liberar">Liberar</TabsTrigger>
@@ -36,7 +41,7 @@ export function AvailabilityPanel({ isOpen, onClose, date, initialTime }: Availa
           </div>
 
           <TabsContent value="liberar" className="flex-1 flex flex-col min-h-0 m-0 data-[state=inactive]:hidden">
-            <LiberarTab panel={panel} />
+            <LiberarTab panel={panelWithNav} />
           </TabsContent>
           
           <TabsContent value="bloquear" className="flex-1 flex flex-col min-h-0 m-0 data-[state=inactive]:hidden">
