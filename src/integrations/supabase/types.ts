@@ -85,6 +85,169 @@ export type Database = {
           },
         ]
       }
+      agenda_online_links: {
+        Row: {
+          availability_type_id: string
+          categoria_id: string
+          created_at: string
+          deposit_gateway: string | null
+          deposit_type: string | null
+          deposit_value: number | null
+          description: string | null
+          id: string
+          is_active: boolean
+          pacotes_permitidos: Json
+          require_deposit: boolean
+          show_package_price: boolean
+          slug: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability_type_id: string
+          categoria_id: string
+          created_at?: string
+          deposit_gateway?: string | null
+          deposit_type?: string | null
+          deposit_value?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          pacotes_permitidos?: Json
+          require_deposit?: boolean
+          show_package_price?: boolean
+          slug: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability_type_id?: string
+          categoria_id?: string
+          created_at?: string
+          deposit_gateway?: string | null
+          deposit_type?: string | null
+          deposit_value?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          pacotes_permitidos?: Json
+          require_deposit?: boolean
+          show_package_price?: boolean
+          slug?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_online_links_availability_type_id_fkey"
+            columns: ["availability_type_id"]
+            isOneToOne: false
+            referencedRelation: "availability_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_online_links_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_reservas_temp: {
+        Row: {
+          cliente_data: Json | null
+          cobranca_id: string | null
+          created_at: string
+          date: string
+          end_time: string
+          expires_at: string
+          id: string
+          link_id: string
+          pacote_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_data?: Json | null
+          cobranca_id?: string | null
+          created_at?: string
+          date: string
+          end_time: string
+          expires_at: string
+          id?: string
+          link_id: string
+          pacote_id?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_data?: Json | null
+          cobranca_id?: string | null
+          created_at?: string
+          date?: string
+          end_time?: string
+          expires_at?: string
+          id?: string
+          link_id?: string
+          pacote_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_reservas_temp_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "cobrancas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_reservas_temp_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "v_infinitepay_latency"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_reservas_temp_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobrancas_extras_orfas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_reservas_temp_cobranca_id_fkey"
+            columns: ["cobranca_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobrancas_suspeitas"
+            referencedColumns: ["cobranca_id"]
+          },
+          {
+            foreignKeyName: "agenda_reservas_temp_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_online_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_reservas_temp_pacote_id_fkey"
+            columns: ["pacote_id"]
+            isOneToOne: false
+            referencedRelation: "pacotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       allowed_emails: {
         Row: {
           created_at: string
@@ -909,6 +1072,7 @@ export type Database = {
       }
       availability_slots: {
         Row: {
+          availability_type_id: string | null
           color: string | null
           created_at: string
           date: string
@@ -923,6 +1087,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          availability_type_id?: string | null
           color?: string | null
           created_at?: string
           date: string
@@ -937,6 +1102,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          availability_type_id?: string | null
           color?: string | null
           created_at?: string
           date?: string
@@ -947,6 +1113,44 @@ export type Database = {
           is_full_day?: boolean | null
           start_time?: string
           type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_slots_availability_type_id_fkey"
+            columns: ["availability_type_id"]
+            isOneToOne: false
+            referencedRelation: "availability_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      availability_types: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
           updated_at?: string
           user_id?: string
         }
@@ -8484,9 +8688,14 @@ export type Database = {
         Args: { p_cobranca_id: string; p_galeria_id: string }
         Returns: Json
       }
+      cleanup_expired_online_reservations: { Args: never; Returns: undefined }
       compute_valor_pago_externo: {
         Args: { p_session_id: string }
         Returns: number
+      }
+      confirm_online_appointment: {
+        Args: { p_cobranca_id: string }
+        Returns: undefined
       }
       consume_photo_credits: {
         Args: { _gallery_id: string; _photo_count: number; _user_id: string }
@@ -8744,6 +8953,18 @@ export type Database = {
       }
       reopen_gallery_selection: {
         Args: { p_days: number; p_gallery_id: string }
+        Returns: Json
+      }
+      reserve_online_slot: {
+        Args: {
+          p_cliente_data: Json
+          p_date: string
+          p_deposit_amount: number
+          p_link_id: string
+          p_pacote_id: string
+          p_start_time: string
+          p_total_amount: number
+        }
         Returns: Json
       }
       revoke_client_credit: {
