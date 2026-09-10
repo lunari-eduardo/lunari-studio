@@ -151,10 +151,8 @@ export default function Agenda() {
     setIsAvailabilityModalOpen,
     setIsShareModalOpen,
 
-    // Handlers
-    handleTimeSlotClick,
-    handleDayClick,
-    handleEventClick,
+    // Modal actions
+    openAppointmentDialog,
     openAppointmentDetails,
     openBudgetModal,
     openBudgetAppointmentModal,
@@ -181,11 +179,6 @@ export default function Agenda() {
     }
     setIsOnlineBookingModalOpen(true);
   }, [hasEntitlement, openModal]);
-
-  const handleCreateTaskSlot = useCallback((date: Date) => {
-    setTaskInitialDate(format(date, 'yyyy-MM-dd'));
-    setIsTaskModalOpen(true);
-  }, []);
 
   // Navigation functions (simplified)
   const handleNavigatePrevious = useCallback(() => {
@@ -515,7 +508,10 @@ export default function Agenda() {
                 selectedDate={date}
                 tasks={tasks}
                 viewMode={view}
-                onCreateTask={handleCreateTaskSlot}
+                onCreateTask={() => {
+                  setTaskInitialDate(format(date, 'yyyy-MM-dd'));
+                  setIsTaskModalOpen(true);
+                }}
                 onDayClick={handleDayClick}
               />
             </ProGate>
