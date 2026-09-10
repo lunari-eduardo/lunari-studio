@@ -6413,6 +6413,24 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_entitlements: {
+        Row: {
+          enabled: boolean
+          entitlement_key: string
+          tier: string
+        }
+        Insert: {
+          enabled?: boolean
+          entitlement_key: string
+          tier: string
+        }
+        Update: {
+          enabled?: boolean
+          entitlement_key?: string
+          tier?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           code: string
@@ -8732,6 +8750,10 @@ export type Database = {
         Returns: undefined
       }
       ensure_referral_code: { Args: never; Returns: string }
+      expire_studio_trial_storage: {
+        Args: { p_user_id?: string }
+        Returns: undefined
+      }
       expire_subscription_credits: {
         Args: { _user_id: string }
         Returns: undefined
@@ -8833,6 +8855,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: number
       }
+      get_user_tier: { Args: { p_user_id: string }; Returns: string }
       grant_client_credit: {
         Args: {
           p_cliente_id: string
@@ -8850,6 +8873,10 @@ export type Database = {
         Returns: boolean
       }
       has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
+      has_entitlement: {
+        Args: { _key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
