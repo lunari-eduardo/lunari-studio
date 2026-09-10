@@ -11,10 +11,10 @@ export function Pricing() {
 
   // Filtra e ordena baseado no STUDIO_ORDER mas com fallback seguro
   const orderedStudio = useMemo(() => {
-    const order = ["studio_starter", "studio_pro"];
+    const order = ["studio_pro"];
     const found = order.map(code => studioPlans.find(p => p.code === code)).filter(Boolean) as SiteUnifiedPlan[];
     // Se não encontrou pela ordem, pega o que tiver da família studio
-    return found.length > 0 ? found : studioPlans.slice(0, 2);
+    return found.length > 0 ? found : studioPlans.slice(0, 1);
   }, [studioPlans]);
 
   return (
@@ -25,7 +25,7 @@ export function Pricing() {
             <SiteEyebrow>Assinatura</SiteEyebrow>
             <SiteH2 tone="light">Um preço que cabe no seu crescimento.</SiteH2>
             <SiteLead tone="light" className="mt-6">
-              Comece pelo Studio Starter e evolua conforme seu fluxo cresce. 
+              Assine o Studio Pro e tenha acesso a todos os recursos que seu estúdio precisa. 
               Sem taxas ocultas, sem cobrança por foto.
             </SiteLead>
           </SiteReveal>

@@ -101,15 +101,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/auth?reason=suspended" replace />;
   }
 
-  // 5. Verificar trial expirado - redirecionar para escolher plano
-  if (accessState.status === 'trial_expired') {
-    // Permitir acesso às páginas isentas
-    if (SUBSCRIPTION_EXEMPT_ROUTES.includes(location.pathname)) {
-      return <>{children}</>;
-    }
-    return <Navigate to="/escolher-plano" replace />;
-  }
-
   // 6. Verificar onboarding ANTES da subscription wall
   // (novos usuários sem trial precisam completar onboarding para ativar o trial)
   if (location.pathname !== '/onboarding') {
@@ -118,40 +109,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (needsOnboarding) {
       return <Navigate to="/onboarding" replace />;
     }
-  }
-
-  // 7. Verificar sem subscription - permitir páginas de assinatura e conta
-  if (accessState.status === 'no_subscription') {
-    // Permitir acesso às páginas isentas (inclui /minha-conta para sync pós-checkout)
-    if (SUBSCRIPTION_EXEMPT_ROUTES.includes(location.pathname)) {
-      return <>{children}</>;
-    }
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full p-6 bg-card border-border">
-          <div className="text-center space-y-4">
-            <h2 className="text-2xl font-bold text-foreground">Acesso Restrito</h2>
-            <p className="text-muted-foreground">
-              Sua conta não possui uma assinatura ativa.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => window.location.href = '/escolher-plano'}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg transition-colors"
-              >
-                Escolher Plano
-              </button>
-              <button
-                onClick={() => signOut()}
-                className="px-4 py-2 bg-muted hover:bg-muted/80 text-muted-foreground rounded-lg transition-colors"
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
   }
 
   return <>{children}</>;

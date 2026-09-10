@@ -21,6 +21,7 @@ import { generatePixPayload } from "../_shared/pix-utils.ts";
 import { createMercadoPagoPayment } from "../_shared/adapters/mercadopago.ts";
 import { createInfinitePayPayment } from "../_shared/adapters/infinitepay.ts";
 import { createAsaasPayment } from "../_shared/adapters/asaas.ts";
+import { requireEntitlement } from "../_shared/entitlements.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -49,6 +50,11 @@ Deno.serve(async (req) => {
       return authResult.errorResponse;
     } else {
       return errorResponse("userId é obrigatório", 400, "MISSING_USER_ID");
+    }
+
+    if (body.tipo_cobranca === "link" || body.finalidade === "avulso") {
+      const entCheck = await requireEntitlement(supabase, userId, "charge_links", "Cobrança por link");
+      if (!entCheck.hasEntitlement) return entCheck.errorResponse;
     }
 
     const {

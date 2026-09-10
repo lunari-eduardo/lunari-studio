@@ -1,6 +1,5 @@
 /** @deprecated Fallback only — use useUnifiedPlans() hook for dynamic prices from DB. */
 export const ALL_PLAN_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  studio_starter: { monthly: 1490, yearly: 15198 },
   studio_pro: { monthly: 3590, yearly: 36618 },
   transfer_5gb: { monthly: 1290, yearly: 12384 },
   transfer_20gb: { monthly: 2490, yearly: 23904 },
@@ -12,7 +11,6 @@ export const ALL_PLAN_PRICES: Record<string, { monthly: number; yearly: number }
 
 /** Display names for each plan — fallback only, prefer DB name. */
 const PLAN_DISPLAY_NAMES: Record<string, string> = {
-  studio_starter: 'Lunari Starter',
   studio_pro: 'Lunari Pro',
   transfer_5gb: 'Gallery Transfer 5GB',
   transfer_20gb: 'Gallery Transfer 20GB',
@@ -24,7 +22,6 @@ const PLAN_DISPLAY_NAMES: Record<string, string> = {
 
 /** Product family for each plan_type. */
 export const PLAN_FAMILIES: Record<string, string> = {
-  studio_starter: 'studio',
   studio_pro: 'studio',
   transfer_5gb: 'transfer',
   transfer_20gb: 'transfer',
@@ -36,7 +33,6 @@ export const PLAN_FAMILIES: Record<string, string> = {
 
 /** Which product capabilities each plan includes. */
 export const PLAN_INCLUDES: Record<string, { studio: boolean; select: boolean; transfer: boolean }> = {
-  studio_starter: { studio: true, select: false, transfer: false },
   studio_pro: { studio: true, select: false, transfer: false },
   transfer_5gb: { studio: false, select: false, transfer: true },
   transfer_20gb: { studio: false, select: false, transfer: true },
@@ -48,7 +44,6 @@ export const PLAN_INCLUDES: Record<string, { studio: boolean; select: boolean; t
 
 /** Ordered list for upgrade/downgrade validation (lowest → highest). */
 export const PLAN_ORDER = [
-  'studio_starter',
   'transfer_5gb',
   'transfer_20gb',
   'studio_pro',

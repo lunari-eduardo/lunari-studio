@@ -13,26 +13,19 @@ export interface PlanCopy {
 }
 
 export const PLAN_COPY: Record<string, PlanCopy> = {
-  studio_starter: {
-    tagline: "Trocar planilha por sistema.",
+  studio_pro: {
+    tagline: "O estúdio inteiro em um cérebro só.",
     features: [
       "Agenda com sync Google Calendar",
       "CRM de clientes",
       "Workflow de produção",
-      "Tutoriais e comunidade",
-      "Suporte por WhatsApp",
-    ],
-  },
-  studio_pro: {
-    tagline: "O estúdio inteiro em um cérebro só.",
-    features: [
-      "Tudo do Starter",
       "Gestão de Leads e Tarefas",
       "Financeiro completo (PIX, Asaas, InfinitePay, MercadoPago)",
       "Precificação e metas",
       "Análise de vendas detalhada",
       "Feed Preview e relatórios",
       "Notificações avançadas",
+      "Suporte por WhatsApp",
     ],
   },
   transfer_5gb: {
@@ -121,6 +114,6 @@ export const PRICING_FAQ: SitePricingFAQ[] = [
 ];
 
 /** Ordem sugerida de exibição na página de preços (por família). */
-export const STUDIO_ORDER = ["studio_starter", "studio_pro"];
+export const STUDIO_ORDER = ["studio_pro"];
 export const DELIVER_ORDER = ["transfer_5gb", "transfer_20gb", "transfer_50gb", "transfer_100gb"];
 export const COMBO_ORDER = ["combo_pro_select2k", "combo_completo"];

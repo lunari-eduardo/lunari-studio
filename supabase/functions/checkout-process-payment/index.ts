@@ -9,6 +9,7 @@ import { normalizeAsaasFees, calculateCreditFees } from "../_shared/asaas-helper
 import { createAsaasPayment } from "../_shared/adapters/asaas.ts";
 import { createMercadoPagoPayment } from "../_shared/adapters/mercadopago.ts";
 import { resolvePayerHints } from "../_shared/payer-hints.ts";
+import { requireEntitlement } from "../_shared/entitlements.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -62,12 +63,17 @@ Deno.serve(async (req) => {
     // 1. Buscar cobrança
     const { data: cobranca, error: cobrancaError } = await supabase
       .from("cobrancas")
-      .select("id, user_id, cliente_id, session_id, galeria_id, finalidade, valor, descricao, status, provedor, dados_extras")
+      .select("id, user_id, cliente_id, session_id, galeria_id, finalidade, tipo_cobranca, valor, descricao, status, provedor, dados_extras")
       .eq("id", cobrancaId)
       .maybeSingle();
 
     if (cobrancaError || !cobranca) {
       return errorResponse("Cobrança não encontrada", 404);
+    }
+
+    if (cobranca.tipo_cobranca === "link" || cobranca.finalidade === "avulso") {
+      const entCheck = await requireEntitlement(supabase, cobranca.user_id, "charge_links", "Cobrança por link");
+      if (!entCheck.hasEntitlement) return entCheck.errorResponse;
     }
 
     if (cobranca.status !== "pendente") {

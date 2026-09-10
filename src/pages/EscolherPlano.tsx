@@ -29,24 +29,13 @@ import { differenceInDays } from "date-fns";
 
 const STUDIO_PLANS = [
   {
-    code: "studio_starter",
-    name: "Starter",
-    description: "Ideal para começar",
-    features: [
-      "Agenda completa",
-      "CRM de clientes",
-      "Workflow de produção",
-      "Tutoriais",
-      "Suporte por WhatsApp",
-    ],
-    popular: false,
-  },
-  {
     code: "studio_pro",
     name: "Pro",
     description: "Funcionalidades completas",
     features: [
-      "Tudo do Starter",
+      "Agenda completa",
+      "CRM de clientes",
+      "Workflow de produção",
       "Gestão de Leads",
       "Gestão de tarefas",
       "Financeiro completo",
@@ -54,6 +43,7 @@ const STUDIO_PLANS = [
       "Análise de vendas detalhada",
       "Feed Preview",
       "Exportação de relatórios",
+      "Suporte por WhatsApp",
     ],
     popular: true,
   },

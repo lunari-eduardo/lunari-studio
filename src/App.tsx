@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { AccessControlProvider } from "./contexts/AccessControlContext";
+import { ProModalProvider } from "./components/access/ProUpgradeModal";
 import ThemeProvider from "./components/theme/ThemeProvider";
 import { VisualThemeProvider } from "./contexts/VisualThemeContext";
 import { CapabilityRuntimeProvider } from "@/shared/capability";
@@ -77,22 +78,24 @@ function App() {
             <VisualThemeProvider>
               <AuthProvider>
                 <AccessControlProvider>
-                  <CapabilityRuntimeProvider>
-                    <AgendaInvalidationBridge />
-                    <AgendaRealtimeListener />
-                    <WorkflowEventBridge />
-                    <WorkflowRealtimeBridge />
-                    <TasksRealtimeBridge />
-                    <AttachmentsRealtimeBridge />
-                    <FinanceRealtimeBridge />
-                    <TooltipProvider>
-                      <Toaster />
-                      <Sonner />
-                      <React.Suspense fallback={<ContextFallback />}>
-                        {context === "admin" ? <AdminApp /> : <PhotographerApp />}
-                      </React.Suspense>
-                    </TooltipProvider>
-                  </CapabilityRuntimeProvider>
+                  <ProModalProvider>
+                    <CapabilityRuntimeProvider>
+                      <AgendaInvalidationBridge />
+                      <AgendaRealtimeListener />
+                      <WorkflowEventBridge />
+                      <WorkflowRealtimeBridge />
+                      <TasksRealtimeBridge />
+                      <AttachmentsRealtimeBridge />
+                      <FinanceRealtimeBridge />
+                      <TooltipProvider>
+                        <Toaster />
+                        <Sonner />
+                        <React.Suspense fallback={<ContextFallback />}>
+                          {context === "admin" ? <AdminApp /> : <PhotographerApp />}
+                        </React.Suspense>
+                      </TooltipProvider>
+                    </CapabilityRuntimeProvider>
+                  </ProModalProvider>
                 </AccessControlProvider>
               </AuthProvider>
             </VisualThemeProvider>

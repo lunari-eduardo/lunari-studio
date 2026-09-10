@@ -130,6 +130,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ received: true, not_found: true });
     }
 
+    const { requireEntitlement } = await import("../_shared/entitlements.ts");
+    const ent = await requireEntitlement(supabase, cobranca.user_id, "integrations", "Integração MP");
+    if (!ent.hasEntitlement) {
+       console.warn(`[mercadopago-webhook] Pagamento ignorado por restrição de plano (user ${cobranca.user_id})`);
+       return jsonResponse({ received: true, ignored: true, reason: "plan_restriction" });
+    }
+
     // 3. NORMALIZAÇÃO DO EVENTO VIA MÁQUINA DE ESTADOS
     const rawStatus = paymentData?.status || "approved";
     const { nextStatus, isPaymentConfirmed } = normalizeGatewayStatus("mercadopago", rawStatus, paymentData);

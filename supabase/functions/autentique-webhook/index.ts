@@ -45,6 +45,13 @@ Deno.serve(async (req) => {
       return jres({ ignored: true, reason: "contract_not_found" });
     }
 
+    const { requireEntitlement } = await import("../_shared/entitlements.ts");
+    const ent = await requireEntitlement(admin, contrato.user_id, "integrations", "Integração Autentique");
+    if (!ent.hasEntitlement) {
+      console.warn(`[autentique-webhook] Webhook ignorado por restrição de plano (user ${contrato.user_id})`);
+      return jres({ ignored: true, reason: "plan_restriction" });
+    }
+
     const { data: integ } = await admin
       .from("usuarios_integracoes")
       .select("access_token")

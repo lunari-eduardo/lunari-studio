@@ -300,8 +300,15 @@ export async function handlePhotographerPayment(
 
   const cobranca = await findCobranca(adminClient, payment);
   if (!cobranca) {
-    console.log(`ℹ️ No cobrança found for payment ${payment.id} (installment=${payment.installment})`);
+    console.log(`❌ No cobrança found for payment ${payment.id} (installment=${payment.installment})`);
     return { success: true };
+  }
+
+  const { requireEntitlement } = await import("../../_shared/entitlements.ts");
+  const ent = await requireEntitlement(adminClient, cobranca.user_id, "integrations", "Integração Asaas");
+  if (!ent.hasEntitlement) {
+    console.warn(`[asaas-webhook] Pagamento ignorado por restrição de plano (user ${cobranca.user_id})`);
+    return { success: true, skipped: true }; 
   }
 
   let upsertSuccess = false;

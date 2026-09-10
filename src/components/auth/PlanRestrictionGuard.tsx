@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAccessControl } from "@/hooks/useAccessControl";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { EntitlementKey, ENTITLEMENT_NAMES } from "@/lib/entitlements";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Crown, ArrowRight } from "lucide-react";
@@ -8,27 +10,16 @@ import { Crown, ArrowRight } from "lucide-react";
 interface PlanRestrictionGuardProps {
   children: ReactNode;
   requiredPlan?: "pro" | "starter";
+  entitlement?: EntitlementKey;
 }
-
-// Rotas permitidas para plano Starter (agora com prefixo /app)
-const STARTER_ALLOWED_ROUTES = [
-  "/app",
-  "/app/agenda",
-  "/app/clientes",
-  "/app/workflow",
-  "/app/configuracoes",
-  "/app/minha-conta",
-  "/app/integracoes",
-  "/minha-assinatura",
-  "/escolher-plano",
-  "/onboarding",
-];
 
 export function PlanRestrictionGuard({ 
   children, 
-  requiredPlan = "pro" 
+  requiredPlan,
+  entitlement
 }: PlanRestrictionGuardProps) {
-  const { accessState, loading, hasPro } = useAccessControl();
+  const { loading } = useAccessControl();
+  const { hasEntitlement, isFree } = useEntitlements();
   const navigate = useNavigate();
 
   // Se ainda está carregando, mostra loading
@@ -40,13 +31,10 @@ export function PlanRestrictionGuard({
     );
   }
 
-  // Admin, VIP, Autorizado ou Pro sempre tem acesso total
-  if (accessState?.isAdmin || accessState?.isVip || hasPro) {
-    return <>{children}</>;
-  }
+  // Determine access based on entitlement or fallback to general 'pro' check
+  const hasAccess = entitlement ? hasEntitlement(entitlement) : !isFree;
 
-  // Se não precisa de Pro, permite acesso
-  if (requiredPlan !== "pro") {
+  if (hasAccess) {
     return <>{children}</>;
   }
 
@@ -64,14 +52,17 @@ export function PlanRestrictionGuard({
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            Este recurso está disponível apenas para assinantes do plano Pro. 
-            Faça upgrade para desbloquear todas as funcionalidades.
+            {entitlement 
+              ? `A funcionalidade de ${ENTITLEMENT_NAMES[entitlement]} está disponível apenas no plano Pro.`
+              : `Este recurso está disponível apenas para assinantes do plano Pro.`}
+            <br/><br/>
+            Faça upgrade para desbloquear todas as funcionalidades ilimitadas.
           </p>
           
           <div className="flex flex-col gap-2">
             <Button 
               onClick={() => navigate("/escolher-plano")}
-              className="w-full"
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
             >
               <Crown className="mr-2 h-4 w-4" />
               Fazer upgrade para Pro

@@ -7,6 +7,8 @@ import { forceRefreshSession } from '@/lib/auth/ensureFreshSession';
 export interface AccessState {
   status: 'ok' | 'suspended' | 'no_subscription' | 'not_authenticated' | 'loading' | 'trial_expired' | 'network_error' | 'session_expired';
   reason?: string;
+  tier?: 'pro' | 'trial' | 'free';
+  entitlements?: Record<string, boolean>;
   isAdmin?: boolean;
   isVip?: boolean;
   isTrial?: boolean;

@@ -22,6 +22,10 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const body: AdapterCreatePaymentInput = await req.json();
 
+    const { requireEntitlement } = await import("../_shared/entitlements.ts");
+    const ent = await requireEntitlement(supabase, body.userId, "integrations", "Integração Asaas");
+    if (!ent.hasEntitlement) return ent.errorResponse;
+
     const output: AdapterCreatePaymentOutput = await createAsaasPayment(
       supabase,
       body,

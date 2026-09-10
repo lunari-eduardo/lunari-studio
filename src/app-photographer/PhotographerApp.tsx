@@ -248,7 +248,7 @@ export default function PhotographerApp() {
                 <Route path="clientes/:id" element={<ClienteDetalhe />} />
                 <Route path="leads" element={
                   <RequireAdmin>
-                    <PlanRestrictionGuard requiredPlan="pro"><Leads /></PlanRestrictionGuard>
+                    <PlanRestrictionGuard entitlement="leads"><Leads /></PlanRestrictionGuard>
                   </RequireAdmin>
                 } />
                 <Route path="comercial">
@@ -290,14 +290,14 @@ export default function PhotographerApp() {
                 </Route>
 
                 <Route path="financas" element={
-                  <PlanRestrictionGuard requiredPlan="pro"><NovaFinancas /></PlanRestrictionGuard>
+                  <PlanRestrictionGuard entitlement="finance"><NovaFinancas /></PlanRestrictionGuard>
                 } />
                 <Route path="precificacao" element={
-                  <PlanRestrictionGuard requiredPlan="pro"><Precificacao /></PlanRestrictionGuard>
+                  <PlanRestrictionGuard entitlement="pricing"><Precificacao /></PlanRestrictionGuard>
                 } />
                 <Route path="workflow" element={<Workflow />} />
                 <Route path="analise-vendas" element={
-                  <PlanRestrictionGuard requiredPlan="pro"><AnaliseVendas /></PlanRestrictionGuard>
+                  <PlanRestrictionGuard entitlement="sales_analysis"><AnaliseVendas /></PlanRestrictionGuard>
                 } />
                 <Route path="configuracoes" element={<Configuracoes />} />
                 <Route path="configuracoes/assistente-mcp" element={<RequireAdmin><RequireAssistantAccess><AssistenteMcpTokens /></RequireAssistantAccess></RequireAdmin>} />
@@ -309,7 +309,7 @@ export default function PhotographerApp() {
                 <Route path="minha-conta" element={<MinhaConta />} />
                 <Route path="integracoes" element={<Integracoes />} />
                 <Route path="tarefas" element={
-                  <PlanRestrictionGuard requiredPlan="pro"><Tarefas /></PlanRestrictionGuard>
+                  <PlanRestrictionGuard entitlement="tasks"><Tarefas /></PlanRestrictionGuard>
                 } />
                 <Route path="feed-test" element={<Navigate to="/app/workflow" replace />} />
                 <Route path="preferencias" element={<Navigate to="/app/minha-conta" replace />} />

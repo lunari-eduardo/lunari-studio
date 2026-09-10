@@ -13,6 +13,8 @@ import { HistoricoTab } from '@/components/cliente-detalhe/tabs/HistoricoTab';
 import { DocumentosTab } from '@/components/cliente-detalhe/tabs/DocumentosTab';
 import { GaleriasTab } from '@/components/cliente-detalhe/tabs/GaleriasTab';
 import { ImageIcon } from 'lucide-react';
+import { PlanRestrictionGuard } from "@/components/auth/PlanRestrictionGuard";
+import { ProLockedBadge } from "@/components/access/ProLockedBadge";
 
 export default function ClienteDetalhe() {
   const { id } = useParams<{ id: string }>();
@@ -84,6 +86,7 @@ export default function ClienteDetalhe() {
           <TabsTrigger value="documentos" className={PAGE_TABS_TRIGGER}>
             <FileText className="h-3.5 w-3.5" />
             Documentos
+            <ProLockedBadge entitlement="client_documents" />
           </TabsTrigger>
         </TabsList>
 
@@ -100,7 +103,9 @@ export default function ClienteDetalhe() {
         </TabsContent>
 
         <TabsContent value="documentos" className={PAGE_TABS_CONTENT}>
-          <DocumentosTab cliente={cliente} />
+          <PlanRestrictionGuard entitlement="client_documents">
+            <DocumentosTab cliente={cliente} />
+          </PlanRestrictionGuard>
         </TabsContent>
       </Tabs>
     </PageContainer>

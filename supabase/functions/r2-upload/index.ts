@@ -237,10 +237,10 @@ Deno.serve(async (req) => {
 
     console.log(`[${requestId}] File: ${file.name}, Gallery: ${galleryId}, Size: ${(file.size / 1024).toFixed(0)}KB, UploadKey: ${uploadKey || 'none'}`);
 
-    // ── 3. Verify gallery ownership ──────────────────────────────────────────
+    // 🔧 3. Verify gallery ownership 🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧
     const { data: gallery, error: galleryError } = await supabase
       .from("galerias")
-      .select("id, user_id")
+      .select("id, user_id, tipo")
       .eq("id", galleryId)
       .single();
 
@@ -250,6 +250,19 @@ Deno.serve(async (req) => {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (gallery.tipo === 'transfer') {
+      const { data: acc } = await supabase.from('photographer_accounts').select('free_transfer_bytes, storage_bonus_bytes').eq('user_id', user.id).single();
+      const { data: usedBytes } = await supabase.rpc('get_transfer_storage_bytes', { _user_id: user.id });
+      const limit = (acc?.free_transfer_bytes || 0) + (acc?.storage_bonus_bytes || 0);
+      
+      if (limit <= 0 || (usedBytes || 0) + file.size > limit) {
+         return new Response(JSON.stringify({ error: 'Armazenamento de transferência esgotado ou plano gratuito bloqueado', code: 'STORAGE_LIMIT_EXCEEDED' }), { 
+           status: 403, 
+           headers: { ...corsHeaders, "Content-Type": "application/json" } 
+         });
+      }
     }
 
     // ── 3b. Verify folder ownership (if folderId provided) ───────────────────

@@ -45,29 +45,36 @@ function TransferStorageIndicator() {
   const { hasTransferPlan, hasFreeStorageOnly, storageUsedBytes, storageLimitBytes, storageUsedPercent, planName, isAdmin, isLoading, isOverLimit, daysUntilDeletion } = useTransferStorage();
   if (isLoading || isAdmin || (!hasTransferPlan && !hasFreeStorageOnly)) return null;
   return (
-    <div className="space-y-2">
-      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-        <HardDrive className="h-3.5 w-3.5" />
-        {formatStorageSize(storageUsedBytes)} de {formatStorageSize(storageLimitBytes)} usados
-        {planName && <span>· {planName}</span>}
-        {!hasTransferPlan && hasFreeStorageOnly && <span>· Gratuito</span>}
-        {storageUsedPercent >= 100 && (
-          <span className="ml-1 inline-flex items-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">Cheio</span>
-        )}
-      </p>
+    <div className="space-y-3">
       {isOverLimit && (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2.5">
-          <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-destructive">Excedente de armazenamento</p>
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-destructive">Limite de armazenamento excedido (Plano Gratuito)</p>
+            <p className="text-xs text-destructive/90 leading-relaxed">
+              Futuros uploads de arquivos no Transfer estão <strong>bloqueados</strong>. 
+              Os arquivos que já estão aqui continuarão acessíveis para você e seus clientes por um período de carência.
+            </p>
             {daysUntilDeletion !== null && (
-              <p className="text-xs text-destructive/80">
-                Exclusão automática em {daysUntilDeletion} {daysUntilDeletion === 1 ? 'dia' : 'dias'}
+              <p className="text-xs font-medium text-destructive mt-2 bg-destructive/10 inline-block px-2 py-1 rounded">
+                ⚠️ Exclusão automática das galerias em {daysUntilDeletion} {daysUntilDeletion === 1 ? 'dia' : 'dias'}
               </p>
             )}
           </div>
         </div>
       )}
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <HardDrive className="h-3.5 w-3.5" />
+          {formatStorageSize(storageUsedBytes)} de {formatStorageSize(storageLimitBytes)} usados
+          {planName && <span>• {planName}</span>}
+          {!hasTransferPlan && hasFreeStorageOnly && <span>• Gratuito</span>}
+          {storageUsedPercent >= 100 && (
+            <span className="ml-1 inline-flex items-center rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">Cheio</span>
+          )}
+        </p>
+        <Progress value={storageUsedPercent} className="h-1.5" />
+      </div>
     </div>
   );
 }

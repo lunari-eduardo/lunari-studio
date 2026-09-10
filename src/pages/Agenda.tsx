@@ -28,6 +28,9 @@ import { useAppointmentMutations } from "@/modules/agenda/presentation";
 
 import { useAvailability } from "@/hooks/useAvailability";
 import { useIntegration } from "@/hooks/useIntegration";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { useProModal } from "@/components/access/ProUpgradeModal";
+import { ProGate } from "@/components/access/ProGate";
 import { useOrcamentos } from "@/hooks/useOrcamentos";
 import { useSupabaseTasks } from "@/hooks/useSupabaseTasks";
 import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
@@ -125,31 +128,64 @@ export default function Agenda() {
   
   // Modal management hook
   const {
+    // Modal states
     isAppointmentDialogOpen,
     isDetailsOpen,
     isBudgetModalOpen,
     isBudgetAppointmentModalOpen,
     isAvailabilityModalOpen,
     isShareModalOpen,
+    
+    // Selection states
     selectedSlot,
     editingAppointment,
     viewingAppointment,
     selectedBudget,
     selectedBudgetAppointment,
-    openAppointmentDialog,
+
+    // Modal setters
+    setIsAppointmentDialogOpen,
+    setIsDetailsOpen,
+    setIsBudgetModalOpen,
+    setIsBudgetAppointmentModalOpen,
+    setIsAvailabilityModalOpen,
+    setIsShareModalOpen,
+
+    // Handlers
+    handleTimeSlotClick,
+    handleDayClick,
+    handleEventClick,
     openAppointmentDetails,
     openBudgetModal,
     openBudgetAppointmentModal,
     openAvailabilityModal,
     openShareModal,
     handleViewFullBudget,
-    setIsAppointmentDialogOpen,
-    setIsDetailsOpen,
-    setIsBudgetModalOpen,
-    setIsBudgetAppointmentModalOpen,
-    setIsAvailabilityModalOpen,
-    setIsShareModalOpen
   } = useAgendaModals();
+
+  const { hasEntitlement } = useEntitlements();
+  const { openModal } = useProModal();
+
+  const handleOpenAvailability = useCallback(() => {
+    if (!hasEntitlement('agenda_availability')) {
+      openModal('agenda_availability');
+      return;
+    }
+    openAvailabilityModal();
+  }, [hasEntitlement, openModal, openAvailabilityModal]);
+
+  const handleOpenOnlineBooking = useCallback(() => {
+    if (!hasEntitlement('agenda_online')) {
+      openModal('agenda_online');
+      return;
+    }
+    setIsOnlineBookingModalOpen(true);
+  }, [hasEntitlement, openModal]);
+
+  const handleCreateTaskSlot = useCallback((date: Date) => {
+    setTaskInitialDate(format(date, 'yyyy-MM-dd'));
+    setIsTaskModalOpen(true);
+  }, []);
 
   // Navigation functions (simplified)
   const handleNavigatePrevious = useCallback(() => {
@@ -397,7 +433,7 @@ export default function Agenda() {
             onCreateMeeting={handleCreateMeetingSlot}
             onCreatePersonalEvent={handleCreatePersonalEventSlot}
             onCreateTask={handleCreateTaskSlot}
-            onOpenAvailability={openAvailabilityModal}
+            onOpenAvailability={handleOpenAvailability}
           />
         );
       default:
@@ -426,8 +462,8 @@ export default function Agenda() {
           onNavigatePrevious={handleNavigatePrevious}
           onNavigateNext={handleNavigateNext}
           onNavigateToday={handleNavigateToday}
-          onOpenAvailability={openAvailabilityModal}
-          onOpenOnlineBooking={() => setIsOnlineBookingModalOpen(true)}
+          onOpenAvailability={handleOpenAvailability}
+          onOpenOnlineBooking={handleOpenOnlineBooking}
           onOpenShare={view === 'day' ? openShareModal : undefined}
           extraAction={
             !showSidebar && sidebarApplicable ? (
@@ -474,16 +510,15 @@ export default function Agenda() {
               {renderView()}
             </div>
 
-            <AgendaTasksSection
-              selectedDate={date}
-              tasks={tasks}
-              viewMode={view}
-              onCreateTask={() => {
-                setTaskInitialDate(format(date, 'yyyy-MM-dd'));
-                setIsTaskModalOpen(true);
-              }}
-              onDayClick={handleDayClick}
-            />
+            <ProGate entitlement="tasks" opacity>
+              <AgendaTasksSection
+                selectedDate={date}
+                tasks={tasks}
+                viewMode={view}
+                onCreateTask={handleCreateTaskSlot}
+                onDayClick={handleDayClick}
+              />
+            </ProGate>
 
             <details className="group rounded-xl border border-border/20 bg-card/40">
               <summary className="cursor-pointer list-none px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground">

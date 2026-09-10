@@ -15,6 +15,8 @@ import FluxoTrabalho from '@/components/configuracoes/FluxoTrabalho';
 import PrecificacaoFotos from '@/components/configuracoes/PrecificacaoFotos';
 import FormulariosConfig from '@/components/configuracoes/FormulariosConfig';
 import ContratosConfig from '@/components/configuracoes/ContratosConfig';
+import { PlanRestrictionGuard } from "@/components/auth/PlanRestrictionGuard";
+import { ProLockedBadge } from "@/components/access/ProLockedBadge";
 
 export default function Configuracoes() {
   const configuration = useRealtimeConfiguration();
@@ -63,11 +65,11 @@ export default function Configuracoes() {
                 </TabsTrigger>
                 <TabsTrigger value="formularios" className={PAGE_TABS_TRIGGER} title="Formulários">
                   <ClipboardList className="h-4 w-4" />
-                  <span className="hidden sm:inline">Formulários</span>
+                  <span className="hidden sm:inline">Formulários <ProLockedBadge entitlement="forms" /></span>
                 </TabsTrigger>
                 <TabsTrigger value="contratos" className={PAGE_TABS_TRIGGER} title="Contratos">
                   <FileSignature className="h-4 w-4" />
-                  <span className="hidden sm:inline">Contratos</span>
+                  <span className="hidden sm:inline">Contratos <ProLockedBadge entitlement="contracts" /></span>
                 </TabsTrigger>
               </TabsList>
               
@@ -115,11 +117,15 @@ export default function Configuracoes() {
               </TabsContent>
               
               <TabsContent value="formularios" className={PAGE_TABS_CONTENT}>
-                <FormulariosConfig />
+                <PlanRestrictionGuard entitlement="forms">
+                  <FormulariosConfig />
+                </PlanRestrictionGuard>
               </TabsContent>
               
               <TabsContent value="contratos" className={PAGE_TABS_CONTENT}>
-                <ContratosConfig />
+                <PlanRestrictionGuard entitlement="contracts">
+                  <ContratosConfig />
+                </PlanRestrictionGuard>
               </TabsContent>
             </Tabs>
       </PageContainer>

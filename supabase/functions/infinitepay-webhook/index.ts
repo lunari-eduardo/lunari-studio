@@ -78,6 +78,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Cobranca not found", order_nsu }, 404);
     }
 
+    const { requireEntitlement } = await import("../_shared/entitlements.ts");
+    const ent = await requireEntitlement(supabase, cobranca.user_id, "integrations", "Integração InfinitePay");
+    if (!ent.hasEntitlement) {
+       console.warn(`[infinitepay-webhook] Pagamento ignorado por restrição de plano (user ${cobranca.user_id})`);
+       return jsonResponse({ received: true, ignored: true, reason: "plan_restriction" });
+    }
+
     console.log(`[infinitepay-webhook] Cobrança encontrada: id=${cobranca.id}, status_atual=${cobranca.status}`);
 
     // 3. NORMALIZAÇÃO VIA MÁQUINA DE ESTADOS

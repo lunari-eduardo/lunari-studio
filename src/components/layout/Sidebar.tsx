@@ -6,6 +6,7 @@ import { CalendarClock, UserCheck, Settings, Settings2, Palette, Filter, Wallet,
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { cn } from '@/lib/utils';
 import { useIsDarkMode } from '@/hooks/useIsDarkMode';
 import logoIconWhite from '@/assets/branding/lunari-icon-white.png';
@@ -365,8 +366,8 @@ export default function Sidebar() {
 
   const currentNavItems = activeModule === 'gallery' ? galleryNavItems : navItems;
 
-  const isStarterPlan = accessState.planCode?.startsWith('starter') &&
-    !accessState.isAdmin && !accessState.isVip && !accessState.isAuthorized;
+  const { isFree } = useEntitlements();
+  const showProBadge = isFree;
   const isDark = useIsDarkMode();
 
   const toggleSidebar = () => setIsOpen(v => !v);
@@ -386,7 +387,7 @@ export default function Sidebar() {
           }) => cn("flex flex-col items-center justify-center py-1 rounded-md text-lunar-text transition-all duration-150 text-center", isActive ? "text-lunar-accent bg-lunar-surface shadow-sm" : "hover:bg-lunar-surface/30 hover:shadow-lunar-sm hover:translate-y-[-1px]")}>
                 <div className="mb-0.5 relative">
                   {item.icon}
-                  {item.isPro && isStarterPlan && (
+                  {item.isPro && showProBadge && (
                     <span className="absolute -top-1 -right-1">
                       <ProCrown />
                     </span>
@@ -422,7 +423,7 @@ export default function Sidebar() {
             </div>
 
             <div className="p-3 space-y-1">
-              {currentNavItems.map(item => <DrawerNavItem key={item.to} {...item} showProBadge={isStarterPlan} onNavigate={closeSidebar} />)}
+              {currentNavItems.map(item => <DrawerNavItem key={item.to} {...item} showProBadge={showProBadge} onNavigate={closeSidebar} />)}
             </div>
           </div>
         </div>
@@ -456,7 +457,7 @@ export default function Sidebar() {
                 <RailNavItem
                   key={item.to}
                   {...item}
-                  showProBadge={isStarterPlan}
+                  showProBadge={showProBadge}
                 />
               ))}
             </div>
@@ -518,7 +519,7 @@ export default function Sidebar() {
                 <DesktopNavItem
                   key={item.to}
                   {...item}
-                  showProBadge={isStarterPlan}
+                  showProBadge={showProBadge}
                   expanded={isHovered}
                 />
               ))}
