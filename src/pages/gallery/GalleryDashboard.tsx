@@ -12,6 +12,7 @@ import { getEffectiveGalleryStatus } from '@/lib/galleryStatus';
 import { GalleryCard } from '@/components/GalleryCard';
 import { DeliverGalleryCard } from '@/components/DeliverGalleryCard';
 import { SendGalleryModal } from '@/components/SendGalleryModal';
+import { Progress } from '@/components/ui/progress';
 import {
   AlertDialog,
   AlertDialogAction,
