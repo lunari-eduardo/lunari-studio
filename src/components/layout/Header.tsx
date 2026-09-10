@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAuth } from '@/contexts/AuthContext';
+import { ProLockedBadge } from '@/components/access/ProLockedBadge';
 
 
 const pageTitles: Record<string, string> = {
@@ -168,11 +169,14 @@ export default function Header() {
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-border/30" />
               <DropdownMenuItem
-                className="text-sm cursor-pointer"
+                className="text-sm cursor-pointer flex items-center justify-between"
                 onClick={() => navigate('/app/minha-conta?tab=integracoes')}
               >
-                <Plug className="mr-2 h-4 w-4" />
-                <span>Integrações e Pagamentos</span>
+                <div className="flex items-center">
+                  <Plug className="mr-2 h-4 w-4" />
+                  <span>Integrações e Pagamentos</span>
+                </div>
+                <ProLockedBadge entitlement="integrations" />
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-sm cursor-pointer"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Eye, EyeOff, ExternalLink, RefreshCw, CheckCircle, AlertTriangle, Link2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, ExternalLink, RefreshCw, CheckCircle, AlertTriangle, Link2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { pixLogo, infinitepayLogo, mercadopagoLogo, asaasLogo } from '@/assets/payment-logos';
 import {
@@ -41,6 +51,9 @@ interface PaymentConfigDrawerProps {
   setNomeTitular: (v: string) => void;
   handleSavePix: () => Promise<void>;
   savePixPending: boolean;
+  handleDeletePix?: () => Promise<void>;
+  deletePixPending?: boolean;
+  hasPixConfigured?: boolean;
 
   // InfinitePay
   handle: string;
@@ -124,9 +137,11 @@ export function PaymentConfigDrawer({
   asaasRepassarAntecipacao, setAsaasRepassarAntecipacao,
   handleSaveAsaas, handleSaveAsaasSettings, saveAsaasPending, updateAsaasSettings, userId,
   asaasFees, setAsaasFees,
+  handleDeletePix, deletePixPending = false, hasPixConfigured = false,
 }: PaymentConfigDrawerProps) {
   const [asaasShowKey, setAsaasShowKey] = useState(false);
   const [asaasFeesLoading, setAsaasFeesLoading] = useState(false);
+  const [showDeletePixDialog, setShowDeletePixDialog] = useState(false);
 
   if (!provider) return null;
 
@@ -186,9 +201,54 @@ export function PaymentConfigDrawer({
                 </div>
               </div>
 
-              <Button className="w-full" onClick={handleSavePix} disabled={!chavePix.trim() || !nomeTitular.trim() || savePixPending}>
-                {savePixPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Salvar PIX'}
-              </Button>
+              <div className="flex flex-col gap-2 pt-2">
+                <Button className="w-full" onClick={handleSavePix} disabled={!chavePix.trim() || !nomeTitular.trim() || savePixPending || deletePixPending}>
+                  {savePixPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Salvar PIX'}
+                </Button>
+
+                {hasPixConfigured && handleDeletePix && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+                    onClick={() => setShowDeletePixDialog(true)}
+                    disabled={deletePixPending || savePixPending}
+                  >
+                    {deletePixPending ? (
+                      <><Loader2 className="h-4 w-4 animate-spin mr-2" />Excluindo...</>
+                    ) : (
+                      <><Trash2 className="h-4 w-4 mr-2" />Excluir chave PIX</>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <AlertDialog open={showDeletePixDialog} onOpenChange={setShowDeletePixDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir chave PIX?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação removerá permanentemente a chave PIX configurada. Seus clientes não poderão mais realizar pagamentos manuais via PIX até que você configure uma nova chave.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletePixPending}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        if (handleDeletePix) {
+                          await handleDeletePix();
+                          setShowDeletePixDialog(false);
+                        }
+                      }}
+                      disabled={deletePixPending}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deletePixPending ? 'Excluindo...' : 'Sim, excluir'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
 

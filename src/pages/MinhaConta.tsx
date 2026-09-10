@@ -19,19 +19,23 @@ import { cn } from '@/lib/utils';
 import { useGallerySettings } from '@/hooks/useGallerySettings';
 import { VisualIdentitySection } from '@/components/user-profile/visual-identity/VisualIdentitySection';
 import { IntegracoesTab } from '@/components/preferencias/IntegracoesTab';
+import { PlanRestrictionGuard } from '@/components/auth/PlanRestrictionGuard';
+import { ProLockedBadge } from '@/components/access/ProLockedBadge';
 
 const SidebarItem = memo(({ 
   label, 
   value, 
   active, 
   onClick, 
-  icon: Icon 
+  icon: Icon,
+  badge,
 }: { 
   label: string; 
   value: string; 
   active: boolean; 
   onClick: (val: string) => void;
   icon: LucideIcon;
+  badge?: React.ReactNode;
 }) => (
   <button
     onClick={() => onClick(value)}
@@ -42,11 +46,12 @@ const SidebarItem = memo(({
         : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
     )}
   >
-    <div className="flex items-center gap-3">
-      <Icon className={cn("w-4 h-4", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
-      <span>{label}</span>
+    <div className="flex items-center gap-2.5 min-w-0">
+      <Icon className={cn("w-4 h-4 flex-shrink-0", active ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground")} />
+      <span className="truncate">{label}</span>
+      {badge}
     </div>
-    <ArrowRight className={cn("w-3.5 h-3.5 transition-transform", active ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0")} />
+    <ArrowRight className={cn("w-3.5 h-3.5 flex-shrink-0 transition-transform", active ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0")} />
   </button>
 ));
 
@@ -175,6 +180,7 @@ export default function MinhaConta() {
               active={activeTab === 'integracoes'} 
               onClick={handleTabChange}
               icon={Plug}
+              badge={<ProLockedBadge entitlement="integrations" />}
             />
             <SidebarItem 
               label="Planos e Créditos" 
@@ -245,7 +251,9 @@ export default function MinhaConta() {
 
               {activeTab === 'integracoes' && (
                 <div className="animate-fade-in pb-12">
-                  <IntegracoesTab />
+                  <PlanRestrictionGuard entitlement="integrations">
+                    <IntegracoesTab />
+                  </PlanRestrictionGuard>
                 </div>
               )}
 

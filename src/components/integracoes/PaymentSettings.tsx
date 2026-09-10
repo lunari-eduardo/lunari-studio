@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Loader2, Star, Settings, Power, Plus, MoreVertical, CheckCircle, AlertTriangle, Circle } from 'lucide-react';
+import { Loader2, Star, Settings, Power, Plus, MoreVertical, CheckCircle, AlertTriangle, Circle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -10,6 +10,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   usePaymentIntegration,
   PixManualData,
@@ -82,11 +92,15 @@ export function PaymentSettings() {
     updateAsaasSettings,
     setAsDefault,
     deactivate,
+    deleteIntegration,
     connectMercadoPago,
     updateMercadoPagoSettings,
     getMercadoPagoOAuthUrl,
     mpAppId,
   } = usePaymentIntegration();
+
+  // Delete confirmation modal state
+  const [providerToDelete, setProviderToDelete] = useState<PaymentProvider | null>(null);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -213,6 +227,18 @@ export function PaymentSettings() {
     setDrawerOpen(false);
   };
 
+  const handleDeletePix = async () => {
+    try {
+      await deleteIntegration.mutateAsync('pix_manual');
+      setChavePix('');
+      setNomeTitular('');
+      setTipoChave('telefone');
+      setDrawerOpen(false);
+    } catch {
+      // Erro tratado pelo toast do hook
+    }
+  };
+
   const handleSaveInfinitePay = async () => {
     if (!handle.trim()) return;
     await saveInfinitePay.mutateAsync({
@@ -332,9 +358,17 @@ export function PaymentSettings() {
                           Definir como padrão
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onClick={() => deactivate.mutate(integration.provedor)} disabled={deactivate.isPending} className="text-destructive focus:text-destructive">
+                      <DropdownMenuItem onClick={() => deactivate.mutate(integration.provedor)} disabled={deactivate.isPending} className="text-muted-foreground">
                         <Power className="h-4 w-4 mr-2" />
                         Desativar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setProviderToDelete(integration.provedor)} 
+                        disabled={deleteIntegration.isPending} 
+                        className="text-destructive focus:text-destructive cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -395,6 +429,8 @@ export function PaymentSettings() {
         tipoChave={tipoChave} setTipoChave={setTipoChave}
         nomeTitular={nomeTitular} setNomeTitular={setNomeTitular}
         handleSavePix={handleSavePix} savePixPending={savePixManual.isPending}
+        handleDeletePix={handleDeletePix} deletePixPending={deleteIntegration.isPending}
+        hasPixConfigured={data?.allIntegrations?.some(i => i.provedor === 'pix_manual')}
         handle={handle} setHandle={setHandle}
         handleSaveInfinitePay={handleSaveInfinitePay} saveIpPending={saveInfinitePay.isPending}
         mpIntegrationStatus={mpIntegration?.status || null}
@@ -422,6 +458,42 @@ export function PaymentSettings() {
         userId={user?.id}
         asaasFees={asaasFees} setAsaasFees={setAsaasFees}
       />
+
+      {/* Confirmação de exclusão pelo menu de ações */}
+      <AlertDialog open={!!providerToDelete} onOpenChange={(open) => !open && setProviderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Excluir {providerToDelete ? getProviderLabel(providerToDelete) : 'integração'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá permanentemente a configuração deste método de pagamento.
+              {providerToDelete === 'pix_manual' && ' Seus clientes não poderão mais realizar pagamentos manuais via PIX.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteIntegration.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async (e) => {
+                e.preventDefault();
+                if (providerToDelete) {
+                  if (providerToDelete === 'pix_manual') {
+                    setChavePix('');
+                    setNomeTitular('');
+                    setTipoChave('telefone');
+                  }
+                  await deleteIntegration.mutateAsync(providerToDelete);
+                  setProviderToDelete(null);
+                }
+              }}
+              disabled={deleteIntegration.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteIntegration.isPending ? 'Excluindo...' : 'Sim, excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

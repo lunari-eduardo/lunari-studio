@@ -291,6 +291,28 @@ export function usePaymentIntegration() {
     onError: (error) => { console.error('Error deactivating payment:', error); toast.error('Erro ao desativar método de pagamento'); },
   });
 
+  const deleteIntegration = useMutation({
+    mutationFn: async (provedor: PaymentProvider) => {
+      if (!user) throw new Error('User not authenticated');
+      const { error } = await supabase
+        .from('usuarios_integracoes')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('provedor', provedor);
+      if (error) throw error;
+      return provedor;
+    },
+    onSuccess: (provedor) => {
+      queryClient.invalidateQueries({ queryKey: ['payment-integration'] });
+      const label = getProviderLabel(provedor);
+      toast.success(`${label} excluído com sucesso!`);
+    },
+    onError: (error) => {
+      console.error('Error deleting payment integration:', error);
+      toast.error('Erro ao excluir método de pagamento');
+    },
+  });
+
   const connectMercadoPago = useMutation({
     mutationFn: async ({ code, redirect_uri }: { code: string; redirect_uri: string }) => {
       if (!user) throw new Error('User not authenticated');
@@ -369,6 +391,7 @@ export function usePaymentIntegration() {
     updateAsaasSettings,
     setAsDefault,
     deactivate,
+    deleteIntegration,
     connectMercadoPago,
     updateMercadoPagoSettings,
     getMercadoPagoOAuthUrl,
