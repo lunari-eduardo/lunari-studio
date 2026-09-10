@@ -9,6 +9,7 @@ import {
   formatCurrency,
   replaceTemplateVariables,
   textToHtmlParagraphs,
+  canUserSendAutomatedEmail,
   GALLERY_BASE_URL,
 } from '../helpers.ts';
 import { buildLayout } from '../templates/baseLayout.ts';
@@ -73,6 +74,12 @@ export async function handleGalleryReactivated(ctx: EventHandlerContext): Promis
     metadata: { source: 'gallery_reactivated', prazo_selecao: gallery.prazo_selecao, isResend: isForceResend },
     updated_at: new Date().toISOString(),
   };
+
+  const canSend = await canUserSendAutomatedEmail(supabase, gallery.user_id);
+  if (!canSend) {
+    await upsertLog(supabase, { ...baseLog, status: 'ignorado', friendly_message: 'Automação de e-mails desativada no plano Free (exclusivo do Plano Studio)' });
+    return jsonResponse({ success: true, status: 'ignorado', message: 'Automação de e-mails não disponível no plano Free.' });
+  }
 
   if (settings?.email_sending_enabled === false) {
     await upsertLog(supabase, { ...baseLog, status: 'ignorado', friendly_message: 'Envio automático desativado' });

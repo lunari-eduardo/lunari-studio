@@ -9,6 +9,7 @@ import {
   replaceTemplateVariables,
   textToHtmlParagraphs,
   paymentMethodLabel,
+  canUserSendAutomatedEmail,
   GALLERY_BASE_URL,
 } from '../helpers.ts';
 import { buildLayout } from '../templates/baseLayout.ts';
@@ -67,6 +68,13 @@ export async function handlePaymentConfirmed(ctx: EventHandlerContext): Promise<
     await upsertLog(supabase, { ...baseLog, status: 'ignorado', friendly_message: 'Pagamento ainda não confirmado' });
     return jsonResponse({ success: true, status: 'ignorado', message: 'Pagamento ainda não confirmado.' });
   }
+
+  const canSend = await canUserSendAutomatedEmail(supabase, payment.user_id);
+  if (!canSend) {
+    await upsertLog(supabase, { ...baseLog, status: 'ignorado', friendly_message: 'Automação de e-mails desativada no plano Free (exclusivo do Plano Studio)' });
+    return jsonResponse({ success: true, status: 'ignorado', message: 'Automação de e-mails não disponível no plano Free.' });
+  }
+
   if (settings?.email_sending_enabled === false) {
     await upsertLog(supabase, { ...baseLog, status: 'ignorado', friendly_message: 'Envio automático desativado' });
     return jsonResponse({ success: true, status: 'ignorado', message: 'E-mails automáticos estão desativados.' });

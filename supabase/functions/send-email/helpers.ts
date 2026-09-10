@@ -125,3 +125,21 @@ export async function alreadySent(supabase: any, idempotencyKey: string) {
     .maybeSingle();
   return data?.status === 'enviado' ? data : null;
 }
+
+export async function canUserSendAutomatedEmail(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('has_entitlement', {
+      _user_id: userId,
+      _key: 'email_automations',
+    });
+    if (!error && typeof data === 'boolean') {
+      return data;
+    }
+    const { data: tier } = await supabase.rpc('get_user_tier', { p_user_id: userId });
+    return tier === 'pro' || tier === 'trial';
+  } catch (e) {
+    console.error('canUserSendAutomatedEmail check error:', e);
+    return false;
+  }
+}
+

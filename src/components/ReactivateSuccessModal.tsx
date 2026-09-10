@@ -15,6 +15,7 @@ import { GlobalSettings } from '@/types/gallery';
 import { Galeria } from '@/hooks/useSupabaseGalleries';
 import { supabase } from '@/integrations/supabase/client';
 import { buildWhatsAppUrl } from '@/lib/whatsappUrl';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 interface ReactivateSuccessModalProps {
   isOpen: boolean;
@@ -57,8 +58,10 @@ export function ReactivateSuccessModal({
     }
   }, [isOpen]);
 
-  const emailSendingEnabled = settings.emailSendingEnabled ?? true;
-  const reactivationEmailEnabled = settings.emailOnGalleryReactivated ?? true;
+  const { hasEntitlement } = useEntitlements();
+  const hasEmailEntitlement = hasEntitlement('email_automations');
+  const emailSendingEnabled = hasEmailEntitlement && (settings.emailSendingEnabled ?? false);
+  const reactivationEmailEnabled = hasEmailEntitlement && (settings.emailOnGalleryReactivated ?? false);
 
   const reactivatedTemplate = useMemo(
     () => settings.emailTemplates.find((t) => t.type === 'gallery_reactivated'),
@@ -126,6 +129,12 @@ export function ReactivateSuccessModal({
       toast.error(message);
       return;
     }
+    if (!hasEmailEntitlement) {
+      const message = 'O envio de e-mails é um recurso exclusivo do plano Studio.';
+      setEmailFeedback({ status: 'ignorado', message });
+      toast.info(message);
+      return;
+    }
     if (!gallery.clienteEmail) {
       const message = 'Cliente não possui e-mail cadastrado.';
       setEmailFeedback({ status: 'ignorado', message });
@@ -183,6 +192,7 @@ export function ReactivateSuccessModal({
 
   const formattedPhone = formatPhoneDisplay(gallery.clienteTelefone);
   const isEmailDisabled =
+    !hasEmailEntitlement ||
     isSendingEmail ||
     !gallery.clienteEmail ||
     !emailSendingEnabled ||
@@ -190,15 +200,17 @@ export function ReactivateSuccessModal({
     !clientLink;
 
   const emailStatusMessage = emailFeedback?.message
-    || (!gallery.clienteEmail
-      ? 'Cliente não possui e-mail cadastrado. Use Copiar Mensagem ou WhatsApp.'
-      : !emailSendingEnabled
-        ? 'E-mails automáticos estão desativados nas configurações.'
-        : !reactivationEmailEnabled
-          ? 'O envio de e-mail de reativação está desativado nas configurações.'
-          : !clientLink
-            ? 'Aguardando link público da galeria...'
-            : 'Envie por e-mail para notificar o cliente da reabertura.');
+    || (!hasEmailEntitlement
+      ? 'O envio de e-mails automáticos é exclusivo do plano Studio.'
+      : !gallery.clienteEmail
+        ? 'Cliente não possui e-mail cadastrado. Use Copiar Mensagem ou WhatsApp.'
+        : !emailSendingEnabled
+          ? 'E-mails automáticos estão desativados nas configurações.'
+          : !reactivationEmailEnabled
+            ? 'O envio de e-mail de reativação está desativado nas configurações.'
+            : !clientLink
+              ? 'Aguardando link público da galeria...'
+              : 'Envie por e-mail para notificar o cliente da reabertura.');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -285,11 +297,13 @@ export function ReactivateSuccessModal({
                 )}
                 {isSendingEmail
                   ? 'Enviando...'
-                  : !gallery.clienteEmail
-                    ? 'Sem e-mail'
-                    : emailFeedback?.status === 'enviado'
-                      ? 'Reenviar e-mail'
-                      : 'Enviar e-mail'}
+                  : !hasEmailEntitlement
+                    ? 'E-mail (Plano Studio)'
+                    : !gallery.clienteEmail
+                      ? 'Sem e-mail'
+                      : emailFeedback?.status === 'enviado'
+                        ? 'Reenviar e-mail'
+                        : 'Enviar e-mail'}
               </Button>
             </div>
 

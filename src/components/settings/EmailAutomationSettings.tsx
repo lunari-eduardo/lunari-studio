@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Mail, Pencil, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Pencil, Clock, Crown, ArrowRight } from 'lucide-react';
 import { GlobalSettings, EmailTemplate } from '@/types/gallery';
 import { UpdateSettingsOptions } from '@/hooks/useGallerySettings';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ProLockedBadge } from '@/components/access/ProLockedBadge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -25,7 +28,10 @@ export function EmailAutomationSettings({
   onTemplateSave,
   isSavingTemplate = false
 }: EmailAutomationSettingsProps) {
-  const enabled = settings.emailSendingEnabled ?? true;
+  const navigate = useNavigate();
+  const { hasEntitlement } = useEntitlements();
+  const hasEmailEntitlement = hasEntitlement('email_automations');
+  const enabled = hasEmailEntitlement ? (settings.emailSendingEnabled ?? false) : false;
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
 
   const handleSaveTemplate = async (template: EmailTemplate) => {
@@ -50,26 +56,60 @@ export function EmailAutomationSettings({
           <Mail className="h-5 w-5 text-primary" />
         </div>
         <div className="space-y-1">
-          <h4 className="font-medium">E-mails Automáticos</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-medium">E-mails Automáticos</h4>
+            <ProLockedBadge entitlement="email_automations" />
+          </div>
           <p className="text-sm text-muted-foreground">Gerencie todos os e-mails enviados pelo sistema.</p>
           <p className="text-xs text-muted-foreground">Remetente: contato@mail.lunarihub.com</p>
           <p className="text-xs text-muted-foreground">Respostas vão para o e-mail cadastrado do fotógrafo quando disponível.</p>
         </div>
       </div>
 
+      {!hasEmailEntitlement && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-lg shrink-0 mt-0.5">
+              <Crown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="space-y-1">
+              <h5 className="font-semibold text-sm">Recurso exclusivo do Plano Studio</h5>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                A automação e disparo de e-mails para clientes é exclusiva para assinantes Studio. Faça upgrade para automatizar notificações de envio, lembretes de prazo e confirmações de pagamento.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-sm self-start sm:self-auto"
+            onClick={() => navigate('/escolher-plano')}
+          >
+            Fazer upgrade
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
           <Label className="text-base font-medium">Permitir envio de e-mails para o cliente</Label>
           <Switch
             checked={enabled}
-            onCheckedChange={(checked) => updateSettings({ emailSendingEnabled: checked }, { successMessage: 'Preferência salva.' })}
+            disabled={!hasEmailEntitlement}
+            onCheckedChange={(checked) => {
+              if (!hasEmailEntitlement) {
+                toast.error('Automação de e-mails é um recurso exclusivo do Plano Studio.');
+                return;
+              }
+              updateSettings({ emailSendingEnabled: checked }, { successMessage: 'Preferência salva.' });
+            }}
           />
         </div>
 
         <div className="space-y-6">
           <h5 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">Para o Cliente</h5>
           
-          <div className={cn('space-y-6', !enabled && 'opacity-50 pointer-events-none')}>
+          <div className={cn('space-y-6', (!enabled || !hasEmailEntitlement) && 'opacity-50 pointer-events-none')}>
             {/* Envio inicial */}
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1 flex-1">
@@ -80,6 +120,7 @@ export function EmailAutomationSettings({
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  disabled={!hasEmailEntitlement}
                   onClick={() => {
                     const t = getTemplate('gallery_sent');
                     if (t) setEditingTemplate(t);
@@ -88,7 +129,8 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={settings.emailOnGallerySent ?? true}
+                  checked={hasEmailEntitlement ? (settings.emailOnGallerySent ?? false) : false}
+                  disabled={!hasEmailEntitlement}
                   onCheckedChange={(checked) => updateSettings({ emailOnGallerySent: checked })}
                 />
               </div>
@@ -105,6 +147,7 @@ export function EmailAutomationSettings({
                   <Button 
                     variant="ghost" 
                     size="sm"
+                    disabled={!hasEmailEntitlement}
                     onClick={() => {
                       const t = getTemplate('selection_reminder');
                       if (t) setEditingTemplate(t);
@@ -113,12 +156,13 @@ export function EmailAutomationSettings({
                     <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                   </Button>
                   <Switch
-                    checked={settings.emailOnSelectionReminder ?? true}
+                    checked={hasEmailEntitlement ? (settings.emailOnSelectionReminder ?? false) : false}
+                    disabled={!hasEmailEntitlement}
                     onCheckedChange={(checked) => updateSettings({ emailOnSelectionReminder: checked })}
                   />
                 </div>
               </div>
-              {(settings.emailOnSelectionReminder ?? true) && (
+              {hasEmailEntitlement && (settings.emailOnSelectionReminder ?? false) && (
                 <div className="flex items-center gap-2 pl-4 border-l-2 border-primary/20 ml-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Enviar lembrete</span>
@@ -145,6 +189,7 @@ export function EmailAutomationSettings({
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  disabled={!hasEmailEntitlement}
                   onClick={() => {
                     const t = getTemplate('selection_confirmed');
                     if (t) setEditingTemplate(t);
@@ -153,7 +198,8 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={settings.emailOnSelectionConfirmed ?? true}
+                  checked={hasEmailEntitlement ? (settings.emailOnSelectionConfirmed ?? false) : false}
+                  disabled={!hasEmailEntitlement}
                   onCheckedChange={(checked) => updateSettings({ emailOnSelectionConfirmed: checked })}
                 />
               </div>
@@ -169,6 +215,7 @@ export function EmailAutomationSettings({
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  disabled={!hasEmailEntitlement}
                   onClick={() => {
                     const t = getTemplate('gallery_reactivated');
                     if (t) setEditingTemplate(t);
@@ -177,7 +224,8 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={settings.emailOnGalleryReactivated ?? true}
+                  checked={hasEmailEntitlement ? (settings.emailOnGalleryReactivated ?? false) : false}
+                  disabled={!hasEmailEntitlement}
                   onCheckedChange={(checked) => updateSettings({ emailOnGalleryReactivated: checked })}
                 />
               </div>
@@ -193,6 +241,7 @@ export function EmailAutomationSettings({
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  disabled={!hasEmailEntitlement}
                   onClick={() => {
                     const t = getTemplate('payment_confirmed');
                     if (t) setEditingTemplate(t);
@@ -201,7 +250,8 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={settings.emailOnPaymentConfirmed ?? true}
+                  checked={hasEmailEntitlement ? (settings.emailOnPaymentConfirmed ?? false) : false}
+                  disabled={!hasEmailEntitlement}
                   onCheckedChange={(checked) => updateSettings({ emailOnPaymentConfirmed: checked })}
                 />
               </div>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { GlobalSettings, CustomTheme, EmailTemplate, WatermarkSettings, DiscountPreset, ThemeType } from '@/types/gallery';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
@@ -106,7 +107,8 @@ function rowsToSettings(
   settingsRow: any | null,
   theme: any | null,
   emailTemplates: any[],
-  discountPresets: any[]
+  discountPresets: any[],
+  hasEmailEntitlement: boolean = true
 ): GlobalSettings {
   const baseSettings = settingsRow ? {
     defaultGalleryPermission: (settingsRow.default_gallery_permission as 'public' | 'private') ?? 'private',
@@ -130,12 +132,12 @@ function rowsToSettings(
     defaultAllowDownload: settingsRow.default_allow_download ?? false,
     defaultAllowExtraPhotos: settingsRow.default_allow_extra_photos ?? true,
     defaultWatermarkDisplay: (settingsRow.default_watermark_display as GlobalSettings['defaultWatermarkDisplay']) ?? 'all',
-    emailSendingEnabled: settingsRow.email_sending_enabled ?? false,
-    emailOnGallerySent: settingsRow.email_on_gallery_sent ?? false,
-    emailOnGalleryReactivated: settingsRow.email_on_gallery_reactivated ?? false,
-    emailOnPaymentConfirmed: settingsRow.email_on_payment_confirmed ?? false,
-    emailOnSelectionReminder: settingsRow.email_on_selection_reminder ?? false,
-    emailOnSelectionConfirmed: settingsRow.email_on_selection_confirmed ?? false,
+    emailSendingEnabled: hasEmailEntitlement ? (settingsRow.email_sending_enabled ?? false) : false,
+    emailOnGallerySent: hasEmailEntitlement ? (settingsRow.email_on_gallery_sent ?? false) : false,
+    emailOnGalleryReactivated: hasEmailEntitlement ? (settingsRow.email_on_gallery_reactivated ?? false) : false,
+    emailOnPaymentConfirmed: hasEmailEntitlement ? (settingsRow.email_on_payment_confirmed ?? false) : false,
+    emailOnSelectionReminder: hasEmailEntitlement ? (settingsRow.email_on_selection_reminder ?? false) : false,
+    emailOnSelectionConfirmed: hasEmailEntitlement ? (settingsRow.email_on_selection_confirmed ?? false) : false,
     emailSummaryToPhotographer: settingsRow.email_summary_to_photographer ?? true,
     reminderDaysBeforeExpiration: settingsRow.reminder_days_before_expiration ?? 2,
     defaultPhotoSpacing: settingsRow.default_photo_spacing ?? 8,
@@ -175,11 +177,13 @@ function rowsToSettings(
 
 export function useGallerySettings() {
   const { user } = useAuth();
+  const { hasEntitlement } = useEntitlements();
   const queryClient = useQueryClient();
+  const hasEmailEntitlement = hasEntitlement('email_automations');
 
   // Fetch all settings data
   const { data: settings, isLoading } = useQuery({
-    queryKey: ['gallery-settings', user?.id],
+    queryKey: ['gallery-settings', user?.id, hasEmailEntitlement],
     queryFn: async (): Promise<GlobalSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
 
@@ -220,7 +224,8 @@ export function useGallerySettings() {
         settingsRes.data,
         themeRes.data,
         templatesData,
-        presetsRes.data || []
+        presetsRes.data || [],
+        hasEmailEntitlement
       );
     },
     enabled: !!user?.id,
@@ -242,12 +247,12 @@ export function useGallerySettings() {
           default_expiration_days: defaultSettings.defaultExpirationDays,
           default_watermark: defaultSettings.defaultWatermark as unknown as Json,
           theme_type: 'system',
-          email_sending_enabled: true,
-          email_on_gallery_sent: true,
-          email_on_gallery_reactivated: true,
-          email_on_payment_confirmed: true,
-          email_on_selection_reminder: true,
-          email_on_selection_confirmed: true,
+          email_sending_enabled: false,
+          email_on_gallery_sent: false,
+          email_on_gallery_reactivated: false,
+          email_on_payment_confirmed: false,
+          email_on_selection_reminder: false,
+          email_on_selection_confirmed: false,
           email_summary_to_photographer: true,
           reminder_days_before_expiration: 2,
           default_photo_spacing: 8,
@@ -286,6 +291,10 @@ export function useGallerySettings() {
   const updateSettings = useMutation({
     mutationFn: async (data: Partial<GlobalSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
+
+      if (!hasEmailEntitlement && (data.emailSendingEnabled || data.emailOnGallerySent || data.emailOnGalleryReactivated || data.emailOnPaymentConfirmed || data.emailOnSelectionReminder || data.emailOnSelectionConfirmed)) {
+        throw new Error('Automação de e-mails é um recurso exclusivo do Plano Studio.');
+      }
 
       // First check if record exists
       const { data: existing } = await supabase
@@ -445,7 +454,7 @@ export function useGallerySettings() {
       queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
     },
     onError: (error) => {
-      toast.error('Erro ao salvar configurações');
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações');
       console.error('Settings update error:', error);
     },
   });

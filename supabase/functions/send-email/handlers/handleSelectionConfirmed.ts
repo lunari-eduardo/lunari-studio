@@ -8,6 +8,7 @@ import {
   formatDateOnly,
   formatCurrency,
   replaceTemplateVariables,
+  canUserSendAutomatedEmail,
   GALLERY_BASE_URL,
 } from '../helpers.ts';
 import { sendResendEmail } from '../resendClient.ts';
@@ -157,7 +158,8 @@ export async function handleSelectionConfirmed(ctx: EventHandlerContext): Promis
 
   // 7. ENVIO PARA O CLIENTE
   let clientLogId: string | null = null;
-  const clientSendingEnabled = settings?.email_sending_enabled !== false && settings?.email_on_selection_confirmed !== false;
+  const canSendAutomated = await canUserSendAutomatedEmail(supabase, gallery.user_id);
+  const clientSendingEnabled = canSendAutomated && settings?.email_sending_enabled === true && settings?.email_on_selection_confirmed === true;
 
   if (clientSendingEnabled && clienteEmail) {
     try {

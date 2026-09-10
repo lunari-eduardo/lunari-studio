@@ -16,6 +16,7 @@ import { Galeria } from '@/hooks/useSupabaseGalleries';
 import { getGalleryUrl } from '@/lib/galleryUrl';
 import { buildWhatsAppUrl } from '@/lib/whatsappUrl';
 import { supabase } from '@/integrations/supabase/client';
+import { useEntitlements } from '@/hooks/useEntitlements';
 
 interface SendGalleryModalProps {
   isOpen: boolean;
@@ -95,8 +96,10 @@ export function SendGalleryModal({
   const clientLink = resolvedToken
     ? getGalleryUrl(resolvedToken)
     : null;
-  const emailSendingEnabled = settings.emailSendingEnabled ?? true;
-  const galleryEmailEnabled = settings.emailOnGallerySent ?? true;
+  const { hasEntitlement } = useEntitlements();
+  const hasEmailEntitlement = hasEntitlement('email_automations');
+  const emailSendingEnabled = hasEmailEntitlement && (settings.emailSendingEnabled ?? false);
+  const galleryEmailEnabled = hasEmailEntitlement && (settings.emailOnGallerySent ?? false);
 
   const gallerySentTemplate = useMemo(() => {
     return settings.emailTemplates.find((t) => t.type === 'gallery_sent');
@@ -191,6 +194,13 @@ export function SendGalleryModal({
       return;
     }
 
+    if (!hasEmailEntitlement) {
+      const message = 'O envio de e-mails é um recurso exclusivo do plano Studio.';
+      setEmailFeedback({ status: 'ignorado', message });
+      toast.info(message);
+      return;
+    }
+
     if (!gallery.clienteEmail) {
       const message = 'Cliente não possui e-mail cadastrado.';
       setEmailFeedback({ status: 'ignorado', message });
@@ -240,15 +250,17 @@ export function SendGalleryModal({
   };
 
   const formattedPhone = formatPhoneDisplay(gallery.clienteTelefone);
-  const isEmailActionDisabled = isSendingEmail || !gallery.clienteEmail || !emailSendingEnabled || !galleryEmailEnabled;
+  const isEmailActionDisabled = !hasEmailEntitlement || isSendingEmail || !gallery.clienteEmail || !emailSendingEnabled || !galleryEmailEnabled;
   const emailStatusMessage = emailFeedback?.message
-    || (!gallery.clienteEmail
-      ? 'Cliente não possui e-mail cadastrado. Use Copiar Link ou WhatsApp.'
-      : !emailSendingEnabled
-        ? 'E-mails automáticos estão desativados nas configurações.'
-        : !galleryEmailEnabled
-          ? 'O envio de e-mail de galeria está desativado nas configurações.'
-          : 'Envie por e-mail quando quiser notificar o cliente diretamente.');
+    || (!hasEmailEntitlement
+      ? 'O envio de e-mails automáticos é exclusivo do plano Studio.'
+      : !gallery.clienteEmail
+        ? 'Cliente não possui e-mail cadastrado. Use Copiar Link ou WhatsApp.'
+        : !emailSendingEnabled
+          ? 'E-mails automáticos estão desativados nas configurações.'
+          : !galleryEmailEnabled
+            ? 'O envio de e-mail de galeria está desativado nas configurações.'
+            : 'Envie por e-mail quando quiser notificar o cliente diretamente.');
 
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -450,11 +462,13 @@ export function SendGalleryModal({
                 )}
                 {isSendingEmail
                   ? 'Enviando...'
-                  : !gallery.clienteEmail
-                    ? 'Sem e-mail cadastrado'
-                    : emailFeedback?.status === 'enviado'
-                      ? 'Reenviar e-mail'
-                      : 'Enviar e-mail'}
+                  : !hasEmailEntitlement
+                    ? 'E-mail (Plano Studio)'
+                    : !gallery.clienteEmail
+                      ? 'Sem e-mail cadastrado'
+                      : emailFeedback?.status === 'enviado'
+                        ? 'Reenviar e-mail'
+                        : 'Enviar e-mail'}
               </Button>
             </div>
 
