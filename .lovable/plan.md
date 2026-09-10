@@ -1,95 +1,69 @@
-# Novo modelo de acesso: 30 dias completos → nível gratuito com Pro bloqueado
+# Galerias expiradas — diagnóstico e plano de correção
 
-## Como vai funcionar
+## O que está acontecendo hoje
 
-- Todo novo usuário ganha 30 dias com tudo liberado (todas as páginas, integrações, 500 créditos de seleção e 500 MB de transferência). A contagem começa ao concluir a configuração inicial, como hoje.
-- Ao terminar os 30 dias sem assinatura, a conta **não é mais expulsa** para a tela de planos. Ela continua funcionando num nível gratuito com acesso a:
-  - Agenda — sem tarefas, sem cobrança por link, sem configuração de horários/disponibilidade, sem agendamento online.
-  - Workflow, incluindo criação de galerias de seleção e entrega — sem contratos, briefing e cobrança por link.
-  - Clientes — sem a área de documentos (contratos e formulários).
-  - Configurações — sem formulários e contratos.
-  - Menu do usuário: tudo liberado, exceto Integrações e Pagamentos.
-- Créditos de seleção não usados permanecem (são vitalícios) e param de renovar. O armazenamento de transferência cai para 0 MB — arquivos existentes não são apagados, apenas novos envios ficam bloqueados.
-- Nada some da tela: itens restritos ficam opacos e, ao clique, abrem um modal elegante Lunari (dark e light) explicando que é recurso do plano Pro, com botão de assinar.
-- Ao assinar o Pro, tudo volta imediatamente. Ao vencer sem renovar, volta ao nível gratuito. Dados nunca são apagados — apenas em "excluir conta".
-- O plano Starter deixa de ser vendido: abaixo do Pro existe apenas o nível gratuito.
+### 1. Galeria de seleção expirada continua aberta para o cliente
+A função pública que entrega a galeria (`supabase/functions/gallery-access/index.ts`) **não verifica prazo nenhum**. Ela busca a galeria pelo link, confere senha, e devolve as fotos — sem olhar `prazo_selecao` nem o status `expirado`. Confirmado na leitura do arquivo: entre a busca da galeria e a resposta não existe nenhuma checagem de data.
 
-## Fase 1 — Fundação de permissões (banco)
+A tela "Galeria expirada" existe (`ClientGalleryExpired.tsx`) e é exibida quando a resposta traz o campo `expired`. Como esse campo nunca é enviado, a tela é código morto. Hoje há no banco 9 galerias de seleção e 4 de entrega com status `expirado` — todas acessíveis pelo link.
 
-Uma única fonte de verdade no banco, consumida por front e edge functions.
+### 2. Entrega reativada aparece como "não encontrada"
+Três causas somadas:
 
-- Ampliar `get_access_state` para nunca mais devolver `trial_expired` como bloqueio total: passa a devolver `status: 'ok'`, `tier: 'free' | 'trial' | 'pro'` e um objeto `entitlements` (lista de chaves liberadas).
-- Nova função `public.has_entitlement(_user_id uuid, _key text)` (SECURITY DEFINER, STABLE, `search_path=public`), derivando o tier de: admin → `allowed_emails` → VIP → assinatura ativa em `subscriptions_asaas` (`includes_studio`) → trial vigente em `profiles.studio_trial_*` → gratuito.
-- Nova tabela `public.plan_entitlements` (chave da funcionalidade × tier), com GRANT de leitura para `authenticated`/`anon`, RLS ligada e política de leitura pública, para não hardcodar a matriz.
-- Trial passa a conceder 500 créditos e 500 MB de forma explícita em `start_studio_trial` (grava `photographer_accounts.free_transfer_bytes = 536870912` e crédito inicial via ledger, idempotente).
-- Ao expirar o trial sem assinatura: `free_transfer_bytes` vira 0; créditos de seleção permanecem intactos. Feito por função `expire_studio_trial_storage()` avaliada sob demanda (não job destrutivo), garantindo idempotência e reversão automática quando o Pro é assinado.
-- Backfill: usuários hoje em `trial_expired` passam a nível gratuito sem perder nada.
+- A reativação (`DeliverHeader.tsx`) grava novo prazo e status `enviado`, mas nenhuma das ações de galeria invalida o cache `gallery-by-id` — a página de detalhe segue lendo o dado antigo por até 1 minuto.
+- O painel de galerias tem uma rotina automática que regrava status `expirado` a partir da lista em cache (`GalleryDashboard.tsx`). Se a lista ainda está desatualizada logo após a reativação, ela marca a galeria como expirada de novo.
+- `useGalleryById.ts` tem um fallback para a tabela `galerias_arquivadas`, que **não existe no banco**. Quando a galeria foi realmente removida (a exclusão é definitiva, via `delete_gallery_complete`, inclusive pela rotina automática de 12 meses), o fallback falha e a tela mostra "Galeria não encontrada" sem explicar nada.
 
-Chaves de entitlement previstas: `tasks`, `charge_links`, `agenda_availability`, `agenda_online`, `contracts`, `forms`, `client_documents`, `integrations`, `payments`, `finance`, `pricing`, `sales_analysis`, `leads`, `commercial`, `transfer_upload`, `select_credits_renewal`.
+### 3. Texto assustador
+"Galeria não encontrada" aparece em `DeliverDetail.tsx`, `GalleryDetail.tsx`, `GalleryEdit.tsx` e na tela pública de erro (`ClientGallery.tsx`).
 
-## Fase 2 — Segurança no servidor (RLS e Edge Functions)
+## Plano
 
-O bloqueio visual nunca é a única barreira.
+### Fase 1 — Bloqueio real de galerias expiradas (servidor)
+`supabase/functions/gallery-access/index.ts` (+ `tokenResolver.ts`)
+- Após localizar a galeria, calcular expiração: status em (`expirado`, `expirada`, `expired`) **ou** `prazo_selecao` no passado.
+- Responder `200` com `{ expired: true }` junto de nome da sessão, tema e dados do estúdio (logo/nome), **sem fotos** — o cliente vê uma tela com a identidade do fotógrafo.
+- Não promover status para `selecao_iniciada` quando expirada.
+- Vale para seleção **e** entrega.
 
-- Políticas de escrita nas tabelas restritas passam a exigir `has_entitlement(auth.uid(), '<chave>')` em INSERT/UPDATE, mantendo leitura liberada (dados históricos continuam visíveis):
-  - `contratos`, `contrato_templates`, `contrato_audit_logs` → `contracts`
-  - `formularios`, `formulario_templates`, `formulario_respostas` → `forms`
-  - `tasks`, `task_statuses`, `task_tags`, `task_people`, `task_attachments` → `tasks`
-  - `availability_slots`, `availability_types`, `agenda_online_links`, `agenda_reservas_temp` → `agenda_availability` / `agenda_online`
-  - `usuarios_integracoes`, `platform_integrations` → `integrations`
-  - `cobrancas` / `cobranca_parcelas` quando originadas de link de pagamento → `charge_links`
-- Guarda equivalente nas edge functions de cobrança e integrações (`create-asaas-payment`, checkout público, geração de link, callbacks de integração): verificação do entitlement antes de executar; erro tratado, sem 500.
-- Envio de novos arquivos de transferência valida armazenamento disponível (0 MB no gratuito) na função de upload.
+`supabase/functions/client-selection/*` e `confirm-selection/*`: reforçar a recusa de ações em galeria expirada (seleção já bloqueia; confirmar cobre o mesmo caso).
 
-## Fase 3 — Camada de acesso no aplicativo
+### Fase 2 — Tela do cliente
+- `src/pages/gallery/ClientGallery.tsx`: tratar `expired` antes do ramo de entrega, para que entrega expirada também caia na tela de indisponível; trocar "Galeria não encontrada" por "Galeria não disponível" com texto de contato.
+- `src/pages/gallery/client/components/ClientGalleryExpired.tsx`: novo texto — título "Galeria não disponível", apoio "O período de acesso a esta galeria foi encerrado." e "Entre em contato com o fotógrafo para solicitar a liberação." Mantém logo, tema claro/escuro e fonte da sessão.
+- `src/pages/gallery/ClientDeliverGallery.tsx`: receber o estado indisponível vindo do componente pai (sem renderizar capa nem fotos).
 
-- `useAccessControl` passa a expor `tier`, `entitlements` e `can(key)`; `hasPro` vira derivado, sem quebrar chamadas existentes.
-- `ProtectedRoute`: remove o redirecionamento forçado de trial expirado; mantém bloqueio apenas para conta suspensa e sessão expirada.
-- `PlanRestrictionGuard` passa a receber uma chave de entitlement e continua bloqueando páginas Pro (Financeiro, Precificação, Análise de vendas, Leads, Comercial, Tarefas).
-- Novos componentes compartilhados:
-  - `ProGate` — envolve botão/aba/campo, aplica opacidade e intercepta o clique.
-  - `ProUpgradeModal` — modal Lunari, tokens semânticos (dark/light), texto por funcionalidade e ação "Conhecer o Pro".
-  - `useProGate()` — abre o modal a partir de qualquer lugar.
+### Fase 3 — Reativação confiável (área do fotógrafo)
+- `src/hooks/useSupabaseGalleries.ts`: incluir `['gallery-by-id', id]` em todas as invalidações de mutação.
+- `src/pages/gallery/deliver/detail/components/DeliverHeader.tsx`: reativação em uma única escrita (prazo + status + `updated_at`), invalidando `galleries`, `gallery-by-id` e `client-gallery`.
+- `src/pages/gallery/GalleryDashboard.tsx`: a rotina de auto-expiração passa a rodar só sobre dados frescos e a ignorar galerias reativadas nos últimos minutos, evitando reexpirar o que acabou de ser liberado.
+- `src/hooks/useGalleryById.ts`: remover o fallback para a tabela inexistente e devolver um motivo (`deleted` vs `not_found`) usando `galerias_sessao_historico`, que registra exclusões.
 
-## Fase 4 — Aplicação ponto a ponto na interface
+### Fase 4 — Textos internos
+Trocar "Galeria não encontrada" por "Galeria não disponível" com explicação curta ("esta galeria foi excluída ou não está mais acessível") em:
+`src/pages/gallery/DeliverDetail.tsx`, `src/pages/gallery/GalleryDetail.tsx`, `src/pages/gallery/GalleryEdit.tsx`.
 
-Agenda, Workflow, Clientes, Configurações e menu do usuário recebem o `ProGate` nos pontos exatos listados no início. Nada é ocultado.
+### Fase 5 — Testes
+- Link de seleção expirada: mostra indisponível, sem fotos na resposta.
+- Link de entrega expirada: mesma tela.
+- Reativar entrega: link volta a abrir imediatamente e a página de detalhe reflete o novo prazo sem recarregar.
+- Galeria excluída: mensagem de indisponível, não de erro.
+- Claro e escuro, celular e desktop.
+- Nenhuma foto ou dado é apagado por expiração.
 
-## Fase 5 — Planos, cobrança e retorno ao Pro
+## Arquivos alterados
+- `supabase/functions/gallery-access/index.ts`
+- `supabase/functions/gallery-access/tokenResolver.ts`
+- `supabase/functions/client-selection/photoActions.ts`
+- `src/pages/gallery/ClientGallery.tsx`
+- `src/pages/gallery/client/components/ClientGalleryExpired.tsx`
+- `src/pages/gallery/ClientDeliverGallery.tsx`
+- `src/hooks/useSupabaseGalleries.ts`
+- `src/hooks/useGalleryById.ts`
+- `src/pages/gallery/GalleryDashboard.tsx`
+- `src/pages/gallery/deliver/detail/components/DeliverHeader.tsx`
+- `src/pages/gallery/DeliverDetail.tsx`
+- `src/pages/gallery/GalleryDetail.tsx`
+- `src/pages/gallery/GalleryEdit.tsx`
 
-- Starter sai da vitrine (`is_active = false` em `unified_plans`), sem afetar quem já assina.
-- Ao ativar/renovar assinatura Pro (webhook Asaas), o tier muda na hora: reativa armazenamento, renovação de créditos e todas as chaves. Ao vencer/cancelar, volta ao gratuito automaticamente na próxima leitura, sem apagar dados.
-- Telas de assinatura e banner de teste passam a comunicar o novo modelo.
-
-## Fase 6 — Testes e verificação
-
-Percursos verificados: novo usuário no teste; teste expirado; volta ao Pro; Pro vencido; admin/VIP; tentativa de burlar pela API (deve falhar no banco); troca de tema no modal.
-
-## Detalhes técnicos — arquivos afetados
-
-**Banco (migrações novas)**
-- `get_access_state`, `start_studio_trial` (reescritas), `has_entitlement`, `expire_studio_trial_storage` (novas)
-- `plan_entitlements` (tabela nova, com GRANT + RLS + política de leitura)
-- Políticas RLS: `contratos`, `contrato_templates`, `contrato_audit_logs`, `formularios`, `formulario_templates`, `formulario_respostas`, `tasks`, `task_statuses`, `task_tags`, `task_people`, `task_attachments`, `availability_slots`, `availability_types`, `agenda_online_links`, `agenda_reservas_temp`, `usuarios_integracoes`, `platform_integrations`, `cobrancas`, `cobranca_parcelas`
-- Backfill de `photographer_accounts.free_transfer_bytes`
-
-**Núcleo de acesso**
-- `src/hooks/useAccessControl.ts`
-- `src/contexts/AccessControlContext.tsx`
-- `src/components/auth/ProtectedRoute.tsx`
-- `src/components/auth/PlanRestrictionGuard.tsx`
-- `src/app-photographer/PhotographerApp.tsx`
-- novos: `src/lib/entitlements.ts`, `src/hooks/useEntitlements.ts`, `src/components/access/ProGate.tsx`, `src/components/access/ProUpgradeModal.tsx`, `src/components/access/ProLockedBadge.tsx`
-
-**Interface**
-- `src/components/layout/Sidebar.tsx`, `src/components/layout/Header.tsx`
-- `src/pages/Agenda.tsx`, `src/components/agenda/AgendaHeader.tsx`, `AgendaTasksSection.tsx`, `AgendaModals.tsx`, `availability-panel/*`, `agenda-online-panel/*`, `ShareAvailabilityModal.tsx`, `session-panel/*`
-- `src/pages/Workflow.tsx`, `src/components/workflow/details/ExpandedActions.tsx`, `CardCollapsedModals.tsx`, `CardGalleryButtons.tsx`
-- `src/pages/Clientes.tsx`, `src/pages/ClienteDetalhe.tsx`
-- `src/pages/Configuracoes.tsx`
-- `src/pages/Integracoes.tsx`, `src/components/preferencias/IntegracoesTab.tsx`, `src/components/integracoes/PaymentSettings.tsx`
-- `src/components/subscription/TrialBanner.tsx`, `TrialWelcomeToast.tsx`
-- `src/pages/EscolherPlano.tsx`, `src/pages/MinhaAssinatura.tsx`, `src/lib/planConfig.ts`, `src/lib/transferPlans.ts`
-
-**Servidor**
-- `supabase/functions/_shared/` (novo verificador de entitlement), funções de cobrança/link, integrações e upload de transferência
+Sem migração de banco: nenhuma coluna nova é necessária e nada é excluído.
