@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CoverCatalog } from '@/components/deliver/CoverCatalog';
 import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
+import { IframePreview } from '@/components/deliver/IframePreview';
 import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
 import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
 import { FontSelect, getFontFamilyById } from '@/components/FontSelect';
@@ -327,8 +328,8 @@ export function DeliverDesignTab({
               )}
             >
               {previewTab === 'cover' ? (
-                /* Prévia Interativa da Capa com Paridade Total */
-                <div className="w-full h-full relative overflow-y-auto">
+                /* Prévia Interativa da Capa com Paridade Total usando Iframe para isolamento de CSS (vh/vw e media queries) */
+                <IframePreview title="Preview da Capa">
                   <CoverRenderer
                     coverId={coverId}
                     coverPhoto={coverPhotoPaths}
@@ -343,7 +344,7 @@ export function DeliverDesignTab({
                     primaryColor={primaryColor}
                     onEnter={() => setPreviewTab('grid')}
                   />
-                </div>
+                </IframePreview>
               ) : (
                 /* Prévia do Grid de Fotos do Tema */
                 <div className="w-full h-full relative overflow-hidden flex flex-col">

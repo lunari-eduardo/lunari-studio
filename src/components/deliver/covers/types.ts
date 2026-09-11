@@ -24,6 +24,8 @@ export interface CoverVariant {
   id: string;
   name: string;
   description: string;
+  /** Imagem de mockup do modelo da capa (horizontal, vertical ou quadrada) */
+  imagePreview?: string;
   /** Aceita componente estático ou lazy — ambos renderizam em JSX. */
   Component: ComponentType<CoverVariantProps> | LazyExoticComponent<ComponentType<CoverVariantProps>>;
   Thumbnail: ComponentType<{ className?: string }>;

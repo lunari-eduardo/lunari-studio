@@ -39,7 +39,7 @@ export function CoverCatalog({
         </button>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {COVER_LIST.map((cover) => {
           const isSelected = selectedCoverId === cover.id;
           const Thumb = cover.Thumbnail;
@@ -49,30 +49,35 @@ export function CoverCatalog({
               type="button"
               onClick={() => onSelect(cover.id)}
               className={cn(
-                'group text-left rounded-xl border overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+                'group text-left rounded-xl border overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col',
                 isSelected
-                  ? 'border-[#cbb384] ring-1 ring-[#cbb384]/40 shadow-sm bg-[#ddd1b6]/10'
-                  : 'border-border/60 hover:border-[#cbb384]/40'
+                  ? 'border-[#cbb384] ring-1 ring-[#cbb384]/40 shadow-md bg-[#ddd1b6]/10'
+                  : 'border-border/60 bg-card hover:border-[#cbb384]/50'
               )}
             >
-              <div className="relative aspect-[16/10] bg-muted">
-                <Thumb className="absolute inset-0 w-full h-full" />
+              <div className="relative aspect-[3/4] w-full bg-muted overflow-hidden flex items-center justify-center">
+                {cover.imagePreview ? (
+                  <img src={cover.imagePreview} alt={cover.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Thumb className="absolute inset-0 w-full h-full" />
+                )}
+                
                 {isSelected && (
-                  <div className="absolute top-2 right-2 bg-[#cbb384] text-white rounded-full p-1 shadow-sm">
-                    <Check className="h-3 w-3" />
+                  <div className="absolute top-3 right-3 bg-[#cbb384] text-white rounded-full p-1.5 shadow-md">
+                    <Check className="h-3.5 w-3.5" />
                   </div>
                 )}
               </div>
-              <div className="px-3 py-2">
-                <p className="text-sm font-semibold leading-tight text-foreground">
+              <div className="px-4 py-3 flex-1 flex flex-col">
+                <p className="text-sm font-semibold leading-tight text-foreground flex items-center justify-between">
                   {cover.name}
                   {cover.id === DEFAULT_COVER_ID && (
-                    <span className="ml-1.5 text-[10px] uppercase tracking-wider bg-[#ddd1b6]/50 text-[#7a6035] dark:text-[#e4d5b7] px-1.5 py-0.5 rounded font-medium">
+                    <span className="text-[10px] uppercase tracking-wider bg-[#ddd1b6]/50 text-[#7a6035] dark:text-[#e4d5b7] px-1.5 py-0.5 rounded font-medium">
                       padrão
                     </span>
                   )}
                 </p>
-                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
                   {cover.description}
                 </p>
               </div>
