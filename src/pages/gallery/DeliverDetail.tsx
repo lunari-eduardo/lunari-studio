@@ -123,6 +123,16 @@ export default function DeliverDetail() {
             setPreviewViewport={data.setPreviewViewport}
             photos={data.photos}
             publicToken={data.gallery.publicToken}
+            sessionFont={data.sessionFont}
+            setSessionFont={data.setSessionFont}
+            sessionName={data.sessionName}
+            titleCaseMode={data.titleCaseMode}
+            setTitleCaseMode={data.setTitleCaseMode}
+            subtitle={data.subtitle}
+            category={data.category}
+            eventDate={data.eventDate}
+            coverPhotoId={data.coverPhotoId}
+            studioSettings={data.settings}
             saving={actions.saving}
             onSave={actions.handleSave}
           />

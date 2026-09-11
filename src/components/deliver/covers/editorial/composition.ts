@@ -45,9 +45,9 @@ const TABLET_SPEC: EditorialSpec = {
 
 const MOBILE_SPEC: EditorialSpec = {
   orientation: 'horizontal',
-  seam: 0.17,
-  photoRect: { x: 0, y: 0.17, width: 1, height: 0.83 },
-  titleBox: { x: 0.08, y: 0.17, width: 0.84, height: 0.40 }, // y: 0.17 anchors center of title block to seam
+  seam: 0.46,
+  photoRect: { x: 0, y: 0.46, width: 1, height: 0.54 },
+  titleBox: { x: 0.06, y: 0.46, width: 0.88, height: 0.40 }, // y: 0.46 ancora o centro do bloco do título na costura
   datePos: { x: 0.06, y: 0.93 },
   ctaPos: { x: 0.94, y: 0.93 },
 };
@@ -58,6 +58,7 @@ export function resolveEditorialSpec(width: number, height: number): ResolvedEdi
   const spec = isMobile ? MOBILE_SPEC : isTablet ? TABLET_SPEC : DESKTOP_SPEC;
 
   const seamPx = spec.orientation === 'vertical' ? width * spec.seam : height * spec.seam;
+  const mobileMarginX = Math.min(Math.max(16, width * 0.06), 64);
 
   return {
     orientation: spec.orientation,
@@ -69,9 +70,9 @@ export function resolveEditorialSpec(width: number, height: number): ResolvedEdi
       height: spec.photoRect.height * height,
     },
     title: {
-      x: spec.titleBox.x * width,
+      x: isMobile ? mobileMarginX : spec.titleBox.x * width,
       y: spec.titleBox.y * height,
-      width: spec.titleBox.width * width,
+      width: isMobile ? Math.max(0, width - mobileMarginX * 2) : spec.titleBox.width * width,
       height: spec.titleBox.height * height,
     },
     date: {

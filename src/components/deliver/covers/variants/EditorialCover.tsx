@@ -10,6 +10,8 @@ import { useFittedTitle } from '../editorial/useFittedTitle';
 import { useSeamContrast } from '../editorial/useSeamContrast';
 import { TitleComposition } from '../editorial/TitleComposition';
 
+import { GALLERY_FONTS } from '@/components/FontSelect';
+
 export default function EditorialCover({
   coverPhoto,
   sessionName,
@@ -19,19 +21,17 @@ export default function EditorialCover({
   titleCaseMode = 'normal',
   isDark = false,
   textColor,
+  ctaLabel,
   onEnter,
 }: CoverVariantProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(() => ({
-    width: typeof window !== 'undefined' ? (window.innerWidth || document.documentElement.clientWidth || 390) : 390,
-    height: typeof window !== 'undefined' ? (window.innerHeight || document.documentElement.clientHeight || 844) : 844,
-  }));
+  const [size, setSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const update = () => {
       if (containerRef.current) {
-        const w = containerRef.current.clientWidth || window.innerWidth || document.documentElement.clientWidth;
-        const h = containerRef.current.clientHeight || window.innerHeight || document.documentElement.clientHeight;
+        const w = containerRef.current.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0);
+        const h = containerRef.current.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 0);
         if (w > 0 && h > 0) {
           setSize({ width: w, height: h });
         }
@@ -58,9 +58,18 @@ export default function EditorialCover({
   const spec = useMemo(() => resolveEditorialSpec(size.width, size.height), [size]);
   const { line1, line2 } = useMemo(() => splitTitle(applyTitleCase(sessionName, titleCaseMode)), [sessionName, titleCaseMode]);
   
+  const fontConfig = useMemo(() => {
+    if (!sessionFont) return null;
+    return GALLERY_FONTS.find(
+      (f) => sessionFont.toLowerCase().includes(f.name.toLowerCase()) || f.family.includes(sessionFont)
+    );
+  }, [sessionFont]);
+
+  const titleWeight = Math.max(500, fontConfig?.weightTitle ?? 600);
+
   const isSingleLine = !line2;
   const maxFontSizeVw = spec.orientation === 'vertical'
-    ? (isSingleLine ? 16 : 11)
+    ? (isSingleLine ? 14 : 10)
     : (isSingleLine ? 28 : 17);
 
   const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
@@ -72,7 +81,7 @@ export default function EditorialCover({
     spec.title.height,
     sessionFont || 'serif',
     maxFontSizeVw,
-    spec.orientation === 'vertical' ? 24 : 26
+    spec.orientation === 'vertical' ? 26 : 30
   );
 
   const titleIntersection = useMemo(() => {
@@ -200,10 +209,11 @@ export default function EditorialCover({
       </div>
 
       {/* 2. BASE TITLE LAYER (FULL SCREEN CLIPPED TO THEME SIDE) */}
-      <div
-        className="absolute inset-0 z-20 pointer-events-none"
-        style={{ clipPath: clipTheme }}
-      >
+      {size.width > 0 && (
+        <div
+          className="absolute inset-0 z-20 pointer-events-none"
+          style={{ clipPath: clipTheme }}
+        >
         {/* Subtítulo no topo no modo mobile */}
         {spec.orientation === 'horizontal' && formattedSubtitle && (
           <div
@@ -246,94 +256,101 @@ export default function EditorialCover({
               fontSize={fontSize}
               color={baseColor}
               fontFamily={sessionFont}
+              fontWeight={titleWeight}
             />
           </div>
         </div>
       </div>
+      )}
 
       {/* 3. OVERLAY TITLE LAYER (FULL SCREEN CLIPPED TO PHOTO SIDE) */}
-      <div
-        className="absolute inset-0 z-30 pointer-events-none"
-        style={{ clipPath: clipPhoto }}
-      >
-        <div className="absolute" style={titleBoxStyle}>
-           <div className="flex flex-col">
-            {/* Subtítulo inline no modo desktop */}
-            {spec.orientation === 'vertical' && formattedSubtitle && (
-              <div
-                className="flex flex-col gap-1.5 mb-[0.6em]"
-                style={{ fontSize: `${fontSize * 0.1}px` }}
-              >
-                <span 
-                  className="tracking-[0.35em] font-sans opacity-60 uppercase"
-                  style={{ color: overlayColor, fontSize: 'inherit' }}
+      {size.width > 0 && (
+        <div
+          className="absolute inset-0 z-30 pointer-events-none"
+          style={{ clipPath: clipPhoto }}
+        >
+          <div className="absolute" style={titleBoxStyle}>
+             <div className="flex flex-col">
+              {/* Subtítulo inline no modo desktop */}
+              {spec.orientation === 'vertical' && formattedSubtitle && (
+                <div
+                  className="flex flex-col gap-1.5 mb-[0.6em]"
+                  style={{ fontSize: `${fontSize * 0.1}px` }}
                 >
-                  {formattedSubtitle}
-                </span>
-                <div className="w-[20%] h-px bg-current opacity-40" style={{ color: overlayColor }} />
-              </div>
-            )}
-            <TitleComposition
-              line1={line1}
-              line2={line2}
-              fontSize={fontSize}
-              color={overlayColor}
-              fontFamily={sessionFont}
-            />
+                  <span 
+                    className="tracking-[0.35em] font-sans opacity-60 uppercase"
+                    style={{ color: overlayColor, fontSize: 'inherit' }}
+                  >
+                    {formattedSubtitle}
+                  </span>
+                  <div className="w-[20%] h-px bg-current opacity-40" style={{ color: overlayColor }} />
+                </div>
+              )}
+              <TitleComposition
+                line1={line1}
+                line2={line2}
+                fontSize={fontSize}
+                color={overlayColor}
+                fontFamily={sessionFont}
+                fontWeight={titleWeight}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 4. DETAILS LAYER (DATE & CTA) */}
-      <div className="absolute inset-0 z-40 pointer-events-none select-none">
-        {/* Date */}
-        <div
-          className="absolute"
-          style={{ 
-            left: `${spec.date.x}px`, 
-            top: `${spec.date.y}px`,
-            transform: 'translateY(-50%)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            paddingLeft: 'env(safe-area-inset-left)'
-          }}
-        >
-          <span 
-            className="text-[10px] sm:text-xs tracking-[0.25em] font-sans uppercase font-medium text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+      {size.width > 0 && (
+        <div className="absolute inset-0 z-40 pointer-events-none select-none">
+          {/* Date */}
+          <div
+            className="absolute"
+            style={{ 
+              left: `${spec.date.x}px`, 
+              top: `${spec.date.y}px`,
+              transform: 'translateY(-50%)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingLeft: 'env(safe-area-inset-left)'
+            }}
           >
-            {formattedDate}
-          </span>
-        </div>
+            <span 
+              className="text-[10px] sm:text-xs tracking-[0.25em] font-sans uppercase font-medium text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+            >
+              {formattedDate}
+            </span>
+          </div>
 
-        {/* CTA Button */}
-        <div
-          className="absolute pointer-events-auto"
-          style={{ 
-            left: `${spec.cta.x}px`, 
-            top: `${spec.cta.y}px`,
-            transform: 'translate(-100%, -50%)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            paddingRight: 'env(safe-area-inset-right)'
-          }}
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleScroll();
+          {/* CTA Button */}
+          <div
+            className="absolute pointer-events-auto"
+            style={{ 
+              left: `${spec.cta.x}px`, 
+              top: `${spec.cta.y}px`,
+              transform: 'translate(-100%, -50%)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingRight: 'env(safe-area-inset-right)'
             }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleScroll();
-            }}
-            className="group flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/45 hover:bg-black/70 active:scale-95 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs tracking-[0.25em] font-sans uppercase transition-all duration-300 shadow-xl cursor-pointer"
           >
-            <span>Ver Galeria</span>
-            <span className="transition-transform group-hover:translate-x-1">→</span>
-          </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleScroll();
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleScroll();
+              }}
+              className="group flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/45 hover:bg-black/70 active:scale-95 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs tracking-[0.25em] font-sans uppercase transition-all duration-300 shadow-xl cursor-pointer"
+            >
+              <span>{ctaLabel || 'Ver Galeria'}</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

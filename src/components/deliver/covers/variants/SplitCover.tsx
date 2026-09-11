@@ -1,65 +1,172 @@
-import { ChevronDown } from 'lucide-react';
+import { useMemo } from 'react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { getPhotoUrl } from '@/lib/photoUrl';
 import { applyTitleCase } from '@/lib/textTransform';
+import { GALLERY_FONTS } from '@/components/FontSelect';
 import type { CoverVariantProps } from '../types';
+import { useCoverPalette, CoverCta, CoverScrollCue } from '../shared';
+import { cn } from '@/lib/utils';
 
 export default function SplitCover({
   coverPhoto,
   sessionName,
+  subtitle,
+  sessionDate,
+  category,
+  issueNumber,
   studioName,
   sessionFont,
   titleCaseMode = 'normal',
   isDark = true,
+  textColor,
+  textOverlayColor,
+  primaryColor,
+  ctaLabel,
   onEnter,
 }: CoverVariantProps) {
+  const palette = useCoverPalette({
+    isDark,
+    textColor,
+    textOverlayColor,
+    primaryColor,
+  });
+
   const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
   const displayName = applyTitleCase(sessionName, titleCaseMode);
-  const textColor = isDark ? 'text-white' : 'text-stone-900';
-  const mutedColor = isDark ? 'text-white/60' : 'text-stone-500';
-  const borderColor = isDark ? 'border-white/30' : 'border-stone-800/40';
+
+  const fontConfig = useMemo(() => {
+    if (!sessionFont) return null;
+    return GALLERY_FONTS.find(
+      (f) => sessionFont.toLowerCase().includes(f.name.toLowerCase()) || f.family.includes(sessionFont)
+    );
+  }, [sessionFont]);
+
+  const formattedDate = useMemo(() => {
+    if (!sessionDate) return null;
+    try {
+      const d = typeof sessionDate === 'string' ? new Date(sessionDate) : sessionDate;
+      if (isNaN(d.getTime())) return null;
+      return format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    } catch {
+      return null;
+    }
+  }, [sessionDate]);
+
+  const kickerText = useMemo(() => {
+    return [studioName, category].filter(Boolean).join('  ·  ');
+  }, [studioName, category]);
 
   const handleScroll = () => {
     const gallerySection = document.getElementById('deliver-gallery');
-    if (gallerySection) gallerySection.scrollIntoView({ behavior: 'smooth' });
-    onEnter();
+    if (gallerySection) {
+      gallerySection.scrollIntoView({ behavior: 'smooth' });
+    }
+    onEnter?.();
   };
 
+  const titleWeight = fontConfig?.weightTitle ?? 500;
+  const letterSpacing = fontConfig?.letterSpacing ?? '-0.005em';
+
   return (
-    <section className="relative min-h-screen w-full grid grid-cols-1 md:grid-cols-12">
-      {/* Foto */}
-      <div className="md:col-span-8 relative h-[70vh] md:h-screen">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${coverUrl})` }} />
+    <section
+      className="relative w-full select-none transition-colors duration-500 overflow-hidden flex flex-col md:grid md:grid-cols-[1.35fr_1fr] md:min-h-screen"
+      style={{ backgroundColor: palette.surface }}
+    >
+      {/* Coluna da Esquerda: Fotografia (com sobreposição de 40px no desktop) */}
+      <div className="relative w-full h-[52vh] md:h-screen md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)]">
+        <div
+          className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        />
       </div>
 
-      {/* Painel */}
-      <div className={`md:col-span-4 flex flex-col justify-center px-8 md:px-12 py-12 md:py-0 ${textColor}`}>
-        {studioName && (
-          <p className={`text-xs tracking-[0.3em] uppercase mb-6 ${mutedColor}`}>{studioName}</p>
+      {/* Coluna da Direita: Painel Editorial de Tipografia */}
+      <div
+        className={cn(
+          'relative z-0 flex flex-col justify-center',
+          'px-6 sm:px-10 md:pl-20 md:pr-12 lg:pr-20',
+          'py-12 md:py-16 md:-translate-y-[2%]'
         )}
+      >
+        <div className="max-w-xl flex flex-col items-start">
+          {/* Número da Edição (opcional) ou Kicker */}
+          <div className="flex items-center gap-3 mb-4 md:mb-5">
+            {issueNumber && (
+              <span className="font-mono text-[11px] tracking-widest opacity-50 uppercase">
+                {issueNumber}
+              </span>
+            )}
+            {issueNumber && kickerText && (
+              <span className="opacity-30">|</span>
+            )}
+            {kickerText && (
+              <p
+                className="text-[clamp(0.62rem,1.1vw,0.75rem)] uppercase tracking-[0.32em] font-sans font-medium"
+                style={{ color: palette.inkMuted }}
+              >
+                {kickerText}
+              </p>
+            )}
+          </div>
 
-        <div className={`h-px w-12 mb-6 ${isDark ? 'bg-white/40' : 'bg-stone-900/40'}`} />
+          {/* Bloco de Título com Filete Vertical à Esquerda */}
+          <div className="flex items-stretch gap-4 md:gap-6 my-2">
+            <div
+              className="w-[1px] self-stretch shrink-0 rounded-full"
+              style={{ backgroundColor: palette.accent }}
+            />
+            <div className="flex flex-col">
+              <h1
+                className="text-[clamp(2.2rem,5.5vw,4.75rem)] leading-[1.02] tracking-tight text-balance break-words font-normal"
+                style={{
+                  fontFamily: sessionFont || undefined,
+                  fontWeight: titleWeight,
+                  letterSpacing: letterSpacing,
+                  color: palette.ink,
+                }}
+              >
+                {displayName}
+              </h1>
 
-        <h1
-          className="text-3xl md:text-4xl lg:text-5xl font-light leading-tight"
-          style={sessionFont ? { fontFamily: sessionFont } : undefined}
-        >
-          {displayName}
-        </h1>
+              {/* Subtítulo */}
+              {subtitle && (
+                <p
+                  className="text-sm md:text-base italic opacity-85 mt-3 font-serif"
+                  style={{ color: palette.ink }}
+                >
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          </div>
 
-        <button
-          onClick={handleScroll}
-          className={`mt-10 self-start px-7 py-3 border text-xs tracking-[0.25em] uppercase transition-colors duration-300 ${borderColor} ${isDark ? 'hover:bg-white/10' : 'hover:bg-stone-900/5'}`}
-        >
-          Ver Galeria
-        </button>
+          {/* Metadados (Data) */}
+          {formattedDate && (
+            <p
+              className="text-[clamp(0.65rem,1vw,0.78rem)] uppercase tracking-[0.18em] font-sans font-medium mt-6 mb-8"
+              style={{ color: palette.inkMuted }}
+            >
+              {formattedDate}
+            </p>
+          )}
 
-        <button
-          onClick={handleScroll}
-          className={`mt-8 self-start animate-bounce transition-colors ${mutedColor}`}
-          aria-label="Rolar"
-        >
-          <ChevronDown className="w-6 h-6" />
-        </button>
+          {/* CTA Solid com contraste automático calculado */}
+          <div className="mt-2 w-full sm:w-auto">
+            <CoverCta
+              variant="solid"
+              label={ctaLabel || 'Ver galeria'}
+              onClick={handleScroll}
+              palette={palette}
+              className="w-full sm:w-auto"
+            />
+          </div>
+        </div>
+
+        {/* Indicador de Rolagem Discreto no Rodapé */}
+        <div className="mt-10 md:mt-14 hidden md:block">
+          <CoverScrollCue onClick={handleScroll} color={palette.inkMuted} />
+        </div>
       </div>
     </section>
   );

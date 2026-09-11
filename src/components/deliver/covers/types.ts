@@ -16,6 +16,7 @@ export interface CoverVariantProps {
   textColor?: string;
   textOverlayColor?: string;
   primaryColor?: string;
+  ctaLabel?: string;
   onEnter: () => void;
 }
 

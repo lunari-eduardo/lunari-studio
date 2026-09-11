@@ -7,7 +7,7 @@ export function useFittedTitle(
   containerHeightPx: number,
   fontFamily: string,
   maxFontSizeVw = 12,
-  minFontSizePx = 24
+  minFontSizePx = 30
 ) {
   const calculate = useCallback(
     (w: number, h: number) => {

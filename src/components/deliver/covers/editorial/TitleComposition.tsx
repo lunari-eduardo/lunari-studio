@@ -6,6 +6,7 @@ interface TitleCompositionProps {
   fontSize: number;
   color: string;
   fontFamily?: string;
+  fontWeight?: number;
 }
 
 export function TitleComposition({
@@ -14,10 +15,13 @@ export function TitleComposition({
   fontSize,
   color,
   fontFamily,
+  fontWeight = 600,
 }: TitleCompositionProps) {
   const serifStyle = fontFamily
     ? { fontFamily }
     : { fontFamily: "'Bodoni Moda', 'Cormorant Garamond', 'Playfair Display', 'Instrument Serif', Didot, 'Times New Roman', serif" };
+
+  const strokeStyle = fontSize < 48 ? { WebkitTextStroke: '0.35px currentColor' } : {};
 
   return (
     <div
@@ -25,7 +29,9 @@ export function TitleComposition({
       style={{
         ...serifStyle,
         fontSize: `${fontSize}px`,
+        fontWeight,
         color,
+        ...strokeStyle,
       }}
     >
       <div className="block whitespace-nowrap">{line1}</div>

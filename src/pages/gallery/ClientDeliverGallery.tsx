@@ -83,19 +83,12 @@ export default function ClientDeliverGallery({ data }: Props) {
   const isDark = clientMode === 'dark';
   const customPrimaryColor = data.theme?.primaryColor || undefined;
 
-  // Fallback colors antes do GalleryThemeProvider (album view e loading)
-  const bgColor = isDark ? '#0E0E0E' : '#FAF9F7';
-  const textColor = isDark ? '#F2F2F2' : '#1A1614';
-  const primaryColor = customPrimaryColor || '#C6A36A'; // dourado Lunari padrão
-
-
   const [showWelcome, setShowWelcome] = useState(() => {
     const key = `deliver_welcome_${gallery.id}`;
     return !sessionStorage.getItem(key) && !!gallery.welcomeMessage;
   });
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [heroEntered, setHeroEntered] = useState(false);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [folderViewMode, setFolderViewMode] = useState<'albums' | 'grid'>(hasFolders ? 'albums' : 'grid');
 
@@ -126,7 +119,6 @@ export default function ClientDeliverGallery({ data }: Props) {
     // Ordem canônica: alfabética natural pelo nome original.
     return sortPhotosByNaturalFilename(mapped);
   }, [data.photos]);
-
 
   const photos = useMemo(() => {
     if (!hasFolders || activeFolderId === null) return allPhotos;
@@ -187,79 +179,6 @@ export default function ClientDeliverGallery({ data }: Props) {
   const sessionDateProp = (gallery.settings as any)?.dataEvento || gallery.expirationDate || (gallery as any).createdAt || undefined;
   const categoryProp = (gallery.settings as any)?.categoria || undefined;
 
-  // Album view for Transfer galleries
-  if (hasFolders && folderViewMode === 'albums') {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }}>
-        <CoverRenderer
-          coverId={resolvedCoverId}
-          coverPhoto={coverPhoto}
-          sessionName={gallery.sessionName}
-          subtitle={subtitleProp}
-          sessionDate={sessionDateProp}
-          category={categoryProp}
-          studioName={studioSettings?.studio_name}
-          sessionFont={sessionFont}
-          titleCaseMode={gallery.settings?.titleCaseMode}
-          isDark={isDark}
-          primaryColor={primaryColor}
-          onEnter={() => setHeroEntered(true)}
-        />
-
-        <div id="deliver-gallery" className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-normal mb-1" style={{ fontFamily: sessionFont }}>
-              {gallery.sessionName}
-            </h2>
-            <p className="text-sm opacity-50">
-              {allPhotos.length} fotos
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 md:gap-8">
-            {folders.map(folder => {
-              const folderPhotos = allPhotos.filter(p => p.folderId === folder.id);
-              const thumb = folderPhotos[0];
-              return (
-                <button
-                  key={folder.id}
-                  onClick={() => { setActiveFolderId(folder.id); setFolderViewMode('grid'); }}
-                  className="group flex flex-col gap-4 text-left transition-all"
-                >
-                  <div 
-                    className="relative aspect-[4/5] overflow-hidden transition-all duration-500 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1"
-                    style={{ borderRadius: 'var(--gallery-radius, 8px)' }}
-                  >
-                    {thumb ? (
-                      <img
-                        src={getPhotoUrlLib({ storageKey: thumb.storageKey, thumbPath: thumb.thumbPath, width: thumb.width, height: thumb.height }, 'thumbnail')}
-                        alt={folder.nome}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                    ) : (
-                      <div className="absolute inset-0" style={{ backgroundColor: isDark ? '#171717' : '#F0EDE9' }} />
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
-                  </div>
-                  
-                  <div className="space-y-1 px-1">
-                    <p className="font-medium text-base sm:text-lg tracking-tight leading-tight group-hover:text-primary transition-colors">
-                      {folder.nome}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-[0.2em] opacity-40 font-semibold">
-                      {folderPhotos.length} fotografias
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <DeliverWelcomeModal open={showWelcome} onClose={handleCloseWelcome} message={gallery.welcomeMessage || ''} sessionName={gallery.sessionName} clientName={gallery.clientName} studioName={studioSettings?.studio_name} isDark={isDark} />
-      </div>
-    );
-  }
   return (
     <GalleryThemeProvider 
       gallerySettings={gallery.settings} 
@@ -293,19 +212,20 @@ export default function ClientDeliverGallery({ data }: Props) {
         setLightboxIndex={setLightboxIndex}
         activeFolderId={activeFolderId}
         setActiveFolderId={setActiveFolderId}
+        folderViewMode={folderViewMode}
         setFolderViewMode={setFolderViewMode}
       />
     </GalleryThemeProvider>
   );
 }
 
-
 function ClientDeliverGalleryContent({ 
   data, photos, allPhotos, coverPhoto, coverId, sessionFont, 
   subtitle, sessionDate, category,
   handleDownloadAll, 
   isDownloading, handleDownloadSingle, showWelcome, handleCloseWelcome,
-  lightboxIndex, setLightboxIndex, activeFolderId, setActiveFolderId, setFolderViewMode
+  lightboxIndex, setLightboxIndex, activeFolderId, setActiveFolderId,
+  folderViewMode, setFolderViewMode
 }: any) {
   const { gallery, studioSettings } = data;
   const folders = data.folders || [];
@@ -332,36 +252,37 @@ function ClientDeliverGalleryContent({
   const bgColor = cssVars['--gallery-bg'] || (isDark ? '#0E0E0E' : '#FAF9F7');
   const textColor = cssVars['--gallery-text'] || (isDark ? '#F2F2F2' : '#1A1614');
   const primaryColor = cssVars['--gallery-primary'] || '#C6A36A';
+  const textOverlayColor = cssVars['--gallery-text-overlay'] || undefined;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }}>
-      {!hasFolders && (
-        <CoverRenderer
-          coverId={coverId}
-          coverPhoto={coverPhoto}
-          sessionName={gallery.sessionName}
-          subtitle={subtitleProp}
-          sessionDate={sessionDateProp}
-          category={categoryProp}
-          studioName={studioSettings?.studio_name}
-          sessionFont={sessionFont}
-          titleCaseMode={gallery.settings?.titleCaseMode}
-          isDark={isDark}
-          primaryColor={primaryColor}
-          onEnter={() => {
-            const gallerySection = document.getElementById('deliver-gallery');
-            if (gallerySection) {
-              gallerySection.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}
-        />
-      )}
-
+      {/* Capa unificada: mantida sempre montada no topo, sem remontar em alternância entre álbuns e grid */}
+      <CoverRenderer
+        coverId={coverId}
+        coverPhoto={coverPhoto}
+        sessionName={gallery.sessionName}
+        subtitle={subtitleProp}
+        sessionDate={sessionDateProp}
+        category={categoryProp}
+        studioName={studioSettings?.studio_name}
+        sessionFont={sessionFont}
+        titleCaseMode={gallery.settings?.titleCaseMode}
+        isDark={isDark}
+        textColor={textColor}
+        textOverlayColor={textOverlayColor}
+        primaryColor={primaryColor}
+        onEnter={() => {
+          const gallerySection = document.getElementById('deliver-gallery');
+          if (gallerySection) {
+            gallerySection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }}
+      />
 
       <div id="deliver-gallery">
         <DeliverHeader 
           sessionName={gallery.sessionName} 
-          photoCount={photos.length} 
+          photoCount={hasFolders && folderViewMode === 'albums' ? allPhotos.length : photos.length} 
           onDownloadAll={handleDownloadAll} 
           isDownloading={isDownloading} 
           isDark={isDark} 
@@ -369,50 +290,105 @@ function ClientDeliverGalleryContent({
           isVisible={headerVisible && lightboxIndex === null}
         />
 
-        {hasFolders && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
-            <div className="flex flex-wrap items-center gap-3">
-              <button 
-                onClick={() => setFolderViewMode('albums')} 
-                className="group flex items-center gap-2 px-4 py-2 rounded-full text-xs uppercase tracking-widest font-semibold transition-all border bg-white/5 hover:bg-white/10 active:scale-95" 
-                style={{ 
-                  color: textColor, 
-                  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', 
-                }}
-              >
-                <ArrowLeft className="h-3.5 w-3.5 opacity-60 group-hover:translate-x-[-2px] transition-transform" />
-                Álbuns
-              </button>
-              
-              <div className="h-4 w-px bg-white/10 mx-1" />
+        {/* Modo Álbuns (quando há pastas e está na visão de álbuns) */}
+        {hasFolders && folderViewMode === 'albums' ? (
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-normal mb-1" style={{ fontFamily: sessionFont }}>
+                {gallery.sessionName}
+              </h2>
+              <p className="text-sm opacity-50">
+                {allPhotos.length} fotos
+              </p>
+            </div>
 
-              {folders.map((f: any) => {
-                const isActive = f.id === activeFolderId;
-                const count = allPhotos.filter((p: any) => p.folderId === f.id).length;
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 md:gap-8">
+              {folders.map((folder: any) => {
+                const folderPhotos = allPhotos.filter((p: any) => p.folderId === folder.id);
+                const thumb = folderPhotos[0];
                 return (
-                  <button 
-                    key={f.id} 
-                    onClick={() => setActiveFolderId(f.id)}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-[10px] uppercase tracking-[0.15em] font-bold transition-all border active:scale-95",
-                      isActive ? "bg-primary text-primary-foreground border-primary" : "bg-transparent opacity-60 hover:opacity-100"
-                    )}
-                    style={{ 
-                      color: isActive ? 'var(--gallery-primary-foreground)' : textColor, 
-                      backgroundColor: isActive ? 'var(--gallery-primary)' : 'transparent',
-                      borderColor: isActive ? 'var(--gallery-primary)' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'), 
-                    }}
+                  <button
+                    key={folder.id}
+                    onClick={() => { setActiveFolderId(folder.id); setFolderViewMode('grid'); }}
+                    className="group flex flex-col gap-4 text-left transition-all"
                   >
-                    {f.nome} <span className="opacity-40 ml-1">({count})</span>
+                    <div 
+                      className="relative aspect-[4/5] overflow-hidden transition-all duration-500 shadow-sm group-hover:shadow-xl group-hover:-translate-y-1"
+                      style={{ borderRadius: 'var(--gallery-radius, 8px)' }}
+                    >
+                      {thumb ? (
+                        <img
+                          src={getPhotoUrlLib({ storageKey: thumb.storageKey, thumbPath: thumb.thumbPath, width: thumb.width, height: thumb.height }, 'thumbnail')}
+                          alt={folder.nome}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        />
+                      ) : (
+                        <div className="absolute inset-0" style={{ backgroundColor: isDark ? '#171717' : '#F0EDE9' }} />
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-500" />
+                    </div>
+                    
+                    <div className="space-y-1 px-1">
+                      <p className="font-medium text-base sm:text-lg tracking-tight leading-tight group-hover:text-primary transition-colors">
+                        {folder.nome}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-[0.2em] opacity-40 font-semibold">
+                        {folderPhotos.length} fotografias
+                      </p>
+                    </div>
                   </button>
                 );
               })}
             </div>
           </div>
+        ) : (
+          /* Grid de fotos da galeria ou da pasta selecionada */
+          <>
+            {hasFolders && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button 
+                    onClick={() => setFolderViewMode('albums')} 
+                    className="group flex items-center gap-2 px-4 py-2 rounded-full text-xs uppercase tracking-widest font-semibold transition-all border bg-white/5 hover:bg-white/10 active:scale-95" 
+                    style={{ 
+                      color: textColor, 
+                      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', 
+                    }}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 opacity-60 group-hover:translate-x-[-2px] transition-transform" />
+                    Álbuns
+                  </button>
+                  
+                  <div className="h-4 w-px bg-white/10 mx-1" />
+
+                  {folders.map((f: any) => {
+                    const isActive = f.id === activeFolderId;
+                    const count = allPhotos.filter((p: any) => p.folderId === f.id).length;
+                    return (
+                      <button 
+                        key={f.id} 
+                        onClick={() => setActiveFolderId(f.id)}
+                        className={cn(
+                          "px-4 py-2 rounded-full text-[10px] uppercase tracking-[0.15em] font-bold transition-all border active:scale-95",
+                          isActive ? "bg-primary text-primary-foreground border-primary" : "bg-transparent opacity-60 hover:opacity-100"
+                        )}
+                        style={{ 
+                          color: isActive ? 'var(--gallery-primary-foreground)' : textColor, 
+                          backgroundColor: isActive ? 'var(--gallery-primary)' : 'transparent',
+                          borderColor: isActive ? 'var(--gallery-primary)' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'), 
+                        }}
+                      >
+                        {f.nome} <span className="opacity-40 ml-1">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <DeliverPhotoGrid photos={photos} onPhotoClick={(i: number) => setLightboxIndex(i)} onDownload={handleDownloadSingle} bgColor={bgColor} />
+          </>
         )}
-
-
-        <DeliverPhotoGrid photos={photos} onPhotoClick={(i: number) => setLightboxIndex(i)} onDownload={handleDownloadSingle} bgColor={bgColor} />
       </div>
 
       {lightboxIndex !== null && (

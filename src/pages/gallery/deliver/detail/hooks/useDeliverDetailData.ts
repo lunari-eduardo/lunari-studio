@@ -44,6 +44,8 @@ export function useDeliverDetailData() {
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState('');
   const [eventDate, setEventDate] = useState<Date | undefined>(undefined);
+  const [sessionFont, setSessionFont] = useState('playfair');
+  const [titleCaseMode, setTitleCaseMode] = useState<'normal' | 'uppercase' | 'titlecase'>('normal');
 
   // Resolve client ID (from gallery directly, or fallback to session/name search)
   const { data: resolvedClienteId } = useQuery({
@@ -103,6 +105,8 @@ export function useDeliverDetailData() {
       setUseCustomTheme(gallery.useCustomTheme || false);
       setThemeOverrides(gallery.themeOverrides || {});
       setCoverId((gallery as any).coverId ?? null);
+      setSessionFont((gallery.configuracoes as any)?.sessionFont || 'playfair');
+      setTitleCaseMode((gallery.configuracoes as any)?.titleCaseMode || 'normal');
 
       // Migrate legacy gap to overrides if needed
       const legacyGap = gallery.configuracoes?.photoSpacing;
@@ -183,5 +187,9 @@ export function useDeliverDetailData() {
     setCategory,
     eventDate,
     setEventDate,
+    sessionFont,
+    setSessionFont,
+    titleCaseMode,
+    setTitleCaseMode,
   };
 }
