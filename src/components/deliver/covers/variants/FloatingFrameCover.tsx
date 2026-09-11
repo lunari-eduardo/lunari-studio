@@ -8,11 +8,11 @@ import type { CoverVariantProps } from '../types';
 import { useCoverPalette, CoverCta } from '../shared';
 import { cn } from '@/lib/utils';
 
-// Subtle SVG grain overlay (data-uri, no extra network request).
-const GRAIN_STYLE =
-  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
+// Subtle SVG grain overlay for the passe-partout (printed-paper texture).
+const PAPER_GRAIN_STYLE =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>\")";
 
-// Reveal real intrinsic dimensions of the cover photo. Cached by URL.
+// Reveal real intrinsic dimensions of the cover photo.
 function useImageIntrinsicSize(url: string | undefined): { w: number; h: number } | null {
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => {
@@ -101,7 +101,6 @@ export default function FloatingFrameCover({
   const sectionRef = useRef<HTMLElement | null>(null);
   const textBlockRef = useRef<HTMLDivElement | null>(null);
   const kickerRef = useRef<HTMLParagraphElement | null>(null);
-  const figureRef = useRef<HTMLElement | null>(null);
 
   const [textBlockH, setTextBlockH] = useState(0);
   const [kickerH, setKickerH] = useState(0);
@@ -129,55 +128,62 @@ export default function FloatingFrameCover({
   }, []);
 
   // Real intrinsic ratio of the photo (h/w). Falls back to 5/4 (portrait) only
-  // while the image is still loading — that's the safer default for a cover.
+  // while the image is still loading.
   const realRatio = intrinsic ? intrinsic.h / intrinsic.w : 5 / 4;
 
   // Fixed reserve between photo and text block.
   const PHOTO_TO_TEXT_GAP = 28;
   const safeVerticalPadding = viewportW > 0 && viewportW < 640 ? 32 : 56;
 
-  // Available height for the photo. Subtract measured text-block + kicker + gaps.
+  // Available height for the photo (subtract measured siblings + gaps).
   const computedAvailable =
     viewportH > 0 && textBlockH > 0
       ? viewportH - textBlockH - kickerH - PHOTO_TO_TEXT_GAP - safeVerticalPadding
       : 0;
 
   // Composition ceilings.
-  const PHOTO_MIN_H = 200;
-  const PHOTO_FRACTION = 0.62;
-  const PHOTO_MAX_VW_DESKTOP = 0.74;
+  const PHOTO_MIN_H = 180;
+  const PHOTO_FRACTION = 0.58; // Slightly tighter to leave room for passe-partout margin.
+  const PHOTO_MAX_VW_DESKTOP = 0.72;
   const PHOTO_MAX_VW_MOBILE = 0.84;
 
   const photoMaxH =
     computedAvailable > 0 ? Math.min(computedAvailable, viewportH * PHOTO_FRACTION) : 0;
   const photoH = photoMaxH > 0 ? Math.max(PHOTO_MIN_H, photoMaxH) : 0;
 
-  // Width bound depends on viewport width.
   const maxVw = viewportW > 0 && viewportW < 640 ? PHOTO_MAX_VW_MOBILE : PHOTO_MAX_VW_DESKTOP;
   const photoMaxW = viewportW > 0 ? Math.min(viewportW * maxVw, viewportW - 32) : 0;
 
-  // Compute the photo box that fits BOTH constraints simultaneously:
-  //  - height ≤ photoH
-  //  - width  ≤ photoMaxW
-  //  - aspect = realRatio (h/w)
+  // Compute the photo box that fits BOTH constraints simultaneously.
   const computePhotoBox = (): { w: number; h: number } | null => {
     if (photoH <= 0 || photoMaxW <= 0) return null;
     const widthIfHeight = photoH / realRatio;
     const widthIfWidth = photoMaxW;
     const w = Math.max(160, Math.min(widthIfHeight, widthIfWidth));
     const h = w * realRatio;
-    // Final safety: never exceed the available height after gap/padding.
     return { w: Math.round(w), h: Math.round(Math.min(h, photoH)) };
   };
 
   const photoBox = computePhotoBox();
 
-  // Compact mode kicks in when there is very little room for the photo.
+  // Passe-partout margin: proportional to the smallest side of the photo, with
+  // a hard floor so it never collapses on tiny previews and a ceiling so it
+  // does not eat the whole viewport on huge screens.
+  const passepartoutMargin = photoBox
+    ? Math.max(18, Math.min(56, Math.round(Math.min(photoBox.w, photoBox.h) * 0.055)))
+    : 0;
+
+  // Compact mode kicks in when there is very little room for the photo+passe-partout.
   const isCompactView = viewportH > 0 && computedAvailable < viewportH * 0.30;
 
-  // Mobile (≤ 640px): natural flow, no svh squeeze. The cover may be taller
-  // than the viewport — the gallery scrolls below it normally.
+  // Mobile (≤ 640px): natural flow, no svh squeeze.
   const isMobileFlow = viewportW > 0 && viewportW < 640;
+
+  // Passe-partout paper color: a soft off-white that reads as paper on both
+  // dark and light gallery backgrounds. Stays off-white even in dark mode
+  // (matching the reference frame, which is clearly a cream/off-white card).
+  const passepartoutColor = '#F5F1EA';
+  const passepartoutInnerBorder = 'rgba(0,0,0,0.06)';
 
   return (
     <section
@@ -209,38 +215,56 @@ export default function FloatingFrameCover({
         </p>
       )}
 
-      {/* Moldura Fotográfica Suspensa (Passe-partout) — sized to real image ratio */}
-      <figure
-        ref={figureRef}
+      {/* Passe-partout: the off-white paper wrapper that surrounds the photo. */}
+      <div
         className={cn(
-          'relative overflow-hidden rounded-[2px] border transition-shadow duration-500 shrink-0',
+          'relative shrink-0 transition-shadow duration-500',
         )}
         style={{
-          width: photoBox ? `${photoBox.w}px` : 'min(560px, 88vw)',
-          height: photoBox ? `${photoBox.h}px` : 'auto',
-          aspectRatio: intrinsic ? `${intrinsic.w} / ${intrinsic.h}` : '4 / 5',
-          borderColor: palette.line,
+          width: photoBox ? `${photoBox.w + passepartoutMargin * 2}px` : 'min(560px, 88vw)',
+          height: photoBox ? `${photoBox.h + passepartoutMargin * 2}px` : 'auto',
+          backgroundColor: passepartoutColor,
+          borderRadius: '1px',
+          padding: `${passepartoutMargin}px`,
           boxShadow: isCompactView && !isMobileFlow
-            ? '0 20px 50px -30px rgba(0,0,0,0.40)'
-            : '0 30px 80px -40px rgba(0,0,0,0.45)',
-          backgroundColor: palette.surfaceMuted,
+            ? '0 22px 55px -32px rgba(0,0,0,0.40), 0 8px 22px -14px rgba(0,0,0,0.18)'
+            : '0 36px 90px -44px rgba(0,0,0,0.55), 0 12px 28px -16px rgba(0,0,0,0.22)',
         }}
       >
-        <img
-          src={coverUrl}
-          alt={sessionName || 'Cover photo'}
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
-        />
-        {/* Subtle grain overlay — pure CSS, no extra network. */}
+        {/* Subtle paper grain — pure CSS, no extra network. */}
         <div
           aria-hidden
-          className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-[0.05]"
-          style={{ backgroundImage: GRAIN_STYLE, backgroundSize: '160px 160px' }}
+          className="absolute inset-0 pointer-events-none mix-blend-multiply opacity-[0.08] rounded-[1px]"
+          style={{
+            backgroundImage: PAPER_GRAIN_STYLE,
+            backgroundSize: '200px 200px',
+          }}
         />
-      </figure>
+        {/* Inner edge of the paper — a hairline so the photo area reads as cut. */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none rounded-[1px]"
+          style={{ boxShadow: `inset 0 0 0 1px ${passepartoutInnerBorder}` }}
+        />
 
-      {/* Bloco de Tipografia e Metadados Abaixo da Foto */}
+        {/* Photo container — sized to fit inside the passe-partout margin. */}
+        <div
+          className="relative w-full h-full overflow-hidden"
+          style={{
+            backgroundColor: '#1a1a1a',
+            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)',
+          }}
+        >
+          <img
+            src={coverUrl}
+            alt={sessionName || 'Cover photo'}
+            draggable={false}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+          />
+        </div>
+      </div>
+
+      {/* Bloco de Tipografia e Metadados Abaixo do Passe-partout */}
       <div
         ref={textBlockRef}
         className={cn(
