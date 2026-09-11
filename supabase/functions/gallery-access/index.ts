@@ -45,12 +45,23 @@ serve(async (req) => {
       console.warn(`Gallery not found for token: ${publicToken}`);
       return new Response(JSON.stringify({ 
         error: 'Gallery not found',
-        code: 'NOT_FOUND' 
+        code: 'NOT_FOUND',
+        message: 'Galeria não encontrada'
       }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // 1.5. Check gallery expiration
+    const { data: expData, error: expError } = await supabase.rpc('get_gallery_expiration_status', {
+      p_galeria_id: gallery.id
+    });
+
+    if (expError) {
+      console.error('Expiration check error:', expError);
+    }
+    const isGalleryExpired = expData?.is_expired || false;
 
     // 2. Pre-fetch studio settings (detailed) + perfil do fotógrafo (profiles)
     const { settings, settingsWithOwner } = await resolveStudioSettings(supabase, gallery.user_id);
@@ -190,6 +201,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        expired: isGalleryExpired,
         deliver: gallery.tipo === 'entrega',
         galleryId: gallery.id,
         gallery: {
@@ -227,7 +239,7 @@ serve(async (req) => {
           saleSettings: normalizedSaleSettings,
           saleModeSource,
         },
-        photos: filteredPhotos,
+        photos: isGalleryExpired ? [] : filteredPhotos,
         finalized: isFinalized,
         selectionLocked,
         hasPaid,

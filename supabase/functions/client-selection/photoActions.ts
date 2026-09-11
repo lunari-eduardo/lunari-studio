@@ -16,7 +16,36 @@ export async function handlePhotoAction(params: {
     );
   }
 
-  // 1. Fetch gallery to validate status
+  // 1. Check expiration using DB function
+  const { data: expData, error: expError } = await supabase.rpc('get_gallery_expiration_status', {
+    p_galeria_id: galleryId
+  });
+
+  if (expError) {
+    console.error('Expiration check error:', expError);
+    return new Response(JSON.stringify({ error: 'Erro ao verificar status da galeria' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  if (!expData.found) {
+    return new Response(
+      JSON.stringify({ error: 'GALLERY_NOT_FOUND', message: 'Galeria não encontrada' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  if (expData.is_expired) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'GALLERY_EXPIRED', 
+        message: 'O prazo desta galeria expirou',
+        expired_at: expData.expires_at 
+      }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // 2. Fetch gallery to validate additional status
   const { data: gallery, error: galleryError } = await supabase
     .from('galerias')
     .select('id, tipo, status, status_selecao, prazo_selecao, finalized_at, session_id, permissao')
@@ -25,25 +54,16 @@ export async function handlePhotoAction(params: {
 
   if (galleryError || !gallery) {
     return new Response(
-      JSON.stringify({ error: 'Galeria não encontrada' }),
+      JSON.stringify({ error: 'GALLERY_NOT_FOUND', message: 'Galeria não encontrada' }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
-  // 2. Validate gallery is in allowed status
+  // 3. Validate gallery is in allowed status
   const allowedStatuses = ['enviado', 'selecao_iniciada', 'selecao_completa'];
   if (!allowedStatuses.includes(gallery.status)) {
     return new Response(
       JSON.stringify({ error: 'Esta galeria não está aberta para seleção' }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  // 2.5. Check if gallery is expired
-  if (gallery.status === 'expirado' || 
-      (gallery.prazo_selecao && new Date(gallery.prazo_selecao) < new Date())) {
-    return new Response(
-      JSON.stringify({ error: 'O prazo desta galeria expirou' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -73,16 +93,7 @@ export async function handlePhotoAction(params: {
     }
   }
 
-  // 4. Check if deadline has passed
-  if (gallery.prazo_selecao) {
-    const deadline = new Date(gallery.prazo_selecao);
-    if (deadline < new Date()) {
-      return new Response(
-        JSON.stringify({ error: 'O prazo de seleção expirou' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-  }
+  // 4. (Removed deadline check as it is handled by the DB function)
 
   // 5. Verify photo exists in gallery
   const { data: photo, error: photoError } = await supabase

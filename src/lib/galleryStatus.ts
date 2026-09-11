@@ -10,19 +10,30 @@ export function getEffectiveGalleryStatus(
   finalizedAt?: Date | string | null,
   statusSelecao?: string | null,
   prazoSelecao?: Date | string | null,
-  tipo?: string | null
+  tipo?: string | null,
+  expiresAt?: Date | string | null
 ): 'created' | 'sent' | 'selection_started' | 'selection_completed' | 'expired' | 'cancelled' {
   
   // Normalização inicial do status bruto (Português/Inglês)
   const normalizedRawStatus = (status || '').toLowerCase();
+
+  // 1. Status explícito de expirada
+  if (['expirada', 'expired', 'expirado', 'cancelada', 'cancelled'].includes(normalizedRawStatus)) {
+    return normalizedRawStatus.includes('cancel') ? 'cancelled' : 'expired';
+  }
+
+  // 2. Se tem expires_at explícito e expirou
+  if (expiresAt && new Date(expiresAt).getTime() < Date.now()) {
+    return 'expired';
+  }
 
   // Se já foi finalizada ou paga, o status efetivo é sempre concluída (para seleção)
   if (tipo !== 'entrega' && (finalizedAt || statusPagamento === 'pago' || statusPagamento === 'pago_manual' || statusSelecao === 'selecao_completa')) {
     return 'selection_completed';
   }
 
-  // Se o prazo expirou e a galeria está em um estado ativo, ela é considerada expirada
-  const isPastDeadline = prazoSelecao && new Date(prazoSelecao).getTime() < Date.now();
+  // Se o prazo_selecao expirou (apenas para SELECT)
+  const isPastDeadline = tipo !== 'entrega' && prazoSelecao && new Date(prazoSelecao).getTime() < Date.now();
   const isActiveStatus = [
     'enviado', 'sent', 
     'em_selecao', 'selection_started', 'selecao_iniciada',

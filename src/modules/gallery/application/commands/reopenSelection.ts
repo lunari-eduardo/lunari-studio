@@ -43,7 +43,7 @@ export const reopenSelection = defineCommand({
 
     const { data: g, error: gErr } = await supabase
       .from("galerias")
-      .select("id, user_id")
+      .select("id, user_id, tipo")
       .eq("id", galeriaId)
       .maybeSingle();
     if (gErr || !g) {
@@ -53,12 +53,24 @@ export const reopenSelection = defineCommand({
       return err(domainError("FORBIDDEN", "Sem acesso a esta galeria."));
     }
 
-    const { error } = await supabase.rpc("reopen_gallery_selection", {
-      p_gallery_id: galeriaId,
-      p_days: dias,
-    });
+    const novoPrazo = new Date();
+    novoPrazo.setDate(novoPrazo.getDate() + dias);
+    const novoPrazoISO = novoPrazo.toISOString();
+
+    const novoStatus = g.tipo === 'entrega' ? 'publicada' : 'em_selecao';
+
+    const { error } = await supabase
+      .from("galerias")
+      .update({
+        status: novoStatus,
+        expires_at: novoPrazoISO,
+        prazo_selecao: novoPrazoISO,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", galeriaId);
+
     if (error) {
-      ctx.log.error("reopen_gallery_selection falhou", { error });
+      ctx.log.error("Update falhou ao reabrir galeria", { error });
       return err(
         domainError("EXTERNAL", "Não foi possível reabrir a galeria.", {
           retriable: true,

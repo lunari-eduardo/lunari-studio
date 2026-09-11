@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
 
     if (!tokenGallery) {
       return new Response(
-        JSON.stringify({ error: 'Galeria não encontrada' }),
+        JSON.stringify({ error: 'GALLERY_NOT_FOUND', message: 'Galeria não encontrada' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
