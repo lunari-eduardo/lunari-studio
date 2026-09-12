@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useConversasRealtime } from '@/hooks/useConversasRealtime';
+import { useConversas } from '@/hooks/useConversasRealtime';
 import { useConversasChat } from '@/hooks/useConversasChat';
 import { supabase } from '@/integrations/supabase/client';
 import type { Chat, Mensagem, InstanciaStatus } from '@/modules/conversas/types';
@@ -776,7 +776,7 @@ export default function ConversasPage() {
     unpinChat,
     blockChat,
     deleteChat,
-  } = useConversasRealtime();
+  } = useConversas();
 
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
