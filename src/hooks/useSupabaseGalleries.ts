@@ -324,7 +324,10 @@ export function useSupabaseGalleries(options?: { enabled?: boolean }) {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['galleries'] });
+      queryClient.invalidateQueries({ queryKey: ['galerias'] });
+      queryClient.invalidateQueries({ queryKey: ['gallery-by-id', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['client-gallery', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['client-gallery'] });
     },
 
   });

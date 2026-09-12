@@ -8513,6 +8513,327 @@ export type Database = {
         ]
       }
     }
+    // ── Conversas (WhatsApp / Evolution API v2) ──────────────────────────────
+    conversas_instancias: {
+      Row: {
+        id: string;
+        user_id: string;
+        instance_name: string;
+        instance_id: string;
+        status: 'connected' | 'disconnected' | 'connecting' | 'error';
+        phone: string | null;
+        webhook_url: string | null;
+        evolution_token: string | null;
+        qrcode_data: string | null;
+        qrcode_expires_at: string | null;
+        settings: Json;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        instance_name: string;
+        instance_id: string;
+        status?: 'connected' | 'disconnected' | 'connecting' | 'error';
+        phone?: string | null;
+        webhook_url?: string | null;
+        evolution_token?: string | null;
+        qrcode_data?: string | null;
+        qrcode_expires_at?: string | null;
+        settings?: Json;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        instance_name?: string;
+        instance_id?: string;
+        status?: 'connected' | 'disconnected' | 'connecting' | 'error';
+        phone?: string | null;
+        webhook_url?: string | null;
+        evolution_token?: string | null;
+        qrcode_data?: string | null;
+        qrcode_expires_at?: string | null;
+        settings?: Json;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Relationships: [{ schema: 'public'; table: 'auth.users'; columns: ['user_id'] }];
+    };
+    conversas_contatos: {
+      Row: {
+        id: string;
+        user_id: string;
+        phone_raw: string;
+        phone_normalized: string;
+        nome: string | null;
+        avatar_url: string | null;
+        tipo: 'cliente' | 'lead' | 'unknown';
+        cliente_id: string | null;
+        lead_id: string | null;
+        total_conversas: number;
+        ultima_mensagem: string | null;
+        ultima_mensagem_data: string | null;
+        unread_count: number;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        phone_raw: string;
+        phone_normalized?: string;
+        nome?: string | null;
+        avatar_url?: string | null;
+        tipo?: 'cliente' | 'lead' | 'unknown';
+        cliente_id?: string | null;
+        lead_id?: string | null;
+        total_conversas?: number;
+        ultima_mensagem?: string | null;
+        ultima_mensagem_data?: string | null;
+        unread_count?: number;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        phone_raw?: string;
+        phone_normalized?: string;
+        nome?: string | null;
+        avatar_url?: string | null;
+        tipo?: 'cliente' | 'lead' | 'unknown';
+        cliente_id?: string | null;
+        lead_id?: string | null;
+        total_conversas?: number;
+        ultima_mensagem?: string | null;
+        ultima_mensagem_data?: string | null;
+        unread_count?: number;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Relationships: [
+        { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
+        { schema: 'public'; table: 'clientes'; columns: ['cliente_id'] },
+      ];
+    };
+    conversas_chats: {
+      Row: {
+        id: string;
+        user_id: string;
+        contato_id: string;
+        instance_id: string;
+        status: 'active' | 'archived' | 'blocked';
+        pin: 'pinned' | 'unpinned';
+        mute: boolean;
+        unread_count: number;
+        contato_nome: string | null;
+        contato_avatar: string | null;
+        contato_phone_normalized: string | null;
+        ultima_mensagem: string | null;
+        ultima_mensagem_data: string | null;
+        ultima_mensagem_type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template' | null;
+        ultima_mensagem_direction: 'inbound' | 'outbound' | null;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        contato_id: string;
+        instance_id: string;
+        status?: 'active' | 'archived' | 'blocked';
+        pin?: 'pinned' | 'unpinned';
+        mute?: boolean;
+        unread_count?: number;
+        contato_nome?: string | null;
+        contato_avatar?: string | null;
+        contato_phone_normalized?: string | null;
+        ultima_mensagem?: string | null;
+        ultima_mensagem_data?: string | null;
+        ultima_mensagem_type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template' | null;
+        ultima_mensagem_direction?: 'inbound' | 'outbound' | null;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        contato_id?: string;
+        instance_id?: string;
+        status?: 'active' | 'archived' | 'blocked';
+        pin?: 'pinned' | 'unpinned';
+        mute?: boolean;
+        unread_count?: number;
+        contato_nome?: string | null;
+        contato_avatar?: string | null;
+        contato_phone_normalized?: string | null;
+        ultima_mensagem?: string | null;
+        ultima_mensagem_data?: string | null;
+        ultima_mensagem_type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template' | null;
+        ultima_mensagem_direction?: 'inbound' | 'outbound' | null;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Relationships: [
+        { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
+        { schema: 'public'; table: 'conversas_contatos'; columns: ['contato_id'] },
+        { schema: 'public'; table: 'conversas_instancias'; columns: ['instance_id'] },
+      ];
+    };
+    conversas_mensagens: {
+      Row: {
+        id: string;
+        user_id: string;
+        chat_id: string;
+        instance_id: string;
+        evolution_msg_id: string | null;
+        direction: 'inbound' | 'outbound';
+        type: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template';
+        content: string;
+        media_url: string | null;
+        media_mime_type: string | null;
+        media_size_bytes: number | null;
+        media_filename: string | null;
+        status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+        is_forwarded: boolean | null;
+        timestamp: string;
+        created_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        chat_id: string;
+        instance_id: string;
+        evolution_msg_id?: string | null;
+        direction: 'inbound' | 'outbound';
+        type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template';
+        content?: string;
+        media_url?: string | null;
+        media_mime_type?: string | null;
+        media_size_bytes?: number | null;
+        media_filename?: string | null;
+        status?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+        is_forwarded?: boolean | null;
+        timestamp?: string;
+        created_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        chat_id?: string;
+        instance_id?: string;
+        evolution_msg_id?: string | null;
+        direction?: 'inbound' | 'outbound';
+        type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' | 'template';
+        content?: string;
+        media_url?: string | null;
+        media_mime_type?: string | null;
+        media_size_bytes?: number | null;
+        media_filename?: string | null;
+        status?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
+        is_forwarded?: boolean | null;
+        timestamp?: string;
+        created_at?: string;
+      };
+      Relationships: [
+        { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
+        { schema: 'public'; table: 'conversas_chats'; columns: ['chat_id'] },
+        { schema: 'public'; table: 'conversas_instancias'; columns: ['instance_id'] },
+      ];
+    };
+    conversas_notas: {
+      Row: {
+        id: string;
+        user_id: string;
+        chat_id: string;
+        content: string;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        chat_id: string;
+        content: string;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        chat_id?: string;
+        content?: string;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Relationships: [
+        { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
+        { schema: 'public'; table: 'conversas_chats'; columns: ['chat_id'] },
+      ];
+    };
+    conversas_templates: {
+      Row: {
+        id: string;
+        user_id: string;
+        nome: string;
+        conteudo: string;
+        variaveis: Json;
+        created_at: string;
+        updated_at: string;
+      };
+      Insert: {
+        id?: string;
+        user_id: string;
+        nome: string;
+        conteudo: string;
+        variaveis?: Json;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Update: {
+        id?: string;
+        user_id?: string;
+        nome?: string;
+        conteudo?: string;
+        variaveis?: Json;
+        created_at?: string;
+        updated_at?: string;
+      };
+      Relationships: [{ schema: 'public'; table: 'auth.users'; columns: ['user_id'] }];
+    };
+    conversas_webhook_events: {
+      Row: {
+        id: string;
+        instance_id: string;
+        event_type: string;
+        payload: Json;
+        processed: boolean;
+        error_message: string | null;
+        received_at: string;
+      };
+      Insert: {
+        id?: string;
+        instance_id: string;
+        event_type: string;
+        payload: Json;
+        processed?: boolean;
+        error_message?: string | null;
+        received_at?: string;
+      };
+      Update: {
+        id?: string;
+        instance_id?: string;
+        event_type?: string;
+        payload?: Json;
+        processed?: boolean;
+        error_message?: string | null;
+        received_at?: string;
+      };
+      Relationships: [];
+    };
     Functions: {
       _extra_unit_price_for_quantity: {
         Args: {

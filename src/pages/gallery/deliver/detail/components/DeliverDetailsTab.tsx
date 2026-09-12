@@ -186,7 +186,7 @@ export function DeliverDetailsTab({
             {isPrivate && (
               <div className="space-y-1.5 pt-1">
                 <Label htmlFor="password" className="text-xs font-medium">
-                  Senha de acesso
+                  Senha de acesso <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="password"
@@ -194,7 +194,17 @@ export function DeliverDetailsTab({
                   value={galleryPassword}
                   onChange={(e) => setGalleryPassword(e.target.value)}
                   placeholder="Digite a senha da galeria"
+                  className={cn(!galleryPassword.trim() && 'border-amber-500/60 focus-visible:ring-amber-500')}
                 />
+                {!galleryPassword.trim() ? (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                    A senha é obrigatória para galerias privadas.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Esta senha será solicitada ao cliente para acessar a galeria.
+                  </p>
+                )}
               </div>
             )}
           </div>

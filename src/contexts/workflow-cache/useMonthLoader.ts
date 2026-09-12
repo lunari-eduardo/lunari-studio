@@ -77,35 +77,49 @@ export const useMonthLoader = ({
     [],
   );
 
+  const isPreloadingRef = useRef(false);
+
   const fetchAndCacheMonth = useCallback(async (year: number, month: number) => {
     if (!userId) return;
     const key = getCacheKey(year, month);
+
+    // Se já existe um fetch em andamento para este mês, reaproveita a promessa ativa
+    const existing = pendingLoads.current.get(key);
+    if (existing) return existing;
+
     // Cancela fetch anterior deste mesmo mês (troca rápida entre meses).
     monthAbortControllers.current.get(key)?.abort();
     const controller = new AbortController();
     monthAbortControllers.current.set(key, controller);
-    try {
-      const sessions = await sessionsRepo.listByMonth(userId, year, month, { signal: controller.signal });
-      // Se este controller já foi substituído, ignora o resultado (stale).
-      if (monthAbortControllers.current.get(key) !== controller) return;
-      setMonthData(year, month, sessions);
-      lastSilentRefreshAt.current.set(key, Date.now());
-    } catch (error: any) {
-      if (error?.name === 'AbortError' || error?.code === '20') return;
-      console.error('Error fetching month data:', error);
-      // Só marca erro se ainda somos o controller vigente (não fomos abortados).
-      if (monthAbortControllers.current.get(key) === controller) {
-        const hasCache = memoryCache.current.has(key);
-        setMonthState(year, month, {
-          status: hasCache ? 'ready' : 'error',
-          error: error?.message ?? String(error),
-        });
+
+    const promise = (async () => {
+      try {
+        const sessions = await sessionsRepo.listByMonth(userId, year, month, { signal: controller.signal });
+        // Se este controller já foi substituído, ignora o resultado (stale).
+        if (monthAbortControllers.current.get(key) !== controller) return;
+        setMonthData(year, month, sessions);
+        lastSilentRefreshAt.current.set(key, Date.now());
+      } catch (error: any) {
+        if (error?.name === 'AbortError' || error?.code === '20') return;
+        console.error('Error fetching month data:', error);
+        // Só marca erro se ainda somos o controller vigente (não fomos abortados).
+        if (monthAbortControllers.current.get(key) === controller) {
+          const hasCache = memoryCache.current.has(key);
+          setMonthState(year, month, {
+            status: hasCache ? 'ready' : 'error',
+            error: error?.message ?? String(error),
+          });
+        }
+      } finally {
+        if (monthAbortControllers.current.get(key) === controller) {
+          monthAbortControllers.current.delete(key);
+        }
+        pendingLoads.current.delete(key);
       }
-    } finally {
-      if (monthAbortControllers.current.get(key) === controller) {
-        monthAbortControllers.current.delete(key);
-      }
-    }
+    })();
+
+    pendingLoads.current.set(key, promise);
+    return promise;
   }, [userId, memoryCache, setMonthData, setMonthState]);
 
   const silentRefreshMonth = useCallback(async (year: number, month: number, force = false) => {
@@ -150,30 +164,33 @@ export const useMonthLoader = ({
   }, [userId, memoryCache, setMonthData, setMonthState]);
 
   const preloadMonths = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || isPreloadingRef.current) return;
+    isPreloadingRef.current = true;
     setIsPreloading(true);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const key = getCacheKey(year, month);
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const key = getCacheKey(year, month);
 
-    // Reidratação síncrona do IDB (rápido).
-    const cached = await indexedDBCache.get<WorkflowSession[]>(userId, year, month);
-    if (cached) {
-      memoryCache.current.set(key, cached);
-      setMonthState(year, month, { status: 'ready', error: null, loadedAt: Date.now() });
-      notifySubscribers();
-    }
+      // Reidratação síncrona do IDB (rápido).
+      const cached = await indexedDBCache.get<WorkflowSession[]>(userId, year, month);
+      if (cached) {
+        memoryCache.current.set(key, cached);
+        setMonthState(year, month, { status: 'ready', error: null, loadedAt: Date.now() });
+        notifySubscribers();
+      }
 
-    // Fetch fresco em background — silent refresh, não bloqueia UI.
-    fetchAndCacheMonth(year, month).finally(() => {
+      // Fetch fresco em background — silent refresh, não bloqueia UI.
+      await fetchAndCacheMonth(year, month);
       lastSilentRefreshAt.current.set(key, Date.now());
-    });
 
-    // Métricas do mês corrente (única prefetch — adjacentes vêm por hover).
-    prefetchMonthMetrics(userId, year, month);
-
-    setIsPreloading(false);
+      // Métricas do mês corrente (única prefetch — adjacentes vêm por hover).
+      prefetchMonthMetrics(userId, year, month);
+    } finally {
+      setIsPreloading(false);
+      isPreloadingRef.current = false;
+    }
   }, [userId, memoryCache, setMonthState, notifySubscribers, fetchAndCacheMonth]);
 
   const ensureMonthLoaded = useCallback(async (year: number, month: number, forceRefresh = false) => {

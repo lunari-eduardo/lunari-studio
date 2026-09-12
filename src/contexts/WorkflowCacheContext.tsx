@@ -52,6 +52,13 @@ export const WorkflowCacheProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setMonthDataRef = useRef<(year: number, month: number, sessions: WorkflowSession[]) => void>(() => {});
 
+  const handleSetMonthData = useCallback(
+    (year: number, month: number, sessions: WorkflowSession[]) => {
+      setMonthDataRef.current(year, month, sessions);
+    },
+    []
+  );
+
   const {
     isPreloading,
     setMonthState,
@@ -67,7 +74,7 @@ export const WorkflowCacheProvider: React.FC<{ children: React.ReactNode }> = ({
   } = useMonthLoader({
     userId,
     memoryCache,
-    setMonthData: (year, month, sessions) => setMonthDataRef.current(year, month, sessions),
+    setMonthData: handleSetMonthData,
     notifySubscribers,
   });
 
@@ -140,10 +147,15 @@ export const WorkflowCacheProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // Preload ao definir userId
+  const preloadedUserIdRef = useRef<string | null>(null);
+
+  // Preload ao definir userId (executa apenas uma vez por login de usuário)
   useEffect(() => {
-    if (userId) {
+    if (userId && preloadedUserIdRef.current !== userId) {
+      preloadedUserIdRef.current = userId;
       preloadMonths();
+    } else if (!userId) {
+      preloadedUserIdRef.current = null;
     }
   }, [userId, preloadMonths]);
 

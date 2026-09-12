@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { SUPABASE_URL } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../types';
 
 interface UseClientGalleryAuthProps {
   identifier?: string;
-  galleryResponse: any;
+  galleryResponse?: any;
   refetchGallery: () => Promise<any>;
 }
 
 export function useClientGalleryAuth({
   identifier,
-  galleryResponse,
+  galleryResponse: initialGalleryResponse,
   refetchGallery,
 }: UseClientGalleryAuthProps) {
   // Password state
@@ -31,50 +31,75 @@ export function useClientGalleryAuth({
     return identifier ? localStorage.getItem(`gallery_visitor_name_${identifier}`) : null;
   });
 
-  // Handle password and visitor requirement from response
-  useEffect(() => {
-    if (galleryResponse?.requiresPassword) {
+  // Sincroniza resposta da galeria com o estado de autenticação
+  const syncGalleryResponse = useCallback((res: any, error?: any) => {
+    // Se a API retornou que a senha informada no sessionStorage está incorreta ou requer autenticação
+    if (error?.message === 'Senha incorreta' || (error as any)?.code === 'WRONG_PASSWORD') {
+      if (identifier) {
+        sessionStorage.removeItem(`gallery_password_${identifier}`);
+      }
+      setSessionPassword(null);
       setRequiresPassword(true);
+      setPasswordError('Senha incorreta');
+      return;
     }
-    if (galleryResponse?.requiresVisitor) {
+
+    if (res?.requiresPassword) {
+      setRequiresPassword(true);
+      if (res.error) setPasswordError(res.error);
+    } else if (res?.photos || res?.deliver) {
+      setRequiresPassword(false);
+      setPasswordError(undefined);
+    }
+
+    if (res?.requiresVisitor) {
       setRequiresVisitor(true);
+    } else if (res?.photos || res?.deliver) {
+      setRequiresVisitor(false);
     }
-    // Recover visitor info from response
-    if (galleryResponse?.visitorId && !visitorId && identifier) {
-      setVisitorId(galleryResponse.visitorId);
-      setVisitorName(galleryResponse.visitorName || null);
-      localStorage.setItem(`gallery_visitor_${identifier}`, galleryResponse.visitorId);
-      if (galleryResponse.visitorName) {
-        localStorage.setItem(`gallery_visitor_name_${identifier}`, galleryResponse.visitorName);
+
+    // Recuperar info de visitante da resposta
+    const currentVisitorId = visitorId || (identifier ? localStorage.getItem(`gallery_visitor_${identifier}`) : null);
+    const respVisitorId = res?.visitorId || res?.gallery?.visitorId;
+    const respVisitorName = res?.visitorName || res?.gallery?.visitorName;
+
+    if (respVisitorId && !currentVisitorId && identifier) {
+      setVisitorId(respVisitorId);
+      setVisitorName(respVisitorName || null);
+      localStorage.setItem(`gallery_visitor_${identifier}`, respVisitorId);
+      if (respVisitorName) {
+        localStorage.setItem(`gallery_visitor_name_${identifier}`, respVisitorName);
       }
     }
-    // Also check gallery.visitorId (nested in gallery object)
-    if (galleryResponse?.gallery?.visitorId && !visitorId && identifier) {
-      setVisitorId(galleryResponse.gallery.visitorId);
-      setVisitorName(galleryResponse.gallery.visitorName || null);
-      localStorage.setItem(`gallery_visitor_${identifier}`, galleryResponse.gallery.visitorId);
-      if (galleryResponse.gallery.visitorName) {
-        localStorage.setItem(`gallery_visitor_name_${identifier}`, galleryResponse.gallery.visitorName);
-      }
+  }, [identifier, visitorId]);
+
+  // Handle password and visitor requirement from initial response if provided
+  useEffect(() => {
+    if (initialGalleryResponse) {
+      syncGalleryResponse(initialGalleryResponse);
     }
-  }, [galleryResponse, identifier, visitorId]);
+  }, [initialGalleryResponse, syncGalleryResponse]);
 
   // Handle password submit
   const handlePasswordSubmit = async (password: string) => {
     if (!identifier) return;
+    const cleanPassword = password.trim();
+    if (!cleanPassword) return;
+
     setIsCheckingPassword(true);
     setPasswordError(undefined);
     
     try {
-      sessionStorage.setItem(`gallery_password_${identifier}`, password);
-      setSessionPassword(password);
-      
       const response = await fetch(`${SUPABASE_URL}/functions/v1/gallery-access`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ 
           token: identifier, 
-          password: password 
+          password: cleanPassword, 
         }),
       });
       
@@ -89,11 +114,16 @@ export function useClientGalleryAuth({
         throw new Error(result.error || 'Erro ao acessar galeria');
       }
       
-      // Success - refetch gallery data
-      await refetchGallery();
+      // Senha validada com sucesso
+      sessionStorage.setItem(`gallery_password_${identifier}`, cleanPassword);
+      setSessionPassword(cleanPassword);
       setRequiresPassword(false);
-    } catch (error) {
-      setPasswordError('Erro ao verificar senha');
+      setPasswordError(undefined);
+
+      // Reexecuta query da galeria
+      await refetchGallery();
+    } catch (error: any) {
+      setPasswordError(error?.message || 'Erro ao verificar senha');
       sessionStorage.removeItem(`gallery_password_${identifier}`);
     } finally {
       setIsCheckingPassword(false);
@@ -166,5 +196,6 @@ export function useClientGalleryAuth({
     visitorId,
     visitorName,
     handleVisitorSubmit,
+    syncGalleryResponse,
   };
 }

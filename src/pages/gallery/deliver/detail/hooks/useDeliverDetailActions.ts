@@ -30,6 +30,7 @@ export function useDeliverDetailActions(data: DeliverData) {
     welcomeEnabled,
     welcomeMessage,
     isPrivate,
+    galleryPassword,
     coverId,
     expirationDate,
     setExpirationDate,
@@ -55,14 +56,28 @@ export function useDeliverDetailActions(data: DeliverData) {
 
   const handleSave = async () => {
     if (!id || !gallery) return;
+
+    if (!sessionName.trim()) {
+      toast.error('Informe o nome da sessão');
+      return;
+    }
+
+    if (isPrivate && !galleryPassword.trim()) {
+      toast.error('Informe a senha para a galeria privada');
+      return;
+    }
+
     setSaving(true);
     try {
+      const finalPassword = isPrivate ? galleryPassword.trim() : null;
+
       await updateGallery({
         id,
         data: {
-          nomeSessao: sessionName,
+          nomeSessao: sessionName.trim(),
           mensagemBoasVindas: welcomeEnabled ? (welcomeMessage.trim() || null) : null,
           permissao: isPrivate ? 'private' : 'public',
+          galleryPassword: finalPassword,
           coverId: coverId,
           prazoSelecao: expirationDate,
           configuracoes: {
@@ -82,9 +97,16 @@ export function useDeliverDetailActions(data: DeliverData) {
         },
       });
 
+      await queryClient.invalidateQueries({ queryKey: ['gallery-by-id', id] });
+      await queryClient.invalidateQueries({ queryKey: ['galleries'] });
+      await queryClient.invalidateQueries({ queryKey: ['galerias'] });
+      await queryClient.invalidateQueries({ queryKey: ['client-gallery'] });
+
+      toast.success('Alterações salvas com sucesso!');
       navigate('/app/gallery/list?tab=transfer');
     } catch (error) {
       console.error('Erro ao salvar:', error);
+      toast.error('Erro ao salvar alterações da galeria');
     } finally {
       setSaving(false);
     }
@@ -225,7 +247,11 @@ export function useDeliverDetailActions(data: DeliverData) {
 
   const openWhatsApp = async (galleryUrl: string) => {
     if (!gallery) return;
-    const message = `${shareMessage}\n\n${galleryUrl}`;
+    const currentPassword = gallery.galleryPassword || galleryPassword;
+    const passwordSuffix = (gallery.permissao === 'private' && currentPassword)
+      ? `\n\n🔐 Senha: ${currentPassword}`
+      : '';
+    const message = `${shareMessage}${passwordSuffix}\n\n${galleryUrl}`;
     const { url, hasDirectContact } = buildWhatsAppUrl(gallery.clienteTelefone, message);
     if (!hasDirectContact) {
       try {

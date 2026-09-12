@@ -53,6 +53,10 @@ export default function ClientGallery() {
     visitorId: auth.visitorId,
   });
 
+  useEffect(() => {
+    auth.syncGalleryResponse(galleryResponse, galleryError);
+  }, [galleryResponse, galleryError, auth]);
+
   const { effectiveBackgroundMode, themeStyles } = useClientGalleryTheme({
     galleryResponse,
     sessionName: transformedGallery?.sessionName,
@@ -192,7 +196,20 @@ export default function ClientGallery() {
   }
 
   // 3. Autenticação por senha ou registro de visitante
-  if ((auth.requiresPassword && !auth.sessionPassword) || (auth.requiresVisitor && !auth.visitorId)) {
+  const isPasswordRequired = Boolean(
+    auth.requiresPassword || 
+    galleryResponse?.requiresPassword || 
+    (galleryError && galleryError.message === 'Senha incorreta')
+  );
+  const isVisitorRequired = Boolean(
+    auth.requiresVisitor || 
+    galleryResponse?.requiresVisitor
+  );
+
+  const needsPasswordAuth = isPasswordRequired && (!auth.sessionPassword || (galleryError && galleryError.message === 'Senha incorreta'));
+  const needsVisitorAuth = isVisitorRequired && !auth.visitorId;
+
+  if (needsPasswordAuth || needsVisitorAuth) {
     return (
       <UnifiedAccessScreen
         sessionName={galleryResponse?.sessionName}
@@ -200,8 +217,8 @@ export default function ClientGallery() {
         titleCaseMode={(supabaseGallery?.configuracoes?.titleCaseMode || galleryResponse?.settings?.titleCaseMode) as TitleCaseMode || 'normal'}
         studioName={galleryResponse?.studioSettings?.studio_name}
         studioLogo={galleryResponse?.studioSettings?.studio_logo_url}
-        requiresPassword={auth.requiresPassword && !auth.sessionPassword}
-        requiresVisitor={auth.requiresVisitor && !auth.visitorId}
+        requiresPassword={needsPasswordAuth}
+        requiresVisitor={needsVisitorAuth}
         totalPhotos={galleryResponse?.pagination?.total || selection.localPhotos.length}
         includedPhotos={transformedGallery?.includedPhotos}
         deadline={transformedGallery?.settings?.deadline}
@@ -313,7 +330,7 @@ export default function ClientGallery() {
   }
 
   // 8. Erro de galeria não encontrada ou não disponível
-  if ((galleryError || !transformedGallery) && !auth.requiresPassword && !auth.requiresVisitor) {
+  if ((galleryError || !transformedGallery) && !isPasswordRequired && !isVisitorRequired) {
     const errorMessage = galleryError?.message || '';
     const isNotAvailable = errorMessage === 'Galeria não disponível';
     const isPublishing = errorMessage === 'GALLERY_PUBLISHING';
