@@ -1,12 +1,13 @@
 import { PhotoPaths } from '@/lib/photoUrl';
 
-// Usaremos imagens de alta qualidade via CDN para garantir o carregamento estável no preview
-// Preservamos proporções realistas (3:2 horizontal e 2:3 vertical)
+// Padrão global de demonstração — fotos do casal em campo ao entardecer.
+// Preservam proporções realistas (3:2 horizontal e 2:3 vertical).
+// Utilizadas em todos os previews de capa/grid quando não há fotos reais na galeria.
 export const DEMO_PHOTOS = [
   {
     id: '1',
-    storageKey: 'demo1',
-    originalFilename: 'casamento-01.jpg',
+    storageKey: 'demo-casal-horizontal',
+    originalFilename: 'casal-campo-horizontal.jpg',
     width: 1500,
     height: 1000,
     previewPath: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1500&auto=format&fit=crop',
@@ -15,8 +16,8 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '2',
-    storageKey: 'demo2',
-    originalFilename: 'casamento-02.jpg',
+    storageKey: 'demo-casal-vertical',
+    originalFilename: 'casal-campo-vertical.jpg',
     width: 1000,
     height: 1500,
     previewPath: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=1000&auto=format&fit=crop',
@@ -24,8 +25,8 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '3',
-    storageKey: 'demo3',
-    originalFilename: 'casamento-03.jpg',
+    storageKey: 'demo-casal-vertical-2',
+    originalFilename: 'casal-campo-vertical-2.jpg',
     width: 1000,
     height: 1500,
     previewPath: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?q=80&w=1000&auto=format&fit=crop',
@@ -33,7 +34,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '4',
-    storageKey: 'demo4',
+    storageKey: 'demo-casamento-horizontal',
     originalFilename: 'casamento-04.jpg',
     width: 1500,
     height: 1000,
@@ -43,7 +44,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '5',
-    storageKey: 'demo5',
+    storageKey: 'demo-casamento-horizontal-2',
     originalFilename: 'casamento-05.jpg',
     width: 1500,
     height: 1000,
@@ -52,7 +53,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '6',
-    storageKey: 'demo6',
+    storageKey: 'demo-casamento-vertical',
     originalFilename: 'casamento-06.jpg',
     width: 1000,
     height: 1500,
@@ -61,7 +62,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '7',
-    storageKey: 'demo7',
+    storageKey: 'demo-casamento-vertical-2',
     originalFilename: 'casamento-07.jpg',
     width: 1000,
     height: 1500,
@@ -70,7 +71,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '8',
-    storageKey: 'demo8',
+    storageKey: 'demo-casamento-horizontal-3',
     originalFilename: 'casamento-08.jpg',
     width: 1500,
     height: 1000,
@@ -79,7 +80,7 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '9',
-    storageKey: 'demo9',
+    storageKey: 'demo-casamento-vertical-3',
     originalFilename: 'casamento-09.jpg',
     width: 1000,
     height: 1500,
