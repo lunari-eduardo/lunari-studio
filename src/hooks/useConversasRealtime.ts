@@ -298,30 +298,49 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   // ─── Instance Operations ─────────────────────────────────────────────────────
 
+  /**
+   * Refresh do QR code via Worker (proxy autenticado).
+   * A chave da Evolution API nunca sai do Worker — ela é lida de `c.env`.
+   */
   const refreshQrCode = useCallback(async (instanceId: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_EVOLUTION_API_URL}/instance/connect/${instanceId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_EVOLUTION_API_KEY ?? '',
-          },
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sessão expirada — faça login novamente.');
+        return;
+      }
+
+      const workerUrl = import.meta.env.VITE_WORKER_URL;
+      if (!workerUrl) {
+        toast.error('VITE_WORKER_URL não configurada no ambiente.');
+        return;
+      }
+
+      const response = await fetch(`${workerUrl}/api/conversas/instance/connect/${instanceId}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
-      );
+      });
 
-      if (!response.ok) throw new Error('Failed to refresh QR code');
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
 
-      const data = await response.json();
+      const payload = await response.json();
+      if (!payload.ok) {
+        throw new Error(payload.error ?? 'Resposta inválida do Worker');
+      }
 
+      const qrcode = payload.data?.qrcode ?? {};
       setInstancias(prev =>
         prev.map(i =>
           i.id === instanceId
             ? {
                 ...i,
-                qrcode_data: data.qrcode?.code ?? null,
-                qrcode_expires_at: data.qrcode?.expiresAt ?? null,
+                qrcode_data: qrcode.code ?? null,
+                qrcode_expires_at: qrcode.expiresAt ?? null,
                 status: 'connecting' as InstanciaStatus,
               }
             : i,
@@ -335,60 +354,43 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
   }, []);
 
   /**
-   * Cria uma instância na Evolution API e persiste em `conversas_instancias`.
-   * Usado pela primeira vez em `/conversas` quando o fotógrafo ainda não conectou.
+   * Cria uma instância na Evolution API (via Worker) e persiste em
+   * `conversas_instancias`. O frontend não tem acesso à apikey da Evolution.
    */
   const createInstance = useCallback(async (instanceName: string) => {
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_EVOLUTION_API_URL}/instance/create`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: import.meta.env.VITE_EVOLUTION_API_KEY ?? '',
-          },
-          body: JSON.stringify({
-            instanceName,
-            qrcode: true,
-            integration: 'WHATSAPP-BUSINESS',
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Evolution API retornou ${response.status}: ${errText}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sessão expirada — faça login novamente.');
+        return;
       }
 
-      const data = await response.json();
-      const qrcode = data.qrcode ?? {};
-      const expiresAt =
-        typeof qrcode.expires === 'number'
-          ? new Date(Date.now() + qrcode.expires * 1000).toISOString()
-          : null;
+      const workerUrl = import.meta.env.VITE_WORKER_URL;
+      if (!workerUrl) {
+        toast.error('VITE_WORKER_URL não configurada no ambiente.');
+        return;
+      }
 
-      const userId = await loadUserId();
-      if (!userId) throw new Error('Sessão expirada — faça login novamente.');
+      const response = await fetch(`${workerUrl}/api/conversas/instance/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ instanceName }),
+      });
 
-      // Persistir a instância para o realtime propagar.
-      const { data: inserted, error: insertError } = await supabase
-        .from('conversas_instancias')
-        .insert({
-          user_id: userId,
-          instance_name: instanceName,
-          instance_id: data.instance?.instanceId ?? null,
-          status: 'connecting',
-          phone: null,
-          qrcode_data: qrcode.code ?? null,
-          qrcode_expires_at: expiresAt,
-          evolution_token: data.hash ?? null,
-        })
-        .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at')
-        .single();
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}: ${errText}`);
+      }
 
-      if (insertError) throw insertError;
+      const payload = await response.json();
+      if (!payload.ok) {
+        throw new Error(payload.error ?? 'Resposta inválida do Worker');
+      }
 
+      const inserted = payload.data?.instance;
       if (inserted) {
         setInstancias(prev =>
           prev.some(i => i.id === inserted.id) ? prev : [...prev, inserted],
@@ -400,7 +402,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       toast.error('Erro ao criar instância: ' + err.message);
       throw err;
     }
-  }, [loadUserId]);
+  }, []);
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
 

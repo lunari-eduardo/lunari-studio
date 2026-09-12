@@ -19,6 +19,9 @@ import { lookupAgendaOnlineClientRoute } from './routes/agenda-online-client-loo
 import { conversasWebhookRoute } from './routes/conversas-webhook.js';
 import { conversasSendMessageRoute } from './routes/conversas-send-message.js';
 import { conversasMediaUploadRoute } from './routes/conversas-media-upload.js';
+import { conversasInstanceCreateRoute } from './routes/conversas-instance-create.js';
+import { conversasInstanceConnectRoute } from './routes/conversas-instance-connect.js';
+import { conversasInstanceStatusRoute } from './routes/conversas-instance-status.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -88,5 +91,10 @@ app.post('/api/agenda/online/:slug/reserve', reserveAgendaOnlineSlotRoute);
 app.post('/api/conversas/webhook', conversasWebhookRoute);
 app.post('/api/conversas/send-message', conversasSendMessageRoute);
 app.post('/api/conversas/media-upload', conversasMediaUploadRoute);
+
+// Proxies autenticados para a Evolution API (não expor a apikey no frontend).
+app.post('/api/conversas/instance/create', conversasInstanceCreateRoute);
+app.get('/api/conversas/instance/connect/:id', conversasInstanceConnectRoute);
+app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
 
 export default app;

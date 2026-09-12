@@ -1,25 +1,4 @@
-/**
- * Normaliza um telefone brasileiro e constrói uma URL wa.me.
- *
- * Regras de normalização:
- * - Remove tudo que não for dígito.
- * - Se tiver 12 ou 13 dígitos e começar com '55' → já está com DDI, usa como está.
- * - Se tiver 10 ou 11 dígitos → BR sem DDI, prefixa '55'.
- * - Qualquer outro caso → retorna null (formato inesperado).
- */
-export function normalizeBrPhone(phone: string | null | undefined): string | null {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
-  if (!digits) return null;
-
-  if ((digits.length === 12 || digits.length === 13) && digits.startsWith('55')) {
-    return digits;
-  }
-  if (digits.length === 10 || digits.length === 11) {
-    return `55${digits}`;
-  }
-  return null;
-}
+import { normalizeBrPhone } from './phone';
 
 /**
  * Constrói a URL do WhatsApp para a conversa direta quando possível.
@@ -33,8 +12,10 @@ export function buildWhatsAppUrl(
 ): { url: string; hasDirectContact: boolean } {
   const normalized = normalizeBrPhone(phone);
   const encoded = encodeURIComponent(message);
-  if (normalized) {
-    return { url: `https://wa.me/${normalized}?text=${encoded}`, hasDirectContact: true };
+  // wa.me aceita tanto com `+` quanto sem. Removemos o `+` para consistência.
+  const withoutPlus = normalized?.replace(/^\+/, '');
+  if (withoutPlus) {
+    return { url: `https://wa.me/${withoutPlus}?text=${encoded}`, hasDirectContact: true };
   }
   return { url: `https://wa.me/?text=${encoded}`, hasDirectContact: false };
 }

@@ -10,19 +10,12 @@
 import { useEffect, useCallback, useState, useId } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Contato, ContatoUpdate } from '@/modules/conversas/types';
+import { normalizeBrPhone } from '@/lib/phone';
 
 const DEBUG = false;
 
-/** Converte telefone brasileiro para formato E.164 (apenas números + 55) */
-export function normalizeBrPhone(phoneRaw: string): string {
-  const digits = phoneRaw.replace(/\D/g, '');
-  // Aceita: 11999999999, 5511999999999, +5511999999999
-  if (digits.length === 11) return `55${digits}`;
-  if (digits.length === 13 && digits.startsWith('55')) return digits;
-  if (digits.length === 12 && digits.startsWith('55')) return `5${digits}`;
-  if (digits.length === 10) return `55${digits}`;
-  return digits;
-}
+// Re-export para manter compatibilidade com código que já importava deste hook.
+export { normalizeBrPhone };
 
 export interface UseConversasContatosReturn {
   contatos: Contato[];
@@ -138,16 +131,19 @@ export function useConversasContatos(): UseConversasContatosReturn {
 
   const getContatoByPhoneRaw = useCallback(
     (phoneRaw: string): Contato | undefined => {
-      const normalized = normalizeBrPhone(phoneRaw);
+      const normalized = normalizeBrPhone(phoneRaw)?.replace(/^\+/, '') ?? null;
       // Try exact match first
-      const exact = getContatoByPhone(normalized);
-      if (exact) return exact;
-      // Fallback: match without country code
-      const digits = normalized.replace(/^55/, '');
-      return contatos.find(c =>
-        c.phone_normalized.endsWith(digits) ||
-        c.phone_raw.replace(/\D/g, '').endsWith(digits),
-      );
+      if (normalized) {
+        const exact = getContatoByPhone(normalized);
+        if (exact) return exact;
+        // Fallback: match without country code
+        const digits = normalized.replace(/^55/, '');
+        return contatos.find(c =>
+          c.phone_normalized.endsWith(digits) ||
+          c.phone_raw.replace(/\D/g, '').endsWith(digits),
+        );
+      }
+      return undefined;
     },
     [contatos, getContatoByPhone],
   );

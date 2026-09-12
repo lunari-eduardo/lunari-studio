@@ -18,6 +18,7 @@ import { Context } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
 import { getBucketBinding, getCdnUrl } from '../utils/r2-helpers.js';
+import { normalizeBrPhone } from '../utils/phone.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,15 +83,7 @@ interface EvolutionWebhookBody {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function normalizeBrPhone(phoneRaw: string): string {
-  const digits = phoneRaw.replace(/\D/g, '');
-  if (digits.length === 11) return `55${digits}`;
-  if (digits.length === 13 && digits.startsWith('55')) return digits;
-  if (digits.length === 12 && digits.startsWith('55')) return `5${digits}`;
-  if (digits.length === 10) return `55${digits}`;
-  return digits;
-}
+// normalizeBrPhone vem de '../utils/phone.js' (importado acima).
 
 function extractPhone(remoteJid: string): string {
   // "5511999999999@s.whatsapp.net" → "5511999999999"
@@ -356,8 +349,12 @@ async function handleMessagesUpsert(
   }
 
   const { user_id, id: instanceId } = instance;
-  const phoneNormalized = normalizeBrPhone(extractPhone(msg.key.remoteJid));
   const phoneRaw = extractPhone(msg.key.remoteJid);
+  const phoneNormalized = normalizeBrPhone(phoneRaw);
+  if (!phoneNormalized) {
+    console.warn(`[conversas-webhook] Telefone inválido ignorado: ${phoneRaw}`);
+    return;
+  }
   const content = extractContent(msg);
   const msgType = extractMessageType(msg);
   const mediaInfo = extractMediaInfo(msg);
