@@ -55,8 +55,10 @@ export function getPhotoUrl(
 
   if (!path) return '/placeholder.svg';
 
-  // If path is already an absolute URL, return it
-  if (path.startsWith('http')) return path;
+  // If path is already an absolute URL, local path, or data/blob URL, return it
+  if (path.startsWith('http') || path.startsWith('/') || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
 
   // Direct URL to R2 public bucket
   return `${R2_PUBLIC_URL}/${path}`;
@@ -71,6 +73,9 @@ export function getPhotoUrl(
  */
 export function getDisplayUrl(storageKey: string | null | undefined): string {
   if (!storageKey) return '/placeholder.svg';
+  if (storageKey.startsWith('http') || storageKey.startsWith('/') || storageKey.startsWith('data:') || storageKey.startsWith('blob:')) {
+    return storageKey;
+  }
   return `${R2_PUBLIC_URL}/${storageKey}`;
 }
 

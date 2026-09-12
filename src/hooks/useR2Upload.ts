@@ -11,6 +11,7 @@ export type R2Context =
   | 'client-document'
   | 'contrato-assinado'
   | 'proposals-pdf'
+  | 'conversas-media'
   | 'general';
 
 export interface R2UploadResult {

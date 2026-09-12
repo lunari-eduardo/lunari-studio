@@ -19,6 +19,7 @@ import AnaliseVendas from "@/pages/AnaliseVendas";
 import MinhaConta from "@/pages/MinhaConta";
 import Integracoes from "@/pages/Integracoes";
 import Tarefas from "@/pages/Tarefas";
+import Conversas from "@/pages/Conversas";
 import ComercialOverviewPage from "@/pages/comercial/ComercialOverviewPage";
 import BibliotecaComercialPage from "@/pages/comercial/BibliotecaComercialPage";
 import EditorPropostaPage from "@/pages/comercial/EditorPropostaPage";
@@ -310,6 +311,9 @@ export default function PhotographerApp() {
                 <Route path="integracoes" element={<Integracoes />} />
                 <Route path="tarefas" element={
                   <PlanRestrictionGuard entitlement="tasks"><Tarefas /></PlanRestrictionGuard>
+                } />
+                <Route path="conversas" element={
+                  <PlanRestrictionGuard entitlement="conversas"><Conversas /></PlanRestrictionGuard>
                 } />
                 <Route path="feed-test" element={<Navigate to="/app/workflow" replace />} />
                 <Route path="preferencias" element={<Navigate to="/app/minha-conta" replace />} />

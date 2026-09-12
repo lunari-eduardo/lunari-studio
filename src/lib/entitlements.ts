@@ -1,4 +1,4 @@
-export type EntitlementKey = 
+export type EntitlementKey =
   | 'tasks'
   | 'charge_links'
   | 'agenda_availability'
@@ -15,7 +15,8 @@ export type EntitlementKey =
   | 'commercial'
   | 'transfer_upload'
   | 'select_credits_renewal'
-  | 'email_automations';
+  | 'email_automations'
+  | 'conversas';
 
 export const ENTITLEMENT_NAMES: Record<EntitlementKey, string> = {
   tasks: 'Tarefas',
@@ -34,5 +35,6 @@ export const ENTITLEMENT_NAMES: Record<EntitlementKey, string> = {
   commercial: 'Comercial',
   transfer_upload: 'Upload de Transfer',
   select_credits_renewal: 'Renovação de Créditos Select',
-  email_automations: 'Automação de E-mails'
+  email_automations: 'Automação de E-mails',
+  conversas: 'Conversas (WhatsApp)'
 };

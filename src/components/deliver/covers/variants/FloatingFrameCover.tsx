@@ -61,7 +61,10 @@ export default function FloatingFrameCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('vertical');
+  const rawUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : null;
+  const coverUrl = (rawUrl && rawUrl !== '/placeholder.svg' && !rawUrl.includes('placeholder.svg'))
+    ? rawUrl
+    : getFallbackCoverUrl('vertical');
   const intrinsic = useImageIntrinsicSize(coverUrl);
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
@@ -261,6 +264,9 @@ export default function FloatingFrameCover({
             alt={sessionName || 'Cover photo'}
             draggable={false}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+            onError={(e) => {
+              e.currentTarget.src = getFallbackCoverUrl('vertical');
+            }}
           />
         </div>
       </div>

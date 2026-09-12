@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useInputMode } from '@/hooks/useInputMode';
-import { CalendarClock, UserCheck, Settings, Settings2, Palette, Filter, Wallet, Menu, X, Tag, GitBranch, PieChart, LayoutGrid, CheckSquare, Crown, Plug, Brain, BookOpen, Briefcase, Target, Send, BarChart, Home, ChevronDown } from 'lucide-react';
+import { CalendarClock, UserCheck, Settings, Settings2, Palette, Filter, Wallet, Menu, X, Tag, GitBranch, PieChart, LayoutGrid, CheckSquare, Crown, Plug, Brain, BookOpen, Briefcase, Target, Send, BarChart, Home, ChevronDown, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAccessControl } from '@/hooks/useAccessControl';
@@ -340,6 +340,7 @@ export default function Sidebar() {
       ]
     },
     { to: "/app/clientes", icon: <UserCheck size={14} />, label: "Clientes" },
+    { to: "/app/conversas", icon: <MessageSquare size={14} />, label: "Conversas", isPro: true },
     { to: "/app/precificacao", icon: <Tag size={14} />, label: "Precificação", isPro: true },
     { to: "/app/analise-vendas", icon: <PieChart size={14} />, label: "Análise de Vendas", isPro: true },
     

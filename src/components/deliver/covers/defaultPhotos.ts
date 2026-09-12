@@ -2,22 +2,26 @@ import type { PhotoPaths } from '@/lib/photoUrl';
 
 /**
  * Fotos padrão profissionais utilizadas como fallback quando a galeria ainda não possui fotos.
- * Ambas as imagens retratam um ensaio de alta qualidade com iluminação e estética editorial.
- * Substituídas pelas fotos do casal em campo ao entardecer (Unsplash).
+ * Imagem 2 (horizontal) e Imagem 3 (vertical) enviadas pelo fotógrafo.
  */
 
+export const DEFAULT_HORIZONTAL_COVER_URL = '/images/covers/default-cover-horizontal.jpg';
+export const DEFAULT_VERTICAL_COVER_URL = '/images/covers/default-cover-vertical.jpg';
+
 export const DEFAULT_HORIZONTAL_COVER: PhotoPaths = {
-  storageKey: 'horizontal-cover',
-  previewPath: 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1500&auto=format&fit=crop',
-  width: 1500,
-  height: 1000,
+  storageKey: DEFAULT_HORIZONTAL_COVER_URL,
+  previewPath: DEFAULT_HORIZONTAL_COVER_URL,
+  thumbPath: DEFAULT_HORIZONTAL_COVER_URL,
+  width: 1024,
+  height: 731,
 };
 
 export const DEFAULT_VERTICAL_COVER: PhotoPaths = {
-  storageKey: 'vertical-cover',
-  previewPath: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=1000&auto=format&fit=crop',
-  width: 1000,
-  height: 1500,
+  storageKey: DEFAULT_VERTICAL_COVER_URL,
+  previewPath: DEFAULT_VERTICAL_COVER_URL,
+  thumbPath: DEFAULT_VERTICAL_COVER_URL,
+  width: 576,
+  height: 1024,
 };
 
 /**
@@ -32,7 +36,5 @@ export function getFallbackCoverPhoto(orientation: 'horizontal' | 'vertical' = '
  * Retorna a URL direta da imagem de fallback.
  */
 export function getFallbackCoverUrl(orientation: 'horizontal' | 'vertical' = 'horizontal'): string {
-  return orientation === 'vertical'
-    ? 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?q=80&w=1000&auto=format&fit=crop'
-    : 'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1500&auto=format&fit=crop';
+  return orientation === 'vertical' ? DEFAULT_VERTICAL_COVER_URL : DEFAULT_HORIZONTAL_COVER_URL;
 }

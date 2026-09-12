@@ -37,7 +37,10 @@ export default function FullscreenCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('horizontal');
+  const rawUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : null;
+  const coverUrl = (rawUrl && rawUrl !== '/placeholder.svg' && !rawUrl.includes('placeholder.svg'))
+    ? rawUrl
+    : getFallbackCoverUrl('horizontal');
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
   // Busca configurações recomendadas da fonte
@@ -77,12 +80,16 @@ export default function FullscreenCover({
   return (
     <section className="relative h-full min-h-full w-full flex flex-col justify-end overflow-hidden select-none bg-neutral-950">
       {/* 1. Imagem de Fundo com Zoom Suave na Entrada */}
-      <div
+      <img
+        src={coverUrl}
+        alt={sessionName}
         className={cn(
-          'absolute inset-0 bg-cover bg-center transition-transform duration-[1200ms] ease-out motion-reduce:transform-none',
+          'absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transform-none',
           mounted ? 'scale-100' : 'scale-[1.04]'
         )}
-        style={{ backgroundImage: `url(${coverUrl})` }}
+        onError={(e) => {
+          e.currentTarget.src = getFallbackCoverUrl('horizontal');
+        }}
       />
 
       {/* 2. Duplo Véu de Contraste */}

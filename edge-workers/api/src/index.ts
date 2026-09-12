@@ -16,6 +16,10 @@ import { getAgendaOnlineSlotsRoute } from './routes/agenda-online-slots.js';
 import { reserveAgendaOnlineSlotRoute } from './routes/agenda-online-reserve.js';
 import { lookupAgendaOnlineClientRoute } from './routes/agenda-online-client-lookup.js';
 
+import { conversasWebhookRoute } from './routes/conversas-webhook.js';
+import { conversasSendMessageRoute } from './routes/conversas-send-message.js';
+import { conversasMediaUploadRoute } from './routes/conversas-media-upload.js';
+
 export type Bindings = {
   SUPABASE_URL: string;
   SUPABASE_ANON_KEY: string;
@@ -31,6 +35,7 @@ export type Bindings = {
   LUNARI_COMMERCIAL_DOCUMENTS: R2Bucket;
   LUNARI_MEDIA: R2Bucket;
   LUNARI_GALLERY: R2Bucket;
+  LUNARI_CONVERSAS: R2Bucket;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -71,5 +76,10 @@ app.get('/contracts/native/download/:token', contractsNativeDownloadRoute);
 app.get('/api/agenda/online/:slug/slots', getAgendaOnlineSlotsRoute);
 app.get('/api/agenda/online/:slug/lookup-client', lookupAgendaOnlineClientRoute);
 app.post('/api/agenda/online/:slug/reserve', reserveAgendaOnlineSlotRoute);
+
+// ─── Conversas (WhatsApp / Evolution API) ────────────────────────────────────
+app.post('/api/conversas/webhook', conversasWebhookRoute);
+app.post('/api/conversas/send-message', conversasSendMessageRoute);
+app.post('/api/conversas/media-upload', conversasMediaUploadRoute);
 
 export default app;

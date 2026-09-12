@@ -15,7 +15,8 @@ export type GestaoContext =
   | "support-ticket"
   | "support-faq"
   | "proposals"
-  | "proposals-pdf";
+  | "proposals-pdf"
+  | "conversas-media";
 
 interface ContextRule {
   prefix: (userId: string, entityId?: string) => string;
@@ -97,6 +98,17 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     isPublic: true,
     maxBytes: 50 * 1024 * 1024,
     allowedTypes: ["application/pdf"],
+  },
+  "conversas-media": {
+    prefix: (u, e) => `conversas/${u}${e ? "/" + e : ""}`,
+    isPublic: false,
+    maxBytes: 50 * 1024 * 1024,
+    allowedTypes: [
+      "image/jpeg", "image/png", "image/webp", "image/gif",
+      "audio/ogg", "audio/mpeg", "audio/mp4", "audio/aac", "audio/opus",
+      "video/mp4", "video/quicktime", "video/webm",
+      "application/pdf",
+    ],
   },
 };
 

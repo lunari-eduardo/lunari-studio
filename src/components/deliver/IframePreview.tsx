@@ -43,6 +43,9 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
       if (!doc.head) return;
       if (!doc.head.querySelector('style')) {
         doc.head.innerHTML = '';
+        const baseTag = doc.createElement('base');
+        baseTag.href = window.location.origin + '/';
+        doc.head.appendChild(baseTag);
         copyStyles();
 
         const baseReset = doc.createElement('style');

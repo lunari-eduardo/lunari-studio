@@ -6,7 +6,16 @@ compatibility_date = "2024-04-05"
 VITE_SITE_URL = "https://app.lunarihub.com"
 R2_CDN_BASE = "https://media.lunarihub.com"
 R2_COMMERCIAL_CDN_BASE = "https://documents.lunarihub.com"
+R2_CONVERSAS_CDN_BASE = "https://conversas.lunarihub.com"
 ANALYTICS_SALT = "lunari-salt"
+
+# Segredos via `wrangler secret put` (nunca em texto puro):
+# SUPABASE_SERVICE_ROLE_KEY
+# EVOLUTION_API_KEY
+# EVOLUTION_API_URL
+# EVOLUTION_WEBHOOK_SECRET
+# SUPABASE_URL
+# SUPABASE_ANON_KEY
 
 # R2 Buckets nativamente conectados ao Worker (sem custo de tráfego / sem SigV4)
 [[r2_buckets]]
@@ -28,3 +37,7 @@ bucket_name = "lunari-media"
 [[r2_buckets]]
 binding = "LUNARI_GALLERY"
 bucket_name = "lunari-gallery"
+
+[[r2_buckets]]
+binding = "LUNARI_CONVERSAS"
+bucket_name = "lunari-conversas"

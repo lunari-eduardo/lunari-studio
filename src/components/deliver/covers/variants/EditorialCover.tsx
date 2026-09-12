@@ -73,8 +73,9 @@ export default function EditorialCover({
     ? (isSingleLine ? 14 : 10)
     : (isSingleLine ? 28 : 17);
 
-  const coverUrl = coverPhoto
-    ? getPhotoUrl(coverPhoto, 'preview')
+  const rawUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : null;
+  const coverUrl = (rawUrl && rawUrl !== '/placeholder.svg' && !rawUrl.includes('placeholder.svg'))
+    ? rawUrl
     : getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
   
   const fontSize = useFittedTitle(
@@ -190,9 +191,13 @@ export default function EditorialCover({
           height: `${spec.photo.height}px`,
         }}
       >
-        <div
-          className={`w-full h-full bg-cover transition-transform duration-[2000ms] ease-out scale-100 ${spec.orientation === 'vertical' ? 'hover:scale-105 bg-center' : 'bg-[center_top_15%]'}`}
-          style={{ backgroundImage: `url(${coverUrl})` }}
+        <img
+          src={coverUrl}
+          alt={sessionName}
+          className={`w-full h-full object-cover transition-transform duration-[2000ms] ease-out scale-100 ${spec.orientation === 'vertical' ? 'hover:scale-105 object-center' : 'object-[center_top_15%]'}`}
+          onError={(e) => {
+            e.currentTarget.src = getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
+          }}
         />
         <div 
           className="absolute inset-0 pointer-events-none"

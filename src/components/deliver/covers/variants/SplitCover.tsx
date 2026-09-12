@@ -33,7 +33,10 @@ export default function SplitCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('vertical');
+  const rawUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : null;
+  const coverUrl = (rawUrl && rawUrl !== '/placeholder.svg' && !rawUrl.includes('placeholder.svg'))
+    ? rawUrl
+    : getFallbackCoverUrl('vertical');
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
   const fontConfig = useMemo(() => {
@@ -75,10 +78,14 @@ export default function SplitCover({
       style={{ backgroundColor: palette.surface }}
     >
       {/* Coluna da Esquerda: Fotografia (com sobreposição de 40px no desktop) */}
-      <div className="relative w-full h-[50%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)]">
-        <div
-          className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
-          style={{ backgroundImage: `url(${coverUrl})` }}
+      <div className="relative w-full h-[50%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)] bg-neutral-900">
+        <img
+          src={coverUrl}
+          alt={sessionName}
+          className="w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+          onError={(e) => {
+            e.currentTarget.src = getFallbackCoverUrl('vertical');
+          }}
         />
       </div>
 

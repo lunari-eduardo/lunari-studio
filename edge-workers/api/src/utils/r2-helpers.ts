@@ -5,6 +5,7 @@ export const R2_PRIVATE_BUCKET = "lunari-private";
 export const R2_COMMERCIAL_BUCKET = "lunari-commercial-documents";
 export const R2_MEDIA_BUCKET = "lunari-media";
 export const R2_GALLERY_BUCKET = "lunari-gallery";
+export const R2_CONVERSAS_BUCKET = "lunari-conversas";
 
 /**
  * Retorna o binding nativo do R2 com base no caminho do arquivo.
@@ -30,12 +31,19 @@ export function getBucketBinding(env: Bindings, storagePath: string): { bucket: 
     return { bucket: env.LUNARI_GALLERY, bucketName: R2_GALLERY_BUCKET };
   }
 
+  if (storagePath.startsWith("conversas/")) {
+    return { bucket: env.LUNARI_CONVERSAS, bucketName: R2_CONVERSAS_BUCKET };
+  }
+
   return { bucket: env.LUNARI_PREVIEWS, bucketName: R2_PUBLIC_BUCKET };
 }
 
 export function getCdnUrl(env: Bindings, storagePath: string, bucketName: string): string {
   if (bucketName === R2_COMMERCIAL_BUCKET) {
     return `${env.R2_COMMERCIAL_CDN_BASE}/${storagePath}`;
+  }
+  if (bucketName === R2_CONVERSAS_BUCKET) {
+    return `${env.R2_CONVERSAS_CDN_BASE || env.R2_CDN_BASE}/${storagePath}`;
   }
   return `${env.R2_CDN_BASE}/${storagePath}`;
 }

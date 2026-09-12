@@ -77,14 +77,22 @@ export function DeliverDesignTab({
 
   // Foto de capa selecionada ou fallback fotográfico de alta qualidade
   const activeCoverPhoto = photos.find((p) => p.id === coverPhotoId) || photos[0] || null;
-  const coverPhotoPaths: PhotoPaths = activeCoverPhoto
+  const fallbackPhoto = getFallbackCoverPhoto(previewViewport === 'mobile' ? 'vertical' : 'horizontal');
+
+  const hasValidPhoto = Boolean(
+    activeCoverPhoto &&
+    ((activeCoverPhoto.preview_path && activeCoverPhoto.preview_path.trim() !== '' && !activeCoverPhoto.preview_path.includes('placeholder.svg')) ||
+     (activeCoverPhoto.storage_key && activeCoverPhoto.storage_key.trim() !== '' && !activeCoverPhoto.storage_key.includes('placeholder.svg')))
+  );
+
+  const coverPhotoPaths: PhotoPaths = hasValidPhoto && activeCoverPhoto
     ? {
-        storageKey: activeCoverPhoto.storage_key,
-        previewPath: activeCoverPhoto.preview_path,
-        width: activeCoverPhoto.width,
-        height: activeCoverPhoto.height,
+        storageKey: activeCoverPhoto.storage_key || fallbackPhoto.storageKey,
+        previewPath: activeCoverPhoto.preview_path || activeCoverPhoto.storage_key || fallbackPhoto.previewPath,
+        width: activeCoverPhoto.width || fallbackPhoto.width,
+        height: activeCoverPhoto.height || fallbackPhoto.height,
       }
-    : getFallbackCoverPhoto(previewViewport === 'mobile' ? 'vertical' : 'horizontal');
+    : fallbackPhoto;
 
   const viewportContainerStyles = {
     mobile: 'w-[320px] sm:w-[340px] aspect-[9/16] max-h-full rounded-[28px] ring-1 ring-border/50 shadow-2xl',
