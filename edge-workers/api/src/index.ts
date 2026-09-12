@@ -27,7 +27,14 @@ export type Bindings = {
   VITE_SITE_URL: string;
   R2_CDN_BASE: string;
   R2_COMMERCIAL_CDN_BASE: string;
+  R2_CONVERSAS_CDN_BASE: string;
   ANALYTICS_SALT: string;
+  EVOLUTION_API_URL: string;
+  EVOLUTION_INSTANCE_NAME: string;
+
+  // Secrets (via `wrangler secret put`):
+  EVOLUTION_API_KEY: string;
+  EVOLUTION_WEBHOOK_SECRET: string;
 
   // R2 Bucket Bindings
   LUNARI_PREVIEWS: R2Bucket;

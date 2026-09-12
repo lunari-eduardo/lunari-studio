@@ -1,27 +1,40 @@
 /**
- * Tipos públicos do módulo Conversas.
- * Estes são tipos de domínio (não Database/Supabase).
- *
- * As tabelas reais serão definidas em:
- *   supabase/migrations/<timestamp>_conversas_module.sql
- *
- * Os tipos deatabase serão gerados em:
- *   src/integrations/supabase/types.ts (append das novas tabelas)
+ * Tipos de domínio para o módulo Conversas.
+ * Abstraem os tipos de database para uso no frontend.
  */
 
-// ─── Enumerações ────────────────────────────────────────────────────────────
+import type {
+  DbConversasChat,
+  DbConversasContato,
+  DbConversasMensagem,
+  DbConversasInstancia,
+  DbConversasNota,
+  DbConversasTemplate,
+} from './db-types';
 
-export type ConversaInstanciaStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
+// ─── Aliases convenientes ─────────────────────────────────────────────────────
 
-export type ChatStatus =
-  | 'active'      // em aberto
-  | 'archived'    // arquivado pelo usuário
-  | 'blocked';    // bloqueado
+export type Chat = DbConversasChat['Row'];
+export type ChatInsert = DbConversasChat['Insert'];
+export type ChatUpdate = DbConversasChat['Update'];
 
+export type Contato = DbConversasContato['Row'];
+export type ContatoInsert = DbConversasContato['Insert'];
+export type ContatoUpdate = DbConversasContato['Update'];
+
+export type Mensagem = DbConversasMensagem['Row'];
+export type MensagemInsert = DbConversasMensagem['Insert'];
+export type MensagemUpdate = DbConversasMensagem['Update'];
+
+export type Instancia = DbConversasInstancia['Row'];
+export type Nota = DbConversasNota['Row'];
+export type Template = DbConversasTemplate['Row'];
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+export type ChatStatus = 'active' | 'archived' | 'blocked';
 export type ChatPin = 'pinned' | 'unpinned';
-
 export type MessageDirection = 'inbound' | 'outbound';
-
 export type MessageType =
   | 'text'
   | 'image'
@@ -32,188 +45,113 @@ export type MessageType =
   | 'location'
   | 'contact'
   | 'template';
-
-export type MessageStatus =
-  | 'pending'    // inserido localmente, ainda não ACK da Evolution
-  | 'sent'       // Evolution recebeu
-  | 'delivered'  // WhatsApp entregou ao destinatário
-  | 'read'       // destinatário leu
-  | 'failed';    // erro no envio
-
+export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed';
 export type ContactType = 'cliente' | 'lead' | 'unknown';
+export type InstanciaStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
-// ─── Entidades de Domínio ───────────────────────────────────────────────────
-
-/** Dados mínimos para identificar uma instância WhatsApp. */
-export interface ConversaInstancia {
-  id: string;
-  user_id: string;
-  nome: string;
-  phone: string;
-  status: ConversaInstanciaStatus;
-  webhook_url?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Contato — pessoa com quem se conversa (separado de Chat por design). */
-export interface ConversaContato {
-  id: string;
-  user_id: string;
-  phone_raw: string;          // original digitado/recebido
-  phone_normalized: string;   // canônico 55XXXXXXXXXXX (BR)
-  nome?: string;
-  avatar_url?: string;
-  cliente_id?: string;        // vínculo eventual com CRM (não automático)
-  lead_id?: string;           // vínculo eventual com Lead
-  tipo: ContactType;
-  total_conversas: number;
-  ultima_mensagem?: string;
-  ultima_mensagem_data?: string;
-  unread_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Chat — thread de conversa com um contato. */
-export interface ConversaChat {
-  id: string;
-  user_id: string;
-  contato_id: string;
-  instance_id: string;
-  status: ChatStatus;
-  pin: ChatPin;
-  mute: boolean;
-  unread_count: number;
-  // Dados denormalizados do contato (para display sem JOIN)
-  contato_nome?: string;
-  contato_avatar?: string;
-  contato_phone_normalized?: string;
-  ultima_mensagem?: string;
-  ultima_mensagem_data?: string;
-  ultima_mensagem_type?: MessageType;
-  ultima_mensagem_direction?: MessageDirection;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Mensagem. */
-export interface ConversaMensagem {
-  id: string;
-  user_id: string;
-  chat_id: string;
-  instance_id: string;
-  evolution_msg_id?: string;   // ID da Evolution API (para idempotência)
-  direction: MessageDirection;
-  type: MessageType;
-  content: string;              // texto ou caption da mídia
-  media_url?: string;          // URL CDN (se houver mídia)
-  media_mime_type?: string;
-  media_size_bytes?: number;
-  media_filename?: string;
-  status: MessageStatus;
-  is_forwarded?: boolean;
-  timestamp: string;            // data/hora da mensagem
-  created_at: string;
-}
-
-/** Nota interna attached a um chat. */
-export interface ConversaNota {
-  id: string;
-  user_id: string;
-  chat_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Template de mensagem pré-definido. */
-export interface ConversaTemplate {
-  id: string;
-  user_id: string;
-  nome: string;
-  conteudo: string;
-  variaveis?: string[];        // ex: ["{{nome}}", "{{data}}"]
-  created_at: string;
-  updated_at: string;
-}
-
-// ─── Filtros e Listagem ─────────────────────────────────────────────────────
-
-export type ChatFilter =
-  | 'todas'
-  | 'nao_lidas'
-  | 'atencao'
-  | 'arquivadas';
-
-export interface ChatListParams {
-  filter: ChatFilter;
-  search?: string;
-  limit?: number;
-  offset?: number;
-}
-
-// ─── Suggestion Engine (Fase 11) ─────────────────────────────────────────────
-
-export type SuggestionAction =
-  | { type: 'criar_orcamento'; payload: { cliente_id: string } }
-  | { type: 'ver_cliente'; payload: { cliente_id: string } }
-  | { type: 'ver_lead'; payload: { lead_id: string } }
-  | { type: 'ver_agenda'; payload: { cliente_id: string } }
-  | { type: 'ver_financeiro'; payload: { cliente_id: string } }
-  | { type: 'vincular_lead'; payload: { contato_id: string } }
-  | { type: 'enviar_contrato'; payload: { cliente_id: string } }
-  | { type: 'alertar_pagamento_pendente'; payload: { cliente_id: string; cobranca_id: string } };
-
-export interface ChatSuggestion {
-  id: string;
-  title: string;
-  description?: string;
-  action: SuggestionAction;
-  priority: 'high' | 'medium' | 'low';
-  signals: string[];  // quais sinais da matriz 8x geraram esta sugestão
-}
-
-// ─── Evolution API Payload (para webhook inbound) ───────────────────────────
+// ─── Evolução API payload types ───────────────────────────────────────────────
 
 export interface EvolutionWebhookPayload {
-  event: string;
-  instance: string;
-  data: {
-    key?: {
-      remote?: string;
-      id?: string;
-    };
-    pushName?: string;
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text?: string;
-      };
-      imageMessage?: {
-        caption?: string;
-        mediaKey?: string;
-        mimetype?: string;
-        fileLength?: string;
-      };
-      audioMessage?: {
-        mimetype?: string;
-        mediaKey?: string;
-        fileLength?: string;
-      };
-      documentWithCaptionMessage?: {
-        message?: {
-          documentMessage?: {
-            caption?: string;
-            fileName?: string;
-            mimetype?: string;
-            fileLength?: string;
-          };
-        };
-      };
-    };
-    messageTimestamp?: string | number;
+  event: 'CONNECTION_UPDATE' | 'MESSAGES_UPSERT' | 'MESSAGES_UPDATE' | 'MESSAGES_DELETE';
+  session: string;
+  payload: unknown;
+}
+
+export interface EvolutionMessagePayload {
+  key: {
+    remoteJid: string;
+    fromMe: boolean;
+    id: string;
+    participant?: string;
   };
-  date_time?: string;
-  source?: string;
+  pushName?: string;
+  message?: {
+    conversation?: string;
+    extendedTextMessage?: {
+      text: string;
+      contextInfo?: {
+        mentionedJid?: string[];
+        quotedMessage?: unknown;
+      };
+    };
+    imageMessage?: {
+      caption?: string;
+      jpegThumbnail?: string;
+      mimetype?: string;
+      fileLength?: string;
+      fileName?: string;
+    };
+    audioMessage?: {
+      mimetype?: string;
+      ptt?: boolean;
+      fileLength?: string;
+      seconds?: number;
+    };
+    videoMessage?: {
+      caption?: string;
+      jpegThumbnail?: string;
+      mimetype?: string;
+      fileLength?: string;
+      seconds?: number;
+    };
+    documentMessage?: {
+      caption?: string;
+      fileName?: string;
+      mimetype?: string;
+      fileLength?: string;
+    };
+    stickerMessage?: unknown;
+    locationMessage?: {
+      degreesLatitude: number;
+      degreesLongitude: number;
+      name?: string;
+      address?: string;
+    };
+    contactMessage?: {
+      displayName: string;
+      vcard?: string;
+    };
+  };
+  messageTimestamp?: string | number;
+  status?: 'SERVER_ACK' | 'DEVICE_ACK' | 'READ' | 'PLAYED' | 'ERROR';
+  broadcast?: boolean;
+  messageNumber?: number;
+  id?: {
+    fromMe?: boolean;
+    remote?: string;
+    id?: string;
+    _serialized?: string;
+  };
+}
+
+export interface EvolutionConnectionPayload {
+  instance: string;
+  state: 'open' | 'close' | 'connecting';
+  pushName?: string;
+  phone?: string;
+  wid?: string;
+}
+
+// ─── Chat com dados do contato (join) ───────────────────────────────────────
+
+export interface ChatWithContato extends Chat {
+  contato?: Contato;
+}
+
+// ─── Estado UI ────────────────────────────────────────────────────────────────
+
+export interface ChatListFilters {
+  search?: string;
+  status?: ChatStatus | 'all';
+  hasUnread?: boolean;
+}
+
+export interface SendMessageInput {
+  chatId: string;
+  content: string;
+  type?: MessageType;
+  mediaUrl?: string;
+  mediaMimeType?: string;
+  mediaFilename?: string;
+  mediaSizeBytes?: number;
 }

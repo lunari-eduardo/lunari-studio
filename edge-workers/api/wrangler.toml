@@ -8,11 +8,12 @@ R2_CDN_BASE = "https://media.lunarihub.com"
 R2_COMMERCIAL_CDN_BASE = "https://documents.lunarihub.com"
 R2_CONVERSAS_CDN_BASE = "https://conversas.lunarihub.com"
 ANALYTICS_SALT = "lunari-salt"
+EVOLUTION_API_URL = "https://wpp.lunarihub.com"
+EVOLUTION_INSTANCE_NAME = "lunari-default"
 
 # Segredos via `wrangler secret put` (nunca em texto puro):
 # SUPABASE_SERVICE_ROLE_KEY
 # EVOLUTION_API_KEY
-# EVOLUTION_API_URL
 # EVOLUTION_WEBHOOK_SECRET
 # SUPABASE_URL
 # SUPABASE_ANON_KEY
