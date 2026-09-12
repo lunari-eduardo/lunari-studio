@@ -90,7 +90,7 @@ export function ThemePreviewCanvas({
 
             <div id="preview-grid" className="flex-1">
               <DeliverPhotoGrid 
-                photos={(previewPhotos || DEMO_PHOTOS) as any}
+                photos={((previewPhotos && previewPhotos.length > 0) ? previewPhotos : DEMO_PHOTOS) as any}
                 onPhotoClick={() => {}}
                 onDownload={() => {}}
                 galleryId="demo"

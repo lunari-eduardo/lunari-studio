@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Pencil, Clock, Crown, ArrowRight } from 'lucide-react';
 import { GlobalSettings, EmailTemplate } from '@/types/gallery';
@@ -21,8 +21,8 @@ interface EmailAutomationSettingsProps {
   isSavingTemplate?: boolean;
 }
 
-export function EmailAutomationSettings({ 
-  settings, 
+export function EmailAutomationSettings({
+  settings,
   updateSettings,
   templates = [],
   onTemplateSave,
@@ -31,7 +31,39 @@ export function EmailAutomationSettings({
   const navigate = useNavigate();
   const { hasEntitlement } = useEntitlements();
   const hasEmailEntitlement = hasEntitlement('email_automations');
-  const enabled = hasEmailEntitlement ? (settings.emailSendingEnabled ?? false) : false;
+
+  // Local state for immediate UI feedback
+  const [localEmailSendingEnabled, setLocalEmailSendingEnabled] = useState(settings.emailSendingEnabled ?? false);
+  const [localEmailOnGallerySent, setLocalEmailOnGallerySent] = useState(settings.emailOnGallerySent ?? false);
+  const [localEmailOnSelectionReminder, setLocalEmailOnSelectionReminder] = useState(settings.emailOnSelectionReminder ?? false);
+  const [localEmailOnSelectionConfirmed, setLocalEmailOnSelectionConfirmed] = useState(settings.emailOnSelectionConfirmed ?? false);
+  const [localEmailOnGalleryReactivated, setLocalEmailOnGalleryReactivated] = useState(settings.emailOnGalleryReactivated ?? false);
+  const [localEmailOnPaymentConfirmed, setLocalEmailOnPaymentConfirmed] = useState(settings.emailOnPaymentConfirmed ?? false);
+  const [localEmailSummaryToPhotographer, setLocalEmailSummaryToPhotographer] = useState(settings.emailSummaryToPhotographer ?? true);
+  const [localReminderDays, setLocalReminderDays] = useState(settings.reminderDaysBeforeExpiration ?? 2);
+
+  // Sync local state when settings change from server (e.g., initial load or external update)
+  useEffect(() => {
+    setLocalEmailSendingEnabled(settings.emailSendingEnabled ?? false);
+    setLocalEmailOnGallerySent(settings.emailOnGallerySent ?? false);
+    setLocalEmailOnSelectionReminder(settings.emailOnSelectionReminder ?? false);
+    setLocalEmailOnSelectionConfirmed(settings.emailOnSelectionConfirmed ?? false);
+    setLocalEmailOnGalleryReactivated(settings.emailOnGalleryReactivated ?? false);
+    setLocalEmailOnPaymentConfirmed(settings.emailOnPaymentConfirmed ?? false);
+    setLocalEmailSummaryToPhotographer(settings.emailSummaryToPhotographer ?? true);
+    setLocalReminderDays(settings.reminderDaysBeforeExpiration ?? 2);
+  }, [
+    settings.emailSendingEnabled,
+    settings.emailOnGallerySent,
+    settings.emailOnSelectionReminder,
+    settings.emailOnSelectionConfirmed,
+    settings.emailOnGalleryReactivated,
+    settings.emailOnPaymentConfirmed,
+    settings.emailSummaryToPhotographer,
+    settings.reminderDaysBeforeExpiration
+  ]);
+
+  const enabled = hasEmailEntitlement ? localEmailSendingEnabled : false;
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
 
   const handleSaveTemplate = async (template: EmailTemplate) => {
@@ -101,6 +133,7 @@ export function EmailAutomationSettings({
                 toast.error('Automação de e-mails é um recurso exclusivo do Plano Studio.');
                 return;
               }
+              setLocalEmailSendingEnabled(checked);
               updateSettings({ emailSendingEnabled: checked }, { successMessage: 'Preferência salva.' });
             }}
           />
@@ -129,9 +162,12 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={hasEmailEntitlement ? (settings.emailOnGallerySent ?? false) : false}
+                  checked={hasEmailEntitlement ? localEmailOnGallerySent : false}
                   disabled={!hasEmailEntitlement}
-                  onCheckedChange={(checked) => updateSettings({ emailOnGallerySent: checked })}
+                  onCheckedChange={(checked) => {
+                    setLocalEmailOnGallerySent(checked);
+                    updateSettings({ emailOnGallerySent: checked });
+                  }}
                 />
               </div>
             </div>
@@ -156,23 +192,30 @@ export function EmailAutomationSettings({
                     <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                   </Button>
                   <Switch
-                    checked={hasEmailEntitlement ? (settings.emailOnSelectionReminder ?? false) : false}
+                    checked={hasEmailEntitlement ? localEmailOnSelectionReminder : false}
                     disabled={!hasEmailEntitlement}
-                    onCheckedChange={(checked) => updateSettings({ emailOnSelectionReminder: checked })}
+                    onCheckedChange={(checked) => {
+                      setLocalEmailOnSelectionReminder(checked);
+                      updateSettings({ emailOnSelectionReminder: checked });
+                    }}
                   />
                 </div>
               </div>
-              {hasEmailEntitlement && (settings.emailOnSelectionReminder ?? false) && (
+              {hasEmailEntitlement && localEmailOnSelectionReminder && (
                 <div className="flex items-center gap-2 pl-4 border-l-2 border-primary/20 ml-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">Enviar lembrete</span>
-                  <Input 
-                    type="number" 
-                    className="h-7 w-16 px-2 text-center text-xs" 
-                    min={1} 
+                  <Input
+                    type="number"
+                    className="h-7 w-16 px-2 text-center text-xs"
+                    min={1}
                     max={30}
-                    value={settings.reminderDaysBeforeExpiration ?? 2}
-                    onChange={(e) => updateSettings({ reminderDaysBeforeExpiration: parseInt(e.target.value) || 2 })}
+                    value={localReminderDays}
+                    onChange={(e) => {
+                      const days = parseInt(e.target.value) || 2;
+                      setLocalReminderDays(days);
+                      updateSettings({ reminderDaysBeforeExpiration: days });
+                    }}
                   />
                   <span className="text-xs text-muted-foreground">dias antes do vencimento.</span>
                 </div>
@@ -198,9 +241,12 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={hasEmailEntitlement ? (settings.emailOnSelectionConfirmed ?? false) : false}
+                  checked={hasEmailEntitlement ? localEmailOnSelectionConfirmed : false}
                   disabled={!hasEmailEntitlement}
-                  onCheckedChange={(checked) => updateSettings({ emailOnSelectionConfirmed: checked })}
+                  onCheckedChange={(checked) => {
+                    setLocalEmailOnSelectionConfirmed(checked);
+                    updateSettings({ emailOnSelectionConfirmed: checked });
+                  }}
                 />
               </div>
             </div>
@@ -224,9 +270,12 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={hasEmailEntitlement ? (settings.emailOnGalleryReactivated ?? false) : false}
+                  checked={hasEmailEntitlement ? localEmailOnGalleryReactivated : false}
                   disabled={!hasEmailEntitlement}
-                  onCheckedChange={(checked) => updateSettings({ emailOnGalleryReactivated: checked })}
+                  onCheckedChange={(checked) => {
+                    setLocalEmailOnGalleryReactivated(checked);
+                    updateSettings({ emailOnGalleryReactivated: checked });
+                  }}
                 />
               </div>
             </div>
@@ -250,9 +299,12 @@ export function EmailAutomationSettings({
                   <Pencil className="h-4 w-4 mr-2" /> Editar Texto
                 </Button>
                 <Switch
-                  checked={hasEmailEntitlement ? (settings.emailOnPaymentConfirmed ?? false) : false}
+                  checked={hasEmailEntitlement ? localEmailOnPaymentConfirmed : false}
                   disabled={!hasEmailEntitlement}
-                  onCheckedChange={(checked) => updateSettings({ emailOnPaymentConfirmed: checked })}
+                  onCheckedChange={(checked) => {
+                    setLocalEmailOnPaymentConfirmed(checked);
+                    updateSettings({ emailOnPaymentConfirmed: checked });
+                  }}
                 />
               </div>
             </div>
@@ -270,8 +322,11 @@ export function EmailAutomationSettings({
             </div>
             <div className="flex items-center gap-3">
               <Switch
-                checked={settings.emailSummaryToPhotographer ?? true}
-                onCheckedChange={(checked) => updateSettings({ emailSummaryToPhotographer: checked })}
+                checked={localEmailSummaryToPhotographer}
+                onCheckedChange={(checked) => {
+                  setLocalEmailSummaryToPhotographer(checked);
+                  updateSettings({ emailSummaryToPhotographer: checked });
+                }}
               />
             </div>
           </div>

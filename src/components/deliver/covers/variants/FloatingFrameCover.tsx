@@ -6,6 +6,7 @@ import { applyTitleCase } from '@/lib/textTransform';
 import { GALLERY_FONTS } from '@/components/FontSelect';
 import type { CoverVariantProps } from '../types';
 import { useCoverPalette, CoverCta } from '../shared';
+import { getFallbackCoverUrl } from '../defaultPhotos';
 import { cn } from '@/lib/utils';
 
 // Subtle SVG grain overlay for the passe-partout (printed-paper texture).
@@ -60,7 +61,7 @@ export default function FloatingFrameCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
+  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('vertical');
   const intrinsic = useImageIntrinsicSize(coverUrl);
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
@@ -132,8 +133,8 @@ export default function FloatingFrameCover({
   const realRatio = intrinsic ? intrinsic.h / intrinsic.w : 5 / 4;
 
   // Fixed reserve between photo and text block.
-  const PHOTO_TO_TEXT_GAP = 28;
-  const safeVerticalPadding = viewportW > 0 && viewportW < 640 ? 32 : 56;
+  const PHOTO_TO_TEXT_GAP = viewportH > 0 && viewportH < 650 ? 16 : 24;
+  const safeVerticalPadding = viewportW > 0 && viewportW < 640 ? 24 : 40;
 
   // Available height for the photo (subtract measured siblings + gaps).
   const computedAvailable =
@@ -142,14 +143,14 @@ export default function FloatingFrameCover({
       : 0;
 
   // Composition ceilings.
-  const PHOTO_MIN_H = 180;
-  const PHOTO_FRACTION = 0.58; // Slightly tighter to leave room for passe-partout margin.
-  const PHOTO_MAX_VW_DESKTOP = 0.72;
-  const PHOTO_MAX_VW_MOBILE = 0.84;
+  const PHOTO_MIN_H = viewportH > 0 && viewportH < 650 ? 110 : 150;
+  const PHOTO_FRACTION = 0.54; // Deixa respiro proporcional para o passe-partout e CTA.
+  const PHOTO_MAX_VW_DESKTOP = 0.70;
+  const PHOTO_MAX_VW_MOBILE = 0.82;
 
   const photoMaxH =
     computedAvailable > 0 ? Math.min(computedAvailable, viewportH * PHOTO_FRACTION) : 0;
-  const photoH = photoMaxH > 0 ? Math.max(PHOTO_MIN_H, photoMaxH) : 0;
+  const photoH = photoMaxH > 0 ? Math.max(PHOTO_MIN_H, photoMaxH) : PHOTO_MIN_H;
 
   const maxVw = viewportW > 0 && viewportW < 640 ? PHOTO_MAX_VW_MOBILE : PHOTO_MAX_VW_DESKTOP;
   const photoMaxW = viewportW > 0 ? Math.min(viewportW * maxVw, viewportW - 32) : 0;
@@ -159,7 +160,7 @@ export default function FloatingFrameCover({
     if (photoH <= 0 || photoMaxW <= 0) return null;
     const widthIfHeight = photoH / realRatio;
     const widthIfWidth = photoMaxW;
-    const w = Math.max(160, Math.min(widthIfHeight, widthIfWidth));
+    const w = Math.max(120, Math.min(widthIfHeight, widthIfWidth));
     const h = w * realRatio;
     return { w: Math.round(w), h: Math.round(Math.min(h, photoH)) };
   };
@@ -170,7 +171,7 @@ export default function FloatingFrameCover({
   // a hard floor so it never collapses on tiny previews and a ceiling so it
   // does not eat the whole viewport on huge screens.
   const passepartoutMargin = photoBox
-    ? Math.max(18, Math.min(56, Math.round(Math.min(photoBox.w, photoBox.h) * 0.055)))
+    ? Math.max(14, Math.min(48, Math.round(Math.min(photoBox.w, photoBox.h) * 0.05)))
     : 0;
 
   // Compact mode kicks in when there is very little room for the photo+passe-partout.
@@ -191,8 +192,8 @@ export default function FloatingFrameCover({
       className={cn(
         'relative w-full flex flex-col items-center select-none transition-colors duration-500',
         isMobileFlow
-          ? 'h-auto min-h-0 py-10 px-5 gap-5'
-          : 'h-[100svh] min-h-0 px-4 sm:px-8 gap-4 sm:gap-5 justify-center',
+          ? 'h-full min-h-0 py-6 px-4 gap-3 sm:gap-4 justify-center'
+          : 'h-[100svh] min-h-0 px-4 sm:px-8 gap-3 sm:gap-4 justify-center',
       )}
       style={{
         backgroundColor: palette.surface,

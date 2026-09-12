@@ -11,6 +11,7 @@ import { useSeamContrast } from '../editorial/useSeamContrast';
 import { TitleComposition } from '../editorial/TitleComposition';
 
 import { GALLERY_FONTS } from '@/components/FontSelect';
+import { getFallbackCoverUrl } from '../defaultPhotos';
 
 export default function EditorialCover({
   coverPhoto,
@@ -72,7 +73,9 @@ export default function EditorialCover({
     ? (isSingleLine ? 14 : 10)
     : (isSingleLine ? 28 : 17);
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
+  const coverUrl = coverPhoto
+    ? getPhotoUrl(coverPhoto, 'preview')
+    : getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
   
   const fontSize = useFittedTitle(
     line1,
@@ -172,7 +175,7 @@ export default function EditorialCover({
     <section
       ref={containerRef}
       onContextMenu={(e) => e.preventDefault()}
-      className={`relative w-full h-[100svh] overflow-hidden antialiased select-none transition-colors duration-700 ${
+      className={`relative w-full h-full min-h-full overflow-hidden antialiased select-none transition-colors duration-700 ${
         isDark ? 'bg-[#12100E]' : 'bg-[#F7F4EE]'
       }`}
       style={{ touchAction: 'pan-y' }}

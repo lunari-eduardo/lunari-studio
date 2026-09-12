@@ -6,6 +6,7 @@ import { applyTitleCase } from '@/lib/textTransform';
 import { GALLERY_FONTS } from '@/components/FontSelect';
 import type { CoverVariantProps } from '../types';
 import { useCoverPalette, CoverCta, CoverScrollCue } from '../shared';
+import { getFallbackCoverUrl } from '../defaultPhotos';
 import { cn } from '@/lib/utils';
 
 export default function SplitCover({
@@ -32,7 +33,7 @@ export default function SplitCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
+  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('vertical');
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
   const fontConfig = useMemo(() => {
@@ -70,11 +71,11 @@ export default function SplitCover({
 
   return (
     <section
-      className="relative w-full select-none transition-colors duration-500 overflow-hidden flex flex-col md:grid md:grid-cols-[1.35fr_1fr] md:min-h-screen"
+      className="relative w-full h-full min-h-full select-none transition-colors duration-500 overflow-hidden flex flex-col md:grid md:grid-cols-[1.35fr_1fr]"
       style={{ backgroundColor: palette.surface }}
     >
       {/* Coluna da Esquerda: Fotografia (com sobreposição de 40px no desktop) */}
-      <div className="relative w-full h-[52vh] md:h-screen md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)]">
+      <div className="relative w-full h-[50%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)]">
         <div
           className="w-full h-full bg-cover bg-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
           style={{ backgroundImage: `url(${coverUrl})` }}
@@ -84,9 +85,9 @@ export default function SplitCover({
       {/* Coluna da Direita: Painel Editorial de Tipografia */}
       <div
         className={cn(
-          'relative z-0 flex flex-col justify-center',
+          'relative z-0 flex flex-col justify-center flex-1 md:flex-initial',
           'px-6 sm:px-10 md:pl-20 md:pr-12 lg:pr-20',
-          'py-12 md:py-16 md:-translate-y-[2%]'
+          'py-6 md:py-16 md:-translate-y-[2%]'
         )}
       >
         <div className="max-w-xl flex flex-col items-start">

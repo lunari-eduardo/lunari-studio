@@ -47,15 +47,25 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
           doc.head.innerHTML = '';
           copyStyles();
           
+          // Injeta regras essenciais de altura e scrollbar sutil
+          const baseReset = doc.createElement('style');
+          baseReset.textContent = `
+            html, body { height: 100%; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+            #iframe-root { height: 100%; min-height: 100%; display: flex; flex-direction: column; }
+            ::-webkit-scrollbar { width: 4px; height: 4px; }
+            ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.25); border-radius: 4px; }
+            ::-webkit-scrollbar-track { background: transparent; }
+          `;
+          doc.head.appendChild(baseReset);
+          
           // Adiciona classes base do tailwind/app ao HTML/Body do iframe para manter herança
           doc.documentElement.className = document.documentElement.className;
-          doc.body.className = 'bg-background text-foreground antialiased min-h-screen overflow-x-hidden';
-          doc.body.style.margin = '0';
+          doc.body.className = 'bg-background text-foreground antialiased h-full w-full overflow-y-auto overflow-x-hidden';
           
           // O container raiz onde o React fará o portal
           const rootDiv = doc.createElement('div');
           rootDiv.id = 'iframe-root';
-          rootDiv.className = 'w-full h-full';
+          rootDiv.className = 'w-full h-full min-h-full flex flex-col';
           doc.body.appendChild(rootDiv);
           
           setMountNode(rootDiv);

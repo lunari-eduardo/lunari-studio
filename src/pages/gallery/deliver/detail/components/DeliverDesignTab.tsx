@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Smartphone, Tablet, Monitor, Eye, Save, Sparkles, LayoutTemplate } from 'lucide-react';
+import { Smartphone, Monitor, Eye, Save, Sparkles, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { CoverCatalog } from '@/components/deliver/CoverCatalog';
 import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
+import { getFallbackCoverPhoto } from '@/components/deliver/covers/defaultPhotos';
 import { IframePreview } from '@/components/deliver/IframePreview';
 import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
 import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
@@ -74,26 +75,26 @@ export function DeliverDesignTab({
   const primaryColor = themeOverrides?.palette?.primary || themeOverrides?.primaryColor || activeTheme?.palette?.primary || '#C6A36A';
   const resolvedFontFamily = getFontFamilyById(sessionFont);
 
-  // Foto de capa selecionada
+  // Foto de capa selecionada ou fallback fotográfico de alta qualidade
   const activeCoverPhoto = photos.find((p) => p.id === coverPhotoId) || photos[0] || null;
-  const coverPhotoPaths: PhotoPaths | null = activeCoverPhoto
+  const coverPhotoPaths: PhotoPaths = activeCoverPhoto
     ? {
         storageKey: activeCoverPhoto.storage_key,
         previewPath: activeCoverPhoto.preview_path,
         width: activeCoverPhoto.width,
         height: activeCoverPhoto.height,
       }
-    : null;
+    : getFallbackCoverPhoto(previewViewport === 'mobile' ? 'vertical' : 'horizontal');
 
-  const viewportWidths = {
-    mobile: 'w-[375px]',
-    tablet: 'w-[768px]',
-    desktop: 'w-full',
+  const viewportContainerStyles = {
+    mobile: 'w-[320px] sm:w-[340px] aspect-[9/16] max-h-full rounded-[28px] ring-1 ring-border/50 shadow-2xl',
+    tablet: 'w-full max-w-[768px] aspect-[4/3] max-h-full rounded-xl shadow-2xl border border-border/40',
+    desktop: 'w-full max-w-[960px] aspect-[16/9] max-h-full rounded-xl shadow-2xl border border-border/40',
   };
 
   return (
     <div className="space-y-8 mt-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Coluna da Esquerda: Controles de Customização */}
         <div className="lg:col-span-1 space-y-8">
           {/* Herança de Tema */}
@@ -250,8 +251,8 @@ export function DeliverDesignTab({
           </div>
         </div>
 
-        {/* Coluna da Direita: Área de Prévia Dinâmica */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* Coluna da Direita: Área de Prévia Dinâmica Fixo na Rolagem */}
+        <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 self-start">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
             <div className="flex items-center gap-2">
               {/* Alternador de Modo de Prévia: Capa x Grid */}
@@ -287,44 +288,43 @@ export function DeliverDesignTab({
               </span>
             </div>
 
-            {/* Alternador de Viewport */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+            {/* Alternador de Viewport (Smartphone 9:16 x Desktop 16:9) */}
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
               <Button
                 variant={previewViewport === 'mobile' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('h-8 w-8', previewViewport === 'mobile' && 'bg-background shadow-sm')}
+                size="sm"
+                className={cn(
+                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
+                  previewViewport === 'mobile' && 'bg-background shadow-xs font-semibold'
+                )}
                 onClick={() => setPreviewViewport('mobile')}
-                title="Visualização Mobile"
+                title="Visualização Smartphone (9:16)"
               >
-                <Smartphone className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={previewViewport === 'tablet' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('h-8 w-8', previewViewport === 'tablet' && 'bg-background shadow-sm')}
-                onClick={() => setPreviewViewport('tablet')}
-                title="Visualização Tablet"
-              >
-                <Tablet className="h-4 w-4" />
+                <Smartphone className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Smartphone</span>
               </Button>
               <Button
                 variant={previewViewport === 'desktop' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('h-8 w-8', previewViewport === 'desktop' && 'bg-background shadow-sm')}
+                size="sm"
+                className={cn(
+                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
+                  previewViewport === 'desktop' && 'bg-background shadow-xs font-semibold'
+                )}
                 onClick={() => setPreviewViewport('desktop')}
-                title="Visualização Desktop"
+                title="Visualização Desktop (16:9)"
               >
-                <Monitor className="h-4 w-4" />
+                <Monitor className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Desktop</span>
               </Button>
             </div>
           </div>
 
-          {/* Canvas da Prévia */}
-          <div className="min-h-[600px] h-[72vh] bg-zinc-200 dark:bg-zinc-900 rounded-2xl border border-border/60 overflow-hidden relative group shadow-lg flex items-center justify-center p-2 sm:p-6">
+          {/* Canvas da Prévia com Dimensões Proporcionais */}
+          <div className="min-h-[580px] h-[calc(100vh-160px)] max-h-[760px] bg-zinc-950/85 dark:bg-black/95 rounded-2xl border border-border/60 overflow-hidden relative group shadow-2xl flex items-center justify-center p-3 sm:p-6">
             <div
               className={cn(
-                'h-full bg-background shadow-2xl border border-border/40 overflow-hidden transition-all duration-500 ease-in-out relative flex flex-col',
-                viewportWidths[previewViewport]
+                'bg-background overflow-hidden transition-all duration-300 ease-in-out relative flex flex-col',
+                viewportContainerStyles[previewViewport]
               )}
             >
               {previewTab === 'cover' ? (

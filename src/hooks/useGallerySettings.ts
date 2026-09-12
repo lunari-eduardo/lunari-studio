@@ -450,10 +450,32 @@ export function useGallerySettings() {
         }
       }
     },
+    onMutate: async (newData: Partial<GlobalSettings>) => {
+      // Cancel any in-flight queries
+      await queryClient.cancelQueries({ queryKey: ['gallery-settings', user?.id] });
+
+      // Snapshot the previous value
+      const previousSettings = queryClient.getQueryData<GlobalSettings>(['gallery-settings', user?.id]);
+
+      // Optimistically update the cache with the new values
+      if (previousSettings) {
+        queryClient.setQueryData<GlobalSettings>(['gallery-settings', user?.id], {
+          ...previousSettings,
+          ...newData,
+        });
+      }
+
+      // Return context object with the snapshotted value
+      return { previousSettings };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
     },
-    onError: (error) => {
+    onError: (error, _newData, context) => {
+      // Rollback to the previous value on error
+      if (context?.previousSettings) {
+        queryClient.setQueryData(['gallery-settings', user?.id], context.previousSettings);
+      }
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações');
       console.error('Settings update error:', error);
     },

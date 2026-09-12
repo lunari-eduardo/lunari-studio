@@ -6,6 +6,7 @@ import { applyTitleCase } from '@/lib/textTransform';
 import { GALLERY_FONTS } from '@/components/FontSelect';
 import type { CoverVariantProps } from '../types';
 import { useCoverPalette, CoverCta, CoverScrollCue } from '../shared';
+import { getFallbackCoverUrl } from '../defaultPhotos';
 import { cn } from '@/lib/utils';
 
 export default function FullscreenCover({
@@ -36,7 +37,7 @@ export default function FullscreenCover({
     primaryColor,
   });
 
-  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : '/placeholder.svg';
+  const coverUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : getFallbackCoverUrl('horizontal');
   const displayName = applyTitleCase(sessionName, titleCaseMode);
 
   // Busca configurações recomendadas da fonte
@@ -74,7 +75,7 @@ export default function FullscreenCover({
   const letterSpacing = fontConfig?.letterSpacing ?? '-0.01em';
 
   return (
-    <section className="relative h-screen w-full flex flex-col justify-end overflow-hidden select-none bg-neutral-950">
+    <section className="relative h-full min-h-full w-full flex flex-col justify-end overflow-hidden select-none bg-neutral-950">
       {/* 1. Imagem de Fundo com Zoom Suave na Entrada */}
       <div
         className={cn(
