@@ -1,11 +1,22 @@
 /**
- * Hero da tela de conexão: pill, headline, bullets e CTAs.
+ * Hero da tela de conexão: pill com logo WhatsApp, headline, bullets temáticos e CTAs Lunari.
+ * Réplica fiel da Imagem 2.
  */
 
-import { ArrowRight, FolderOpen, Play, SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
+import {
+  Aperture,
+  ArrowRight,
+  FileText,
+  Lock,
+  Play,
+  QrCode,
+  User,
+  Users,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FeatureBullet } from './FeatureBullet';
+import { WhatsAppIcon } from './QrCodePanel';
 
 export interface ConnectHeroProps {
   onGenerateQr: () => void;
@@ -15,77 +26,85 @@ export interface ConnectHeroProps {
 
 const BULLETS = [
   {
-    icon: Zap,
+    icon: User,
     title: 'Atendimento mais rápido',
-    description: 'Responda clientes diretamente pelo painel, sem alternar entre abas.',
+    description: 'Responda com agilidade e tenha todo o contexto do cliente.',
   },
   {
-    icon: FolderOpen,
+    icon: Users,
     title: 'Mais organização',
-    description: 'Todas as conversas em um só lugar, com histórico completo do cliente.',
+    description: 'Conversas, orçamentos, sessões e pagamentos conectados.',
   },
   {
-    icon: Sparkles,
+    icon: FileText,
     title: 'Funcionalidades exclusivas',
-    description: 'Templates, follow-up automático e ações rápidas pensadas para fotógrafos.',
+    description: 'Templates, lembretes, follow-up e muito mais.',
   },
   {
-    icon: SlidersHorizontal,
+    icon: Aperture,
     title: 'Seu estúdio no controle',
-    description: 'Você decide quem atende, quando e como.',
+    description: 'Mais tempo para o que realmente importa: fotografar.',
   },
 ];
 
 export function ConnectHero({ onGenerateQr, onOpenHowItWorks, loading }: ConnectHeroProps) {
   return (
     <div className="space-y-6">
+      {/* Pill WhatsApp Business */}
       <Badge
         variant="outline"
-        className="bg-emerald-500/10 border-emerald-500/30 text-emerald-300 px-3 py-1 text-xs font-medium rounded-full gap-1.5"
+        className="bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 px-3 py-1 text-xs font-medium rounded-full gap-1.5 w-fit flex items-center shadow-sm"
       >
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
+        <WhatsAppIcon className="h-3.5 w-3.5 fill-[#25D366]" />
         WhatsApp Business
       </Badge>
 
+      {/* Título e Subtítulo */}
       <div className="space-y-3">
-        <h1 className="font-serif text-4xl md:text-5xl leading-tight text-zinc-50">
-          Conecte seu <span className="text-amber-400">WhatsApp</span> ao Lunari
+        <h1 className="font-sans text-3xl sm:text-4xl lg:text-[42px] font-bold tracking-tight leading-[1.15] text-foreground">
+          Conecte seu{' '}
+          <span className="text-[#C9A87C] dark:text-[#D4B57C]">WhatsApp</span> ao Lunari
         </h1>
-        <p className="text-zinc-400 text-base max-w-md leading-relaxed">
-          Centralize o atendimento dos seus clientes, responda mais rápido e nunca perca uma
-          oportunidade de venda.
+        <p className="text-muted-foreground text-sm sm:text-base max-w-md leading-relaxed">
+          Gerencie suas conversas, atenda clientes, envie orçamentos, agende sessões e muito mais,
+          tudo em um só lugar.
         </p>
       </div>
 
-      <div className="space-y-4">
+      {/* Bullets de recursos */}
+      <div className="space-y-4 pt-1">
         {BULLETS.map(b => (
           <FeatureBullet key={b.title} {...b} />
         ))}
       </div>
 
+      {/* Botões de Ação */}
       <div className="flex flex-wrap items-center gap-3 pt-2">
         <Button
           onClick={onGenerateQr}
           disabled={loading}
           size="lg"
-          className="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-semibold px-6 rounded-full shadow-lg shadow-amber-500/20"
+          className="bg-[#C9A87C] hover:bg-[#B8986B] text-zinc-950 font-semibold px-5 rounded-xl shadow-md transition-all h-11"
         >
+          <QrCode className="h-4 w-4 mr-2" />
           {loading ? 'Gerando…' : 'Gerar QR Code'}
           <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
+
         <Button
           onClick={onOpenHowItWorks}
-          variant="ghost"
+          variant="outline"
           size="lg"
-          className="text-zinc-300 hover:text-zinc-50 hover:bg-zinc-800/50 rounded-full"
+          className="border-border/70 hover:border-border bg-card/40 hover:bg-card/90 text-foreground font-medium px-5 rounded-xl shadow-sm transition-all h-11"
         >
-          <Play className="h-4 w-4 mr-2" />
+          <Play className="h-4 w-4 mr-2 fill-current/20" />
           Como funciona?
         </Button>
       </div>
 
-      <p className="text-[11px] text-zinc-500 flex items-center gap-1.5 pt-1">
-        <span className="h-3 w-3 rounded-full border border-zinc-700 inline-flex items-center justify-center text-[8px]">🔒</span>
+      {/* Rodapé informativo */}
+      <p className="text-xs text-muted-foreground flex items-center gap-2 pt-1">
+        <Lock className="h-3.5 w-3.5 text-muted-foreground/80" />
         Conexão segura via WhatsApp Business
       </p>
     </div>

@@ -74,6 +74,32 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
       ? new Date(Date.now() + qrcode.expires * 1000).toISOString()
       : null;
 
+  // Configurar Webhook na Evolution API
+  try {
+    const webhookUrl = `${new URL(c.req.url).origin}/api/conversas/webhook`;
+    await fetch(`${c.env.EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: c.env.EVOLUTION_API_KEY ?? '',
+      },
+      body: JSON.stringify({
+        url: webhookUrl,
+        webhookByEvents: false,
+        webhookEvents: [
+          'CONNECTION_UPDATE',
+          'MESSAGES_UPSERT',
+          'MESSAGES_UPDATE',
+          'MESSAGES_DELETE'
+        ]
+      }),
+    });
+  } catch (err) {
+    console.error('[conversas-instance-create] Erro ao configurar webhook:', err);
+  }
+
+  const qrcodeDataFinal = qrcode.base64 ?? qrcode.code ?? null;
+
   // Persistir no Supabase
   const { data: inserted, error: insertError } = await supabaseAdmin
     .from('conversas_instancias')
@@ -84,7 +110,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         instance_id: instanceId,
         status: 'connecting',
         phone: null,
-        qrcode_data: qrcode.code ?? null,
+        qrcode_data: qrcodeDataFinal,
         qrcode_expires_at: expiresAt,
         evolution_token: data.hash ?? null,
       },
@@ -102,7 +128,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
     data: {
       instance: inserted,
       qrcode: {
-        code: qrcode.code ?? null,
+        code: qrcodeDataFinal,
         expiresAt,
       },
     },

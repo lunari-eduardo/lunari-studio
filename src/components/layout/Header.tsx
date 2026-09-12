@@ -28,6 +28,7 @@ const pageTitles: Record<string, string> = {
   "/app/minha-conta": "Minha Conta",
   "/app/integracoes": "Integrações",
   "/app/planos-e-creditos": "Planos e Créditos",
+  "/app/conversas": "Conversas",
   // Módulo Gallery
   "/app/gallery": "Galerias",
   "/app/gallery/dashboard": "Painel da Galeria",

@@ -3,6 +3,7 @@
  *
  * Mostra hero + phone mockup com QR + 6 benefícios quando o fotógrafo
  * ainda não tem instância WhatsApp conectada (ou precisa reconectar).
+ * Suporte dinâmico aos modos Dark e Light com design oficial do Lunari (Imagem 2).
  */
 
 import { useState } from 'react';
@@ -19,7 +20,6 @@ export function ConnectLandingScreen() {
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isReconnect = instancias.length > 0;
   const firstInstance = instancias[0] ?? null;
 
   const handleCreate = async () => {
@@ -45,60 +45,67 @@ export function ConnectLandingScreen() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] bg-[#0f0e0c] text-zinc-50 -mx-4 md:-mx-6 -my-6 px-4 md:px-6 py-6 md:py-10">
-      <div className="max-w-7xl mx-auto">
-        {/* Page header */}
-        <div className="mb-8 md:mb-12">
-          <h2 className="font-serif text-2xl text-zinc-50">Conversas</h2>
-          <p className="text-sm text-zinc-400">WhatsApp integrado ao seu fluxo de trabalho</p>
+    <div className="w-full max-w-[1440px] mx-auto py-4 sm:py-6 px-3 sm:px-6 space-y-8 md:space-y-10 animate-fade-in">
+      {/* Page Header */}
+      <div>
+        <h2 className="font-sans text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Conversas
+        </h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          WhatsApp integrado ao seu fluxo de trabalho
+        </p>
+      </div>
+
+      {/* Grid Principal em 3 Colunas (Hero | Mockup do Smartphone | Benefícios) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_auto_1.05fr] xl:grid-cols-[1.15fr_330px_1.05fr] gap-8 xl:gap-12 items-center">
+        {/* Coluna 1 (Esquerda): Hero */}
+        <div className="flex flex-col justify-center">
+          <ConnectHero
+            onGenerateQr={handleCreate}
+            onOpenHowItWorks={() => toast.info('Guia em breve!')}
+            loading={creating || isLoading}
+          />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_360px] gap-8 lg:gap-12">
-          {/* Coluna esquerda: hero + mockup */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <ConnectHero
-              onGenerateQr={handleCreate}
-              onOpenHowItWorks={() => toast.info('Guia em breve!')}
-              loading={creating || isLoading}
+        {/* Coluna 2 (Centro): Mockup Realista de Smartphone iPhone */}
+        <div className="flex items-center justify-center my-4 lg:my-0">
+          <PhoneMockup>
+            <QrCodePanel
+              qrcodeData={firstInstance?.qrcode_data ?? null}
+              qrcodeExpiresAt={firstInstance?.qrcode_expires_at ?? null}
+              loading={refreshing}
+              onRefresh={handleRefresh}
             />
-
-            <div className="flex items-center justify-center">
-              <PhoneMockup>
-                <QrCodePanel
-                  qrcodeData={firstInstance?.qrcode_data ?? null}
-                  qrcodeExpiresAt={firstInstance?.qrcode_expires_at ?? null}
-                  loading={refreshing}
-                  onRefresh={handleRefresh}
-                />
-              </PhoneMockup>
-            </div>
-          </div>
-
-          {/* Coluna direita: benefícios */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
-              Por que conectar
-            </h3>
-            <BenefitGrid />
-          </div>
+          </PhoneMockup>
         </div>
 
-        {/* Tip strip */}
-        <div className="mt-10 md:mt-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-zinc-300">
-              <span className="font-medium text-zinc-50">Dica:</span> tenha seu celular com
-              WhatsApp Business instalado e conectado ao Wi-Fi antes de escanear.
-            </p>
+        {/* Coluna 3 (Direita): 6 Cards Verticais de Benefícios */}
+        <div className="flex flex-col justify-center">
+          <BenefitGrid />
+        </div>
+      </div>
+
+      {/* Tip Strip Inferior (Dica e Guia Completo) */}
+      <div className="rounded-2xl border border-border/50 bg-card/40 dark:bg-card/25 backdrop-blur-sm px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-amber-500/10 border border-amber-500/25 text-[#C9A87C] flex items-center justify-center flex-shrink-0">
+            <Lightbulb className="h-4 w-4 text-[#C9A87C]" />
           </div>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">Dica:</span> mantenha seu celular conectado
+            à internet durante o processo de vinculação.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <span className="text-sm text-muted-foreground hidden sm:inline">Precisa de ajuda?</span>
           <button
             type="button"
             onClick={() => toast.info('Guia em breve!')}
-            className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1.5"
+            className="text-sm font-medium text-foreground bg-card hover:bg-muted border border-border/60 hover:border-border px-4 py-2 rounded-xl flex items-center gap-2 transition-all shadow-sm"
           >
             Ver guia completo
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
         </div>
       </div>
