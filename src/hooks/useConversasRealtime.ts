@@ -11,7 +11,7 @@
 import { useEffect, useCallback, useState, useMemo, useId } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import type { Chat, ChatUpdate, ChatInsert } from './types';
+import type { Chat, ChatUpdate } from './types';
 import type { InstanciaStatus } from './types';
 
 const DEBUG = false;
@@ -48,11 +48,13 @@ export interface UseConversasReturn {
 
   // ─── Instance Operations ─────────────────────────────────────────────────────
   refreshQrCode: (instanceId: string) => Promise<void>;
+  createInstance: (instanceName: string) => Promise<void>;
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   totalUnread: number;
   activeChatsCount: number;
   connectedInstance: string | null;
+  instanceViewState: 'initial' | 'reconnect' | 'connecting' | 'ready';
 }
 
 export function useConversas(options: UseConversasOptions = {}): UseConversasReturn {
@@ -332,6 +334,74 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     }
   }, []);
 
+  /**
+   * Cria uma instância na Evolution API e persiste em `conversas_instancias`.
+   * Usado pela primeira vez em `/conversas` quando o fotógrafo ainda não conectou.
+   */
+  const createInstance = useCallback(async (instanceName: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_EVOLUTION_API_URL}/instance/create`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_EVOLUTION_API_KEY ?? '',
+          },
+          body: JSON.stringify({
+            instanceName,
+            qrcode: true,
+            integration: 'WHATSAPP-BUSINESS',
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Evolution API retornou ${response.status}: ${errText}`);
+      }
+
+      const data = await response.json();
+      const qrcode = data.qrcode ?? {};
+      const expiresAt =
+        typeof qrcode.expires === 'number'
+          ? new Date(Date.now() + qrcode.expires * 1000).toISOString()
+          : null;
+
+      const userId = await loadUserId();
+      if (!userId) throw new Error('Sessão expirada — faça login novamente.');
+
+      // Persistir a instância para o realtime propagar.
+      const { data: inserted, error: insertError } = await supabase
+        .from('conversas_instancias')
+        .insert({
+          user_id: userId,
+          instance_name: instanceName,
+          instance_id: data.instance?.instanceId ?? null,
+          status: 'connecting',
+          phone: null,
+          qrcode_data: qrcode.code ?? null,
+          qrcode_expires_at: expiresAt,
+          evolution_token: data.hash ?? null,
+        })
+        .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at')
+        .single();
+
+      if (insertError) throw insertError;
+
+      if (inserted) {
+        setInstancias(prev =>
+          prev.some(i => i.id === inserted.id) ? prev : [...prev, inserted],
+        );
+      }
+
+      toast.success('Instância criada! Escaneie o QR Code.');
+    } catch (err: any) {
+      toast.error('Erro ao criar instância: ' + err.message);
+      throw err;
+    }
+  }, [loadUserId]);
+
   // ─── Derived ─────────────────────────────────────────────────────────────────
 
   const totalUnread = useMemo(
@@ -349,6 +419,14 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     [instancias],
   );
 
+  const instanceViewState = useMemo<'initial' | 'reconnect' | 'connecting' | 'ready'>(() => {
+    if (instancias.length === 0) return 'initial';
+    const hasConnected = instancias.some(i => i.status === 'connected');
+    if (hasConnected) return 'ready';
+    if (instancias.some(i => i.status === 'connecting')) return 'connecting';
+    return 'reconnect';
+  }, [instancias]);
+
   return {
     chats,
     instancias,
@@ -364,8 +442,10 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     markAsRead,
     deleteChat,
     refreshQrCode,
+    createInstance,
     totalUnread,
     activeChatsCount,
     connectedInstance,
+    instanceViewState,
   };
 }

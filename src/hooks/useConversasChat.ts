@@ -47,6 +47,7 @@ export interface UseConversasChatReturn {
   // ─── Derived ─────────────────────────────────────────────────────────────────
   sortedMensagens: Mensagem[];
   hasMore: boolean;
+  loadMore: () => Promise<void>;
 }
 
 export function useConversasChat(
@@ -446,5 +447,6 @@ export function useConversasChat(
     markAllRead,
     sortedMensagens,
     hasMore,
+    loadMore,
   };
 }
