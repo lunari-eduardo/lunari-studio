@@ -336,8 +336,11 @@ export function DeliverDesignTab({
               )}
             >
               {previewTab === 'cover' ? (
-                /* Prévia Interativa da Capa com Paridade Total usando Iframe para isolamento de CSS (vh/vw e media queries) */
-                <IframePreview title="Preview da Capa">
+                /* Prévia Interativa da Capa com Paridade Total usando Iframe com resolução nativa escalada */
+                <IframePreview
+                  title="Preview da Capa"
+                  viewport={previewViewport === 'desktop' ? 'desktop' : 'mobile'}
+                >
                   <CoverRenderer
                     coverId={coverId}
                     coverPhoto={coverPhotoPaths}

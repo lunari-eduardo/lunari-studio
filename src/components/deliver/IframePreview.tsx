@@ -3,14 +3,47 @@ import { createPortal } from 'react-dom';
 
 interface IframePreviewProps extends React.IframeHTMLAttributes<HTMLIFrameElement> {
   children: React.ReactNode;
+  viewport?: 'desktop' | 'mobile';
 }
 
-export function IframePreview({ children, title = 'Preview', ...props }: IframePreviewProps) {
+export function IframePreview({
+  children,
+  title = 'Preview',
+  viewport,
+  ...props
+}: IframePreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
+  const [scale, setScale] = useState(1);
 
-  // Armazenado no escopo do effect para poder ser limpo no return
-  const roRef = { current: null as ResizeObserver | null };
+  const virtualWidth = viewport === 'desktop' ? 1280 : 375;
+  const virtualHeight = viewport === 'desktop' ? 720 : 667;
+
+  // Atualiza o fator de escala dinamicamente baseado no tamanho físico do container
+  useEffect(() => {
+    if (!viewport) {
+      setScale(1);
+      return;
+    }
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+
+    const updateScale = () => {
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (cw > 0 && ch > 0) {
+        const s = Math.min(cw / virtualWidth, ch / virtualHeight);
+        setScale(s);
+      }
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [viewport, virtualWidth, virtualHeight]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -39,6 +72,8 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
       });
     };
 
+    let ro: ResizeObserver | null = null;
+
     const initIframe = () => {
       if (!doc.head) return;
       if (!doc.head.querySelector('style')) {
@@ -51,7 +86,7 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
         const baseReset = doc.createElement('style');
         baseReset.textContent = `
           html, body { height: 100%; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-          #iframe-root { display: flex; flex-direction: column; }
+          #iframe-root { display: flex; flex-direction: column; width: 100%; height: 100%; }
           ::-webkit-scrollbar { width: 4px; height: 4px; }
           ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.25); border-radius: 4px; }
           ::-webkit-scrollbar-track { background: transparent; }
@@ -66,8 +101,6 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
         rootDiv.className = 'w-full flex flex-col overflow-hidden';
         doc.body.appendChild(rootDiv);
 
-        // Sincroniza altura explícita do rootDiv com a altura real do iframe.
-        // Garante que h-[100svh] dentro dos variantes de capa resolva corretamente.
         const syncHeight = () => {
           if (iframe.clientHeight > 0) {
             rootDiv.style.height = `${iframe.clientHeight}px`;
@@ -75,8 +108,10 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
           }
         };
 
-        roRef.current = new ResizeObserver(syncHeight);
-        roRef.current.observe(iframe);
+        if (typeof ResizeObserver !== 'undefined') {
+          ro = new ResizeObserver(syncHeight);
+          ro.observe(iframe);
+        }
         syncHeight();
 
         setMountNode(rootDiv);
@@ -95,19 +130,38 @@ export function IframePreview({ children, title = 'Preview', ...props }: IframeP
 
     return () => {
       clearTimeout(timer);
-      roRef.current?.disconnect();
+      if (ro) ro.disconnect();
     };
   }, []);
 
   return (
-    <iframe
-      ref={iframeRef}
-      title={title}
-      className="w-full h-full border-0 bg-background"
-      sandbox="allow-same-origin allow-scripts"
-      {...props}
+    <div
+      ref={containerRef}
+      className="w-full h-full relative overflow-hidden flex items-center justify-center bg-background select-none"
     >
-      {mountNode && createPortal(children, mountNode)}
-    </iframe>
+      <iframe
+        ref={iframeRef}
+        title={title}
+        className="border-0 bg-background shrink-0"
+        sandbox="allow-same-origin allow-scripts"
+        style={
+          viewport
+            ? {
+                width: `${virtualWidth}px`,
+                height: `${virtualHeight}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: 'center center',
+                transition: 'transform 0.2s ease-out',
+              }
+            : {
+                width: '100%',
+                height: '100%',
+              }
+        }
+        {...props}
+      >
+        {mountNode && createPortal(children, mountNode)}
+      </iframe>
+    </div>
   );
 }

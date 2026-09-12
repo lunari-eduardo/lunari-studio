@@ -256,28 +256,30 @@ function ClientDeliverGalleryContent({
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }}>
-      {/* Capa unificada: mantida sempre montada no topo, sem remontar em alternância entre álbuns e grid */}
-      <CoverRenderer
-        coverId={coverId}
-        coverPhoto={coverPhoto}
-        sessionName={gallery.sessionName}
-        subtitle={subtitleProp}
-        sessionDate={sessionDateProp}
-        category={categoryProp}
-        studioName={studioSettings?.studio_name}
-        sessionFont={sessionFont}
-        titleCaseMode={gallery.settings?.titleCaseMode}
-        isDark={isDark}
-        textColor={textColor}
-        textOverlayColor={textOverlayColor}
-        primaryColor={primaryColor}
-        onEnter={() => {
-          const gallerySection = document.getElementById('deliver-gallery');
-          if (gallerySection) {
-            gallerySection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
-      />
+      {/* Capa unificada: mantida sempre montada no topo com altura travada em 100dvh */}
+      <div className="w-full h-[100dvh] min-h-[100dvh] relative overflow-hidden">
+        <CoverRenderer
+          coverId={coverId}
+          coverPhoto={coverPhoto}
+          sessionName={gallery.sessionName}
+          subtitle={subtitleProp}
+          sessionDate={sessionDateProp}
+          category={categoryProp}
+          studioName={studioSettings?.studio_name}
+          sessionFont={sessionFont}
+          titleCaseMode={gallery.settings?.titleCaseMode}
+          isDark={isDark}
+          textColor={textColor}
+          textOverlayColor={textOverlayColor}
+          primaryColor={primaryColor}
+          onEnter={() => {
+            const gallerySection = document.getElementById('deliver-gallery');
+            if (gallerySection) {
+              gallerySection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        />
+      </div>
 
       <div id="deliver-gallery">
         <DeliverHeader 

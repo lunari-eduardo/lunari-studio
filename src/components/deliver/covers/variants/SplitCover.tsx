@@ -74,15 +74,15 @@ export default function SplitCover({
 
   return (
     <section
-      className="relative w-full h-full min-h-full select-none transition-colors duration-500 overflow-hidden flex flex-col md:grid md:grid-cols-[1.35fr_1fr]"
+      className="relative w-full h-[100dvh] max-h-[100dvh] select-none transition-colors duration-500 overflow-hidden flex flex-col md:grid md:grid-cols-[1.25fr_1fr]"
       style={{ backgroundColor: palette.surface }}
     >
-      {/* Coluna da Esquerda: Fotografia (com sobreposição de 40px no desktop) */}
-      <div className="relative w-full h-[50%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)] bg-neutral-900">
+      {/* Coluna da Esquerda: Fotografia com proporção fixa (não deforma a hero) */}
+      <div className="relative w-full h-[48%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)] bg-neutral-900 shrink-0">
         <img
           src={coverUrl}
           alt={sessionName}
-          className="w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+          className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
           onError={(e) => {
             e.currentTarget.src = getFallbackCoverUrl('vertical');
           }}
@@ -92,14 +92,14 @@ export default function SplitCover({
       {/* Coluna da Direita: Painel Editorial de Tipografia */}
       <div
         className={cn(
-          'relative z-0 flex flex-col justify-center flex-1 md:flex-initial',
+          'relative z-0 flex flex-col justify-center h-[52%] md:h-full overflow-hidden',
           'px-6 sm:px-10 md:pl-20 md:pr-12 lg:pr-20',
-          'py-6 md:py-16 md:-translate-y-[2%]'
+          'py-4 md:py-16 md:-translate-y-[2%]'
         )}
       >
         <div className="max-w-xl flex flex-col items-start">
           {/* Número da Edição (opcional) ou Kicker */}
-          <div className="flex items-center gap-3 mb-4 md:mb-5">
+          <div className="flex items-center gap-3 mb-2 md:mb-5">
             {issueNumber && (
               <span className="font-mono text-[11px] tracking-widest opacity-50 uppercase">
                 {issueNumber}
@@ -119,14 +119,14 @@ export default function SplitCover({
           </div>
 
           {/* Bloco de Título com Filete Vertical à Esquerda */}
-          <div className="flex items-stretch gap-4 md:gap-6 my-2">
+          <div className="flex items-stretch gap-3 sm:gap-4 md:gap-6 my-1 md:my-2">
             <div
               className="w-[1px] self-stretch shrink-0 rounded-full"
               style={{ backgroundColor: palette.accent }}
             />
             <div className="flex flex-col">
               <h1
-                className="text-[clamp(2.2rem,5.5vw,4.75rem)] leading-[1.02] tracking-tight text-balance break-words font-normal"
+                className="text-[clamp(1.75rem,4.5vw,4.75rem)] leading-[1.04] tracking-tight text-balance break-words font-normal"
                 style={{
                   fontFamily: sessionFont || undefined,
                   fontWeight: titleWeight,
@@ -140,7 +140,7 @@ export default function SplitCover({
               {/* Subtítulo */}
               {subtitle && (
                 <p
-                  className="text-sm md:text-base italic opacity-85 mt-3 font-serif"
+                  className="text-xs sm:text-sm md:text-base italic opacity-85 mt-1.5 sm:mt-3 font-serif line-clamp-2"
                   style={{ color: palette.ink }}
                 >
                   {subtitle}
@@ -152,7 +152,7 @@ export default function SplitCover({
           {/* Metadados (Data) */}
           {formattedDate && (
             <p
-              className="text-[clamp(0.65rem,1vw,0.78rem)] uppercase tracking-[0.18em] font-sans font-medium mt-6 mb-8"
+              className="text-[clamp(0.62rem,1vw,0.78rem)] uppercase tracking-[0.18em] font-sans font-medium mt-3 mb-4 sm:mt-4 sm:mb-6 md:mt-6 md:mb-8"
               style={{ color: palette.inkMuted }}
             >
               {formattedDate}
@@ -160,7 +160,7 @@ export default function SplitCover({
           )}
 
           {/* CTA Solid com contraste automático calculado */}
-          <div className="mt-2 w-full sm:w-auto">
+          <div className="mt-1 sm:mt-2 w-full sm:w-auto">
             <CoverCta
               variant="solid"
               label={ctaLabel || 'Ver galeria'}
@@ -172,7 +172,7 @@ export default function SplitCover({
         </div>
 
         {/* Indicador de Rolagem Discreto no Rodapé */}
-        <div className="mt-10 md:mt-14 hidden md:block">
+        <div className="mt-8 md:mt-14 hidden md:block">
           <CoverScrollCue onClick={handleScroll} color={palette.inkMuted} />
         </div>
       </div>
