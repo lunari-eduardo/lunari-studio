@@ -45,6 +45,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
       },
       body: JSON.stringify({
         instanceName,
+        token: crypto.randomUUID(),
         qrcode: true,
         integration,
       }),
