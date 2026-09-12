@@ -80,8 +80,12 @@ export default function ClientDeliverGallery({ data }: Props) {
   const hasFolders = folders.length > 0;
 
   const clientMode = (data.clientMode === 'dark' || data.clientMode === 'light') ? data.clientMode : 'light';
-  const isDark = clientMode === 'dark';
-  const customPrimaryColor = data.theme?.primaryColor || undefined;
+  const customPrimaryColor = data.theme?.primaryColor
+    || (gallery.settings?.themeOverrides as any)?.palette?.primary
+    || (gallery.settings?.themeOverrides as any)?.primaryColor
+    || (data.studioSettings as any)?.customTheme?.primaryColor
+    || (data.studioSettings as any)?.cor_primaria
+    || undefined;
 
   const [showWelcome, setShowWelcome] = useState(() => {
     const key = `deliver_welcome_${gallery.id}`;

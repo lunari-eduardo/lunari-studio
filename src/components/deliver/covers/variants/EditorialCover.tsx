@@ -70,29 +70,48 @@ export default function EditorialCover({
 
   const isSingleLine = !line2;
   const maxFontSizeVw = spec.orientation === 'vertical'
-    ? (isSingleLine ? 14 : 10)
-    : (isSingleLine ? 28 : 17);
+    ? (isSingleLine ? 22 : 15)
+    : (isSingleLine ? 24 : 14);
 
   const rawUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'preview') : null;
   const coverUrl = (rawUrl && rawUrl !== '/placeholder.svg' && !rawUrl.includes('placeholder.svg'))
     ? rawUrl
     : getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
   
-  const fontSize = useFittedTitle(
+  // No desktop, calculamos um span que garante que o texto atravesse a costura da foto e repouse sobre ela
+  const desktopTargetSpan = spec.orientation === 'vertical' && size.width > 0
+    ? (spec.seamPx - (size.width * 0.05)) + Math.max(160, size.width * 0.20)
+    : undefined;
+
+  const { fontSize, textWidth } = useFittedTitle(
     line1,
     line2,
     spec.title.width,
     spec.title.height,
     sessionFont || 'serif',
     maxFontSizeVw,
-    spec.orientation === 'vertical' ? 26 : 30
+    spec.orientation === 'vertical' ? 36 : 28,
+    desktopTargetSpan
   );
+
+  // Posição horizontal ótica no desktop para que o texto sempre ultrapasse a costura da foto
+  const effectiveTitleX = useMemo(() => {
+    if (size.width <= 0) return spec.title.x;
+    if (spec.orientation === 'vertical') {
+      // Queremos que a costura da foto intercepte o texto em torno de 56% a 62% da sua largura total
+      const idealLeft = spec.seamPx - (textWidth * 0.58);
+      const minLeft = Math.max(28, size.width * 0.04);
+      const maxLeft = Math.max(minLeft, size.width * 0.12);
+      return Math.max(minLeft, Math.min(maxLeft, idealLeft));
+    }
+    return spec.title.x;
+  }, [size.width, spec.orientation, spec.seamPx, spec.title.x, textWidth]);
 
   const titleIntersection = useMemo(() => {
     if (size.width === 0) return { x: 0, y: 0, width: 0, height: 0 };
     if (spec.orientation === 'vertical') {
-      const intersectX = Math.max(spec.title.x, spec.seamPx);
-      const intersectWidth = Math.max(0, (spec.title.x + spec.title.width) - intersectX);
+      const intersectX = Math.max(effectiveTitleX, spec.seamPx);
+      const intersectWidth = Math.max(0, (effectiveTitleX + textWidth) - intersectX);
       return { 
         x: intersectX, 
         y: spec.title.y - (spec.title.height / 2), 
@@ -100,6 +119,14 @@ export default function EditorialCover({
         height: spec.title.height 
       };
     } else {
+      if (line2) {
+        return {
+          x: spec.title.x,
+          y: spec.seamPx + 8,
+          width: textWidth,
+          height: fontSize
+        };
+      }
       const intersectY = Math.max(spec.title.y - (spec.title.height / 2), spec.seamPx);
       const intersectHeight = Math.max(0, (spec.title.y + (spec.title.height / 2)) - intersectY);
       return { 
@@ -109,7 +136,7 @@ export default function EditorialCover({
         height: intersectHeight 
       };
     }
-  }, [spec, size.width]);
+  }, [spec, size.width, effectiveTitleX, textWidth, line2, fontSize]);
 
   const ctaRect = useMemo(() => ({
     x: spec.cta.x - 100,
@@ -155,16 +182,16 @@ export default function EditorialCover({
 
   // Posicionamento preciso do título sobre a costura da foto
   const titleBoxStyle: React.CSSProperties = spec.orientation === 'vertical' ? {
-    left: `${spec.title.x}px`,
+    left: `${effectiveTitleX}px`,
     top: `${spec.title.y}px`,
-    width: `${spec.title.width}px`,
+    width: `${Math.max(textWidth + 40, spec.title.width)}px`,
     height: `${spec.title.height}px`,
     transform: 'translateY(-50%)',
     display: 'flex',
     alignItems: 'center'
   } : {
     left: `${spec.title.x}px`,
-    top: `${spec.seamPx - (fontSize * 0.42)}px`, // Ancoragem perfeita no corte da costura
+    top: `${spec.seamPx - (fontSize * 0.45)}px`,
     width: `${spec.title.width}px`,
     display: 'flex',
     alignItems: 'flex-start',
@@ -216,95 +243,153 @@ export default function EditorialCover({
         />
       </div>
 
-      {/* 2. BASE TITLE LAYER (FULL SCREEN CLIPPED TO THEME SIDE) */}
+      {/* 2 & 3. TITLE RENDERING */}
       {size.width > 0 && (
-        <div
-          className="absolute inset-0 z-20 pointer-events-none"
-          style={{ clipPath: clipTheme }}
-        >
-        {/* Subtítulo no topo no modo mobile */}
-        {spec.orientation === 'horizontal' && formattedSubtitle && (
-          <div
-            className="absolute z-20 flex flex-col gap-1.5"
-            style={{
-              left: `${spec.title.x}px`,
-              top: 'max(20px, env(safe-area-inset-top) + 12px)',
-            }}
-          >
-            <span
-              className="tracking-[0.35em] font-sans opacity-60 uppercase text-[11px] sm:text-xs"
-              style={{ color: baseColor }}
-            >
-              {formattedSubtitle}
-            </span>
-            <div className="w-10 h-px bg-current opacity-40" style={{ color: baseColor }} />
-          </div>
-        )}
-
-        <div className="absolute" style={titleBoxStyle}>
-          <div className="flex flex-col">
-            {/* Subtítulo inline no modo desktop */}
-            {spec.orientation === 'vertical' && formattedSubtitle && (
+        spec.orientation === 'horizontal' && line2 ? (
+          /* MODO SMARTPHONE COM 2 LINHAS: Costura da foto divide o meio das duas palavras (linha 1 fora, linha 2 dentro) */
+          <div className="absolute inset-0 pointer-events-none select-none">
+            {/* Subtítulo no topo na área do tema */}
+            {formattedSubtitle && (
               <div
-                className="flex flex-col gap-1.5 mb-[0.6em]"
-                style={{ fontSize: `${fontSize * 0.1}px` }}
+                className="absolute z-20 flex flex-col gap-1.5"
+                style={{
+                  left: `${spec.title.x}px`,
+                  top: 'max(20px, env(safe-area-inset-top) + 12px)',
+                }}
               >
-                <span 
-                  className="tracking-[0.35em] font-sans opacity-60 uppercase"
-                  style={{ color: baseColor, fontSize: 'inherit' }}
+                <span
+                  className="tracking-[0.35em] font-sans opacity-60 uppercase text-[11px] sm:text-xs"
+                  style={{ color: baseColor }}
                 >
                   {formattedSubtitle}
                 </span>
-                <div className="w-[20%] h-px bg-current opacity-40" style={{ color: baseColor }} />
+                <div className="w-10 h-px bg-current opacity-40" style={{ color: baseColor }} />
               </div>
             )}
-            <TitleComposition
-              line1={line1}
-              line2={line2}
-              fontSize={fontSize}
-              color={baseColor}
-              fontFamily={sessionFont}
-              fontWeight={titleWeight}
-            />
-          </div>
-        </div>
-      </div>
-      )}
 
-      {/* 3. OVERLAY TITLE LAYER (FULL SCREEN CLIPPED TO PHOTO SIDE) */}
-      {size.width > 0 && (
-        <div
-          className="absolute inset-0 z-30 pointer-events-none"
-          style={{ clipPath: clipPhoto }}
-        >
-          <div className="absolute" style={titleBoxStyle}>
-             <div className="flex flex-col">
-              {/* Subtítulo inline no modo desktop */}
-              {spec.orientation === 'vertical' && formattedSubtitle && (
+            {/* Linha 1: Fora da foto (fundo claro), base ancorada logo acima da costura */}
+            <div
+              className="absolute z-20 tracking-[-0.03em] leading-none uppercase transition-colors duration-500 whitespace-nowrap"
+              style={{
+                left: `${spec.title.x}px`,
+                bottom: `${size.height - spec.seamPx + 8}px`,
+                fontSize: `${fontSize}px`,
+                fontWeight: titleWeight,
+                color: baseColor,
+                fontFamily: sessionFont || 'serif',
+                ...(fontSize < 48 ? { WebkitTextStroke: '0.35px currentColor' } : {}),
+              }}
+            >
+              {line1}
+            </div>
+
+            {/* Linha 2: Dentro da foto, topo ancorado logo abaixo da costura */}
+            <div
+              className="absolute z-30 tracking-[-0.03em] leading-none uppercase transition-colors duration-500 whitespace-nowrap drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]"
+              style={{
+                left: `${spec.title.x}px`,
+                top: `${spec.seamPx + 8}px`,
+                fontSize: `${fontSize}px`,
+                fontWeight: titleWeight,
+                color: overlayColor,
+                fontFamily: sessionFont || 'serif',
+                ...(fontSize < 48 ? { WebkitTextStroke: '0.35px currentColor' } : {}),
+              }}
+            >
+              {line2}
+            </div>
+          </div>
+        ) : (
+          /* MODO DESKTOP / TABLET OU MOBILE DE LINHA ÚNICA: Camadas divididas com clipPath */
+          <>
+            {/* Camada Base (Lado do Tema) */}
+            <div
+              className="absolute inset-0 z-20 pointer-events-none"
+              style={{ clipPath: clipTheme }}
+            >
+              {/* Subtítulo no topo no modo mobile linha única */}
+              {spec.orientation === 'horizontal' && formattedSubtitle && (
                 <div
-                  className="flex flex-col gap-1.5 mb-[0.6em]"
-                  style={{ fontSize: `${fontSize * 0.1}px` }}
+                  className="absolute z-20 flex flex-col gap-1.5"
+                  style={{
+                    left: `${spec.title.x}px`,
+                    top: 'max(20px, env(safe-area-inset-top) + 12px)',
+                  }}
                 >
-                  <span 
-                    className="tracking-[0.35em] font-sans opacity-60 uppercase"
-                    style={{ color: overlayColor, fontSize: 'inherit' }}
+                  <span
+                    className="tracking-[0.35em] font-sans opacity-60 uppercase text-[11px] sm:text-xs"
+                    style={{ color: baseColor }}
                   >
                     {formattedSubtitle}
                   </span>
-                  <div className="w-[20%] h-px bg-current opacity-40" style={{ color: overlayColor }} />
+                  <div className="w-10 h-px bg-current opacity-40" style={{ color: baseColor }} />
                 </div>
               )}
-              <TitleComposition
-                line1={line1}
-                line2={line2}
-                fontSize={fontSize}
-                color={overlayColor}
-                fontFamily={sessionFont}
-                fontWeight={titleWeight}
-              />
+
+              <div className="absolute" style={titleBoxStyle}>
+                <div className="flex flex-col">
+                  {/* Subtítulo inline no modo desktop */}
+                  {spec.orientation === 'vertical' && formattedSubtitle && (
+                    <div
+                      className="flex flex-col gap-1.5 mb-[0.6em]"
+                      style={{ fontSize: `${fontSize * 0.1}px` }}
+                    >
+                      <span 
+                        className="tracking-[0.35em] font-sans opacity-60 uppercase"
+                        style={{ color: baseColor, fontSize: 'inherit' }}
+                      >
+                        {formattedSubtitle}
+                      </span>
+                      <div className="w-[20%] h-px bg-current opacity-40" style={{ color: baseColor }} />
+                    </div>
+                  )}
+                  <TitleComposition
+                    line1={line1}
+                    line2={line2}
+                    fontSize={fontSize}
+                    color={baseColor}
+                    fontFamily={sessionFont}
+                    fontWeight={titleWeight}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+
+            {/* Camada de Sobreposição (Lado da Foto) */}
+            <div
+              className="absolute inset-0 z-30 pointer-events-none"
+              style={{ clipPath: clipPhoto }}
+            >
+              <div className="absolute" style={titleBoxStyle}>
+                <div className="flex flex-col">
+                  {/* Subtítulo inline no modo desktop */}
+                  {spec.orientation === 'vertical' && formattedSubtitle && (
+                    <div
+                      className="flex flex-col gap-1.5 mb-[0.6em]"
+                      style={{ fontSize: `${fontSize * 0.1}px` }}
+                    >
+                      <span 
+                        className="tracking-[0.35em] font-sans opacity-60 uppercase"
+                        style={{ color: overlayColor, fontSize: 'inherit' }}
+                      >
+                        {formattedSubtitle}
+                      </span>
+                      <div className="w-[20%] h-px bg-current opacity-40" style={{ color: overlayColor }} />
+                    </div>
+                  )}
+                  <TitleComposition
+                    line1={line1}
+                    line2={line2}
+                    fontSize={fontSize}
+                    color={overlayColor}
+                    fontFamily={sessionFont}
+                    fontWeight={titleWeight}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )
       )}
 
       {/* 4. DETAILS LAYER (DATE & CTA) */}
@@ -322,7 +407,12 @@ export default function EditorialCover({
             }}
           >
             <span 
-              className="text-[10px] sm:text-xs tracking-[0.25em] font-sans uppercase font-medium text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+              className={`text-[10px] sm:text-xs tracking-[0.25em] font-sans uppercase font-medium ${
+                spec.orientation === 'vertical'
+                  ? 'opacity-65'
+                  : 'text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]'
+              }`}
+              style={spec.orientation === 'vertical' ? { color: baseColor } : undefined}
             >
               {formattedDate}
             </span>
@@ -351,10 +441,10 @@ export default function EditorialCover({
                 e.stopPropagation();
                 handleScroll();
               }}
-              className="group flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-black/45 hover:bg-black/70 active:scale-95 backdrop-blur-md border border-white/25 text-white text-[11px] sm:text-xs tracking-[0.25em] font-sans uppercase transition-all duration-300 shadow-xl cursor-pointer"
+              className="group flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/45 hover:bg-black/70 active:scale-95 backdrop-blur-md border border-white/20 text-white text-[10px] sm:text-[11px] tracking-[0.22em] font-sans uppercase transition-all duration-300 shadow-md cursor-pointer"
             >
               <span>{ctaLabel || 'Ver Galeria'}</span>
-              <span className="transition-transform group-hover:translate-x-1">→</span>
+              <span className="transition-transform group-hover:translate-x-0.5 text-[9px] sm:text-[10px]">→</span>
             </button>
           </div>
         </div>

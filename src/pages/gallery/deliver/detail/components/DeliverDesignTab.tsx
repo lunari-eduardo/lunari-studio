@@ -10,6 +10,7 @@ import { IframePreview } from '@/components/deliver/IframePreview';
 import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
 import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
 import { FontSelect, getFontFamilyById } from '@/components/FontSelect';
+import { PRESET_COLORS } from '@/components/settings/customization/CustomizationAppearanceTab';
 import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
 import { TitleCaseMode } from '@/types/gallery';
 import { PhotoPaths } from '@/lib/photoUrl';
@@ -72,7 +73,16 @@ export function DeliverDesignTab({
 
   const activeTheme = THEME_REGISTRY[activeThemeId] || THEME_REGISTRY['lunari'];
   const isDarkTheme = activeTheme?.backgroundMode === 'dark' || themeOverrides?.backgroundMode === 'dark';
-  const primaryColor = themeOverrides?.palette?.primary || themeOverrides?.primaryColor || activeTheme?.palette?.primary || '#C6A36A';
+  
+  const photographerCustomColor =
+    studioSettings?.customTheme?.primaryColor ||
+    studioSettings?.cor_primaria ||
+    studioSettings?.themeOverrides?.palette?.primary ||
+    studioSettings?.primaryColor;
+
+  const primaryColor = useCustomTheme
+    ? (themeOverrides?.palette?.primary || themeOverrides?.primaryColor || photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A')
+    : (photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A');
   const resolvedFontFamily = getFontFamilyById(sessionFont);
 
   // Foto de capa selecionada ou fallback fotográfico de alta qualidade
@@ -197,6 +207,50 @@ export function DeliverDesignTab({
 
               <div className="space-y-6">
                 <Label className="text-base font-semibold">Ajustes Visuais</Label>
+
+                {/* Seletor de Cor Primária / Destaque */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Cor de Destaque / Botões</Label>
+                    <span className="text-xs font-mono uppercase text-muted-foreground">{primaryColor}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() =>
+                          setThemeOverrides({
+                            ...themeOverrides,
+                            palette: { ...(themeOverrides.palette || {}), primary: c.value },
+                          })
+                        }
+                        className={cn(
+                          'w-6 h-6 rounded-full border transition-all cursor-pointer hover:scale-110 flex items-center justify-center',
+                          primaryColor.toLowerCase() === c.value.toLowerCase()
+                            ? 'ring-2 ring-primary ring-offset-2 scale-110 border-transparent'
+                            : 'border-border/60 opacity-85 hover:opacity-100'
+                        )}
+                        style={{ backgroundColor: c.value }}
+                        title={c.label}
+                      />
+                    ))}
+                    <div className="relative flex items-center" title="Cor personalizada">
+                      <input
+                        type="color"
+                        value={primaryColor.startsWith('#') ? primaryColor : `#${primaryColor}`}
+                        onChange={(e) =>
+                          setThemeOverrides({
+                            ...themeOverrides,
+                            palette: { ...(themeOverrides.palette || {}), primary: e.target.value },
+                          })
+                        }
+                        className="w-6 h-6 rounded-full p-0 border border-border/60 cursor-pointer overflow-hidden opacity-90 hover:opacity-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Espaçamento (Gap)</Label>
