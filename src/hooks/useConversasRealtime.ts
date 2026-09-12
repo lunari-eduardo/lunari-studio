@@ -310,9 +310,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         return;
       }
 
-      const workerUrl = import.meta.env.VITE_WORKER_URL;
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
       if (!workerUrl) {
-        toast.error('VITE_WORKER_URL não configurada no ambiente.');
+        toast.error('VITE_EDGE_API_URL não configurada no ambiente.');
         return;
       }
 
@@ -365,9 +365,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         return;
       }
 
-      const workerUrl = import.meta.env.VITE_WORKER_URL;
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
       if (!workerUrl) {
-        toast.error('VITE_WORKER_URL não configurada no ambiente.');
+        toast.error('VITE_EDGE_API_URL não configurada no ambiente.');
         return;
       }
 
