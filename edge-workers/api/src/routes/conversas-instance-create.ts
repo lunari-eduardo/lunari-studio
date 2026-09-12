@@ -32,7 +32,8 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
     return c.json({ ok: false, error: 'instanceName é obrigatório' }, 400);
   }
 
-  const integration = body.integration ?? 'WHATSAPP-BUSINESS';
+  const integration = body.integration ?? 'WHATSAPP-BAILEYS';
+  const webhookUrl = `${new URL(c.req.url).origin}/api/conversas/webhook`;
 
   // Chama Evolution API
   let evolutionResp: Response;
@@ -48,6 +49,16 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         token: crypto.randomUUID(),
         qrcode: true,
         integration,
+        webhook: {
+          enabled: true,
+          url: webhookUrl,
+          events: [
+            'CONNECTION_UPDATE',
+            'MESSAGES_UPSERT',
+            'MESSAGES_UPDATE',
+            'MESSAGES_DELETE',
+          ],
+        },
       }),
     });
   } catch (err: any) {
@@ -76,7 +87,6 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
 
   // Configurar Webhook na Evolution API
   try {
-    const webhookUrl = `${new URL(c.req.url).origin}/api/conversas/webhook`;
     await fetch(`${c.env.EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
       method: 'POST',
       headers: {
