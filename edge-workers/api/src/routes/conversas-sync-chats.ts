@@ -298,94 +298,32 @@ export async function performSyncChats(
     }
   }
 
-  // 6. Buscar histórico aprofundado dos top 15 chats mais recentes com controle de concorrência
-  // Ordenar conversas pelo timestamp mais recente da lastMessage
-  const sortedItems = [...validItems].sort((a, b) => {
-    const timeA = Number(a.chat.lastMessage?.messageTimestamp || 0);
-    const timeB = Number(b.chat.lastMessage?.messageTimestamp || 0);
-    return timeB - timeA;
-  });
+  // 6. Popular a fila de sincronização (conversas_sync_queue) para processamento em background
+  const queuePayload = validItems
+    .map(item => {
+      const contatoId = contactIdByPhone.get(item.phoneNormalized);
+      const chatId = contatoId ? chatIdByContatoId.get(contatoId) : null;
+      if (!chatId) return null;
+      const rawJid = item.chat.remoteJid || item.chat.id || '';
+      if (!rawJid) return null;
 
-  const topActiveItems = sortedItems.slice(0, 15);
-  const historicalMessages: any[] = [];
+      return {
+        user_id: userId,
+        instance_id: instanceId,
+        chat_id: chatId,
+        remote_jid: rawJid,
+        current_page: 1,
+        status: 'pending'
+      };
+    })
+    .filter(Boolean);
 
-  // Buscar em grupos de 5 requisições paralelas para respeitar limites do Cloudflare Worker
-  for (let i = 0; i < topActiveItems.length; i += 5) {
-    const batch = topActiveItems.slice(i, i + 5);
-    await Promise.all(
-      batch.map(async item => {
-        const rawJid = item.chat.remoteJid || item.chat.id || '';
-        const contatoId = contactIdByPhone.get(item.phoneNormalized);
-        const chatId = contatoId ? chatIdByContatoId.get(contatoId) : null;
-        if (!chatId || !rawJid) return;
-
-        try {
-          const res = await fetch(
-            `${env.EVOLUTION_API_URL}/chat/findMessages/${instanceName}`,
-            {
-              method: 'POST',
-              headers: {
-                apikey: env.EVOLUTION_API_KEY,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                where: { key: { remoteJid: rawJid } },
-                limit: 20,
-              }),
-            },
-          );
-
-          if (res.ok) {
-            const rawMsgs: any = await res.json();
-            const msgList: any[] = Array.isArray(rawMsgs)
-              ? rawMsgs
-              : Array.isArray(rawMsgs?.messages?.records)
-              ? rawMsgs.messages.records
-              : Array.isArray(rawMsgs?.messages)
-              ? rawMsgs.messages
-              : Array.isArray(rawMsgs?.records)
-              ? rawMsgs.records
-              : [];
-
-            for (const m of msgList) {
-              const keyId = m.key?.id;
-              if (!keyId || processedEvolutionMsgIds.has(keyId)) continue;
-              processedEvolutionMsgIds.add(keyId);
-
-              const direction = m.key?.fromMe ? 'outbound' : 'inbound';
-              const content = extractMessageText(m.message);
-              const msgType = detectMessageType(m);
-              const timestamp = m.messageTimestamp
-                ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
-                : new Date().toISOString();
-
-              historicalMessages.push({
-                user_id: userId,
-                chat_id: chatId,
-                instance_id: instanceId,
-                evolution_msg_id: keyId,
-                direction,
-                type: msgType,
-                content,
-                status: direction === 'outbound' ? 'sent' : 'delivered',
-                timestamp,
-              });
-            }
-          }
-        } catch (msgErr) {
-          console.warn(`[performSyncChats] Erro findMessages para ${rawJid}:`, msgErr);
-        }
-      }),
-    );
-  }
-
-  // Upsert das mensagens históricas adicionais
-  for (const chunk of chunkArray(historicalMessages, 100)) {
+  for (const chunk of chunkArray(queuePayload, 100)) {
     const { error } = await supabaseAdmin
-      .from('conversas_mensagens')
-      .upsert(chunk, { onConflict: 'user_id,evolution_msg_id' });
-    if (!error) {
-      totalMessagesSynced += chunk.length;
+      .from('conversas_sync_queue')
+      .upsert(chunk, { onConflict: 'instance_id,remote_jid' });
+    if (error) {
+      console.error('[performSyncChats] Erro batch upsert sync_queue:', error.message);
     }
   }
 
@@ -397,12 +335,146 @@ export async function performSyncChats(
     })
     .eq('id', instanceId);
 
-  return {
-    ok: true,
-    synced: validItems.length,
-    syncedMessages: totalMessagesSynced,
-    total: rawChats.length,
-  };
+  return { ok: true, synced: validItems.length, syncedMessages: totalMessagesSynced, total: rawChats.length };
+}
+
+/**
+ * Processa um lote da fila de sincronização
+ */
+export async function processSyncQueueBatch(
+  env: Bindings,
+  supabaseAdmin: any,
+  userId: string,
+  instanceId: string,
+  instanceName: string,
+): Promise<{ ok: boolean; processed: number; remaining: number; error?: string }> {
+  
+  // Buscar até 10 itens na fila que estão 'pending'
+  const { data: queueItems, error: queueError } = await supabaseAdmin
+    .from('conversas_sync_queue')
+    .select('*')
+    .eq('instance_id', instanceId)
+    .eq('status', 'pending')
+    .limit(10);
+
+  if (queueError || !queueItems || queueItems.length === 0) {
+    return { ok: true, processed: 0, remaining: 0 };
+  }
+
+  const ids = queueItems.map((q: any) => q.id);
+
+  // Marcar como processing
+  await supabaseAdmin
+    .from('conversas_sync_queue')
+    .update({ status: 'processing', updated_at: new Date().toISOString() })
+    .in('id', ids);
+
+  let processedCount = 0;
+  const processedEvolutionMsgIds = new Set<string>();
+  const historicalMessages: any[] = [];
+
+  // Buscar mensagens paralelamente (limite de 10 subrequests)
+  await Promise.all(
+    queueItems.map(async (item: any) => {
+      try {
+        const res = await fetch(
+          `${env.EVOLUTION_API_URL}/chat/findMessages/${instanceName}`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: env.EVOLUTION_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              where: { key: { remoteJid: item.remote_jid } },
+              page: item.current_page
+            }),
+          },
+        );
+
+        let newStatus = 'completed';
+        let newPage = item.current_page;
+        let totalPages = item.total_pages;
+
+        if (res.ok) {
+          const rawMsgs: any = await res.json();
+          
+          // Tratamento de paginação da Evolution v2 (Prisma wrapper)
+          const records = rawMsgs?.messages?.records || rawMsgs?.records || [];
+          const currentPage = rawMsgs?.messages?.currentPage || 1;
+          const totalPagesFromApi = rawMsgs?.messages?.pages || 1;
+          totalPages = totalPagesFromApi;
+
+          for (const m of records) {
+            const keyId = m.key?.id;
+            if (!keyId || processedEvolutionMsgIds.has(keyId)) continue;
+            processedEvolutionMsgIds.add(keyId);
+
+            const direction = m.key?.fromMe ? 'outbound' : 'inbound';
+            const content = extractMessageText(m.message);
+            const msgType = detectMessageType(m);
+            const timestamp = m.messageTimestamp
+              ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
+              : new Date().toISOString();
+
+            historicalMessages.push({
+              user_id: userId,
+              chat_id: item.chat_id,
+              instance_id: instanceId,
+              evolution_msg_id: keyId,
+              direction,
+              type: msgType,
+              content,
+              status: direction === 'outbound' ? 'sent' : 'delivered',
+              timestamp,
+            });
+          }
+
+          if (currentPage < totalPagesFromApi && records.length > 0) {
+            newStatus = 'pending';
+            newPage = currentPage + 1;
+          }
+        } else {
+          newStatus = 'error';
+        }
+
+        // Atualiza item da fila
+        await supabaseAdmin
+          .from('conversas_sync_queue')
+          .update({ 
+            status: newStatus, 
+            current_page: newPage, 
+            total_pages: totalPages,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', item.id);
+
+        processedCount++;
+      } catch (err) {
+        console.warn(`[processSyncQueueBatch] Erro findMessages para ${item.remote_jid}:`, err);
+        await supabaseAdmin
+          .from('conversas_sync_queue')
+          .update({ status: 'error', error_msg: String(err), updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+      }
+    }),
+  );
+
+  // Upsert mensagens
+  for (const chunk of chunkArray(historicalMessages, 100)) {
+    await supabaseAdmin
+      .from('conversas_mensagens')
+      .upsert(chunk, { onConflict: 'user_id,evolution_msg_id' });
+  }
+
+  // Contar restantes reais pendentes (não apenas processados neste lote)
+  const { count: remainingCount } = await supabaseAdmin
+    .from('conversas_sync_queue')
+    .select('*', { count: 'exact', head: true })
+    .eq('instance_id', instanceId)
+    .eq('status', 'pending');
+
+  return { ok: true, processed: processedCount, remaining: remainingCount || 0 };
 }
 
 /**
@@ -426,14 +498,14 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
   const userId = userData.user.id;
 
   // 2. Parsear body
-  let body: { instanceId: string; chatId?: string; remoteJid?: string };
+  let body: { instanceId: string; chatId?: string; remoteJid?: string; mode?: 'initial' | 'batch' | 'single' };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { instanceId, chatId, remoteJid } = body;
+  const { instanceId, chatId, remoteJid, mode = 'initial' } = body;
   if (!instanceId) {
     return c.json({ error: 'instanceId é obrigatório' }, 400);
   }
@@ -450,8 +522,16 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
     return c.json({ error: 'Instância não encontrada' }, 404);
   }
 
-  // 4. Se for sincronização sob demanda de um chat específico
-  if (chatId && remoteJid) {
+  // Se modo for processamento em lote da fila
+  if (mode === 'batch') {
+    const result = await processSyncQueueBatch(c.env, supabaseAdmin, userId, instance.id, instance.instance_name);
+    return c.json(result);
+  }
+
+  // 4. Se for sincronização sob demanda de um chat específico (single mode antigo ou explícito)
+  if (chatId && remoteJid && mode !== 'initial') {
+    // Para simplificar a transição, vamos apenas adicionar à fila para ser processado no próximo batch,
+    // OU podemos usar o código existente. Vou usar o código existente, mas apenas pegar 1 página.
     try {
       const res = await fetch(
         `${c.env.EVOLUTION_API_URL}/chat/findMessages/${instance.instance_name}`,
@@ -463,25 +543,17 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
           },
           body: JSON.stringify({
             where: { key: { remoteJid } },
-            limit: 50,
+            page: 1, // Pelo menos pegar a primeira página, sem limit hardcoded
           }),
         },
       );
 
       if (res.ok) {
         const rawMsgs: any = await res.json();
-        const msgList: any[] = Array.isArray(rawMsgs)
-          ? rawMsgs
-          : Array.isArray(rawMsgs?.messages?.records)
-          ? rawMsgs.messages.records
-          : Array.isArray(rawMsgs?.messages)
-          ? rawMsgs.messages
-          : Array.isArray(rawMsgs?.records)
-          ? rawMsgs.records
-          : [];
+        const records = rawMsgs?.messages?.records || rawMsgs?.records || [];
 
         const msgsToUpsert: any[] = [];
-        for (const m of msgList) {
+        for (const m of records) {
           const keyId = m.key?.id;
           if (!keyId) continue;
 
@@ -519,7 +591,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
     }
   }
 
-  // 5. Sincronização completa de histórico
+  // 5. Sincronização completa de histórico (initial)
   const result = await performSyncChats(c.env, supabaseAdmin, userId, instance.id, instance.instance_name);
   if (!result.ok) {
     return c.json({ error: 'Falha na sincronização', detail: result.error }, 500);

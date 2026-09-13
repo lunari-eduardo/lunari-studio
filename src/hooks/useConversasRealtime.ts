@@ -548,37 +548,76 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         return { synced: 0, total: 0 };
       }
 
-      const response = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
+      // 1. Initial Sync (descobre chats e popula a fila)
+      const initialResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ instanceId }),
+        body: JSON.stringify({ instanceId, mode: 'initial' }),
       });
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${response.status}`);
+      if (!initialResponse.ok) {
+        const err = await initialResponse.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${initialResponse.status}`);
       }
 
-      const payload = await response.json();
-      toast.success(`${payload.synced} conversas sincronizadas.`);
+      const initialPayload = await initialResponse.json();
+      toast.success(`${initialPayload.synced} conversas descobertas. Baixando histórico...`);
 
-      // Recarregar chats para refletir instantaneamente a sincronização na UI
+      // 2. Refresh initial UI state
       const currentUserId = user?.id || (await loadUserId());
-      if (currentUserId) {
-        const { data: refreshedChats } = await supabase
-          .from('conversas_chats')
-          .select('*')
-          .eq('user_id', currentUserId)
-          .order('updated_at', { ascending: false });
-        if (refreshedChats) {
-          setChats(refreshedChats);
+      const refreshUi = async () => {
+        if (currentUserId) {
+          const { data: refreshedChats } = await supabase
+            .from('conversas_chats')
+            .select('*')
+            .eq('user_id', currentUserId)
+            .order('updated_at', { ascending: false });
+          if (refreshedChats) setChats(refreshedChats);
+        }
+      };
+      await refreshUi();
+
+      // 3. Process Batch Queue Loop
+      let remaining = 1;
+      let iterations = 0;
+      while (remaining > 0 && iterations < 1000) { // Safety limit 1000 iterations
+        iterations++;
+        const batchResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ instanceId, mode: 'batch' }),
+        });
+
+        if (!batchResponse.ok) {
+          console.warn('[Sync] Batch failed, stopping queue processing.', await batchResponse.text());
+          break;
+        }
+
+        const batchPayload = await batchResponse.json();
+        remaining = batchPayload.remaining ?? 0;
+        
+        if (batchPayload.processed > 0) {
+          // Apenas atualiza a UI se processou algo
+          await refreshUi();
+        }
+
+        if (remaining > 0) {
+          // Aguarda um curto intervalo para não travar o cliente/backend
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
 
-      return { synced: payload.synced ?? 0, total: payload.total ?? 0 };
+      if (iterations < 1000) {
+        toast.success('Sincronização de histórico concluída!');
+      }
+
+      return { synced: initialPayload.synced ?? 0, total: initialPayload.total ?? 0 };
     } catch (err: any) {
       toast.error('Erro ao sincronizar conversas: ' + err.message);
       return { synced: 0, total: 0 };

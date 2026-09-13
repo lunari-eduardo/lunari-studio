@@ -157,6 +157,7 @@ export function useConversasChat(
                 instanceId: chatResult.data.instance_id,
                 chatId: chatResult.data.id,
                 remoteJid,
+                mode: 'single'
               }),
             }).catch(err => console.warn('[useConversasChat] On-demand chat sync failed:', err));
           }
