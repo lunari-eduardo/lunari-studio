@@ -42,13 +42,8 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     [instancias],
   );
 
-  // Auto-selecionar primeiro chat ativo ao carregar
-  useEffect(() => {
-    if (!selectedChatId && !isLoading && chats.length > 0) {
-      const firstActive = chats.find(c => c.status === 'active') ?? chats[0];
-      if (firstActive) setSelectedChatId(firstActive.id);
-    }
-  }, [chats, isLoading, selectedChatId]);
+  // Nenhuma conversa aberta automaticamente por padrão ao entrar na página
+  // O usuário escolhe explicitamente qual conversa deseja abrir no painel lateral
 
   const selectedChat = useMemo(
     () => chats.find(c => c.id === selectedChatId) ?? null,
@@ -108,6 +103,16 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             }
           }}
           isSyncingChats={isSyncing}
+          onTogglePin={async (chat, e) => {
+            e?.stopPropagation();
+            if (chat.pin === 'pinned') {
+              await unpinChat(chat.id);
+              toast.success('Conversa desafixada');
+            } else {
+              await pinChat(chat.id);
+              toast.success('Conversa fixada no topo');
+            }
+          }}
         />
       </div>
 

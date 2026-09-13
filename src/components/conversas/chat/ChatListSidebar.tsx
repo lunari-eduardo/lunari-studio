@@ -31,6 +31,7 @@ export interface ChatListSidebarProps {
   onDelete?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
+  onTogglePin?: (chat: Chat, e?: React.MouseEvent) => void;
 }
 
 export function ChatListSidebar({
@@ -46,6 +47,7 @@ export function ChatListSidebar({
   onDelete,
   onSyncChats,
   isSyncingChats,
+  onTogglePin,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
 
@@ -131,6 +133,7 @@ export function ChatListSidebar({
                     chat={c}
                     isActive={c.id === selectedChatId}
                     onClick={() => onSelectChat(c)}
+                    onTogglePin={onTogglePin}
                   />
                 ))}
               </Section>
@@ -143,6 +146,7 @@ export function ChatListSidebar({
                     chat={c}
                     isActive={c.id === selectedChatId}
                     onClick={() => onSelectChat(c)}
+                    onTogglePin={onTogglePin}
                   />
                 ))}
               </Section>
@@ -154,6 +158,7 @@ export function ChatListSidebar({
                   chat={c}
                   isActive={c.id === selectedChatId}
                   onClick={() => onSelectChat(c)}
+                  onTogglePin={onTogglePin}
                 />
               ))}
             </Section>

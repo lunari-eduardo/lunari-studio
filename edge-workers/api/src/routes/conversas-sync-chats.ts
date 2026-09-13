@@ -530,8 +530,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
 
   // 4. Se for sincronização sob demanda de um chat específico (single mode antigo ou explícito)
   if (chatId && remoteJid && mode !== 'initial') {
-    // Para simplificar a transição, vamos apenas adicionar à fila para ser processado no próximo batch,
-    // OU podemos usar o código existente. Vou usar o código existente, mas apenas pegar 1 página.
+    const targetPage = Number((body as any).page) > 0 ? Number((body as any).page) : 1;
     try {
       const res = await fetch(
         `${c.env.EVOLUTION_API_URL}/chat/findMessages/${instance.instance_name}`,
@@ -543,7 +542,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
           },
           body: JSON.stringify({
             where: { key: { remoteJid } },
-            page: 1, // Pelo menos pegar a primeira página, sem limit hardcoded
+            page: targetPage,
           }),
         },
       );
@@ -583,7 +582,13 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
             .upsert(chunk, { onConflict: 'user_id,evolution_msg_id' });
         }
 
-        return c.json({ ok: true, syncedMessages: msgsToUpsert.length, chatId });
+        return c.json({
+          ok: true,
+          syncedMessages: msgsToUpsert.length,
+          chatId,
+          page: targetPage,
+          totalPages: rawMsgs?.messages?.pages || 1,
+        });
       }
     } catch (chatSyncErr: any) {
       console.error('[sync-chats] Erro ao sincronizar chat individual:', chatSyncErr);

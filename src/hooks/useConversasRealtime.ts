@@ -580,10 +580,12 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       };
       await refreshUi();
 
-      // 3. Process Batch Queue Loop
+      // 3. Process Batch Queue Loop (apenas os primeiros lotes para mensagens recentes das conversas principais)
+      // Histórico mais antigo é baixado sob demanda ao abrir ou rolar cada conversa específica
+      const MAX_INITIAL_BATCHES = 3;
       let remaining = 1;
       let iterations = 0;
-      while (remaining > 0 && iterations < 1000) { // Safety limit 1000 iterations
+      while (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
         iterations++;
         const batchResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
           method: 'POST',
@@ -603,19 +605,15 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         remaining = batchPayload.remaining ?? 0;
         
         if (batchPayload.processed > 0) {
-          // Apenas atualiza a UI se processou algo
           await refreshUi();
         }
 
-        if (remaining > 0) {
-          // Aguarda um curto intervalo para não travar o cliente/backend
-          await new Promise(r => setTimeout(r, 1000));
+        if (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
+          await new Promise(r => setTimeout(r, 600));
         }
       }
 
-      if (iterations < 1000) {
-        toast.success('Sincronização de histórico concluída!');
-      }
+      toast.success('Conversas e mensagens recentes sincronizadas!');
 
       return { synced: initialPayload.synced ?? 0, total: initialPayload.total ?? 0 };
     } catch (err: any) {

@@ -26,6 +26,7 @@ import { conversasInstanceDisconnectRoute } from './routes/conversas-instance-di
 import { conversasInstanceDeleteRoute } from './routes/conversas-instance-delete.js';
 import { conversasSyncChatsRoute } from './routes/conversas-sync-chats.js';
 import { conversasMessageRetryRoute } from './routes/conversas-message-retry.js';
+import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -104,5 +105,6 @@ app.post('/api/conversas/instance/disconnect/:id', conversasInstanceDisconnectRo
 app.delete('/api/conversas/instance/:id', conversasInstanceDeleteRoute);
 app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
 app.post('/api/conversas/sync-chats', conversasSyncChatsRoute);
+app.post('/api/conversas/fetch-avatar', conversasFetchAvatarRoute);
 
 export default app;
