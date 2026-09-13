@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import { ConnectHero } from './connect/ConnectHero';
 import { PhoneMockup } from './connect/PhoneMockup';
@@ -28,7 +29,9 @@ export function ConnectLandingScreen() {
       if (firstInstance) {
         await refreshQrCode(firstInstance.id);
       } else {
-        await createInstance('lunari-default');
+        const { data: { session } } = await supabase.auth.getSession();
+        const instanceName = session?.user?.id ? `lunari-${session.user.id.slice(0, 8)}` : 'lunari-me';
+        await createInstance(instanceName);
       }
     } catch {
       // toast tratado no hook

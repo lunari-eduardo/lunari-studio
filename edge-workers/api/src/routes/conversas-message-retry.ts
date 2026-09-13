@@ -8,6 +8,7 @@
 import { Context } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
+import { normalizeBrPhone } from '../utils/phone.js';
 
 export async function conversasMessageRetryRoute(c: Context<{ Bindings: Bindings }>) {
   if (!c.env.EVOLUTION_API_URL || !c.env.EVOLUTION_API_KEY) {
@@ -53,11 +54,11 @@ export async function conversasMessageRetryRoute(c: Context<{ Bindings: Bindings
     .update({ status: 'pending' })
     .eq('id', msgId);
 
-  // Formatar JID
+  // Formatar número como apenas dígitos com DDI 55
   const rawPhone = msg.conversas_chats?.contato_phone_normalized;
   if (!rawPhone) return c.json({ error: 'Telefone do contato inválido' }, 400);
-  const phoneDigits = rawPhone.replace(/^\+/, '');
-  const recipientJid = `${phoneDigits}@s.whatsapp.net`;
+  const normalizedPhone = normalizeBrPhone(rawPhone) || rawPhone.replace(/\D/g, '');
+  const recipientNumber = normalizedPhone.startsWith('55') ? normalizedPhone : `55${normalizedPhone}`;
 
   // 4. Enviar para Evolution API
   try {
@@ -74,7 +75,7 @@ export async function conversasMessageRetryRoute(c: Context<{ Bindings: Bindings
             apikey: c.env.EVOLUTION_API_KEY,
           },
           body: JSON.stringify({
-            number: recipientJid,
+            number: recipientNumber,
             text: msg.content,
           }),
         },
@@ -90,7 +91,7 @@ export async function conversasMessageRetryRoute(c: Context<{ Bindings: Bindings
             apikey: c.env.EVOLUTION_API_KEY,
           },
           body: JSON.stringify({
-            number: recipientJid,
+            number: recipientNumber,
             text: `[Retentativa de envio: ${msg.type}] ` + msg.content,
           }),
         },
@@ -103,8 +104,8 @@ export async function conversasMessageRetryRoute(c: Context<{ Bindings: Bindings
       return c.json({ error: 'Erro ao reenviar mensagem', detail: errText }, 500);
     }
 
-    const result = await response.json();
-    const evolutionMsgId = result?.messages?.[0]?.key?.id ?? null;
+    const result: any = await response.json();
+    const evolutionMsgId = result?.key?.id ?? result?.messages?.[0]?.key?.id ?? null;
 
     // 5. Atualizar como sent
     await supabaseAdmin

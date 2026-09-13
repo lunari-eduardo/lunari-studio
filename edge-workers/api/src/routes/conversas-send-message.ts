@@ -21,6 +21,7 @@
 import { Context } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
+import { normalizeBrPhone } from '../utils/phone.js';
 
 export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings }>) {
   // 0. Guard: verificar configuração essencial
@@ -97,10 +98,10 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Telefone do contato não disponível' }, 400);
   }
 
-  // Evolution API usa JID no formato "55DDDXXXXXXXX@s.whatsapp.net"
-  // Armazenamos como "+55DDDXXXXXXXXX" → remover o +
-  const phoneDigits = rawPhone.replace(/^\+/, '');
-  const recipientJid = `${phoneDigits}@s.whatsapp.net`;
+  // Evolution API v2.3.7 exige apenas os dígitos com DDI internacional (ex: "555198287948")
+  // NUNCA passar @s.whatsapp.net no endpoint /message/sendText
+  const normalizedPhone = normalizeBrPhone(rawPhone) || rawPhone.replace(/\D/g, '');
+  const recipientNumber = normalizedPhone.startsWith('55') ? normalizedPhone : `55${normalizedPhone}`;
 
   // 3.5 Obter instance_name da instância
   const { data: instance, error: instanceError } = await supabaseAdmin
@@ -148,20 +149,20 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
   try {
     let evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`;
     let evolutionBody: any = {
-      number: recipientJid,
+      number: recipientNumber,
       text: content,
     };
 
     if (type === 'audio' && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendWhatsAppAudio/${instance.instance_name}`;
       evolutionBody = {
-        number: recipientJid,
+        number: recipientNumber,
         audio: mediaUrl,
       };
     } else if (['image', 'video', 'document'].includes(type) && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendMedia/${instance.instance_name}`;
       evolutionBody = {
-        number: recipientJid,
+        number: recipientNumber,
         mediatype: type,
         mimetype: body.mediaMimeType ?? 'application/octet-stream',
         caption: content || undefined,
@@ -192,10 +193,10 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       return c.json({ error: 'Erro ao enviar mensagem via WhatsApp', detail: errText }, 500);
     }
 
-    const result = await response.json();
+    const result: any = await response.json();
 
-    // Atualizar com evolution_msg_id e status
-    const evolutionMsgId = result?.messages?.[0]?.key?.id ?? null;
+    // Evolution API v2.3.7 retorna result.key.id diretamente na raiz; mantemos fallback para result.messages[0]
+    const evolutionMsgId = result?.key?.id ?? result?.messages?.[0]?.key?.id ?? null;
     await supabaseAdmin
       .from('conversas_mensagens')
       .update({
@@ -208,7 +209,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       success: true,
       id: msgId,
       evolutionMsgId,
-      message: result?.messages?.[0] ?? null,
+      message: result?.key ?? result?.messages?.[0] ?? null,
     }, 200);
 
   } catch (err: any) {

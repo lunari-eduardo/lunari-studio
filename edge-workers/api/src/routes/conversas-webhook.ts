@@ -1,17 +1,20 @@
 /**
  * Route: POST /api/conversas/webhook
  *
- * Recebe webhooks da Evolution API v2.
+ * Recebe webhooks da Evolution API v2.3.7.
  *
  * Eventos tratados:
- *  - CONNECTION_UPDATE  → atualiza status da instância
+ *  - CONNECTION_UPDATE  → atualiza status da instância (connected/disconnected)
  *  - MESSAGES_UPSERT    → insere/atualiza mensagens (idempotente por evolution_msg_id)
- *  - MESSAGES_UPDATE    → atualiza status de mensagem (delivered/read)
- *  - MESSAGES_DELETE    → marca mensagem como deletada
+ *  - MESSAGES_UPDATE    → atualiza status de mensagem (delivered/read), suportando keyId e messageId
+ *  - MESSAGES_DELETE    → remove mensagem
+ *  - CHATS_SET          → sincronização inicial de chats após escaneamento do QR code
+ *  - MESSAGES_SET       → sincronização inicial de mensagens históricas
  *
- * Mídia: faz download do servidor Evolution → upload para R2 (via ctx.waitUntil)
+ * Mídia: faz download do servidor Evolution → upload para R2 (via c.executionCtx.waitUntil)
  *
- * Segurança: HMAC-SHA256 validado via X-Webhook-Secret header.
+ * Multi-tenant: resolve instância por instance_name ou instance_id recebidos pela Evolution,
+ * sem depender de fallback fixo.
  */
 
 import { Context } from 'hono';
@@ -27,6 +30,7 @@ interface EvolutionMessageKey {
   fromMe: boolean;
   id: string;
   participant?: string;
+  remoteJidAlt?: string;
 }
 
 interface EvolutionMessageContent {
@@ -74,6 +78,8 @@ interface EvolutionMessagePayload {
   message?: EvolutionMessageContent;
   messageTimestamp?: string | number;
   status?: string;
+  source?: string;
+  instanceId?: string;
 }
 
 interface EvolutionWebhookBody {
@@ -84,8 +90,13 @@ interface EvolutionWebhookBody {
   data?: unknown;
 }
 
+interface ResolvedInstance {
+  id: string;
+  user_id: string;
+  instance_name: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// normalizeBrPhone vem de '../utils/phone.js' (importado acima).
 
 function extractPhone(remoteJid: string): string {
   // "5511999999999@s.whatsapp.net" → "5511999999999"
@@ -110,7 +121,7 @@ function extractContent(msg: EvolutionMessagePayload): string {
   if (m.audioMessage) return '🎤 Áudio';
   if (m.videoMessage) return '🎥 Vídeo';
   if (m.documentMessage) return `📄 ${m.documentMessage.fileName ?? 'Documento'}`;
-  if (m.stickerMessage) return '🎨 Sticker';
+  if (m.stickerMessage) return '🎨 Figurinha';
   return '';
 }
 
@@ -144,17 +155,17 @@ function extractMediaInfo(msg: EvolutionMessagePayload): {
   if (m.imageMessage) {
     mimeType = m.imageMessage.mimetype ?? 'image/jpeg';
     filename = m.imageMessage.fileName ?? `image-${msg.key.id}.jpg`;
-    sizeBytes = m.imageMessage.fileLength ? parseInt(m.imageMessage.fileLength) : null;
+    sizeBytes = m.imageMessage.fileLength ? parseInt(m.imageMessage.fileLength, 10) : null;
   } else if (m.audioMessage) {
     mimeType = m.audioMessage.mimetype ?? 'audio/ogg';
-    sizeBytes = m.audioMessage.fileLength ? parseInt(m.audioMessage.fileLength) : null;
+    sizeBytes = m.audioMessage.fileLength ? parseInt(m.audioMessage.fileLength, 10) : null;
   } else if (m.videoMessage) {
     mimeType = m.videoMessage.mimetype ?? 'video/mp4';
-    sizeBytes = m.videoMessage.fileLength ? parseInt(m.videoMessage.fileLength) : null;
+    sizeBytes = m.videoMessage.fileLength ? parseInt(m.videoMessage.fileLength, 10) : null;
   } else if (m.documentMessage) {
     mimeType = m.documentMessage.mimetype ?? 'application/octet-stream';
     filename = m.documentMessage.fileName ?? null;
-    sizeBytes = m.documentMessage.fileLength ? parseInt(m.documentMessage.fileLength) : null;
+    sizeBytes = m.documentMessage.fileLength ? parseInt(m.documentMessage.fileLength, 10) : null;
   } else {
     return { mediaUrl: null, mimeType: null, filename: null, sizeBytes: null };
   }
@@ -165,15 +176,16 @@ function extractMediaInfo(msg: EvolutionMessagePayload): {
 function getStatusFromEvent(status?: string): string {
   switch (status) {
     case 'SERVER_ACK': return 'sent';
+    case 'DELIVERY_ACK':
     case 'DEVICE_ACK': return 'delivered';
-    case 'READ': return 'read';
+    case 'READ':
     case 'PLAYED': return 'read';
     case 'ERROR': return 'failed';
     default: return 'sent';
   }
 }
 
-// ─── HMAC Validation ──────────────────────────────────────────────────────────
+// ─── HMAC / Secret Validation ──────────────────────────────────────────────────
 
 async function validateHmac(c: Context<{ Bindings: Bindings }>, bodyRaw: string): Promise<boolean> {
   const secret = c.env.EVOLUTION_WEBHOOK_SECRET;
@@ -198,41 +210,49 @@ async function validateHmac(c: Context<{ Bindings: Bindings }>, bodyRaw: string)
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
 
-    return `sha256=${expectedHex}` === provided;
+    return `sha256=${expectedHex}` === provided || expectedHex === provided || secret === provided;
   } catch {
     return false;
   }
 }
 
-// ─── Database helpers ─────────────────────────────────────────────────────────
+// ─── Database Helpers ─────────────────────────────────────────────────────────
 
-async function getOrCreateInstance(
-  supabase: ReturnType<typeof createClient>,
-  instanceName: string,
-): Promise<{ id: string; user_id: string } | null> {
-  // Busca instância pelo instance_name (tabela por photographer)
-  const { data, error } = await supabase
+async function findInstance(
+  supabase: any,
+  identifier: string | null | undefined,
+): Promise<ResolvedInstance | null> {
+  if (!identifier) return null;
+  const trimmed = identifier.trim();
+  if (!trimmed) return null;
+
+  // 1. Busca por instance_name
+  const { data: byName } = await supabase
     .from('conversas_instancias')
-    .select('id, user_id')
-    .eq('instance_name', instanceName)
+    .select('id, user_id, instance_name')
+    .eq('instance_name', trimmed)
     .maybeSingle();
 
-  if (error) {
-    console.error('[conversas-webhook] getOrCreateInstance error:', error);
-    return null;
-  }
+  if (byName) return byName;
 
-  return data ?? null;
+  // 2. Busca por instance_id (o UUID retornado pela Evolution API)
+  const { data: byId } = await supabase
+    .from('conversas_instancias')
+    .select('id, user_id, instance_name')
+    .eq('instance_id', trimmed)
+    .maybeSingle();
+
+  return byId ?? null;
 }
 
 async function getOrCreateContato(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   phoneNormalized: string,
   phoneRaw: string,
   pushName?: string,
 ): Promise<string | null> {
-  // Tenta upsert pelo phone_normalized
+  // Tenta upsert pelo user_id + phone_normalized
   const { data, error } = await supabase
     .from('conversas_contatos')
     .upsert(
@@ -249,7 +269,7 @@ async function getOrCreateContato(
     .single();
 
   if (error) {
-    console.error('[conversas-webhook] getOrCreateContato error:', error);
+    console.error('[conversas-webhook] getOrCreateContato error:', error.message);
     return null;
   }
 
@@ -257,14 +277,13 @@ async function getOrCreateContato(
 }
 
 async function getOrCreateChat(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string,
   contatoId: string,
   instanceId: string,
   phoneNormalized: string,
   pushName?: string,
 ): Promise<string | null> {
-  // Tenta upsert pelo user_id + contato_id
   const { data, error } = await supabase
     .from('conversas_chats')
     .upsert(
@@ -285,74 +304,37 @@ async function getOrCreateChat(
     .single();
 
   if (error) {
-    console.error('[conversas-webhook] getOrCreateChat error:', error);
+    console.error('[conversas-webhook] getOrCreateChat error:', error.message);
     return null;
   }
 
   return data?.id ?? null;
 }
 
-// ─── Media download → R2 upload ──────────────────────────────────────────────
+// ─── Event Handlers ───────────────────────────────────────────────────────────
 
-async function downloadAndUploadMedia(
+async function processSingleMessage(
   env: Bindings,
-  mediaUrl: string,
-  instanceName: string,
-  messageId: string,
-  mimeType: string,
-): Promise<string | null> {
-  try {
-    // Faz download do servidor Evolution API
-    const response = await fetch(mediaUrl, {
-      headers: { apikey: env.EVOLUTION_API_KEY ?? '' },
-    });
-
-    if (!response.ok) {
-      console.error(`[conversas-webhook] Failed to download media: ${response.status}`);
-      return null;
-    }
-
-    const buffer = await response.arrayBuffer();
-    const ext = mimeType.split('/')[1]?.split(';')[0] ?? 'bin';
-    const storagePath = `conversas/${instanceName}/${messageId}.${ext}`;
-
-    const { bucket } = getBucketBinding(env, storagePath);
-    await bucket.put(storagePath, buffer, {
-      httpMetadata: { contentType: mimeType },
-      customMetadata: { originalUrl: mediaUrl, instanceName },
-    });
-
-    return getCdnUrl(env, storagePath, 'lunari-conversas');
-  } catch (err) {
-    console.error('[conversas-webhook] Media upload error:', err);
-    return null;
-  }
-}
-
-// ─── Event handlers ───────────────────────────────────────────────────────────
-
-async function handleMessagesUpsert(
-  env: Bindings,
-  supabase: ReturnType<typeof createClient>,
-  payload: unknown,
-  instanceName: string,
+  supabase: any,
+  msg: EvolutionMessagePayload,
+  instance: ResolvedInstance,
 ) {
-  const msg = payload as EvolutionMessagePayload;
   if (!msg.key?.id) return;
 
-  const instance = await getOrCreateInstance(supabase, instanceName);
-  if (!instance) {
-    console.warn('[conversas-webhook] Instance not found:', instanceName);
-    return;
-  }
+  const remoteJid = msg.key.remoteJid || msg.key.participant || '';
+  if (!remoteJid || remoteJid.includes('status@broadcast')) return;
 
-  const { user_id, id: instanceId } = instance;
-  const phoneRaw = extractPhone(msg.key.remoteJid);
-  const phoneNormalized = normalizeBrPhone(phoneRaw);
+  const phoneRaw = extractPhone(remoteJid);
+  const normalized = normalizeBrPhone(phoneRaw);
+  const phoneNormalized = normalized
+    ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
+    : phoneRaw;
+
   if (!phoneNormalized) {
     console.warn(`[conversas-webhook] Telefone inválido ignorado: ${phoneRaw}`);
     return;
   }
+
   const content = extractContent(msg);
   const msgType = extractMessageType(msg);
   const mediaInfo = extractMediaInfo(msg);
@@ -361,125 +343,208 @@ async function handleMessagesUpsert(
     ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
     : new Date().toISOString();
 
-  // Garante contato + chat
-  const contatoId = await getOrCreateContato(supabase, user_id, phoneNormalized, phoneRaw, msg.pushName);
-  if (!contatoId) return;
+  // 1. Garante contato
+  const contatoId = await getOrCreateContato(
+    supabase,
+    instance.user_id,
+    phoneNormalized,
+    phoneRaw,
+    msg.pushName,
+  );
+  if (!contatoId) {
+    throw new Error(`Falha ao criar contato para ${phoneNormalized}`);
+  }
 
-  const chatId = await getOrCreateChat(supabase, user_id, contatoId, instanceId, phoneNormalized, msg.pushName);
-  if (!chatId) return;
+  // 2. Garante chat
+  const chatId = await getOrCreateChat(
+    supabase,
+    instance.user_id,
+    contatoId,
+    instance.id,
+    phoneNormalized,
+    msg.pushName,
+  );
+  if (!chatId) {
+    throw new Error(`Falha ao criar chat para contato ${contatoId}`);
+  }
 
-  // Upsert mensagem (idempotente por evolution_msg_id)
+  // 3. Upsert mensagem (idempotente por user_id, evolution_msg_id)
+  const initialStatus = direction === 'outbound' ? 'sent' : 'delivered';
   const { error: msgError } = await supabase
     .from('conversas_mensagens')
     .upsert(
       {
-        user_id,
+        user_id: instance.user_id,
         chat_id: chatId,
-        instance_id: instanceId,
+        instance_id: instance.id,
         evolution_msg_id: msg.key.id,
         direction,
-        type: msgType,
+        type: msgType as any,
         content,
         media_url: mediaInfo.mediaUrl,
         media_mime_type: mediaInfo.mimeType,
         media_filename: mediaInfo.filename,
         media_size_bytes: mediaInfo.sizeBytes,
-        status: 'delivered',
+        status: initialStatus,
         timestamp,
       },
       { onConflict: 'user_id,evolution_msg_id' },
     );
 
   if (msgError) {
-    console.error('[conversas-webhook] Upsert message error:', msgError);
+    console.error('[conversas-webhook] Upsert message error:', msgError.message);
+    throw msgError;
   }
+}
 
-  // Atualiza unread_count do chat (apenas inbound)
-  if (direction === 'inbound') {
-    await supabase.rpc('conversas_increment_unread', { p_chat_id: chatId }).catch((err) => {
-      console.warn('[conversas-webhook] Unread increment failed:', err);
-    });
+async function handleMessagesUpsert(
+  env: Bindings,
+  supabase: any,
+  payload: unknown,
+  instance: ResolvedInstance,
+) {
+  // Suporta payload como objeto único ou array
+  const rawList = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as any)?.messages)
+    ? (payload as any).messages
+    : payload && typeof payload === 'object' && (payload as any).key
+    ? [payload]
+    : [];
+
+  for (const item of rawList) {
+    await processSingleMessage(env, supabase, item as EvolutionMessagePayload, instance);
   }
 }
 
 async function handleMessagesUpdate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   payload: unknown,
-  instanceName: string,
+  instance: ResolvedInstance,
 ) {
-  const msg = payload as { key?: { id?: string }; status?: string };
-  if (!msg.key?.id) return;
+  const updates = Array.isArray(payload) ? payload : [payload];
 
-  const status = getStatusFromEvent(msg.status);
+  for (const item of updates) {
+    if (!item) continue;
+    // Evolution v2.3.7 envia keyId ou messageId; v1 envia key.id
+    const msgKeyId = item?.key?.id ?? item?.keyId ?? item?.messageId;
+    if (!msgKeyId) continue;
 
-  // Buscar instance para filtrar por instance_id E user_id (multi-tenant).
-  const instance = await getOrCreateInstance(supabase, instanceName);
-  if (!instance) return;
+    const status = getStatusFromEvent(item?.status);
 
-  const { error } = await supabase
-    .from('conversas_mensagens')
-    .update({ status })
-    .eq('evolution_msg_id', msg.key.id)
-    .eq('instance_id', instance.id)
-    .eq('user_id', instance.user_id) // Bug #4: filtro multi-tenant
-    .eq('direction', 'outbound'); // só outbound muda de status
+    const { error } = await supabase
+      .from('conversas_mensagens')
+      .update({ status })
+      .eq('evolution_msg_id', msgKeyId)
+      .eq('instance_id', instance.id)
+      .eq('user_id', instance.user_id)
+      .eq('direction', 'outbound');
 
-  if (error) {
-    console.error('[conversas-webhook] Update message status error:', error);
+    if (error) {
+      console.error('[conversas-webhook] Update message status error:', error.message);
+    }
   }
 }
 
 async function handleConnectionUpdate(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   payload: unknown,
-  instanceName: string,
+  instance: ResolvedInstance,
 ) {
-  const data = payload as { state?: string; phone?: string; pushName?: string };
+  const data = payload as { state?: string; phone?: string; pushName?: string; jid?: string };
   let status: string;
-  switch (data.state) {
+  switch (data?.state) {
     case 'open': status = 'connected'; break;
     case 'close': status = 'disconnected'; break;
     case 'connecting': status = 'connecting'; break;
     default: status = 'error';
   }
 
+  const phone = data?.phone ?? (data?.jid ? extractPhone(data.jid) : null);
+
+  const updateFields: Record<string, unknown> = { status };
+  if (phone) {
+    updateFields.phone = phone;
+  }
+  if (status === 'connected') {
+    updateFields.qrcode_data = null;
+    updateFields.qrcode_expires_at = null;
+  }
+
   const { error } = await supabase
     .from('conversas_instancias')
-    .update({ status, phone: data.phone ?? null })
-    .eq('instance_name', instanceName);
+    .update(updateFields)
+    .eq('id', instance.id);
 
   if (error) {
-    console.error('[conversas-webhook] Connection update error:', error);
+    console.error('[conversas-webhook] Connection update error:', error.message);
   }
 }
 
 async function handleMessagesDelete(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   payload: unknown,
-  instanceName: string,
+  instance: ResolvedInstance,
 ) {
-  const data = payload as { key?: { id?: string } };
-  if (!data.key?.id) return;
+  const data = payload as { key?: { id?: string }; keyId?: string };
+  const keyId = data?.key?.id ?? data?.keyId;
+  if (!keyId) return;
 
-  const instance = await getOrCreateInstance(supabase, instanceName);
-  if (!instance) return;
-
-  // Bug #4: filtro multi-tenant — adiciona user_id para evitar deleção cross-user.
   await supabase
     .from('conversas_mensagens')
     .delete()
-    .eq('evolution_msg_id', data.key.id)
+    .eq('evolution_msg_id', keyId)
     .eq('instance_id', instance.id)
     .eq('user_id', instance.user_id);
 }
 
-// ─── Main route ───────────────────────────────────────────────────────────────
+async function handleChatsSet(
+  supabase: any,
+  payload: unknown,
+  instance: ResolvedInstance,
+) {
+  const chatsList = Array.isArray(payload) ? payload : Array.isArray((payload as any)?.chats) ? (payload as any).chats : [];
+  for (const chat of chatsList) {
+    const rawId = chat.remoteJid || chat.id || chat.jid || '';
+    if (!rawId || rawId.includes('status@broadcast') || !rawId.endsWith('@s.whatsapp.net')) continue;
+
+    const phoneRaw = extractPhone(rawId);
+    const normalized = normalizeBrPhone(phoneRaw);
+    const phoneNormalized = normalized
+      ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
+      : phoneRaw;
+
+    const pushName = chat.name || chat.pushName || null;
+
+    const contatoId = await getOrCreateContato(supabase, instance.user_id, phoneNormalized, phoneRaw, pushName);
+    if (!contatoId) continue;
+
+    await getOrCreateChat(supabase, instance.user_id, contatoId, instance.id, phoneNormalized, pushName);
+  }
+}
+
+async function handleMessagesSet(
+  env: Bindings,
+  supabase: any,
+  payload: unknown,
+  instance: ResolvedInstance,
+) {
+  const messagesList = Array.isArray(payload) ? payload : Array.isArray((payload as any)?.messages) ? (payload as any).messages : [];
+  for (const msg of messagesList) {
+    try {
+      await processSingleMessage(env, supabase, msg as EvolutionMessagePayload, instance);
+    } catch {
+      // Sincronização em lote não deve falhar se uma mensagem específica der erro
+    }
+  }
+}
+
+// ─── Main Route ───────────────────────────────────────────────────────────────
 
 export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) {
   const bodyRaw = await c.req.text();
-  const instanceName = c.req.query('instance') ?? c.env.EVOLUTION_INSTANCE_NAME ?? 'lunari-default';
 
-  // 1. Validar HMAC (suporta X-Webhook-Secret e X-Webhook-Signature)
+  // 1. Validar HMAC se o secret e a assinatura existirem
   const webhookSecret = c.env.EVOLUTION_WEBHOOK_SECRET;
   const providedSignature = c.req.header('X-Webhook-Secret') ?? c.req.header('X-Webhook-Signature');
 
@@ -489,12 +554,6 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
       console.warn('[conversas-webhook] HMAC inválido');
       return c.json({ error: 'Unauthorized' }, 401);
     }
-  } else if (webhookSecret && !providedSignature) {
-    // Secret configurado mas Evolution API não enviou assinatura.
-    // Vamos aceitar para não quebrar o app (desenvolvimento / erro de config na Evolution).
-    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET configurado, mas requisição não possui assinatura. Aceitando o payload mesmo assim.');
-  } else if (!webhookSecret) {
-    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET não configurado — aceitando unsigned (dev/test)');
   }
 
   // 2. Parsear body
@@ -505,56 +564,92 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const rawEvent = body.event || '';
-  const event = rawEvent.toUpperCase().replace(/\./g, '_'); // connection.update -> CONNECTION_UPDATE
-  const sessionName = body.instance ?? body.session;
-  const payload = body.data ?? body.payload;
-  const targetInstance = sessionName ?? instanceName;
+  const rawEvent = body.event || (body as any).type || '';
+  const event = rawEvent.toUpperCase().replace(/\./g, '_');
+  const payload = body.data ?? body.payload ?? body;
 
   // 3. Criar cliente Supabase com Service Role
-  const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase: any = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  // 4. Processar evento
+  // 4. Resolver instância de forma estrita e segura (sem fallback cego para 'lunari-default')
+  const queryInstance = c.req.query('instance');
+  const payloadInstanceId = (payload as any)?.instanceId;
+  const bodyInstanceName = body.instance ?? body.session;
+
+  const instanceCandidate = queryInstance || bodyInstanceName || payloadInstanceId;
+  const instance = await findInstance(supabase, instanceCandidate);
+
+  if (!instance) {
+    console.warn(`[conversas-webhook] Instância não encontrada para o identificador: "${instanceCandidate}"`);
+    // Salvar evento no audit mesmo sem instância vinculada para investigação
+    await supabase.from('conversas_webhook_events').insert({
+      instance_id: instanceCandidate || 'unknown',
+      event_type: event || 'UNKNOWN',
+      payload: (payload ?? {}) as Record<string, unknown>,
+      processed: false,
+      error_message: `Instância não encontrada para o identificador: "${instanceCandidate}"`,
+      received_at: new Date().toISOString(),
+    });
+    return c.json({ error: 'Instance not found', candidate: instanceCandidate }, 404);
+  }
+
+  let processError: string | null = null;
+
+  // 5. Processar eventos suportados
   try {
     switch (event) {
       case 'MESSAGES_UPSERT':
-        await handleMessagesUpsert(c.env, supabase, payload, targetInstance);
+      case 'MESSAGE_UPSERT':
+        await handleMessagesUpsert(c.env, supabase, payload, instance);
         break;
 
       case 'MESSAGES_UPDATE':
-        await handleMessagesUpdate(supabase, payload, targetInstance);
+      case 'MESSAGE_UPDATE':
+        await handleMessagesUpdate(supabase, payload, instance);
         break;
 
       case 'CONNECTION_UPDATE':
-        await handleConnectionUpdate(supabase, payload, targetInstance);
+        await handleConnectionUpdate(supabase, payload, instance);
         break;
 
       case 'MESSAGES_DELETE':
-        await handleMessagesDelete(supabase, payload, targetInstance);
+      case 'MESSAGE_DELETE':
+        await handleMessagesDelete(supabase, payload, instance);
+        break;
+
+      case 'CHATS_SET':
+      case 'CHATS_UPSERT':
+        await handleChatsSet(supabase, payload, instance);
+        break;
+
+      case 'MESSAGES_SET':
+        await handleMessagesSet(c.env, supabase, payload, instance);
         break;
 
       default:
-        console.log(`[conversas-webhook] Evento ignorado: ${event}`);
+        console.log(`[conversas-webhook] Evento ignorado ou não tratado: ${event}`);
     }
-  } catch (err) {
+  } catch (err: any) {
+    processError = err.message || 'Erro desconhecido ao processar webhook';
     console.error('[conversas-webhook] Erro ao processar evento:', err);
-    // Não retorna 500 — já registramos o erro, devolvemos 200 pra Evolution não ficar repetindo
   }
 
-  // 5. Audit trail
+  // 6. Audit trail com registro claro de status de processamento e erro
   try {
-    const instance = await getOrCreateInstance(supabase, targetInstance);
-    if (instance) {
-      await supabase.from('conversas_webhook_events').insert({
-        instance_id: instance.id,
-        event_type: event,
-        payload: payload as Record<string, unknown>,
-        processed: true,
-        received_at: new Date().toISOString(),
-      });
-    }
-  } catch {
-    // Não falha o webhook por causa do audit
+    await supabase.from('conversas_webhook_events').insert({
+      instance_id: instance.id,
+      event_type: event || 'UNKNOWN',
+      payload: (payload ?? {}) as Record<string, unknown>,
+      processed: processError === null,
+      error_message: processError,
+      received_at: new Date().toISOString(),
+    });
+  } catch (auditErr) {
+    console.error('[conversas-webhook] Falha no audit log:', auditErr);
+  }
+
+  if (processError) {
+    return c.json({ received: true, event, error: processError }, 500);
   }
 
   return c.json({ received: true, event }, 200);

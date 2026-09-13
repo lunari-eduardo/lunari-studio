@@ -3,7 +3,7 @@
  *
  * Sincroniza conversas históricas do WhatsApp para o Supabase.
  * Chama GET /chat/findChats/{instanceName} da Evolution API v2
- * e upserts os contatos e chats correspondentes.
+ * e upserts os contatos, chats e mensagens recentes correspondentes.
  *
  * Body:
  * {
@@ -17,11 +17,51 @@ import type { Bindings } from '../index.js';
 import { normalizeBrPhone } from '../utils/phone.js';
 
 interface EvolutionChatListItem {
-  id: string; // JID do chat: "5519987654321@s.whatsapp.net"
+  id: string;
+  remoteJid?: string;
   name?: string;
   pushName?: string;
+  profilePicUrl?: string;
+  unreadCount?: number;
+  updatedAt?: string;
   contact?: { displayName?: string };
-  lastMsg?: { conversation?: string };
+  lastMessage?: any;
+}
+
+function extractMessageText(msgObj: any): string {
+  if (!msgObj) return '';
+  if (typeof msgObj === 'string') return msgObj;
+  if (msgObj.conversation) return msgObj.conversation;
+  if (msgObj.extendedTextMessage?.text) return msgObj.extendedTextMessage.text;
+  if (msgObj.imageMessage?.caption) return msgObj.imageMessage.caption;
+  if (msgObj.videoMessage?.caption) return msgObj.videoMessage.caption;
+  if (msgObj.documentMessage?.title) return msgObj.documentMessage.title;
+  if (msgObj.documentMessage?.caption) return msgObj.documentMessage.caption;
+  if (msgObj.audioMessage) return '🎤 Áudio';
+  if (msgObj.imageMessage) return '📷 Imagem';
+  if (msgObj.videoMessage) return '🎥 Vídeo';
+  if (msgObj.documentMessage) return '📄 Documento';
+  if (msgObj.stickerMessage) return '🎨 Figurinha';
+  if (msgObj.contactMessage?.displayName) return `👤 Contato: ${msgObj.contactMessage.displayName}`;
+  if (msgObj.locationMessage) return '📍 Localização';
+  return '';
+}
+
+function detectMessageType(m: any): 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' {
+  const mt = (m?.messageType || '').replace('Message', '').toLowerCase();
+  if (['text', 'image', 'audio', 'video', 'document', 'sticker', 'location', 'contact'].includes(mt)) {
+    return mt as any;
+  }
+  const msg = m?.message;
+  if (!msg) return 'text';
+  if (msg.imageMessage) return 'image';
+  if (msg.audioMessage) return 'audio';
+  if (msg.videoMessage) return 'video';
+  if (msg.documentMessage) return 'document';
+  if (msg.stickerMessage) return 'sticker';
+  if (msg.contactMessage) return 'contact';
+  if (msg.locationMessage) return 'location';
+  return 'text';
 }
 
 export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>) {
@@ -54,7 +94,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
     return c.json({ error: 'instanceId é obrigatório' }, 400);
   }
 
-  // 3. Verificar que a instância pertence ao user
+  // 3. Verificar que a instância pertence ao usuário
   const { data: instance, error: instanceError } = await supabaseAdmin
     .from('conversas_instancias')
     .select('id, instance_name, user_id')
@@ -71,17 +111,18 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
     return c.json({ error: 'Configuração de API incompleta' }, 500);
   }
 
-  // 5. Chamar Evolution API — listar conversas históricas
+  // 5. Chamar Evolution API — listar conversas (v2.3.7 requer POST com body {})
   let evolutionChats: EvolutionChatListItem[] = [];
   try {
     const response = await fetch(
       `${c.env.EVOLUTION_API_URL}/chat/findChats/${instance.instance_name}`,
       {
-        method: 'GET',
+        method: 'POST',
         headers: {
-          apikey: c.env.EVOLUTION_API_KEY ?? '',
+          apikey: c.env.EVOLUTION_API_KEY,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       },
     );
 
@@ -91,28 +132,38 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
       return c.json({ error: 'Erro ao buscar conversas na Evolution API', detail: errText }, 500);
     }
 
-    const raw = await response.json();
-    // Evolution API retorna { chats: [...] } ou [...] diretamente
-    evolutionChats = Array.isArray(raw) ? raw : (Array.isArray(raw.chats) ? raw.chats : []);
+    const raw: any = await response.json();
+    evolutionChats = Array.isArray(raw) ? raw : Array.isArray(raw?.chats) ? raw.chats : [];
   } catch (err: any) {
     console.error('[sync-chats] Fetch error:', err);
     return c.json({ error: 'Erro de rede ao buscar conversas', detail: err.message }, 500);
   }
 
-  // 6. Para cada chat: upsert contato + upsert chat (sem mensagens)
+  // 6. Para cada chat válido (@s.whatsapp.net): upsert contato + upsert chat + importar mensagens
   let synced = 0;
+  let syncedMessagesCount = 0;
   const errors: string[] = [];
 
   for (const chat of evolutionChats) {
-    const jid = chat.id.split('@')[0]; // "5519987654321"
-    const phoneNormalized = normalizeBrPhone(jid);
-    if (!phoneNormalized) {
-      errors.push(`Ignorado (phone inválido): ${jid}`);
+    const rawJid = chat.remoteJid || chat.id || (chat as any).jid || '';
+    if (!rawJid || rawJid.includes('status@broadcast') || !rawJid.endsWith('@s.whatsapp.net')) {
       continue;
     }
 
-    const pushName = chat.pushName ?? chat.contact?.displayName ?? chat.name ?? null;
-    const lastMessage = chat.lastMsg?.conversation ?? null;
+    const jidDigits = rawJid.split('@')[0];
+    const normalized = normalizeBrPhone(jidDigits);
+    const phoneNormalized = normalized
+      ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
+      : jidDigits;
+
+    if (!phoneNormalized) {
+      errors.push(`Ignorado (phone inválido): ${rawJid}`);
+      continue;
+    }
+
+    const pushName = chat.pushName ?? chat.name ?? chat.contact?.displayName ?? null;
+    const avatarUrl = chat.profilePicUrl ?? null;
+    const unreadCount = chat.unreadCount ?? 0;
 
     try {
       // 6a. Upsert contato
@@ -122,8 +173,9 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
           {
             user_id: userId,
             phone_normalized: phoneNormalized,
-            phone_raw: jid,
+            phone_raw: jidDigits,
             nome: pushName,
+            avatar_url: avatarUrl,
             tipo: 'unknown',
           },
           { onConflict: 'user_id,phone_normalized' },
@@ -136,8 +188,8 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
         continue;
       }
 
-      // 6b. Upsert chat (não insere mensagens históricas)
-      const { error: chatErr } = await supabaseAdmin
+      // 6b. Upsert chat
+      const { data: dbChat, error: chatErr } = await supabaseAdmin
         .from('conversas_chats')
         .upsert(
           {
@@ -145,19 +197,122 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
             instance_id: instanceId,
             contato_id: contato.id,
             contato_nome: pushName,
+            contato_avatar: avatarUrl,
             contato_phone_normalized: phoneNormalized,
             status: 'active',
             pin: 'unpinned',
             mute: false,
-            unread_count: 0,
+            unread_count: unreadCount,
           },
           { onConflict: 'contato_id,instance_id' },
-        );
+        )
+        .select('id')
+        .single();
 
-      if (chatErr) {
-        errors.push(`Chat ${phoneNormalized}: ${chatErr.message}`);
-      } else {
-        synced++;
+      if (chatErr || !dbChat) {
+        errors.push(`Chat ${phoneNormalized}: ${chatErr?.message}`);
+        continue;
+      }
+
+      synced++;
+
+      // 6c. Importar a última mensagem do chat diretamente se presente
+      const lastMsg = chat.lastMessage;
+      if (lastMsg && lastMsg.key?.id) {
+        try {
+          const keyId = lastMsg.key.id;
+          const direction = lastMsg.key.fromMe ? 'outbound' : 'inbound';
+          const content = extractMessageText(lastMsg.message);
+          const msgType = detectMessageType(lastMsg);
+          const timestamp = lastMsg.messageTimestamp
+            ? new Date(Number(lastMsg.messageTimestamp) * 1000).toISOString()
+            : new Date().toISOString();
+
+          await supabaseAdmin.from('conversas_mensagens').upsert(
+            {
+              user_id: userId,
+              chat_id: dbChat.id,
+              instance_id: instanceId,
+              evolution_msg_id: keyId,
+              direction,
+              type: msgType,
+              content,
+              status: direction === 'outbound' ? 'sent' : 'delivered',
+              timestamp,
+            },
+            { onConflict: 'user_id,evolution_msg_id' },
+          );
+          syncedMessagesCount++;
+        } catch (lastMsgErr) {
+          console.warn(`[sync-chats] Falha ao upsert lastMessage de ${rawJid}:`, lastMsgErr);
+        }
+      }
+
+      // 6d. Buscar histórico detalhado dos primeiros 20 chats mais ativos
+      if (synced <= 20) {
+        try {
+          const msgResponse = await fetch(
+            `${c.env.EVOLUTION_API_URL}/chat/findMessages/${instance.instance_name}`,
+            {
+              method: 'POST',
+              headers: {
+                apikey: c.env.EVOLUTION_API_KEY,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                where: {
+                  key: {
+                    remoteJid: rawJid,
+                  },
+                },
+                limit: 20,
+              }),
+            },
+          );
+
+          if (msgResponse.ok) {
+            const rawMsgs: any = await msgResponse.json();
+            const msgList: any[] = Array.isArray(rawMsgs)
+              ? rawMsgs
+              : Array.isArray(rawMsgs?.messages?.records)
+              ? rawMsgs.messages.records
+              : Array.isArray(rawMsgs?.messages)
+              ? rawMsgs.messages
+              : Array.isArray(rawMsgs?.records)
+              ? rawMsgs.records
+              : [];
+
+            for (const m of msgList) {
+              const keyId = m.key?.id;
+              if (!keyId) continue;
+
+              const direction = m.key?.fromMe ? 'outbound' : 'inbound';
+              const content = extractMessageText(m.message);
+              const msgType = detectMessageType(m);
+              const timestamp = m.messageTimestamp
+                ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
+                : new Date().toISOString();
+
+              await supabaseAdmin.from('conversas_mensagens').upsert(
+                {
+                  user_id: userId,
+                  chat_id: dbChat.id,
+                  instance_id: instanceId,
+                  evolution_msg_id: keyId,
+                  direction,
+                  type: msgType,
+                  content,
+                  status: direction === 'outbound' ? 'sent' : 'delivered',
+                  timestamp,
+                },
+                { onConflict: 'user_id,evolution_msg_id' },
+              );
+              syncedMessagesCount++;
+            }
+          }
+        } catch (msgErr) {
+          console.warn(`[sync-chats] Falha ao sincronizar mensagens de ${rawJid}:`, msgErr);
+        }
       }
     } catch (err: any) {
       errors.push(`Exceção ${phoneNormalized}: ${err.message}`);
@@ -167,6 +322,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
   return c.json({
     ok: true,
     synced,
+    syncedMessages: syncedMessagesCount,
     total: evolutionChats.length,
     errors: errors.length > 0 ? errors : undefined,
   });

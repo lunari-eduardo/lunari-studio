@@ -27,6 +27,8 @@ export interface InstanceStatusBarProps {
   isRefreshing?: boolean;
   onDisconnect?: () => void;
   onDelete?: () => void;
+  onSyncChats?: () => void;
+  isSyncingChats?: boolean;
 }
 
 export function InstanceStatusBar({
@@ -37,6 +39,8 @@ export function InstanceStatusBar({
   isRefreshing,
   onDisconnect,
   onDelete,
+  onSyncChats,
+  isSyncingChats,
 }: InstanceStatusBarProps) {
   const connected = status === 'connected';
   const connecting = status === 'connecting';
@@ -78,6 +82,19 @@ export function InstanceStatusBar({
         </div>
 
         <div className="flex items-center gap-1">
+          {connected && onSyncChats ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSyncChats}
+              disabled={isSyncingChats}
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              title="Sincronizar conversas do WhatsApp"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", isSyncingChats && "animate-spin")} />
+            </Button>
+          ) : null}
+
           {!connected && onRefreshQr ? (
             <Button
               variant="ghost"
@@ -95,14 +112,20 @@ export function InstanceStatusBar({
             </Button>
           ) : null}
 
-          {(onDisconnect || onDelete) && (
+          {(onDisconnect || onDelete || (connected && onSyncChats)) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-52">
+                {connected && onSyncChats && (
+                  <DropdownMenuItem onClick={onSyncChats} disabled={isSyncingChats}>
+                    <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingChats && "animate-spin")} />
+                    {isSyncingChats ? 'Sincronizando...' : 'Sincronizar conversas'}
+                  </DropdownMenuItem>
+                )}
                 {connected && onDisconnect && (
                   <DropdownMenuItem onClick={onDisconnect}>
                     <LogOut className="h-4 w-4 mr-2" />

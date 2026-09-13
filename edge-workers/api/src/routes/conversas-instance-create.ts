@@ -15,9 +15,9 @@ import { requireUserAuth } from '../utils/auth.js';
 export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindings }>) {
   const auth = await requireUserAuth(c);
   if (!auth.ok) return auth.response;
-  const { userId, supabase: userSupabase, token } = auth;
+  const { userId } = auth;
 
-  // Service role para inserir a instância (RLS não aplicaria, mas usamos pra evitar problemas).
+  // Service role para inserir a instância
   const supabaseAdmin = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
 
   let body: { instanceName?: string; integration?: string };
@@ -27,15 +27,29 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
     return c.json({ ok: false, error: 'Invalid JSON' }, 400);
   }
 
-  const instanceName = body.instanceName?.trim();
-  if (!instanceName) {
-    return c.json({ ok: false, error: 'instanceName é obrigatório' }, 400);
-  }
+  const rawInstanceName = body.instanceName?.trim();
+  // Se não fornecido ou for o default genérico, gerar nome único multi-tenant por usuário
+  const instanceName = rawInstanceName && rawInstanceName !== 'lunari-default'
+    ? rawInstanceName
+    : `lunari-${userId.slice(0, 8)}`;
 
   const integration = body.integration ?? 'WHATSAPP-BAILEYS';
-  const webhookUrl = `${new URL(c.req.url).origin}/api/conversas/webhook`;
+  const webhookUrl = `${new URL(c.req.url).origin}/api/conversas/webhook?instance=${encodeURIComponent(instanceName)}`;
 
-  // Chama Evolution API
+  const requiredEvents = [
+    'CONNECTION_UPDATE',
+    'MESSAGES_UPSERT',
+    'MESSAGES_UPDATE',
+    'MESSAGES_DELETE',
+    'CHATS_SET',
+    'CHATS_UPSERT',
+    'CHATS_UPDATE',
+    'CONTACTS_SET',
+    'CONTACTS_UPSERT',
+    'MESSAGES_SET',
+  ];
+
+  // 1. Chama Evolution API para criar a instância
   let evolutionResp: Response;
   try {
     evolutionResp = await fetch(`${c.env.EVOLUTION_API_URL}/instance/create`, {
@@ -52,12 +66,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         webhook: {
           enabled: true,
           url: webhookUrl,
-          events: [
-            'CONNECTION_UPDATE',
-            'MESSAGES_UPSERT',
-            'MESSAGES_UPDATE',
-            'MESSAGES_DELETE',
-          ],
+          events: requiredEvents,
         },
       }),
     });
@@ -74,10 +83,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
   }
 
   const data: any = await evolutionResp.json();
-  const instanceId = data?.instance?.instanceId ?? data?.instance?.instanceName ?? null;
-  if (!instanceId) {
-    return c.json({ ok: false, error: 'Evolution API não retornou instanceId', data }, 502);
-  }
+  const instanceId = data?.instance?.instanceId ?? data?.instance?.instanceName ?? instanceName;
 
   const qrcode = data.qrcode ?? {};
   const expiresAt =
@@ -85,7 +91,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
       ? new Date(Date.now() + qrcode.expires * 1000).toISOString()
       : null;
 
-  // Configurar Webhook na Evolution API
+  // 2. Configurar Webhook na Evolution API v2.3.7 (garante registro explícito com suporte a formato raiz e aninhado)
   try {
     await fetch(`${c.env.EVOLUTION_API_URL}/webhook/set/${instanceName}`, {
       method: 'POST',
@@ -94,18 +100,18 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         apikey: c.env.EVOLUTION_API_KEY ?? '',
       },
       body: JSON.stringify({
+        enabled: true,
+        url: webhookUrl,
+        byEvents: false,
+        base64: false,
+        events: requiredEvents,
         webhook: {
           enabled: true,
           url: webhookUrl,
           byEvents: false,
           base64: false,
-          events: [
-            'CONNECTION_UPDATE',
-            'MESSAGES_UPSERT',
-            'MESSAGES_UPDATE',
-            'MESSAGES_DELETE'
-          ]
-        }
+          events: requiredEvents,
+        },
       }),
     });
   } catch (err) {
@@ -114,7 +120,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
 
   const qrcodeDataFinal = data.base64 ?? qrcode.base64 ?? qrcode.code ?? null;
 
-  // Persistir no Supabase
+  // 3. Persistir no Supabase com vínculo seguro ao usuário
   const { data: inserted, error: insertError } = await supabaseAdmin
     .from('conversas_instancias')
     .upsert(
@@ -124,13 +130,14 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         instance_id: instanceId,
         status: 'connecting',
         phone: null,
+        webhook_url: webhookUrl,
         qrcode_data: qrcodeDataFinal,
         qrcode_expires_at: expiresAt,
         evolution_token: data.hash ?? null,
       },
       { onConflict: 'user_id,instance_name' },
     )
-    .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at')
+    .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at, webhook_url')
     .single();
 
   if (insertError) {

@@ -61,7 +61,7 @@ export async function trackShareEventRoute(c: Context<{ Bindings: Bindings }>) {
 
       // Incrementar views se for view_start
       if (event_type === 'view_start') {
-        await supabaseClient.rpc('increment_share_link_views', { link_id: link.id }).catch(() => {
+        await (supabaseClient.rpc('increment_share_link_views', { link_id: link.id }) as any).catch(() => {
           supabaseClient.from('material_share_links')
             .select('total_views')
             .eq('id', link.id)

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { normalizeBrPhone } from '@/lib/phone';
 
 export interface NewChatModalProps {
   open: boolean;
@@ -35,10 +36,10 @@ export function NewChatModal({ open, onOpenChange, instanceId, onChatCreated }: 
       const userId = session?.user?.id;
       if (!userId) throw new Error('Usuário não autenticado');
 
-      // Normaliza telefone (remove não-dígitos)
-      const digits = phone.replace(/\D/g, '');
-      if (digits.length < 10) {
-        throw new Error('Telefone inválido');
+      // Normaliza telefone para o formato canônico brasileiro (55DDDXXXXXXXX)
+      const normalizedPhone = normalizeBrPhone(phone);
+      if (!normalizedPhone) {
+        throw new Error('Telefone inválido. Digite o DDD e o número (ex: 11999999999)');
       }
 
       // 1. Tenta achar ou criar contato
@@ -46,7 +47,7 @@ export function NewChatModal({ open, onOpenChange, instanceId, onChatCreated }: 
       const { data: existingContato } = await supabase
         .from('conversas_contatos')
         .select('id')
-        .eq('phone_normalized', digits)
+        .eq('phone_normalized', normalizedPhone)
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -57,7 +58,7 @@ export function NewChatModal({ open, onOpenChange, instanceId, onChatCreated }: 
           .from('conversas_contatos')
           .insert({
             user_id: userId,
-            phone_normalized: digits,
+            phone_normalized: normalizedPhone,
             phone_raw: phone,
             nome: name || null,
             tipo: 'unknown'
@@ -88,7 +89,7 @@ export function NewChatModal({ open, onOpenChange, instanceId, onChatCreated }: 
           user_id: userId,
           contato_id: contatoId,
           instance_id: instanceId,
-          contato_phone_normalized: digits,
+          contato_phone_normalized: normalizedPhone,
           contato_nome: name || null,
           status: 'active',
           unread_count: 0,

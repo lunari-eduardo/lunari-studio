@@ -30,10 +30,12 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     pinChat,
     unpinChat,
     deleteChat,
+    syncHistoricalChats,
   } = useConversas();
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const connectedInstance = useMemo(
     () => instancias.find(i => i.status === 'connected') ?? instancias[0] ?? null,
@@ -96,6 +98,16 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
           }}
           isRefreshingQr={false}
           onNewChat={onNewChat}
+          onSyncChats={async () => {
+            if (!connectedInstance) return;
+            setIsSyncing(true);
+            try {
+              await syncHistoricalChats(connectedInstance.id);
+            } finally {
+              setIsSyncing(false);
+            }
+          }}
+          isSyncingChats={isSyncing}
         />
       </div>
 
