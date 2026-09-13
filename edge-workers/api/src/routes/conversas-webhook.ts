@@ -345,28 +345,54 @@ async function handleMessagesUpdate(
 
     const status = getStatusFromEvent(item?.status);
 
-    let query = supabase
+    // Primeiro buscamos a mensagem para saber a direção e o chat_id (Fase P0)
+    const { data: existingMsg } = await supabase
       .from('conversas_mensagens')
-      .update({ status })
+      .select('id, chat_id, direction, status')
       .eq('evolution_msg_id', msgKeyId)
       .eq('instance_id', instance.id)
       .eq('user_id', instance.user_id)
-      .eq('direction', 'outbound');
+      .maybeSingle();
+
+    if (!existingMsg) continue;
 
     // Guarda de transição para evitar regressão de status (Fase 4 / P1-07)
-    if (status === 'sent') {
-      query = query.eq('status', 'pending');
-    } else if (status === 'delivered') {
-      query = query.in('status', ['pending', 'sent']);
-    } else if (status === 'failed') {
-      query = query.in('status', ['pending', 'sent']);
+    let shouldUpdate = true;
+    if (existingMsg.status === status) {
+      shouldUpdate = false;
+    } else if (status === 'sent' && existingMsg.status !== 'pending') {
+      shouldUpdate = false;
+    } else if (status === 'delivered' && !['pending', 'sent'].includes(existingMsg.status)) {
+      shouldUpdate = false;
+    } else if (status === 'failed' && !['pending', 'sent'].includes(existingMsg.status)) {
+      shouldUpdate = false;
     }
-    // se for 'read', pode atualizar independentemente do status anterior
 
-    const { error } = await query;
+    if (shouldUpdate) {
+      const { error: updateError } = await supabase
+        .from('conversas_mensagens')
+        .update({ status })
+        .eq('id', existingMsg.id);
 
-    if (error) {
-      console.error('[conversas-webhook] Update message status error:', error.message);
+      if (updateError) {
+        console.error('[conversas-webhook] Update message status error:', updateError.message);
+        continue;
+      }
+    }
+
+    // P0 — Sincronização de Leitura Celular -> Lunari
+    // Se recebemos um update de READ para uma mensagem inbound,
+    // significa que o usuário leu no celular. Então zeramos as não lidas.
+    if (existingMsg.direction === 'inbound' && ['read', 'played'].includes(status)) {
+      const { error: chatError } = await supabase
+        .from('conversas_chats')
+        .update({ unread_count: 0 })
+        .eq('id', existingMsg.chat_id)
+        .eq('user_id', instance.user_id);
+      
+      if (chatError) {
+        console.error('[conversas-webhook] Update chat unread_count error:', chatError.message);
+      }
     }
   }
 }
