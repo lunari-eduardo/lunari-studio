@@ -147,19 +147,21 @@ async function getOrCreateContato(
   phoneRaw: string,
   pushName?: string,
 ): Promise<string | null> {
+  const payload: Record<string, any> = {
+    user_id: userId,
+    phone_normalized: phoneNormalized,
+    phone_raw: phoneRaw,
+    tipo: 'unknown',
+  };
+  // Apenas grava o nome se tiver um pushName real (evita sobrescrever com null)
+  if (pushName && pushName.trim().length > 0) {
+    payload.nome = pushName.trim();
+  }
+
   // Tenta upsert pelo user_id + phone_normalized
   const { data, error } = await supabase
     .from('conversas_contatos')
-    .upsert(
-      {
-        user_id: userId,
-        phone_normalized: phoneNormalized,
-        phone_raw: phoneRaw,
-        nome: pushName ?? null,
-        tipo: 'unknown',
-      },
-      { onConflict: 'user_id,phone_normalized' },
-    )
+    .upsert(payload, { onConflict: 'user_id,phone_normalized' })
     .select('id')
     .single();
 
@@ -179,21 +181,20 @@ async function getOrCreateChat(
   phoneNormalized: string,
   pushName?: string,
 ): Promise<string | null> {
+  const payload: Record<string, any> = {
+    user_id: userId,
+    contato_id: contatoId,
+    instance_id: instanceId,
+    contato_phone_normalized: phoneNormalized,
+  };
+  // Apenas grava o contato_nome se tiver um pushName real (evita sobrescrever com null)
+  if (pushName && pushName.trim().length > 0) {
+    payload.contato_nome = pushName.trim();
+  }
+
   const { data, error } = await supabase
     .from('conversas_chats')
-    .upsert(
-      {
-        user_id: userId,
-        contato_id: contatoId,
-        instance_id: instanceId,
-        // Removemos status, pin, mute e unread_count daqui para não dar override no
-        // que já existe no banco caso o chat já exista (P0-08 / Fase 8).
-        // Se for um chat novo, o Postgres usará os valores DEFAULT da tabela.
-        contato_nome: pushName ?? null,
-        contato_phone_normalized: phoneNormalized,
-      },
-      { onConflict: 'contato_id,instance_id' },
-    )
+    .upsert(payload, { onConflict: 'contato_id,instance_id' })
     .select('id')
     .single();
 
@@ -216,7 +217,16 @@ async function processSingleMessage(
   if (!msg.key?.id) return;
 
   const remoteJid = msg.key.remoteJid || msg.key.participant || '';
-  if (!remoteJid || remoteJid.includes('status@broadcast')) return;
+  // Descartar canais de notícias (@newsletter), transmissões e status do WhatsApp
+  if (
+    !remoteJid ||
+    remoteJid.includes('status@broadcast') ||
+    remoteJid.includes('@newsletter') ||
+    remoteJid.includes('@broadcast') ||
+    (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@g.us'))
+  ) {
+    return;
+  }
 
   const phoneRaw = extractPhone(remoteJid);
   const normalized = normalizeBrPhone(phoneRaw);
@@ -237,13 +247,18 @@ async function processSingleMessage(
     ? new Date(Number(msg.messageTimestamp) * 1000).toISOString()
     : new Date().toISOString();
 
+  // Se a mensagem foi enviada pelo próprio usuário (outbound/fromMe), o msg.pushName
+  // pertence ao remetente (dono do aparelho), e JAMAIS deve ser usado para renomear
+  // o contato destinatário! (Evita que o suporte vire "Lise Diehl")
+  const contactPushName = direction === 'inbound' ? msg.pushName : undefined;
+
   // 1. Garante contato
   const contatoId = await getOrCreateContato(
     supabase,
     instance.user_id,
     phoneNormalized,
     phoneRaw,
-    msg.pushName,
+    contactPushName,
   );
   if (!contatoId) {
     throw new Error(`Falha ao criar contato para ${phoneNormalized}`);
@@ -256,7 +271,7 @@ async function processSingleMessage(
     contatoId,
     instance.id,
     phoneNormalized,
-    msg.pushName,
+    contactPushName,
   );
   if (!chatId) {
     throw new Error(`Falha ao criar chat para contato ${contatoId}`);

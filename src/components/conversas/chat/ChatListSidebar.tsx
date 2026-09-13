@@ -75,7 +75,7 @@ export function ChatListSidebar({
   const active = sorted.filter(c => c.status === 'active');
 
   return (
-    <div className="w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col bg-background border-r border-border h-full">
+    <div className="w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col bg-background border-r border-border h-full overflow-hidden">
       {instance ? (
         <InstanceStatusBar
           instanceName={instance.instance_name}
@@ -113,7 +113,7 @@ export function ChatListSidebar({
 
       <Separator />
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 w-full overflow-hidden [&>div>div]:!block">
         {isLoading ? (
           <ChatListSkeleton />
         ) : sorted.length === 0 ? (

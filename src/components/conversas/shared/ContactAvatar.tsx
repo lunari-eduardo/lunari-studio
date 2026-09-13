@@ -54,7 +54,7 @@ export function ContactAvatar({
 
   return (
     <Avatar
-      className={cn(SIZE_CLASS[size], palette, className)}
+      className={cn(SIZE_CLASS[size], palette, 'flex-shrink-0', className)}
     >
       {src ? <AvatarImage src={src} alt={name ?? phone ?? ''} /> : null}
       <AvatarFallback className="bg-transparent font-semibold">

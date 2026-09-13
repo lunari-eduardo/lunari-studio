@@ -41,7 +41,7 @@ export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, o
       type="button"
       onClick={onClick}
       className={cn(
-        'group w-full flex items-center gap-3 px-3 py-3 text-left transition-colors relative',
+        'group w-full max-w-full overflow-hidden flex items-center gap-3 px-3 py-3 text-left transition-colors relative',
         isActive ? 'bg-[#f0f2f5]' : 'hover:bg-zinc-50',
       )}
     >
@@ -52,15 +52,16 @@ export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, o
         size="md"
       />
 
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
+        {/* Linha superior: Nome e Timestamp */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
             {chat.pin === 'pinned' ? (
               <Pin className="h-3.5 w-3.5 text-amber-500 fill-amber-500 flex-shrink-0" />
             ) : null}
             <span
               className={cn(
-                'truncate text-sm',
+                'truncate text-sm block',
                 unread > 0 ? 'font-semibold text-zinc-900' : 'font-medium text-zinc-700',
               )}
             >
@@ -69,7 +70,7 @@ export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, o
           </div>
           <span
             className={cn(
-              'text-[11px] flex-shrink-0',
+              'text-[11px] flex-shrink-0 whitespace-nowrap ml-auto',
               unread > 0 ? 'text-[#25d366] font-medium' : 'text-zinc-400',
             )}
           >
@@ -77,19 +78,20 @@ export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, o
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-2 mt-0.5">
-          <div className="flex items-center gap-1 min-w-0 text-xs text-zinc-500">
+        {/* Linha inferior: Preview e Badge / Ações */}
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="flex items-center gap-1 min-w-0 overflow-hidden text-xs text-zinc-500">
             {wasRead ? (
-              <CheckCheck className="h-3 w-3 text-[#53bdeb] flex-shrink-0" />
+              <CheckCheck className="h-3.5 w-3.5 text-[#53bdeb] flex-shrink-0" />
             ) : null}
-            <span className="truncate">
+            <span className="truncate block">
               {lastStatus && lastStatus !== 'text'
                 ? `📎 ${chat.ultima_mensagem ?? lastStatus}`
                 : chat.ultima_mensagem ?? 'Sem mensagens ainda'}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto">
             {/* Botão rápido para fixar/desafixar conversa */}
             {onTogglePin ? (
               <span
@@ -115,7 +117,7 @@ export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, o
             ) : null}
 
             {unread > 0 ? (
-              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#25d366] text-white text-[11px] font-bold flex items-center justify-center">
+              <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#25d366] text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0">
                 {unread > 99 ? '99+' : unread}
               </span>
             ) : null}

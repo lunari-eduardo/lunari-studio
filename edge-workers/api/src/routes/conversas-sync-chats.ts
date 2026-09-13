@@ -183,18 +183,21 @@ export async function performSyncChats(
     const contatoId = contactIdByPhone.get(item.phoneNormalized);
     if (!contatoId) continue;
 
-    chatsPayload.push({
+    const chatEntry: Record<string, any> = {
       user_id: userId,
       instance_id: instanceId,
       contato_id: contatoId,
-      contato_nome: item.realName,
-      contato_avatar: item.realAvatar,
       contato_phone_normalized: item.phoneNormalized,
-      status: 'active',
-      pin: 'unpinned',
-      mute: false,
-      unread_count: item.chat.unreadCount ?? 0,
-    });
+    };
+    if (item.realName) chatEntry.contato_nome = item.realName;
+    if (item.realAvatar) chatEntry.contato_avatar = item.realAvatar;
+    // Só atualiza unread_count se a Evolution API trouxer um contador positivo real
+    // Se vier nulo ou 0, não sobrescreve o contador do banco
+    if (typeof item.chat?.unreadCount === 'number' && item.chat.unreadCount > 0) {
+      chatEntry.unread_count = item.chat.unreadCount;
+    }
+
+    chatsPayload.push(chatEntry);
   }
 
   for (const chunk of chunkArray(chatsPayload, 100)) {

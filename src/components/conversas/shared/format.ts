@@ -75,7 +75,7 @@ export function formatDateDivider(date: Date | string | null | undefined): strin
   return `${d.getDate()} de ${MONTHS_PT[d.getMonth()]} de ${d.getFullYear()}`;
 }
 
-/** Timestamp curto para lista de chat: "HH:MM" hoje, "dd/MM" outro dia. */
+/** Timestamp curto para lista de chat estilo WhatsApp Web: "HH:MM" hoje, "Ontem", dia da semana ou "dd/MM/yyyy". */
 export function formatChatTimestamp(
   date: Date | string | null | undefined,
 ): string {
@@ -84,14 +84,32 @@ export function formatChatTimestamp(
   if (Number.isNaN(d.getTime())) return '';
 
   const now = new Date();
-  const sameYear = d.getFullYear() === now.getFullYear();
-  if (sameYear) {
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.round(
+    (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24),
+  );
+
+  // Hoje: "18:41"
+  if (diffDays === 0) {
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
+
+  // Ontem: "Ontem"
+  if (diffDays === 1) {
+    return 'Ontem';
+  }
+
+  // Últimos 7 dias: "segunda-feira"
+  if (diffDays > 1 && diffDays < 7) {
+    return WEEKDAYS_PT[d.getDay()];
+  }
+
+  // Mais antigo: "dd/MM/yyyy"
   return d.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
-    year: '2-digit',
+    year: 'numeric',
   });
 }
 
