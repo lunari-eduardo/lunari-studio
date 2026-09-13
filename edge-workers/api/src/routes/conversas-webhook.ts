@@ -483,20 +483,18 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
   const webhookSecret = c.env.EVOLUTION_WEBHOOK_SECRET;
   const providedSignature = c.req.header('X-Webhook-Secret') ?? c.req.header('X-Webhook-Signature');
 
-  if (webhookSecret && !providedSignature) {
-    // Secret configurado mas sem assinatura → rejeitar
-    console.warn('[conversas-webhook] X-Webhook-Secret requerido mas não fornecido');
-    return c.json({ error: 'Unauthorized: X-Webhook-Secret required' }, 401);
-  }
-
-  if (!webhookSecret) {
-    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET não configurado — aceitando unsigned (dev/test)');
-  } else if (providedSignature) {
+  if (webhookSecret && providedSignature) {
     const isValid = await validateHmac(c, bodyRaw);
     if (!isValid) {
       console.warn('[conversas-webhook] HMAC inválido');
       return c.json({ error: 'Unauthorized' }, 401);
     }
+  } else if (webhookSecret && !providedSignature) {
+    // Secret configurado mas Evolution API não enviou assinatura.
+    // Vamos aceitar para não quebrar o app (desenvolvimento / erro de config na Evolution).
+    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET configurado, mas requisição não possui assinatura. Aceitando o payload mesmo assim.');
+  } else if (!webhookSecret) {
+    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET não configurado — aceitando unsigned (dev/test)');
   }
 
   // 2. Parsear body

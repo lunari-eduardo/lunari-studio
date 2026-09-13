@@ -94,21 +94,25 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
         apikey: c.env.EVOLUTION_API_KEY ?? '',
       },
       body: JSON.stringify({
-        url: webhookUrl,
-        webhookByEvents: false,
-        webhookEvents: [
-          'CONNECTION_UPDATE',
-          'MESSAGES_UPSERT',
-          'MESSAGES_UPDATE',
-          'MESSAGES_DELETE'
-        ]
+        webhook: {
+          enabled: true,
+          url: webhookUrl,
+          byEvents: false,
+          base64: false,
+          events: [
+            'CONNECTION_UPDATE',
+            'MESSAGES_UPSERT',
+            'MESSAGES_UPDATE',
+            'MESSAGES_DELETE'
+          ]
+        }
       }),
     });
   } catch (err) {
     console.error('[conversas-instance-create] Erro ao configurar webhook:', err);
   }
 
-  const qrcodeDataFinal = qrcode.base64 ?? qrcode.code ?? null;
+  const qrcodeDataFinal = data.base64 ?? qrcode.base64 ?? qrcode.code ?? null;
 
   // Persistir no Supabase
   const { data: inserted, error: insertError } = await supabaseAdmin

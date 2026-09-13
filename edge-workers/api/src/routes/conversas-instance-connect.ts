@@ -64,7 +64,7 @@ export async function conversasInstanceConnectRoute(c: Context<{ Bindings: Bindi
       ? new Date(Date.now() + qrcode.expires * 1000).toISOString()
       : null;
 
-  const qrcodeDataFinal = qrcode.base64 ?? qrcode.code ?? null;
+  const qrcodeDataFinal = data?.base64 ?? qrcode.base64 ?? qrcode.code ?? null;
 
   // Persistir o novo QR no banco.
   await supabaseAdmin

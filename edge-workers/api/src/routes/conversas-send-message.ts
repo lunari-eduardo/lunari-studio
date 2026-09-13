@@ -146,20 +146,38 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   // 5. Enviar via Evolution API
   try {
-    const response = await fetch(
-      `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: c.env.EVOLUTION_API_KEY ?? '',
-        },
-        body: JSON.stringify({
-          number: recipientJid,
-          text: content,
-        }),
+    let evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`;
+    let evolutionBody: any = {
+      number: recipientJid,
+      text: content,
+    };
+
+    if (type === 'audio' && mediaUrl) {
+      evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendWhatsAppAudio/${instance.instance_name}`;
+      evolutionBody = {
+        number: recipientJid,
+        audio: mediaUrl,
+      };
+    } else if (['image', 'video', 'document'].includes(type) && mediaUrl) {
+      evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendMedia/${instance.instance_name}`;
+      evolutionBody = {
+        number: recipientJid,
+        mediatype: type,
+        mimetype: body.mediaMimeType ?? 'application/octet-stream',
+        caption: content || undefined,
+        media: mediaUrl,
+        fileName: mediaFilename || `media_${Date.now()}`,
+      };
+    }
+
+    const response = await fetch(evolutionEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: c.env.EVOLUTION_API_KEY ?? '',
       },
-    );
+      body: JSON.stringify(evolutionBody),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
