@@ -50,6 +50,7 @@ export interface UseConversasReturn {
   refreshQrCode: (instanceId: string) => Promise<void>;
   createInstance: (instanceName: string) => Promise<void>;
   checkInstanceStatus: (instanceId: string) => Promise<void>;
+  syncHistoricalChats: (instanceId: string) => Promise<{ synced: number; total: number }>;
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   totalUnread: number;
@@ -137,7 +138,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
     load();
     return () => { cancelled = true; };
-  }, [loadUserId]);
+  }, [loadUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // loadUserId é stable (useCallback sem deps), adicionar na deps array
+  // causaria re-fetch desnecessário. O hook é usado 1× por página.
 
   // ─── Realtime subscriptions ──────────────────────────────────────────────────
 
@@ -453,6 +456,68 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     }
   }, []);
 
+  const disconnectInstance = useCallback(async (instanceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sessão expirada — faça login novamente.');
+        return;
+      }
+
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+      if (!workerUrl) return;
+
+      const response = await fetch(`${workerUrl}/api/conversas/instance/disconnect/${instanceId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${response.status}`);
+      }
+
+      setInstancias(prev =>
+        prev.map(i =>
+          i.id === instanceId
+            ? { ...i, status: 'disconnected', qrcode_data: null }
+            : i
+        )
+      );
+      toast.success('WhatsApp desconectado com sucesso.');
+    } catch (err: any) {
+      toast.error('Erro ao desconectar: ' + err.message);
+    }
+  }, []);
+
+  const deleteInstance = useCallback(async (instanceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sessão expirada — faça login novamente.');
+        return;
+      }
+
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+      if (!workerUrl) return;
+
+      const response = await fetch(`${workerUrl}/api/conversas/instance/${instanceId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${response.status}`);
+      }
+
+      setInstancias(prev => prev.filter(i => i.id !== instanceId));
+      toast.success('Instância excluída com sucesso.');
+    } catch (err: any) {
+      toast.error('Erro ao excluir instância: ' + err.message);
+    }
+  }, []);
+
   // Poll connection status while connecting
   useEffect(() => {
     const connectingInstance = instancias.find(i => i.status === 'connecting');
@@ -464,6 +529,45 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
     return () => clearInterval(interval);
   }, [instancias, checkInstanceStatus]);
+
+  // ─── Sync histórico ─────────────────────────────────────────────────────────
+
+  const syncHistoricalChats = useCallback(async (instanceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sessão expirada — faça login novamente.');
+        return { synced: 0, total: 0 };
+      }
+
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+      if (!workerUrl) {
+        toast.error('VITE_EDGE_API_URL não configurada no ambiente.');
+        return { synced: 0, total: 0 };
+      }
+
+      const response = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ instanceId }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      toast.success(`${payload.synced} conversas sincronizadas.`);
+      return { synced: payload.synced ?? 0, total: payload.total ?? 0 };
+    } catch (err: any) {
+      toast.error('Erro ao sincronizar conversas: ' + err.message);
+      return { synced: 0, total: 0 };
+    }
+  }, []);
 
   return {
     chats,
@@ -482,6 +586,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     refreshQrCode,
     createInstance,
     checkInstanceStatus,
+    disconnectInstance,
+    deleteInstance,
+    syncHistoricalChats,
     totalUnread,
     activeChatsCount,
     connectedInstance,

@@ -360,23 +360,39 @@ export function useConversasChat(
       );
 
       try {
-        await sendMessage({
-          content: msg.content,
-          type: msg.type as any,
-          mediaUrl: msg.media_url ?? undefined,
-          mediaMimeType: msg.media_mime_type ?? undefined,
-          mediaFilename: msg.media_filename ?? undefined,
-          mediaSizeBytes: msg.media_size_bytes ?? undefined,
+        const { data: { session } } = await supabase.auth.getSession();
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+        const response = await fetch(`${workerUrl}/api/conversas/message/retry/${mensagemId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
         });
-        // Remove failed duplicate
-        setMensagens(prev => prev.filter(m => m.id !== mensagemId));
-      } catch {
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message ?? 'Erro ao reenviar mensagem');
+        }
+
+        const result = await response.json();
+
+        setMensagens(prev =>
+          prev.map(m =>
+            m.id === mensagemId
+              ? { ...m, status: 'sent' as const, evolution_msg_id: result.evolutionMsgId }
+              : m,
+          ),
+        );
+      } catch (err: any) {
+        toast.error('Erro ao reenviar: ' + err.message);
         setMensagens(prev =>
           prev.map(m => (m.id === mensagemId ? { ...m, status: 'failed' as const } : m)),
         );
       }
     },
-    [mensagens, sendMessage],
+    [mensagens],
   );
 
   // ─── Notes ───────────────────────────────────────────────────────────────────

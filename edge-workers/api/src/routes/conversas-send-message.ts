@@ -23,6 +23,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
 
 export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings }>) {
+  // 0. Guard: verificar configuração essencial
+  if (!c.env.EVOLUTION_API_URL || !c.env.EVOLUTION_API_KEY) {
+    console.error('[send-message] EVOLUTION_API_URL ou EVOLUTION_API_KEY não configurados no Worker');
+    return c.json({ error: 'Configuração de API incompleta — contacte o suporte' }, 500);
+  }
+
   // 1. Autenticar via JWT do Supabase (Authorization: Bearer <token>)
   const authHeader = c.req.header('Authorization') ?? '';
   const token = authHeader.replace('Bearer ', '').trim();
@@ -60,11 +66,16 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   const { chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename } = body;
 
+  const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document'];
+  if (!VALID_TYPES.includes(type)) {
+    return c.json({ error: 'Tipo inválido' }, 400);
+  }
+
   if (!chatId || !instanceId || !content) {
     return c.json({ error: 'chatId, instanceId e content são obrigatórios' }, 400);
   }
 
-  // 3. Obter phone do chat
+  // 3. Obter phone do chat + validar que pertence à instância fornecida
   const { data: chat, error: chatError } = await supabaseAdmin
     .from('conversas_chats')
     .select('id, instance_id, contato_phone_normalized, user_id')
@@ -76,16 +87,27 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Chat não encontrado' }, 404);
   }
 
-  const recipientPhone = chat.contato_phone_normalized;
-  if (!recipientPhone) {
+  // O chat.instance_id deve ser o mesmo que o instanceId fornecido (prevenir cross-user)
+  if (chat.instance_id !== instanceId) {
+    return c.json({ error: 'Chat não pertence a esta instância' }, 403);
+  }
+
+  const rawPhone = chat.contato_phone_normalized;
+  if (!rawPhone) {
     return c.json({ error: 'Telefone do contato não disponível' }, 400);
   }
 
-  // 3.5 Obter instance_name
+  // Evolution API usa JID no formato "55DDDXXXXXXXX@s.whatsapp.net"
+  // Armazenamos como "+55DDDXXXXXXXXX" → remover o +
+  const phoneDigits = rawPhone.replace(/^\+/, '');
+  const recipientJid = `${phoneDigits}@s.whatsapp.net`;
+
+  // 3.5 Obter instance_name da instância
   const { data: instance, error: instanceError } = await supabaseAdmin
     .from('conversas_instancias')
     .select('instance_name')
     .eq('id', instanceId)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (instanceError || !instance) {
@@ -124,17 +146,6 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   // 5. Enviar via Evolution API
   try {
-    const evolutionPayload: Record<string, unknown> = {
-      number: `${recipientPhone}@s.whatsapp.net`,
-      text: content,
-    };
-
-    if (type !== 'text' && mediaUrl) {
-      // Para mídia, enviar URL pública
-      evolutionPayload.mediaUrl = mediaUrl;
-      evolutionPayload.mimeType = body.mediaMimeType;
-    }
-
     const response = await fetch(
       `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`,
       {
@@ -144,7 +155,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
           apikey: c.env.EVOLUTION_API_KEY ?? '',
         },
         body: JSON.stringify({
-          number: `${recipientPhone}@s.whatsapp.net`,
+          number: recipientJid,
           text: content,
         }),
       },

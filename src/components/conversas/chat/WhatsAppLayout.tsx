@@ -21,6 +21,8 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     instancias,
     isLoading,
     refreshQrCode,
+    disconnectInstance,
+    deleteInstance,
     archiveChat,
     unarchiveChat,
     blockChat,
@@ -77,6 +79,20 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
           }
           onRefreshQr={() => {
             if (connectedInstance) void refreshQrCode(connectedInstance.id);
+          }}
+          onDisconnect={() => {
+            if (connectedInstance) {
+              if (confirm('Tem certeza que deseja desconectar o WhatsApp?')) {
+                void disconnectInstance(connectedInstance.id);
+              }
+            }
+          }}
+          onDelete={() => {
+            if (connectedInstance) {
+              if (confirm('Atenção: Tem certeza que deseja excluir esta instância permanentemente?')) {
+                void deleteInstance(connectedInstance.id);
+              }
+            }
           }}
           isRefreshingQr={false}
           onNewChat={onNewChat}

@@ -22,6 +22,10 @@ import { conversasMediaUploadRoute } from './routes/conversas-media-upload.js';
 import { conversasInstanceCreateRoute } from './routes/conversas-instance-create.js';
 import { conversasInstanceConnectRoute } from './routes/conversas-instance-connect.js';
 import { conversasInstanceStatusRoute } from './routes/conversas-instance-status.js';
+import { conversasInstanceDisconnectRoute } from './routes/conversas-instance-disconnect.js';
+import { conversasInstanceDeleteRoute } from './routes/conversas-instance-delete.js';
+import { conversasSyncChatsRoute } from './routes/conversas-sync-chats.js';
+import { conversasMessageRetryRoute } from './routes/conversas-message-retry.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -90,11 +94,15 @@ app.post('/api/agenda/online/:slug/reserve', reserveAgendaOnlineSlotRoute);
 // ─── Conversas (WhatsApp / Evolution API) ────────────────────────────────────
 app.post('/api/conversas/webhook', conversasWebhookRoute);
 app.post('/api/conversas/send-message', conversasSendMessageRoute);
+app.post('/api/conversas/message/retry/:id', conversasMessageRetryRoute);
 app.post('/api/conversas/media-upload', conversasMediaUploadRoute);
 
 // Proxies autenticados para a Evolution API (não expor a apikey no frontend).
 app.post('/api/conversas/instance/create', conversasInstanceCreateRoute);
 app.get('/api/conversas/instance/connect/:id', conversasInstanceConnectRoute);
+app.post('/api/conversas/instance/disconnect/:id', conversasInstanceDisconnectRoute);
+app.delete('/api/conversas/instance/:id', conversasInstanceDeleteRoute);
 app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
+app.post('/api/conversas/sync-chats', conversasSyncChatsRoute);
 
 export default app;

@@ -177,12 +177,8 @@ function getStatusFromEvent(status?: string): string {
 
 async function validateHmac(c: Context<{ Bindings: Bindings }>, bodyRaw: string): Promise<boolean> {
   const secret = c.env.EVOLUTION_WEBHOOK_SECRET;
-  const provided = c.req.header('X-Webhook-Secret');
-
-  if (!provided) {
-    console.warn('[conversas-webhook] X-Webhook-Secret header ausente, ignorando validacao de HMAC');
-    return true;
-  }
+  const provided = c.req.header('X-Webhook-Secret') ?? c.req.header('X-Webhook-Signature');
+  if (!secret || !provided) return true;
 
   try {
     const encoder = new TextEncoder();
@@ -283,7 +279,7 @@ async function getOrCreateChat(
         contato_nome: pushName ?? null,
         contato_phone_normalized: phoneNormalized,
       },
-      { onConflict: 'user_id,contato_id,instance_id' },
+      { onConflict: 'contato_id,instance_id' },
     )
     .select('id')
     .single();
@@ -416,10 +412,16 @@ async function handleMessagesUpdate(
 
   const status = getStatusFromEvent(msg.status);
 
+  // Buscar instance para filtrar por instance_id E user_id (multi-tenant).
+  const instance = await getOrCreateInstance(supabase, instanceName);
+  if (!instance) return;
+
   const { error } = await supabase
     .from('conversas_mensagens')
     .update({ status })
     .eq('evolution_msg_id', msg.key.id)
+    .eq('instance_id', instance.id)
+    .eq('user_id', instance.user_id) // Bug #4: filtro multi-tenant
     .eq('direction', 'outbound'); // só outbound muda de status
 
   if (error) {
@@ -454,14 +456,21 @@ async function handleConnectionUpdate(
 async function handleMessagesDelete(
   supabase: ReturnType<typeof createClient>,
   payload: unknown,
+  instanceName: string,
 ) {
   const data = payload as { key?: { id?: string } };
   if (!data.key?.id) return;
 
+  const instance = await getOrCreateInstance(supabase, instanceName);
+  if (!instance) return;
+
+  // Bug #4: filtro multi-tenant — adiciona user_id para evitar deleção cross-user.
   await supabase
     .from('conversas_mensagens')
     .delete()
-    .eq('evolution_msg_id', data.key.id);
+    .eq('evolution_msg_id', data.key.id)
+    .eq('instance_id', instance.id)
+    .eq('user_id', instance.user_id);
 }
 
 // ─── Main route ───────────────────────────────────────────────────────────────
@@ -470,18 +479,24 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
   const bodyRaw = await c.req.text();
   const instanceName = c.req.query('instance') ?? c.env.EVOLUTION_INSTANCE_NAME ?? 'lunari-default';
 
-  // 1. Validar HMAC
-  if (!c.req.header('X-Webhook-Signature') && !c.req.header('X-Webhook-Secret')) {
-    // Sem header de assinatura — rejeitar
-    // (Algumas versões da Evolution mandam sem header em teste)
-    // Para ambiente de produção, exigir assinatura descomentando:
-    // return c.json({ error: 'Unauthorized' }, 401);
+  // 1. Validar HMAC (suporta X-Webhook-Secret e X-Webhook-Signature)
+  const webhookSecret = c.env.EVOLUTION_WEBHOOK_SECRET;
+  const providedSignature = c.req.header('X-Webhook-Secret') ?? c.req.header('X-Webhook-Signature');
+
+  if (webhookSecret && !providedSignature) {
+    // Secret configurado mas sem assinatura → rejeitar
+    console.warn('[conversas-webhook] X-Webhook-Secret requerido mas não fornecido');
+    return c.json({ error: 'Unauthorized: X-Webhook-Secret required' }, 401);
   }
 
-  const isValid = await validateHmac(c, bodyRaw);
-  if (!isValid) {
-    console.warn('[conversas-webhook] HMAC inválido');
-    return c.json({ error: 'Unauthorized' }, 401);
+  if (!webhookSecret) {
+    console.warn('[conversas-webhook] EVOLUTION_WEBHOOK_SECRET não configurado — aceitando unsigned (dev/test)');
+  } else if (providedSignature) {
+    const isValid = await validateHmac(c, bodyRaw);
+    if (!isValid) {
+      console.warn('[conversas-webhook] HMAC inválido');
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
   }
 
   // 2. Parsear body
@@ -517,7 +532,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
         break;
 
       case 'MESSAGES_DELETE':
-        await handleMessagesDelete(supabase, payload);
+        await handleMessagesDelete(supabase, payload, targetInstance);
         break;
 
       default:

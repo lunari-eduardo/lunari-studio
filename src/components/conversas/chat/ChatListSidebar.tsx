@@ -27,6 +27,8 @@ export interface ChatListSidebarProps {
   onRefreshQr: () => void;
   isRefreshingQr: boolean;
   onNewChat: () => void;
+  onDisconnect?: () => void;
+  onDelete?: () => void;
 }
 
 export function ChatListSidebar({
@@ -38,6 +40,8 @@ export function ChatListSidebar({
   onRefreshQr,
   isRefreshingQr,
   onNewChat,
+  onDisconnect,
+  onDelete,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
 
@@ -75,6 +79,8 @@ export function ChatListSidebar({
           phone={instance.phone}
           onRefreshQr={onRefreshQr}
           isRefreshing={isRefreshingQr}
+          onDisconnect={onDisconnect}
+          onDelete={onDelete}
         />
       ) : null}
 
