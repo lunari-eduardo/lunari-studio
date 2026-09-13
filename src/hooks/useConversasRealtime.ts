@@ -350,10 +350,8 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             : i,
         ),
       );
-
-      toast.info('QR Code atualizado!');
     } catch (err: any) {
-      toast.error('Erro ao atualizar QR Code: ' + err.message);
+      toast.error('Não foi possível gerar um novo código. Verifique sua conexão e tente novamente.');
     }
   }, []);
 
@@ -396,14 +394,16 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
       const inserted = payload.data?.instance;
       if (inserted) {
-        setInstancias(prev =>
-          prev.some(i => i.id === inserted.id) ? prev : [...prev, inserted],
-        );
+        setInstancias(prev => {
+          const exists = prev.some(i => i.id === inserted.id);
+          if (exists) {
+            return prev.map(i => i.id === inserted.id ? { ...i, ...inserted } : i);
+          }
+          return [...prev, inserted];
+        });
       }
-
-      toast.success('Instância criada! Escaneie o QR Code.');
     } catch (err: any) {
-      toast.error('Erro ao criar instância: ' + err.message);
+      toast.error('Não foi possível gerar o código. Verifique sua conexão e tente novamente.');
       throw err;
     }
   }, []);

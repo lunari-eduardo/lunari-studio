@@ -25,8 +25,11 @@ export function ConnectLandingScreen() {
   const handleCreate = async () => {
     try {
       setCreating(true);
-      const instanceName = `lunari-${crypto.randomUUID().slice(0, 8)}`;
-      await createInstance(instanceName);
+      if (firstInstance) {
+        await refreshQrCode(firstInstance.id);
+      } else {
+        await createInstance('lunari-default');
+      }
     } catch {
       // toast tratado no hook
     } finally {
