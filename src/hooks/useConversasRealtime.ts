@@ -530,19 +530,6 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     return () => clearInterval(interval);
   }, [instancias, checkInstanceStatus]);
 
-  const hasAttemptedSyncRef = useRef(false);
-
-  // Auto-sync historical chats if connected and no chats exist
-  useEffect(() => {
-    if (!connectedInstance || isLoading || hasAttemptedSyncRef.current) return;
-    
-    if (chats.length === 0) {
-      hasAttemptedSyncRef.current = true;
-      // Using void to intentionally not await inside useEffect
-      void syncHistoricalChats(connectedInstance);
-    }
-  }, [connectedInstance, isLoading, chats.length, syncHistoricalChats]);
-
   // ─── Sync histórico ─────────────────────────────────────────────────────────
 
   const syncHistoricalChats = useCallback(async (instanceId: string) => {
@@ -581,6 +568,19 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       return { synced: 0, total: 0 };
     }
   }, []);
+
+  const hasAttemptedSyncRef = useRef(false);
+
+  // Auto-sync historical chats if connected and no chats exist
+  useEffect(() => {
+    if (!connectedInstance || isLoading || hasAttemptedSyncRef.current) return;
+    
+    if (chats.length === 0) {
+      hasAttemptedSyncRef.current = true;
+      // Using void to intentionally not await inside useEffect
+      void syncHistoricalChats(connectedInstance);
+    }
+  }, [connectedInstance, isLoading, chats.length, syncHistoricalChats]);
 
   return {
     chats,
