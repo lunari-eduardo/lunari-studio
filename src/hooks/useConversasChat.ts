@@ -207,6 +207,27 @@ export function useConversasChat(
 
   const hasMore = mensagens.length >= (page + 1) * PAGE_SIZE;
 
+  // ─── Mark message read ──────────────────────────────────────────────────────
+
+  const markReadLocal = useCallback((msgId: string) => {
+    setMensagens(prev =>
+      prev.map(m =>
+        m.id === msgId && m.status !== 'read' ? { ...m, status: 'read' as const } : m,
+      ),
+    );
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    if (!chatId) return;
+    setMensagens(prev =>
+      prev.map(m => (m.direction === 'inbound' && m.status !== 'read' ? { ...m, status: 'read' as const } : m)),
+    );
+    await supabase
+      .from('conversas_chats')
+      .update({ unread_count: 0 })
+      .eq('id', chatId);
+  }, [chatId]);
+
   // ─── Realtime messages subscription ────────────────────────────────────────
 
   useEffect(() => {
@@ -264,27 +285,6 @@ export function useConversasChat(
       realtimeChannelRef.current = null;
     };
   }, [chatId, user?.id, markReadLocal]);
-
-  // ─── Mark message read ──────────────────────────────────────────────────────
-
-  const markReadLocal = useCallback((msgId: string) => {
-    setMensagens(prev =>
-      prev.map(m =>
-        m.id === msgId && m.status !== 'read' ? { ...m, status: 'read' as const } : m,
-      ),
-    );
-  }, []);
-
-  const markAllRead = useCallback(async () => {
-    if (!chatId) return;
-    setMensagens(prev =>
-      prev.map(m => (m.direction === 'inbound' && m.status !== 'read' ? { ...m, status: 'read' as const } : m)),
-    );
-    await supabase
-      .from('conversas_chats')
-      .update({ unread_count: 0 })
-      .eq('id', chatId);
-  }, [chatId]);
 
   // ─── Send message ───────────────────────────────────────────────────────────
 
