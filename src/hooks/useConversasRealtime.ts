@@ -49,6 +49,7 @@ export interface UseConversasReturn {
   // ─── Instance Operations ─────────────────────────────────────────────────────
   refreshQrCode: (instanceId: string) => Promise<void>;
   createInstance: (instanceName: string) => Promise<void>;
+  checkInstanceStatus: (instanceId: string) => Promise<void>;
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   totalUnread: number;
@@ -429,6 +430,41 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     return 'reconnect';
   }, [instancias]);
 
+  const checkInstanceStatus = useCallback(async (instanceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+      if (!workerUrl) return;
+
+      const res = await fetch(`${workerUrl}/api/conversas/instance/status/${instanceId}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.ok && payload.data?.status) {
+          setInstancias(prev => 
+            prev.map(i => i.id === instanceId && i.status !== payload.data.status ? { ...i, status: payload.data.status } : i)
+          );
+        }
+      }
+    } catch (e) {
+      // silent fail on polling
+    }
+  }, []);
+
+  // Poll connection status while connecting
+  useEffect(() => {
+    const connectingInstance = instancias.find(i => i.status === 'connecting');
+    if (!connectingInstance) return;
+
+    const interval = setInterval(() => {
+      checkInstanceStatus(connectingInstance.id);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [instancias, checkInstanceStatus]);
+
   return {
     chats,
     instancias,
@@ -445,6 +481,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     deleteChat,
     refreshQrCode,
     createInstance,
+    checkInstanceStatus,
     totalUnread,
     activeChatsCount,
     connectedInstance,

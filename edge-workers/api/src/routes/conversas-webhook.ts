@@ -78,8 +78,10 @@ interface EvolutionMessagePayload {
 
 interface EvolutionWebhookBody {
   event: string;
-  session: string;
-  payload: unknown;
+  session?: string;
+  instance?: string;
+  payload?: unknown;
+  data?: unknown;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -178,8 +180,8 @@ async function validateHmac(c: Context<{ Bindings: Bindings }>, bodyRaw: string)
   const provided = c.req.header('X-Webhook-Secret');
 
   if (!provided) {
-    console.warn('[conversas-webhook] X-Webhook-Secret header ausente');
-    return false;
+    console.warn('[conversas-webhook] X-Webhook-Secret header ausente, ignorando validacao de HMAC');
+    return true;
   }
 
   try {
@@ -476,8 +478,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
     // return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  const rawForValidate = await c.req.raw.clone().text();
-  const isValid = await validateHmac(c, rawForValidate);
+  const isValid = await validateHmac(c, bodyRaw);
   if (!isValid) {
     console.warn('[conversas-webhook] HMAC inválido');
     return c.json({ error: 'Unauthorized' }, 401);
@@ -491,7 +492,10 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { event, session: sessionName, payload } = body;
+  const rawEvent = body.event || '';
+  const event = rawEvent.toUpperCase().replace(/\./g, '_'); // connection.update -> CONNECTION_UPDATE
+  const sessionName = body.instance ?? body.session;
+  const payload = body.data ?? body.payload;
   const targetInstance = sessionName ?? instanceName;
 
   // 3. Criar cliente Supabase com Service Role

@@ -81,6 +81,17 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Telefone do contato não disponível' }, 400);
   }
 
+  // 3.5 Obter instance_name
+  const { data: instance, error: instanceError } = await supabaseAdmin
+    .from('conversas_instancias')
+    .select('instance_name')
+    .eq('id', instanceId)
+    .maybeSingle();
+
+  if (instanceError || !instance) {
+    return c.json({ error: 'Instância não encontrada' }, 404);
+  }
+
   // 4. Inserir mensagem com status 'pending'
   const timestamp = new Date().toISOString();
   const msgId = crypto.randomUUID();
@@ -125,7 +136,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     }
 
     const response = await fetch(
-      `${c.env.EVOLUTION_API_URL}/message/sendText/${instanceId}`,
+      `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`,
       {
         method: 'POST',
         headers: {
