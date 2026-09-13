@@ -265,6 +265,22 @@ export function useConversasChat(
       .from('conversas_chats')
       .update({ unread_count: 0 })
       .eq('id', chatId);
+
+    // Call our worker to mark as read in Evolution API (Fase 8)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+        if (workerUrl) {
+          await fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Conversas] markAllRead error:', error);
+    }
   }, [chatId]);
 
   // ─── Realtime messages subscription ────────────────────────────────────────
@@ -337,6 +353,7 @@ export function useConversasChat(
       mediaMimeType?: string;
       mediaFilename?: string;
       mediaSizeBytes?: number;
+      replyToId?: string;
     }) => {
       const userId = userIdRef.current;
       const instanceId = instanceIdRef.current;
@@ -387,6 +404,7 @@ export function useConversasChat(
             mediaMimeType: input.mediaMimeType,
             mediaFilename: input.mediaFilename,
             mediaSizeBytes: input.mediaSizeBytes,
+            replyToId: input.replyToId,
           }),
         });
 

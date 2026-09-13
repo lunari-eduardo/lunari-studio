@@ -57,6 +57,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     mediaMimeType?: string;
     mediaFilename?: string;
     mediaSizeBytes?: number;
+    replyToId?: string;
   };
 
   try {
@@ -169,6 +170,23 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
         media: mediaUrl,
         fileName: mediaFilename || `media_${Date.now()}`,
       };
+    }
+
+    // Phase 11: Quote / Reply
+    if (body.replyToId) {
+      const { data: quotedMsg } = await supabaseAdmin
+        .from('conversas_mensagens')
+        .select('evolution_msg_id')
+        .eq('id', body.replyToId)
+        .single();
+        
+      if (quotedMsg?.evolution_msg_id) {
+        evolutionBody.options = {
+          quoted: {
+            key: { id: quotedMsg.evolution_msg_id }
+          }
+        };
+      }
     }
 
     const response = await fetch(evolutionEndpoint, {

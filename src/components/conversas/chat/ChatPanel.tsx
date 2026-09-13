@@ -14,6 +14,8 @@ import { MessagesSkeleton } from './skeletons';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversasChat } from '@/hooks/useConversasChat';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ChatPanelProps {
   chat: Chat;
@@ -74,6 +76,7 @@ export function ChatPanel({
   } = useConversasChat(chat.id);
 
   const [notesOpen, setNotesOpen] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -243,8 +246,51 @@ export function ChatPanel({
           onSend={async content => {
             await sendMessage({ content });
           }}
-          onAttach={() => {
-            // upload de mídia via conversas-media-upload (Fase 8) — TODO
+          disabled={isUploadingMedia}
+          onAttach={async (file, kind) => {
+            try {
+              setIsUploadingMedia(true);
+              const toastId = toast.loading('Enviando mídia...');
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session?.access_token) {
+                toast.error('Não autorizado', { id: toastId });
+                return;
+              }
+
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('chatId', chat.id);
+
+              const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+              const res = await fetch(`${workerUrl}/api/conversas/media-upload`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session.access_token}` },
+                body: formData,
+              });
+
+              if (!res.ok) throw new Error(await res.text());
+
+              const data = await res.json();
+              
+              if (data.mediaUrl) {
+                await sendMessage({
+                  content: '', // O composer atual não suporta caption aninhado facilmente, mandamos vazio ou o texto atual se houvesse, mas o onAttach não manda o texto.
+                  type: kind,
+                  mediaUrl: data.mediaUrl,
+                  mediaMimeType: data.mediaMimeType,
+                  mediaFilename: data.mediaFilename,
+                  mediaSizeBytes: data.mediaSizeBytes
+                });
+                toast.success('Mídia enviada', { id: toastId });
+              } else {
+                throw new Error('Upload falhou sem URL');
+              }
+            } catch (err) {
+              console.error(err);
+              toast.error('Erro ao enviar mídia');
+            } finally {
+              setIsUploadingMedia(false);
+            }
           }}
         />
       </div>

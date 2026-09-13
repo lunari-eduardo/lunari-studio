@@ -12,6 +12,7 @@ import { useEffect, useCallback, useState, useMemo, useId, useRef } from 'react'
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { initAudio, playNotificationSound, showBrowserNotification, requestNotificationPermission } from '@/modules/conversas/notifications';
 import type { Chat, ChatUpdate } from './types';
 import type { InstanciaStatus } from './types';
 
@@ -128,6 +129,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         if (!cancelled) {
           setChats(chatsResult.data ?? []);
           setInstancias(instanciasResult.data ?? []);
+          // Init notifications
+          void initAudio();
+          void requestNotificationPermission();
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -171,9 +175,22 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             if (payload.eventType === 'INSERT') {
               setChats(prev => upsertChat(prev, payload.new as Chat));
             } else if (payload.eventType === 'UPDATE') {
-              setChats(prev =>
-                prev.map(c => (c.id === payload.new.id ? { ...c, ...payload.new } as Chat : c))
-              );
+              setChats(prev => {
+                const oldChat = prev.find(c => c.id === payload.new.id);
+                const isNewInboundMessage =
+                  oldChat &&
+                  payload.new.ultima_mensagem_direction === 'inbound' &&
+                  (payload.new.unread_count > oldChat.unread_count);
+
+                if (isNewInboundMessage) {
+                  playNotificationSound();
+                  showBrowserNotification(
+                    payload.new.contato_nome || payload.new.contato_phone_normalized || 'Nova mensagem',
+                    payload.new.ultima_mensagem || undefined
+                  );
+                }
+                return prev.map(c => (c.id === payload.new.id ? { ...c, ...payload.new } as Chat : c));
+              });
             } else if (payload.eventType === 'DELETE') {
               setChats(prev => removeChat(prev, payload.old.id));
             }
@@ -278,12 +295,21 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         ),
       );
 
-      const { error } = await supabase
-        .from('conversas_chats')
-        .update({ unread_count: 0, updated_at: new Date().toISOString() })
-        .eq('id', chatId);
-
-      if (error) console.error('[Conversas] markAsRead error:', error);
+      // Call our worker to mark as read in Evolution API and Supabase
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+          if (workerUrl) {
+            await fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Conversas] markAsRead error:', error);
+      }
     },
     [],
   );
@@ -439,6 +465,15 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     if (instancias.some(i => i.status === 'connecting')) return 'connecting';
     return 'reconnect';
   }, [instancias]);
+
+  // Fase 9: Atualiza o título da aba com o contador de não lidas
+  useEffect(() => {
+    if (totalUnread > 0) {
+      document.title = `(${totalUnread}) LUNARI`;
+    } else {
+      document.title = 'LUNARI';
+    }
+  }, [totalUnread]);
 
   const checkInstanceStatus = useCallback(async (instanceId: string) => {
     try {

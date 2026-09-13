@@ -186,10 +186,9 @@ async function getOrCreateChat(
         user_id: userId,
         contato_id: contatoId,
         instance_id: instanceId,
-        status: 'active',
-        pin: 'unpinned',
-        mute: false,
-        unread_count: 0,
+        // Removemos status, pin, mute e unread_count daqui para não dar override no
+        // que já existe no banco caso o chat já exista (P0-08 / Fase 8).
+        // Se for um chat novo, o Postgres usará os valores DEFAULT da tabela.
         contato_nome: pushName ?? null,
         contato_phone_normalized: phoneNormalized,
       },
