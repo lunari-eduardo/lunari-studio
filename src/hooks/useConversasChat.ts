@@ -9,6 +9,7 @@
 import { useEffect, useCallback, useState, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Chat, Mensagem, MensagemInsert, MensagemUpdate, Nota } from '@/modules/conversas/types';
 
 const DEBUG = false;
@@ -55,6 +56,7 @@ export function useConversasChat(
   options: UseConversasChatOptions = {},
 ): UseConversasChatReturn {
   const { autoMarkRead = true } = options;
+  const { user } = useAuth();
 
   const [chat, setChat] = useState<Chat | null>(null);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
@@ -69,9 +71,10 @@ export function useConversasChat(
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const loadUserId = useCallback(async (): Promise<string | null> => {
+    if (user?.id) return user.id;
     const { data: { session } } = await supabase.auth.getSession();
     return session?.user?.id ?? null;
-  }, []);
+  }, [user?.id]);
 
   // ─── Load chat + initial messages ───────────────────────────────────────────
 
@@ -87,29 +90,29 @@ export function useConversasChat(
         setNotas([]);
         setPage(0);
 
-        const userId = await loadUserId();
-        if (!userId) return;
-        userIdRef.current = userId;
+        const currentUserId = user?.id || (await loadUserId());
+        if (!currentUserId) return;
+        userIdRef.current = currentUserId;
 
         const [chatResult, mensagensResult, notasResult] = await Promise.all([
           supabase
             .from('conversas_chats')
             .select('*')
             .eq('id', chatId)
-            .eq('user_id', userId)
+            .eq('user_id', currentUserId)
             .single(),
           supabase
             .from('conversas_mensagens')
             .select('*')
             .eq('chat_id', chatId)
-            .eq('user_id', userId)
+            .eq('user_id', currentUserId)
             .order('created_at', { ascending: false })
             .range(0, PAGE_SIZE - 1),
           supabase
             .from('conversas_notas')
             .select('*')
             .eq('chat_id', chatId)
-            .eq('user_id', userId)
+            .eq('user_id', currentUserId)
             .order('created_at', { ascending: false }),
         ]);
 
@@ -137,6 +140,27 @@ export function useConversasChat(
             .update({ unread_count: 0 })
             .eq('id', chatId);
         }
+
+        // Se o chat tiver apenas 1 mensagem histórica (a última da sincronização inicial),
+        // buscar histórico mais profundo sob demanda na Evolution API em background
+        if (chatResult.data && (mensagensResult.data?.length ?? 0) <= 1) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const remoteJid = `${chatResult.data.contato_phone_normalized}@s.whatsapp.net`;
+            void fetch(`${import.meta.env.VITE_EDGE_API_URL}/api/conversas/sync-chats`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                instanceId: chatResult.data.instance_id,
+                chatId: chatResult.data.id,
+                remoteJid,
+              }),
+            }).catch(err => console.warn('[useConversasChat] On-demand chat sync failed:', err));
+          }
+        }
       } catch (err: any) {
         if (!cancelled) {
           console.error('[ConversasChat] Load error:', err);
@@ -149,7 +173,7 @@ export function useConversasChat(
 
     load();
     return () => { cancelled = true; };
-  }, [chatId, loadUserId, autoMarkRead]);
+  }, [chatId, user?.id, loadUserId, autoMarkRead]);
 
   // ─── Load more (pagination) ─────────────────────────────────────────────────
 
@@ -186,13 +210,11 @@ export function useConversasChat(
   // ─── Realtime messages subscription ────────────────────────────────────────
 
   useEffect(() => {
-    if (!chatId) return;
+    const currentUserId = user?.id || userIdRef.current;
+    if (!chatId || !currentUserId) return;
 
-    const userId = userIdRef.current;
-    if (!userId) return;
-
-    realtimeChannelRef.current = supabase
-      .channel(`conversas_chat_${chatId}_${userId}`)
+    const channel = supabase
+      .channel(`conversas_chat_${chatId}_${currentUserId}`)
       .on(
         'postgres_changes',
         {
@@ -203,12 +225,18 @@ export function useConversasChat(
         },
         (payload) => {
           if (DEBUG) console.log('[ConversasChat] New message:', payload.new);
-          setMensagens(prev => [...prev, payload.new as Mensagem]);
+          const newMsg = payload.new as Mensagem;
+          setMensagens(prev => {
+            const exists = prev.some(
+              m => m.id === newMsg.id || (m.evolution_msg_id && m.evolution_msg_id === newMsg.evolution_msg_id),
+            );
+            if (exists) return prev;
+            return [...prev, newMsg];
+          });
 
           // Auto-mark delivered/read for inbound
-          const msg = payload.new as Mensagem;
-          if (msg.direction === 'inbound' && msg.status === 'delivered') {
-            markReadLocal(msg.id);
+          if (newMsg.direction === 'inbound' && newMsg.status === 'delivered') {
+            markReadLocal(newMsg.id);
           }
         },
       )
@@ -229,13 +257,13 @@ export function useConversasChat(
       )
       .subscribe();
 
+    realtimeChannelRef.current = channel;
+
     return () => {
-      if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
-        realtimeChannelRef.current = null;
-      }
+      supabase.removeChannel(channel);
+      realtimeChannelRef.current = null;
     };
-  }, [chatId]);
+  }, [chatId, user?.id, markReadLocal]);
 
   // ─── Mark message read ──────────────────────────────────────────────────────
 

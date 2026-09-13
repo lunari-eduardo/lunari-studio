@@ -22,6 +22,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
 import { getBucketBinding, getCdnUrl } from '../utils/r2-helpers.js';
 import { normalizeBrPhone } from '../utils/phone.js';
+import { performSyncChats } from './conversas-sync-chats.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -447,9 +448,11 @@ async function handleMessagesUpdate(
 }
 
 async function handleConnectionUpdate(
+  env: Bindings,
   supabase: any,
   payload: unknown,
   instance: ResolvedInstance,
+  ctx?: any,
 ) {
   const data = payload as { state?: string; phone?: string; pushName?: string; jid?: string };
   let status: string;
@@ -478,6 +481,25 @@ async function handleConnectionUpdate(
 
   if (error) {
     console.error('[conversas-webhook] Connection update error:', error.message);
+  }
+
+  // Disparar sincronização inicial de histórico automaticamente em segundo plano ao conectar
+  if (status === 'connected') {
+    const syncPromise = performSyncChats(
+      env,
+      supabase,
+      instance.user_id,
+      instance.id,
+      instance.instance_name,
+    ).then(res => {
+      console.log(`[conversas-webhook] Auto-sync concluído para ${instance.instance_name}:`, res);
+    }).catch(err => {
+      console.error(`[conversas-webhook] Erro no auto-sync para ${instance.instance_name}:`, err);
+    });
+
+    if (ctx && typeof (ctx as any).waitUntil === 'function') {
+      (ctx as any).waitUntil(syncPromise);
+    }
   }
 }
 
@@ -609,7 +631,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
         break;
 
       case 'CONNECTION_UPDATE':
-        await handleConnectionUpdate(supabase, payload, instance);
+        await handleConnectionUpdate(c.env, supabase, payload, instance, c.executionCtx);
         break;
 
       case 'MESSAGES_DELETE':

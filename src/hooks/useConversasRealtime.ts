@@ -11,6 +11,7 @@
 import { useEffect, useCallback, useState, useMemo, useId, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Chat, ChatUpdate } from './types';
 import type { InstanciaStatus } from './types';
 
@@ -28,14 +29,14 @@ export interface UseConversasReturn {
     id: string;
     instance_name: string;
     status: InstanciaStatus;
-    phone: string | null;
-    qrcode_data: string | null;
-    qrcode_expires_at: string | null;
+    phone?: string | null;
+    qrcode_data?: string | null;
+    qrcode_expires_at?: string | null;
   }>;
   isLoading: boolean;
   error: string | null;
 
-  // ─── Chat Operations ─────────────────────────────────────────────────────────
+  // ─── Actions ─────────────────────────────────────────────────────────────────
   openChat: (chatId: string) => Promise<void>;
   archiveChat: (chatId: string) => Promise<void>;
   unarchiveChat: (chatId: string) => Promise<void>;
@@ -45,11 +46,11 @@ export interface UseConversasReturn {
   unpinChat: (chatId: string) => Promise<void>;
   markAsRead: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
-
-  // ─── Instance Operations ─────────────────────────────────────────────────────
   refreshQrCode: (instanceId: string) => Promise<void>;
   createInstance: (instanceName: string) => Promise<void>;
   checkInstanceStatus: (instanceId: string) => Promise<void>;
+  disconnectInstance: (instanceId: string) => Promise<void>;
+  deleteInstance: (instanceId: string) => Promise<void>;
   syncHistoricalChats: (instanceId: string) => Promise<{ synced: number; total: number }>;
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ export interface UseConversasReturn {
 
 export function useConversas(options: UseConversasOptions = {}): UseConversasReturn {
   const { realtime = true } = options;
+  const { user } = useAuth();
 
   const [chats, setChats] = useState<Chat[]>([]);
   const [instancias, setInstancias] = useState<UseConversasReturn['instancias']>([]);
@@ -73,9 +75,10 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   const loadUserId = useCallback(async (): Promise<string | null> => {
+    if (user?.id) return user.id;
     const { data: { session } } = await supabase.auth.getSession();
     return session?.user?.id ?? null;
-  }, []);
+  }, [user?.id]);
 
   const upsertChat = useCallback((list: Chat[], item: Chat): Chat[] => {
     const exists = list.some(c => c.id === item.id);
@@ -148,21 +151,20 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     if (!realtime) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
-    let userId: string | null = null;
 
     const setup = async () => {
-      userId = await loadUserId();
-      if (!userId) return;
+      const currentUserId = user?.id || (await loadUserId());
+      if (!currentUserId) return;
 
       channel = supabase
-        .channel(`conversas_main_${userId}_${hookId}`)
+        .channel(`conversas_main_${currentUserId}_${hookId}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'conversas_chats',
-            filter: `user_id=eq.${userId}`,
+            filter: `user_id=eq.${currentUserId}`,
           },
           (payload) => {
             if (DEBUG) console.log('[Conversas] Chat change:', payload.eventType, payload);
@@ -183,7 +185,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             event: 'UPDATE',
             schema: 'public',
             table: 'conversas_instancias',
-            filter: `user_id=eq.${userId}`,
+            filter: `user_id=eq.${currentUserId}`,
           },
           (payload) => {
             if (DEBUG) console.log('[Conversas] Instancia update:', payload.new);
@@ -206,7 +208,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         supabase.removeChannel(channel);
       }
     };
-  }, [realtime, loadUserId, hookId, upsertChat, removeChat]);
+  }, [realtime, user?.id, loadUserId, hookId, upsertChat, removeChat]);
 
   // ─── Chat Operations ─────────────────────────────────────────────────────────
 
@@ -562,25 +564,38 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
       const payload = await response.json();
       toast.success(`${payload.synced} conversas sincronizadas.`);
+
+      // Recarregar chats para refletir instantaneamente a sincronização na UI
+      const currentUserId = user?.id || (await loadUserId());
+      if (currentUserId) {
+        const { data: refreshedChats } = await supabase
+          .from('conversas_chats')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .order('updated_at', { ascending: false });
+        if (refreshedChats) {
+          setChats(refreshedChats);
+        }
+      }
+
       return { synced: payload.synced ?? 0, total: payload.total ?? 0 };
     } catch (err: any) {
       toast.error('Erro ao sincronizar conversas: ' + err.message);
       return { synced: 0, total: 0 };
     }
-  }, []);
+  }, [user?.id, loadUserId]);
 
-  const hasAttemptedSyncRef = useRef(false);
+  const syncedInstancesRef = useRef<Set<string>>(new Set());
 
-  // Auto-sync historical chats if connected and no chats exist
+  // Auto-sync historical chats assim que a instância estiver conectada
   useEffect(() => {
-    if (!connectedInstance || isLoading || hasAttemptedSyncRef.current) return;
-    
-    if (chats.length === 0) {
-      hasAttemptedSyncRef.current = true;
-      // Using void to intentionally not await inside useEffect
+    if (!connectedInstance || isLoading) return;
+
+    if (!syncedInstancesRef.current.has(connectedInstance)) {
+      syncedInstancesRef.current.add(connectedInstance);
       void syncHistoricalChats(connectedInstance);
     }
-  }, [connectedInstance, isLoading, chats.length, syncHistoricalChats]);
+  }, [connectedInstance, isLoading, syncHistoricalChats]);
 
   return {
     chats,
