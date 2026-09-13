@@ -9,24 +9,36 @@
  * Supabase Realtime quando o webhook da Evolution atualiza o status.
  */
 
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import { ConnectLandingScreen } from '@/components/conversas/ConnectLandingScreen';
 import { WhatsAppLayout } from '@/components/conversas/chat/WhatsAppLayout';
+import { NewChatModal } from '@/components/conversas/chat/NewChatModal';
 
 export default function ConversasPage() {
-  const { instanceViewState } = useConversas();
+  const { instanceViewState, connectedInstance } = useConversas();
+  const [newChatOpen, setNewChatOpen] = useState(false);
 
   if (instanceViewState !== 'ready') {
     return <ConnectLandingScreen />;
   }
 
   return (
-    <WhatsAppLayout
-      onNewChat={() => {
-        // Fase 7: modal para iniciar conversa por número.
-        toast.info('Iniciar nova conversa por número em breve.');
-      }}
-    />
+    <>
+      <WhatsAppLayout
+        onNewChat={() => setNewChatOpen(true)}
+      />
+      <NewChatModal 
+        open={newChatOpen}
+        onOpenChange={setNewChatOpen}
+        instanceId={connectedInstance}
+        onChatCreated={(chatId) => {
+          toast.success('Conversa iniciada!');
+          // A Sidebar list vai atualizar automaticamente via Supabase Realtime
+          // e WhatsAppLayout vai auto-selecionar caso seja a única ativa
+        }}
+      />
+    </>
   );
 }

@@ -299,10 +299,16 @@ export function useConversasChat(
       setMensagens(prev => [...prev, optimisticMsg]);
 
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+        
         // Call Worker outbound endpoint
-        const response = await fetch('/api/conversas/send-message', {
+        const response = await fetch(`${workerUrl}/api/conversas/send-message`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+          },
           body: JSON.stringify({
             chatId,
             instanceId,
