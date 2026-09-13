@@ -396,6 +396,13 @@ async function processSingleMessage(
     console.error('[conversas-webhook] Upsert message error:', msgError.message);
     throw msgError;
   }
+
+  // Se a mensagem for inbound e recente, incrementa contador de não lidas
+  if (direction === 'inbound') {
+    await supabase.rpc('conversas_increment_unread', { p_chat_id: chatId }).catch((err: any) => {
+      console.warn('[conversas-webhook] Erro conversas_increment_unread:', err);
+    });
+  }
 }
 
 async function handleMessagesUpsert(

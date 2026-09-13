@@ -114,7 +114,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             .from('conversas_chats')
             .select('*')
             .eq('user_id', userId)
-            .order('updated_at', { ascending: false }),
+            .order('ultima_mensagem_data', { ascending: false, nullsFirst: false }),
           supabase
             .from('conversas_instancias')
             .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at')
@@ -574,7 +574,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             .from('conversas_chats')
             .select('*')
             .eq('user_id', currentUserId)
-            .order('updated_at', { ascending: false });
+            .order('ultima_mensagem_data', { ascending: false, nullsFirst: false });
           if (refreshedChats) setChats(refreshedChats);
         }
       };
