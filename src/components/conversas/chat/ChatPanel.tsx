@@ -274,7 +274,7 @@ export function ChatPanel({
               
               if (data.mediaUrl) {
                 await sendMessage({
-                  content: '', // O composer atual não suporta caption aninhado facilmente, mandamos vazio ou o texto atual se houvesse, mas o onAttach não manda o texto.
+                  content: '', 
                   type: kind,
                   mediaUrl: data.mediaUrl,
                   mediaMimeType: data.mediaMimeType,
@@ -287,7 +287,7 @@ export function ChatPanel({
               }
             } catch (err) {
               console.error(err);
-              toast.error('Erro ao enviar mídia');
+              toast.error('Erro ao enviar mídia. Verifique se o Worker foi feito deploy.', { id: toastId });
             } finally {
               setIsUploadingMedia(false);
             }

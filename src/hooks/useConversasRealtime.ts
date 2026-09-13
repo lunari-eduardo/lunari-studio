@@ -295,7 +295,15 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         ),
       );
 
-      // Call our worker to mark as read in Evolution API and Supabase
+      // Atualiza o banco de dados diretamente (fallback visual imediato)
+      const { error } = await supabase
+        .from('conversas_chats')
+        .update({ unread_count: 0, updated_at: new Date().toISOString() })
+        .eq('id', chatId);
+
+      if (error) console.error('[Conversas] markAsRead error:', error);
+
+      // Call our worker to mark as read in Evolution API
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
@@ -308,7 +316,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
           }
         }
       } catch (error) {
-        console.error('[Conversas] markAsRead error:', error);
+        console.error('[Conversas] markAsRead worker error:', error);
       }
     },
     [],
