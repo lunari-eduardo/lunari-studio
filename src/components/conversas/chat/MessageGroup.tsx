@@ -15,7 +15,7 @@ export function MessageGroup({ messages, onRetry }: MessageGroupProps) {
   const isOwn = messages[0].direction === 'outbound';
 
   return (
-    <div className={isOwn ? 'flex flex-col items-end' : 'flex flex-col items-start'}>
+    <div className={isOwn ? 'w-full flex flex-col items-end' : 'w-full flex flex-col items-start'}>
       {messages.map((msg, idx) => (
         <MessageBubble
           key={msg.id}

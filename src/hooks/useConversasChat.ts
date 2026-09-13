@@ -106,7 +106,7 @@ export function useConversasChat(
             .select('*')
             .eq('chat_id', chatId)
             .eq('user_id', currentUserId)
-            .order('created_at', { ascending: false })
+            .order('timestamp', { ascending: false })
             .range(0, PAGE_SIZE - 1),
           supabase
             .from('conversas_notas')
@@ -192,7 +192,7 @@ export function useConversasChat(
       .select('*')
       .eq('chat_id', chatId)
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .range(from, to);
 
     if (error) {
@@ -253,7 +253,9 @@ export function useConversasChat(
               m => m.id === newMsg.id || (m.evolution_msg_id && m.evolution_msg_id === newMsg.evolution_msg_id),
             );
             if (exists) return prev;
-            return [...prev, newMsg];
+            return [...prev, newMsg].sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+            );
           });
 
           // Auto-mark delivered/read for inbound

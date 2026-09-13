@@ -63,10 +63,10 @@ export function MessageBubble({
     : cn(cornerClass, 'rounded-b-md');
 
   return (
-    <div className={cn('flex px-3 mb-0.5', isOwn ? 'justify-end' : 'justify-start')}>
+    <div className={cn('w-full flex px-3 mb-0.5', isOwn ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'relative max-w-[75%] md:max-w-[65%] px-3 py-1.5 shadow-sm text-sm',
+          'relative w-fit min-w-[70px] max-w-[80%] md:max-w-[65%] px-3 py-1.5 shadow-sm text-sm break-words',
           isOwn ? 'bg-[#d9fdd3] text-zinc-900' : 'bg-white text-zinc-900',
           radiusClass,
           failed && 'border border-red-400',
@@ -83,7 +83,7 @@ export function MessageBubble({
               />
             ) : null}
             {mensagem.content ? (
-              <p className="whitespace-pre-wrap break-words">{mensagem.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{mensagem.content}</p>
             ) : (
               <span className="text-zinc-500 italic text-xs">
                 {mensagem.type === 'audio' && '🎤 Áudio'}
@@ -96,7 +96,7 @@ export function MessageBubble({
             )}
           </div>
         ) : (
-          <p className="whitespace-pre-wrap break-words">{mensagem.content}</p>
+          <p className="whitespace-pre-wrap leading-relaxed">{mensagem.content}</p>
         )}
 
         {/* Footer: time + status icon (apenas no último do grupo) */}

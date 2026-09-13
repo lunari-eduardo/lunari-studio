@@ -51,13 +51,11 @@ export function ChatListSidebar({
 
   const filtered = useMemo(() => {
     if (!search.trim()) return chats;
-    const q = search.toLowerCase();
-    return chats.filter(
-      c =>
-        (c.contato_nome ?? '').toLowerCase().includes(q) ||
-        (c.contato_phone_normalized ?? '').includes(q) ||
-        (c.ultima_mensagem ?? '').toLowerCase().includes(q),
-    );
+    const searchTerms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    return chats.filter(c => {
+      const target = `${c.contato_nome ?? ''} ${c.contato_phone_normalized ?? ''} ${c.ultima_mensagem ?? ''}`.toLowerCase();
+      return searchTerms.every(term => target.includes(term));
+    });
   }, [chats, search]);
 
   const sorted = useMemo(() => {
