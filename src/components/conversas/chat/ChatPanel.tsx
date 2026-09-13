@@ -13,6 +13,7 @@ import { NotesPanel } from './NotesPanel';
 import { MessagesSkeleton } from './skeletons';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversasChat } from '@/hooks/useConversasChat';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 export interface ChatPanelProps {
   chat: Chat;
@@ -77,24 +78,64 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const lastMessageCount = useRef(0);
+  // P0-05 / Fase 2 — controles para preservar a posição de scroll durante o
+  // prepend de histórico feito pelo loadMore. Sem isto o auto-scroll cai
+  // pro fim (parece bug) ou mantém a posição visual mas a referência
+  // "primeira mensagem visível" muda sem aviso.
+  const loadingOlderRef = useRef(false);
+  const prevScrollHeightRef = useRef<number | null>(null);
+
+  const grouped = useMemo(() => groupByDay(mensagens), [mensagens]);
+
+  const items = useMemo(() => {
+    const result: Array<{ type: 'date' | 'message_group'; date?: string; group?: Mensagem[]; id: string }> = [];
+    grouped.forEach(g => {
+      result.push({ type: 'date', date: g.items[0].timestamp, id: `date-${g.day}` });
+      const adjacent = groupAdjacent(g.items);
+      adjacent.forEach((group, idx) => {
+        result.push({ type: 'message_group', group, id: `msg-${g.day}-${idx}` });
+      });
+    });
+    return result;
+  }, [grouped]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 80,
+    overscan: 20,
+  });
 
   // Marcar como lido ao abrir
   useEffect(() => {
     markAllRead();
   }, [chat.id, markAllRead]);
 
-  // Auto-scroll para o fim quando chegam mensagens novas (mas não quando paginando acima)
+  // Auto-scroll ao fim quando chegam mensagens novas, mas NÃO durante prepend.
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+
+    // Se estamos finalizando um prepend, restaura a posição visual.
+    if (loadingOlderRef.current && prevScrollHeightRef.current != null) {
+      // O scrollHeight pode não ter atualizado completamente devido à medição assíncrona do virtualizer,
+      // mas ajustamos o melhor possível.
+      const delta = el.scrollHeight - prevScrollHeightRef.current;
+      el.scrollTop = el.scrollTop + delta;
+      loadingOlderRef.current = false;
+      prevScrollHeightRef.current = null;
+      lastMessageCount.current = mensagens.length;
+      return;
+    }
+
     const newCount = mensagens.length;
     if (newCount > lastMessageCount.current) {
       el.scrollTop = el.scrollHeight;
     }
     lastMessageCount.current = newCount;
-  }, [mensagens.length]);
+  }, [mensagens.length, rowVirtualizer.getTotalSize()]);
 
-  // IntersectionObserver para loadMore (scroll-up)
+  // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const root = scrollRef.current;
@@ -102,16 +143,19 @@ export function ChatPanel({
     const obs = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
+          const rootEl = scrollRef.current;
+          if (rootEl) {
+            loadingOlderRef.current = true;
+            prevScrollHeightRef.current = rootEl.scrollHeight;
+          }
           void loadMore();
         }
       },
-      { root, rootMargin: '120px' },
+      { root, rootMargin: '200px' },
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
   }, [hasMore, loadMore]);
-
-  const grouped = useMemo(() => groupByDay(mensagens), [mensagens]);
 
   if (isLoading) {
     return (
@@ -154,21 +198,44 @@ export function ChatPanel({
           }}
         >
           <div ref={sentinelRef} className="h-px" />
-          {grouped.length === 0 ? (
+          
+          {items.length === 0 ? (
             <EmptyChatState />
           ) : (
-            grouped.map(g => (
-              <div key={g.day}>
-                <DateDivider date={g.items[0].timestamp} />
-                {groupAdjacent(g.items).map((group, idx) => (
-                  <MessageGroup
-                    key={`${g.day}-${idx}`}
-                    messages={group}
-                    onRetry={retryMessage}
-                  />
-                ))}
-              </div>
-            ))
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const item = items[virtualRow.index];
+                return (
+                  <div
+                    key={item.id}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {item.type === 'date' ? (
+                      <DateDivider date={item.date!} />
+                    ) : (
+                      <MessageGroup
+                        messages={item.group!}
+                        onRetry={retryMessage}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 

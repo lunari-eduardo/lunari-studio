@@ -14,6 +14,12 @@ import type { Chat, Mensagem, MensagemInsert, MensagemUpdate, Nota } from '@/mod
 
 const DEBUG = false;
 
+// Extensão local do tipo Mensagem para anotações efêmeras usadas durante o
+// prepend de histórico pelo loadMore (Fase 2 / P0-05). Não é persistido,
+// apenas marca a primeira mensagem antiga para que o ChatPanel saiba
+// preservar a posição de scroll ao redor dela.
+export type MensagemLocal = Mensagem & { _loadingOlder?: boolean };
+
 export interface UseConversasChatOptions {
   /** Auto-marcar mensagens como lidas ao abrir (default: true) */
   autoMarkRead?: boolean;
@@ -59,16 +65,27 @@ export function useConversasChat(
   const { user } = useAuth();
 
   const [chat, setChat] = useState<Chat | null>(null);
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
+  const [mensagens, setMensagens] = useState<MensagemLocal[]>([]);
   const [notas, setNotas] = useState<Nota[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
   const PAGE_SIZE = 50;
+  // P0-05 / Fase 2 — primeira página reduzida para combinar com WhatsApp (carrega
+  // janela inicial menor e usa loadMore para expandir sem pular scroll).
+  const INITIAL_PAGE_SIZE = 30;
   const userIdRef = useRef<string | null>(null);
   const instanceIdRef = useRef<string | null>(null);
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  // Guard contra chamadas concorrentes de loadMore (P1-09). Sem isso, o
+  // IntersectionObserver dispara várias vezes antes do primeiro request voltar
+  // e o hook pula páginas. Também preserva posição do scroll entre o estado
+  // pré e pós-prepend via loadMoreScrollAnchor (consumido por ChatPanel).
+  const loadingMoreRef = useRef(false);
+  // Fase 2 — marca se a última página retornada estava cheia (para hasMore).
+  // Inicia como true para que hasMore funcione na primeira página.
+  const lastPageWasFullRef = useRef(true);
 
   const loadUserId = useCallback(async (): Promise<string | null> => {
     if (user?.id) return user.id;
@@ -107,7 +124,7 @@ export function useConversasChat(
             .eq('chat_id', chatId)
             .eq('user_id', currentUserId)
             .order('timestamp', { ascending: false })
-            .range(0, PAGE_SIZE - 1),
+            .range(0, INITIAL_PAGE_SIZE - 1),
           supabase
             .from('conversas_notas')
             .select('*')
@@ -141,9 +158,8 @@ export function useConversasChat(
             .eq('id', chatId);
         }
 
-        // Se o chat tiver apenas 1 mensagem histórica (a última da sincronização inicial),
-        // buscar histórico mais profundo sob demanda na Evolution API em background
-        if (chatResult.data && (mensagensResult.data?.length ?? 0) <= 1) {
+        // Buscar histórico mais profundo sob demanda na Evolution API em background
+        if (chatResult.data) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.access_token) {
             const remoteJid = `${chatResult.data.contato_phone_normalized}@s.whatsapp.net`;
@@ -180,6 +196,10 @@ export function useConversasChat(
 
   const loadMore = useCallback(async () => {
     if (!chatId || isLoading) return;
+    // Guard de concorrência (P1-09 / Fase 2): se já houver loadMore em voo,
+    // ignora. Sem isso o IntersectionObserver dispara múltiplas vezes
+    // antes do request anterior voltar, gerando N+1 trips e pulos de página.
+    if (loadingMoreRef.current) return;
     const userId = userIdRef.current;
     if (!userId) return;
 
@@ -187,26 +207,44 @@ export function useConversasChat(
     const from = nextPage * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    const { data, error } = await supabase
-      .from('conversas_mensagens')
-      .select('*')
-      .eq('chat_id', chatId)
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
-      .range(from, to);
+    loadingMoreRef.current = true;
+    try {
+      const { data, error } = await supabase
+        .from('conversas_mensagens')
+        .select('*')
+        .eq('chat_id', chatId)
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .range(from, to);
 
-    if (error) {
-      toast.error('Erro ao carregar mais mensagens');
-      return;
-    }
+      if (error) {
+        toast.error('Erro ao carregar mais mensagens');
+        return;
+      }
 
-    if (data && data.length > 0) {
-      setMensagens(prev => [...data.reverse(), ...prev]);
-      setPage(nextPage);
+      if (data && data.length > 0) {
+        const olderReversed = data.reverse();
+        setMensagens(prev => [...olderReversed, ...prev]);
+        setPage(nextPage);
+        // Se retornou menos que a página cheia, sabemos que acabou o histórico.
+        if (data.length < PAGE_SIZE) lastPageWasFullRef.current = false;
+        else lastPageWasFullRef.current = true;
+      } else {
+        // Página vazia: sem mais mensagens.
+        lastPageWasFullRef.current = false;
+      }
+    } finally {
+      loadingMoreRef.current = false;
     }
   }, [chatId, page, isLoading]);
 
-  const hasMore = mensagens.length >= (page + 1) * PAGE_SIZE;
+  // Fase 3 (P1-10) — `hasMore` correto considerando INITIAL_PAGE_SIZE para a
+  // primeira página e PAGE_SIZE para as seguintes, mais flag de "última página
+  // cheia" para desativar o sentinel quando o histórico se esgota.
+  const expectedLoaded = INITIAL_PAGE_SIZE + page * PAGE_SIZE;
+  const hasMore = page === 0
+    ? mensagens.length >= INITIAL_PAGE_SIZE
+    : mensagens.length >= expectedLoaded && lastPageWasFullRef.current;
 
   // ─── Mark message read ──────────────────────────────────────────────────────
 
@@ -481,8 +519,12 @@ export function useConversasChat(
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
 
+  // Ordena por `timestamp` (messageTimestamp do WhatsApp), não `created_at`
+  // (que reflete o instante de inserção no banco). Em alta concorrência
+  // as duas divergem e mensagens podem aparecer fora de ordem cronológica
+  // real se usarmos `created_at`. (P2-14 da auditoria)
   const sortedMensagens = useMemo(
-    () => [...mensagens].sort((a, b) => a.created_at.localeCompare(b.created_at)),
+    () => [...mensagens].sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
     [mensagens],
   );
 

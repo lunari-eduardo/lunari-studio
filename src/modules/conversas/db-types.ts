@@ -176,6 +176,7 @@ export interface DbConversasChat {
     instance_id: string;
     status: Database['public']['Enums']['conversas_chat_status'];
     pin: Database['public']['Enums']['conversas_chat_pin'];
+    pin_origin: 'lunari' | 'whatsapp' | null;
     mute: boolean;
     unread_count: number;
     contato_nome: string | null;
@@ -195,6 +196,7 @@ export interface DbConversasChat {
     instance_id: string;
     status?: Database['public']['Enums']['conversas_chat_status'];
     pin?: Database['public']['Enums']['conversas_chat_pin'];
+    pin_origin?: 'lunari' | 'whatsapp' | null;
     mute?: boolean;
     unread_count?: number;
     contato_nome?: string | null;
@@ -214,6 +216,7 @@ export interface DbConversasChat {
     instance_id?: string;
     status?: Database['public']['Enums']['conversas_chat_status'];
     pin?: Database['public']['Enums']['conversas_chat_pin'];
+    pin_origin?: 'lunari' | 'whatsapp' | null;
     mute?: boolean;
     unread_count?: number;
     contato_nome?: string | null;

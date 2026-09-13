@@ -23,6 +23,14 @@ import type { Bindings } from '../index.js';
 import { getBucketBinding, getCdnUrl } from '../utils/r2-helpers.js';
 import { normalizeBrPhone } from '../utils/phone.js';
 import { performSyncChats } from './conversas-sync-chats.js';
+import {
+  extractMessageContent,
+  extractMessageType,
+  extractMediaInfo,
+  extractDirection,
+  extractTimestamp,
+  type EvolutionMessagePayload as BaseEvolutionMessagePayload,
+} from './conversas-message-extract.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,52 +42,8 @@ interface EvolutionMessageKey {
   remoteJidAlt?: string;
 }
 
-interface EvolutionMessageContent {
-  conversation?: string;
-  extendedTextMessage?: { text: string };
-  imageMessage?: {
-    caption?: string;
-    jpegThumbnail?: string;
-    mimetype?: string;
-    fileLength?: string;
-    fileName?: string;
-    mediaUrl?: string;
-  };
-  audioMessage?: {
-    mimetype?: string;
-    ptt?: boolean;
-    fileLength?: string;
-    seconds?: number;
-  };
-  videoMessage?: {
-    caption?: string;
-    jpegThumbnail?: string;
-    mimetype?: string;
-    fileLength?: string;
-  };
-  documentMessage?: {
-    caption?: string;
-    fileName?: string;
-    mimetype?: string;
-    fileLength?: string;
-  };
-  stickerMessage?: unknown;
-  locationMessage?: {
-    degreesLatitude: number;
-    degreesLongitude: number;
-    name?: string;
-    address?: string;
-  };
-  contactMessage?: { displayName: string; vcard?: string };
-}
-
-interface EvolutionMessagePayload {
+interface EvolutionMessagePayload extends BaseEvolutionMessagePayload {
   key: EvolutionMessageKey;
-  pushName?: string;
-  message?: EvolutionMessageContent;
-  messageTimestamp?: string | number;
-  status?: string;
-  source?: string;
   instanceId?: string;
 }
 
@@ -102,76 +66,6 @@ interface ResolvedInstance {
 function extractPhone(remoteJid: string): string {
   // "5511999999999@s.whatsapp.net" → "5511999999999"
   return remoteJid.split('@')[0] ?? remoteJid;
-}
-
-function extractContent(msg: EvolutionMessagePayload): string {
-  if (!msg.message) return '';
-  const m = msg.message;
-  if (m.conversation) return m.conversation;
-  if (m.extendedTextMessage?.text) return m.extendedTextMessage.text;
-  if (m.imageMessage?.caption) return m.imageMessage.caption;
-  if (m.videoMessage?.caption) return m.videoMessage.caption;
-  if (m.documentMessage?.caption) return m.documentMessage.caption;
-  if (m.locationMessage) {
-    const loc = m.locationMessage;
-    return loc.name
-      ? `📍 ${loc.name}\n${loc.address ?? ''}\nLat: ${loc.degreesLatitude}, Lng: ${loc.degreesLongitude}`
-      : `📍 Localização\nLat: ${loc.degreesLatitude}, Lng: ${loc.degreesLongitude}`;
-  }
-  if (m.contactMessage) return `👤 ${m.contactMessage.displayName}`;
-  if (m.audioMessage) return '🎤 Áudio';
-  if (m.videoMessage) return '🎥 Vídeo';
-  if (m.documentMessage) return `📄 ${m.documentMessage.fileName ?? 'Documento'}`;
-  if (m.stickerMessage) return '🎨 Figurinha';
-  return '';
-}
-
-function extractMessageType(msg: EvolutionMessagePayload): string {
-  if (!msg.message) return 'text';
-  const m = msg.message;
-  if (m.conversation || m.extendedTextMessage) return 'text';
-  if (m.imageMessage) return 'image';
-  if (m.audioMessage) return 'audio';
-  if (m.videoMessage) return 'video';
-  if (m.documentMessage) return 'document';
-  if (m.stickerMessage) return 'sticker';
-  if (m.locationMessage) return 'location';
-  if (m.contactMessage) return 'contact';
-  return 'text';
-}
-
-function extractMediaInfo(msg: EvolutionMessagePayload): {
-  mediaUrl: string | null;
-  mimeType: string | null;
-  filename: string | null;
-  sizeBytes: number | null;
-} {
-  const m = msg.message;
-  if (!m) return { mediaUrl: null, mimeType: null, filename: null, sizeBytes: null };
-
-  let mimeType: string | null = null;
-  let filename: string | null = null;
-  let sizeBytes: number | null = null;
-
-  if (m.imageMessage) {
-    mimeType = m.imageMessage.mimetype ?? 'image/jpeg';
-    filename = m.imageMessage.fileName ?? `image-${msg.key.id}.jpg`;
-    sizeBytes = m.imageMessage.fileLength ? parseInt(m.imageMessage.fileLength, 10) : null;
-  } else if (m.audioMessage) {
-    mimeType = m.audioMessage.mimetype ?? 'audio/ogg';
-    sizeBytes = m.audioMessage.fileLength ? parseInt(m.audioMessage.fileLength, 10) : null;
-  } else if (m.videoMessage) {
-    mimeType = m.videoMessage.mimetype ?? 'video/mp4';
-    sizeBytes = m.videoMessage.fileLength ? parseInt(m.videoMessage.fileLength, 10) : null;
-  } else if (m.documentMessage) {
-    mimeType = m.documentMessage.mimetype ?? 'application/octet-stream';
-    filename = m.documentMessage.fileName ?? null;
-    sizeBytes = m.documentMessage.fileLength ? parseInt(m.documentMessage.fileLength, 10) : null;
-  } else {
-    return { mediaUrl: null, mimeType: null, filename: null, sizeBytes: null };
-  }
-
-  return { mediaUrl: null, mimeType, filename, sizeBytes };
 }
 
 function getStatusFromEvent(status?: string): string {
@@ -336,7 +230,7 @@ async function processSingleMessage(
     return;
   }
 
-  const content = extractContent(msg);
+  const content = extractMessageContent(msg);
   const msgType = extractMessageType(msg);
   const mediaInfo = extractMediaInfo(msg);
   const direction = msg.key.fromMe ? 'outbound' : 'inbound';
@@ -397,12 +291,9 @@ async function processSingleMessage(
     throw msgError;
   }
 
-  // Se a mensagem for inbound e recente, incrementa contador de não lidas
-  if (direction === 'inbound') {
-    await supabase.rpc('conversas_increment_unread', { p_chat_id: chatId }).catch((err: any) => {
-      console.warn('[conversas-webhook] Erro conversas_increment_unread:', err);
-    });
-  }
+  // Incremento de não lidas: feito pelo trigger `tg_conversas_update_chat_last_message`
+  // no Supabase. Esta chamada RPC foi removida por gerar duplo incremento (P0-02).
+  // Ver migration `20260913210000_fix_unread_double_count.sql`.
 }
 
 async function handleMessagesUpsert(
@@ -440,13 +331,25 @@ async function handleMessagesUpdate(
 
     const status = getStatusFromEvent(item?.status);
 
-    const { error } = await supabase
+    let query = supabase
       .from('conversas_mensagens')
       .update({ status })
       .eq('evolution_msg_id', msgKeyId)
       .eq('instance_id', instance.id)
       .eq('user_id', instance.user_id)
       .eq('direction', 'outbound');
+
+    // Guarda de transição para evitar regressão de status (Fase 4 / P1-07)
+    if (status === 'sent') {
+      query = query.eq('status', 'pending');
+    } else if (status === 'delivered') {
+      query = query.in('status', ['pending', 'sent']);
+    } else if (status === 'failed') {
+      query = query.in('status', ['pending', 'sent']);
+    }
+    // se for 'read', pode atualizar independentemente do status anterior
+
+    const { error } = await query;
 
     if (error) {
       console.error('[conversas-webhook] Update message status error:', error.message);

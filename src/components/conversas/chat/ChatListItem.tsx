@@ -19,7 +19,9 @@ export interface ChatListItemProps {
   onTogglePin?: (chat: Chat, e: React.MouseEvent) => void;
 }
 
-export function ChatListItem({ chat, isActive, onClick, onTogglePin }: ChatListItemProps) {
+import React from 'react';
+
+export const ChatListItem = React.memo(function ChatListItem({ chat, isActive, onClick, onTogglePin }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
   const lastDirection = chat.ultima_mensagem_direction;
   const lastStatus = chat.ultima_mensagem_type;
@@ -106,7 +108,7 @@ export function ChatListItem({ chat, isActive, onClick, onTogglePin }: ChatListI
                     ? 'opacity-100 text-amber-600 hover:text-amber-700'
                     : 'opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-600',
                 )}
-                title={chat.pin === 'pinned' ? 'Desafixar conversa' : 'Fixar conversa no topo'}
+                title={chat.pin === 'pinned' ? 'Desafixar conversa' : 'Fixar conversa no Lunari (não fixa no celular)'}
               >
                 <Pin className={cn('h-3 w-3', chat.pin === 'pinned' ? 'fill-current' : '')} />
               </span>
@@ -122,4 +124,18 @@ export function ChatListItem({ chat, isActive, onClick, onTogglePin }: ChatListI
       </div>
     </button>
   );
-}
+}, (prev, next) => {
+  return (
+    prev.isActive === next.isActive &&
+    prev.chat.id === next.chat.id &&
+    prev.chat.ultima_mensagem_data === next.chat.ultima_mensagem_data &&
+    prev.chat.ultima_mensagem === next.chat.ultima_mensagem &&
+    prev.chat.unread_count === next.chat.unread_count &&
+    prev.chat.pin === next.chat.pin &&
+    prev.chat.status === next.chat.status &&
+    prev.chat.contato_nome === next.chat.contato_nome &&
+    prev.chat.contato_avatar === next.chat.contato_avatar &&
+    prev.chat.ultima_mensagem_direction === next.chat.ultima_mensagem_direction &&
+    prev.chat.ultima_mensagem_type === next.chat.ultima_mensagem_type
+  );
+});

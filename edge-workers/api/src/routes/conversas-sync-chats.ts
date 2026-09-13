@@ -19,6 +19,10 @@ import { Context } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
 import { normalizeBrPhone } from '../utils/phone.js';
+import {
+  extractMessageContent,
+  extractMessageType,
+} from './conversas-message-extract.js';
 
 interface EvolutionChatListItem {
   id: string;
@@ -30,42 +34,6 @@ interface EvolutionChatListItem {
   updatedAt?: string;
   contact?: { displayName?: string };
   lastMessage?: any;
-}
-
-function extractMessageText(msgObj: any): string {
-  if (!msgObj) return '';
-  if (typeof msgObj === 'string') return msgObj;
-  if (msgObj.conversation) return msgObj.conversation;
-  if (msgObj.extendedTextMessage?.text) return msgObj.extendedTextMessage.text;
-  if (msgObj.imageMessage?.caption) return msgObj.imageMessage.caption;
-  if (msgObj.videoMessage?.caption) return msgObj.videoMessage.caption;
-  if (msgObj.documentMessage?.title) return msgObj.documentMessage.title;
-  if (msgObj.documentMessage?.caption) return msgObj.documentMessage.caption;
-  if (msgObj.audioMessage) return '🎤 Áudio';
-  if (msgObj.imageMessage) return '📷 Imagem';
-  if (msgObj.videoMessage) return '🎥 Vídeo';
-  if (msgObj.documentMessage) return '📄 Documento';
-  if (msgObj.stickerMessage) return '🎨 Figurinha';
-  if (msgObj.contactMessage?.displayName) return `👤 Contato: ${msgObj.contactMessage.displayName}`;
-  if (msgObj.locationMessage) return '📍 Localização';
-  return '';
-}
-
-function detectMessageType(m: any): 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker' | 'location' | 'contact' {
-  const mt = (m?.messageType || '').replace('Message', '').toLowerCase();
-  if (['text', 'image', 'audio', 'video', 'document', 'sticker', 'location', 'contact'].includes(mt)) {
-    return mt as any;
-  }
-  const msg = m?.message;
-  if (!msg) return 'text';
-  if (msg.imageMessage) return 'image';
-  if (msg.audioMessage) return 'audio';
-  if (msg.videoMessage) return 'video';
-  if (msg.documentMessage) return 'document';
-  if (msg.stickerMessage) return 'sticker';
-  if (msg.contactMessage) return 'contact';
-  if (msg.locationMessage) return 'location';
-  return 'text';
 }
 
 function chunkArray<T>(arr: T[], size = 100): T[][] {
@@ -266,8 +234,8 @@ export async function performSyncChats(
     if (keyId && !processedEvolutionMsgIds.has(keyId)) {
       processedEvolutionMsgIds.add(keyId);
       const direction = lastMsg.key.fromMe ? 'outbound' : 'inbound';
-      const content = extractMessageText(lastMsg.message);
-      const msgType = detectMessageType(lastMsg);
+      const content = extractMessageContent(lastMsg);
+      const msgType = extractMessageType(lastMsg);
       const timestamp = lastMsg.messageTimestamp
         ? new Date(Number(lastMsg.messageTimestamp) * 1000).toISOString()
         : new Date().toISOString();
@@ -411,8 +379,8 @@ export async function processSyncQueueBatch(
             processedEvolutionMsgIds.add(keyId);
 
             const direction = m.key?.fromMe ? 'outbound' : 'inbound';
-            const content = extractMessageText(m.message);
-            const msgType = detectMessageType(m);
+            const content = extractMessageContent(m);
+            const msgType = extractMessageType(m);
             const timestamp = m.messageTimestamp
               ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
               : new Date().toISOString();
@@ -557,8 +525,8 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
           if (!keyId) continue;
 
           const direction = m.key?.fromMe ? 'outbound' : 'inbound';
-          const content = extractMessageText(m.message);
-          const msgType = detectMessageType(m);
+          const content = extractMessageContent(m);
+          const msgType = extractMessageType(m);
           const timestamp = m.messageTimestamp
             ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
             : new Date().toISOString();

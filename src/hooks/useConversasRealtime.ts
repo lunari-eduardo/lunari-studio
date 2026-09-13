@@ -257,11 +257,16 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
   }, [updateChat]);
 
   const pinChat = useCallback(async (chatId: string) => {
-    await updateChat(chatId, { pin: 'pinned' });
-  }, [updateChat]);
+    const pinnedCount = chats.filter(c => c.pin === 'pinned').length;
+    if (pinnedCount >= 5) {
+      toast.error('Limite de 5 conversas fixadas atingido nesta versão.');
+      return;
+    }
+    await updateChat(chatId, { pin: 'pinned', pin_origin: 'lunari' });
+  }, [updateChat, chats]);
 
   const unpinChat = useCallback(async (chatId: string) => {
-    await updateChat(chatId, { pin: 'unpinned' });
+    await updateChat(chatId, { pin: 'unpinned', pin_origin: null });
   }, [updateChat]);
 
   const markAsRead = useCallback(
