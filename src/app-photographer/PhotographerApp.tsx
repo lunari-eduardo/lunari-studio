@@ -28,6 +28,7 @@ import CompartilhamentosComercialPage from "@/pages/comercial/CompartilhamentosC
 import ShareAnalysisPage from "@/pages/comercial/ShareAnalysisPage";
 import RelatoriosComercialPage from "@/pages/comercial/RelatoriosComercialPage";
 import BriefingPage from "@/pages/comercial/BriefingPage";
+import FormsListPage from "@/features/formularios/pages/FormsListPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import PublicProposalViewer from "@/pages/comercial/PublicProposalViewer";
 import GalleryDashboard from '@/pages/gallery/GalleryDashboard';
@@ -265,7 +266,7 @@ export default function PhotographerApp() {
                   <Route path="briefing" element={
                     <RequireAdmin>
                       <PlanRestrictionGuard entitlement="forms">
-                        <BriefingPage />
+                        <FormsListPage />
                       </PlanRestrictionGuard>
                     </RequireAdmin>
                   } />
@@ -327,6 +328,13 @@ export default function PhotographerApp() {
                 <Route path="integracoes" element={<Integracoes />} />
                 <Route path="tarefas" element={
                   <PlanRestrictionGuard entitlement="tasks"><Tarefas /></PlanRestrictionGuard>
+                } />
+                <Route path="formularios" element={
+                  <RequireAdmin>
+                    <PlanRestrictionGuard entitlement="forms">
+                      <FormsListPage />
+                    </PlanRestrictionGuard>
+                  </RequireAdmin>
                 } />
                 <Route path="conversas" element={
                   <PlanRestrictionGuard entitlement="conversas"><Conversas /></PlanRestrictionGuard>

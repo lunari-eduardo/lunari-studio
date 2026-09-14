@@ -390,7 +390,7 @@ export default function Sidebar() {
       ],
     },
     { to: '/app/comercial/estrategia', icon: <Target size={ICON_SIZE} {...stroke} />, label: 'Estratégias', adminOnly: true } as NavItemProps,
-    { to: '/app/comercial/briefing', icon: <ClipboardList size={ICON_SIZE} {...stroke} />, label: 'Briefing', isPro: true, adminOnly: true } as NavItemProps,
+    { to: '/app/formularios', icon: <ClipboardList size={ICON_SIZE} {...stroke} />, label: 'Formulários', isPro: true, adminOnly: true } as NavItemProps,
     { to: '/app/comercial/contratos', icon: <FileSignature size={ICON_SIZE} {...stroke} />, label: 'Contratos', isPro: true, adminOnly: true } as NavItemProps,
 
     // Financeiro
