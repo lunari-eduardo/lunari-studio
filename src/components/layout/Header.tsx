@@ -52,7 +52,10 @@ const dynamicRoutePatterns: { pattern: RegExp; title: string }[] = [
   { pattern: /^\/app\/gallery\/settings\/.*$/, title: 'Configurações da Galeria' },
   { pattern: /^\/app\/comercial\/construtor\/[^/]+$/, title: 'Editor de Proposta' },
   { pattern: /^\/app\/comercial\/compartilhamentos\/[^/]+$/, title: 'Análise de Compartilhamento' },
-  { pattern: /^\/app\/comercial\/.*$/, title: 'Comercial' },
+  { pattern: /^\/app\/comercial\/briefing$/, title: 'Briefing' },
+  { pattern: /^\/app\/comercial\/contratos$/, title: 'Contratos' },
+  { pattern: /^\/app\/comercial\/estrategia$/, title: 'Estratégias' },
+  { pattern: /^\/app\/comercial\/.*$/, title: 'Propostas' },
 ];
 
 const getPageTitleFromPath = (pathname: string): string => {

@@ -154,7 +154,7 @@ export function NovoContratoModal({ open, onClose, clienteId, clienteNome, sessi
               <div className="text-center py-12 border border-dashed rounded-lg">
                 <FileText className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
                 <p className="text-sm text-muted-foreground mb-1">Nenhum modelo disponível.</p>
-                <p className="text-xs text-muted-foreground">Crie um modelo em Configurações → Contratos.</p>
+                <p className="text-xs text-muted-foreground">Crie um modelo em Comercial → Contratos.</p>
               </div>
             ) : (
               <>

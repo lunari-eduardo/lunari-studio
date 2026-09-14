@@ -129,7 +129,7 @@ export function SendBriefingModal({
               </div>
             ) : templates.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum template disponível. Crie um em Configurações → Formulários.
+                Nenhum template disponível. Crie um em Comercial → Briefing.
               </p>
             ) : (
               Object.entries(categorias).map(([categoria, temps]) => (

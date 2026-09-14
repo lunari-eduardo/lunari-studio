@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Box, Workflow, Shapes, DollarSign, ClipboardList, FileSignature } from 'lucide-react';
+import { Package, Box, Workflow, Shapes, DollarSign } from 'lucide-react';
 import { TableSyncStatus } from '@/components/ui/sync-indicator';
 import { useRealtimeConfiguration } from '@/hooks/useRealtimeConfiguration';
 import { useAccessControl } from '@/hooks/useAccessControl';
@@ -13,10 +13,6 @@ import Pacotes from '@/components/configuracoes/Pacotes';
 import Produtos from '@/components/configuracoes/Produtos';
 import FluxoTrabalho from '@/components/configuracoes/FluxoTrabalho';
 import PrecificacaoFotos from '@/components/configuracoes/PrecificacaoFotos';
-import FormulariosConfig from '@/components/configuracoes/FormulariosConfig';
-import ContratosConfig from '@/components/configuracoes/ContratosConfig';
-import { PlanRestrictionGuard } from "@/components/auth/PlanRestrictionGuard";
-import { ProLockedBadge } from "@/components/access/ProLockedBadge";
 
 export default function Configuracoes() {
   const configuration = useRealtimeConfiguration();
@@ -63,14 +59,6 @@ export default function Configuracoes() {
                   <Workflow className="h-4 w-4" />
                   <span className="hidden sm:inline">Etapas</span>
                 </TabsTrigger>
-                <TabsTrigger value="formularios" className={PAGE_TABS_TRIGGER} title="Formulários">
-                  <ClipboardList className="h-4 w-4" />
-                  <span className="hidden sm:inline">Formulários <ProLockedBadge entitlement="forms" /></span>
-                </TabsTrigger>
-                <TabsTrigger value="contratos" className={PAGE_TABS_TRIGGER} title="Contratos">
-                  <FileSignature className="h-4 w-4" />
-                  <span className="hidden sm:inline">Contratos <ProLockedBadge entitlement="contracts" /></span>
-                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="categorias" className={PAGE_TABS_CONTENT}>
@@ -114,18 +102,6 @@ export default function Configuracoes() {
                   onMove={configuration.moverEtapa}
                   hasGalleryAccess={hasGaleryAccess}
                 />
-              </TabsContent>
-              
-              <TabsContent value="formularios" className={PAGE_TABS_CONTENT}>
-                <PlanRestrictionGuard entitlement="forms">
-                  <FormulariosConfig />
-                </PlanRestrictionGuard>
-              </TabsContent>
-              
-              <TabsContent value="contratos" className={PAGE_TABS_CONTENT}>
-                <PlanRestrictionGuard entitlement="contracts">
-                  <ContratosConfig />
-                </PlanRestrictionGuard>
               </TabsContent>
             </Tabs>
       </PageContainer>

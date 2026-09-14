@@ -111,38 +111,11 @@ export function useConversasStickers() {
     }
   });
 
-  const proxySticker = useMutation({
-    mutationFn: async (url: string) => {
-      const edgeUrl = import.meta.env.VITE_EDGE_API_URL || '';
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-      
-      if (!token) throw new Error('Usuário não autenticado');
-
-      const res = await fetch(`${edgeUrl}/api/conversas/stickers/proxy-send`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ url })
-      });
-
-      if (!res.ok) {
-        throw new Error('Erro ao processar figurinha para envio');
-      }
-
-      const data = await res.json();
-      return data.url as string;
-    }
-  });
-
   return {
     stickers,
     isLoading,
     error,
     saveSticker,
-    deleteSticker,
-    proxySticker
+    deleteSticker
   };
 }

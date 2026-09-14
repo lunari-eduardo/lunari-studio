@@ -24,6 +24,9 @@ import {
   BarChart3,
   ChevronDown,
   Crown,
+  ClipboardList,
+  FileSignature,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -372,22 +375,27 @@ export default function Sidebar() {
     { to: '/app/workflow', icon: <GitBranch size={ICON_SIZE} {...stroke} />, label: 'Workflow', groupLabel: 'Produção' },
     { to: '/app/tarefas', icon: <SquareCheck size={ICON_SIZE} {...stroke} />, label: 'Tarefas', isPro: true },
 
-    // Negócio
+    // Comercial
     { isSeparator: true, label: '', to: 'spacer-2' },
     {
       to: '/app/comercial',
-      icon: <BriefcaseBusiness size={ICON_SIZE} {...stroke} />,
-      label: 'Comercial',
+      icon: <FileText size={ICON_SIZE} {...stroke} />,
+      label: 'Propostas',
       adminOnly: true,
-      groupLabel: 'Negócio',
+      groupLabel: 'Comercial',
       subItems: [
         { to: '/app/comercial/biblioteca', label: 'Biblioteca', icon: <BookOpen size={12} strokeWidth={1.6} /> },
-        { to: '/app/comercial/estrategia', label: 'Estratégia / Estilo', icon: <Target size={12} strokeWidth={1.6} /> },
         { to: '/app/comercial/compartilhamentos', label: 'Compartilhamentos', icon: <Send size={12} strokeWidth={1.6} /> },
         { to: '/app/comercial/relatorios', label: 'Relatórios', icon: <BarChart3 size={12} strokeWidth={1.6} /> },
       ],
     },
-    { to: '/app/financas', icon: <WalletCards size={ICON_SIZE} {...stroke} />, label: 'Finanças', isPro: true },
+    { to: '/app/comercial/estrategia', icon: <Target size={ICON_SIZE} {...stroke} />, label: 'Estratégias', adminOnly: true } as NavItemProps,
+    { to: '/app/comercial/briefing', icon: <ClipboardList size={ICON_SIZE} {...stroke} />, label: 'Briefing', isPro: true, adminOnly: true } as NavItemProps,
+    { to: '/app/comercial/contratos', icon: <FileSignature size={ICON_SIZE} {...stroke} />, label: 'Contratos', isPro: true, adminOnly: true } as NavItemProps,
+
+    // Financeiro
+    { isSeparator: true, label: '', to: 'spacer-2b' },
+    { to: '/app/financas', icon: <WalletCards size={ICON_SIZE} {...stroke} />, label: 'Finanças', isPro: true, groupLabel: 'Financeiro' },
     { to: '/app/precificacao', icon: <Tag size={ICON_SIZE} {...stroke} />, label: 'Precificação', isPro: true },
     { to: '/app/analise-vendas', icon: <ChartNoAxesCombined size={ICON_SIZE} {...stroke} />, label: 'Análise de Vendas', isPro: true },
 

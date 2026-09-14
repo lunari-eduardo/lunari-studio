@@ -27,6 +27,8 @@ import EstrategiaComercialPage from "@/pages/comercial/EstrategiaComercialPage";
 import CompartilhamentosComercialPage from "@/pages/comercial/CompartilhamentosComercialPage";
 import ShareAnalysisPage from "@/pages/comercial/ShareAnalysisPage";
 import RelatoriosComercialPage from "@/pages/comercial/RelatoriosComercialPage";
+import BriefingPage from "@/pages/comercial/BriefingPage";
+import ContratosPage from "@/pages/comercial/ContratosPage";
 import PublicProposalViewer from "@/pages/comercial/PublicProposalViewer";
 import GalleryDashboard from '@/pages/gallery/GalleryDashboard';
 import GalleryHome from '@/pages/gallery/GalleryHome';
@@ -260,6 +262,20 @@ export default function PhotographerApp() {
                   <Route path="compartilhamentos" element={<RequireAdmin><CompartilhamentosComercialPage /></RequireAdmin>} />
                   <Route path="compartilhamentos/:shareId" element={<RequireAdmin><ShareAnalysisPage /></RequireAdmin>} />
                   <Route path="relatorios" element={<RequireAdmin><RelatoriosComercialPage /></RequireAdmin>} />
+                  <Route path="briefing" element={
+                    <RequireAdmin>
+                      <PlanRestrictionGuard entitlement="forms">
+                        <BriefingPage />
+                      </PlanRestrictionGuard>
+                    </RequireAdmin>
+                  } />
+                  <Route path="contratos" element={
+                    <RequireAdmin>
+                      <PlanRestrictionGuard entitlement="contracts">
+                        <ContratosPage />
+                      </PlanRestrictionGuard>
+                    </RequireAdmin>
+                  } />
                 </Route>
 
                 {/* Módulo Gallery */}

@@ -2,7 +2,7 @@ import React from 'react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Target, Send, BarChart, Loader2 } from 'lucide-react';
+import { BookOpen, Send, BarChart, Loader2 } from 'lucide-react';
 import { useComercialIntelligence } from '@/hooks/useComercialIntelligence';
 
 export default function ComercialOverviewPage() {
@@ -15,12 +15,6 @@ export default function ComercialOverviewPage() {
       description: "Crie e gerencie seus materiais e propostas comerciais",
       icon: <BookOpen className="w-8 h-8 mb-4 text-primary" />,
       path: "/app/comercial/biblioteca"
-    },
-    {
-      title: "Estratégia / Estilo",
-      description: "Defina identidade, comunicação e diretrizes comerciais",
-      icon: <Target className="w-8 h-8 mb-4 text-primary" />,
-      path: "/app/comercial/estrategia"
     },
     {
       title: "Compartilhamentos",
@@ -40,8 +34,8 @@ export default function ComercialOverviewPage() {
   return (
     <PageContainer>
       <PageHeader 
-        title="Comercial" 
-        description="Crie, organize, compartilhe e acompanhe seus materiais comerciais." 
+        title="Propostas" 
+        description="Crie, organize, compartilhe e acompanhe suas propostas comerciais." 
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
