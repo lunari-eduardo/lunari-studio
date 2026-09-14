@@ -45,6 +45,7 @@ export interface UseConversasChatReturn {
 
   retryMessage: (mensagemId: string) => Promise<void>;
   deleteMessage: (mensagemId: string) => Promise<void>;
+  reactMessage: (mensagemId: string, emoji: string) => Promise<void>;
 
   addNota: (content: string) => Promise<void>;
   updateNota: (notaId: string, content: string) => Promise<void>;
@@ -56,6 +57,7 @@ export interface UseConversasChatReturn {
   sortedMensagens: Mensagem[];
   hasMore: boolean;
   loadMore: () => Promise<void>;
+  presenceStatus: string | null;
 }
 
 export function useConversasChat(
@@ -71,6 +73,7 @@ export function useConversasChat(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [presenceStatus, setPresenceStatus] = useState<string | null>(null);
 
   const PAGE_SIZE = 50;
   // P0-05 / Fase 2 — primeira página reduzida para combinar com WhatsApp (carrega
@@ -353,6 +356,17 @@ export function useConversasChat(
           setMensagens(prev => prev.filter(m => m.id !== payload.old.id));
         },
       )
+      .on(
+        'broadcast',
+        { event: 'presence' },
+        (payload) => {
+          setPresenceStatus(payload.payload.status);
+          // Auto clear after 4 seconds
+          setTimeout(() => {
+            setPresenceStatus((curr) => curr === payload.payload.status ? null : curr);
+          }, 4000);
+        }
+      )
       .subscribe();
 
     realtimeChannelRef.current = channel;
@@ -467,7 +481,7 @@ export function useConversasChat(
   // ─── Send media message (com upload em background e preview imediato) ─────────
 
   const sendMediaMessage = useCallback(
-    async (file: File, kind: 'image' | 'video' | 'document') => {
+    async (file: File, kind: 'image' | 'video' | 'document' | 'audio', isPtt?: boolean) => {
       const userId = userIdRef.current;
       const instanceId = instanceIdRef.current;
       if (!chatId || !userId || !instanceId) {
@@ -543,6 +557,7 @@ export function useConversasChat(
             mediaMimeType: uploadData.mediaMimeType || file.type,
             mediaFilename: uploadData.mediaFilename || file.name,
             mediaSizeBytes: uploadData.mediaSizeBytes || file.size,
+            isPtt,
           }),
         });
 
@@ -650,6 +665,29 @@ export function useConversasChat(
     }
   }, [mensagens]);
 
+  const reactMessage = useCallback(async (mensagemId: string, emoji: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+      const response = await fetch(`${workerUrl}/api/conversas/message/react/${mensagemId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ reaction: emoji }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error ?? 'Erro ao reagir à mensagem');
+      }
+    } catch (err: any) {
+      toast.error('Erro ao reagir: ' + err.message);
+    }
+  }, []);
+
   // ─── Notes ───────────────────────────────────────────────────────────────────
 
   const addNota = useCallback(
@@ -726,6 +764,7 @@ export function useConversasChat(
     sendMediaMessage,
     retryMessage,
     deleteMessage,
+    reactMessage,
     addNota,
     updateNota,
     deleteNota,
@@ -733,5 +772,6 @@ export function useConversasChat(
     sortedMensagens,
     hasMore,
     loadMore,
+    presenceStatus,
   };
 }

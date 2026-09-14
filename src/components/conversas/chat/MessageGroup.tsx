@@ -7,12 +7,13 @@ import { MessageBubble } from './MessageBubble';
 
 export interface MessageGroupProps {
   messages: Mensagem[];
-  onRetry?: (id: string) => void;
-  onReply?: (mensagem: Mensagem) => void;
-  onDelete?: (id: string) => void;
+  onReply?: (msg: Mensagem) => void;
+  onRetry?: (msgId: string) => void;
+  onDelete?: (msgId: string) => void;
+  onReact?: (msgId: string, emoji: string) => void;
 }
 
-export function MessageGroup({ messages, onRetry, onReply, onDelete }: MessageGroupProps) {
+export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact }: MessageGroupProps) {
   if (messages.length === 0) return null;
   const isOwn = messages[0].direction === 'outbound';
 
@@ -27,6 +28,7 @@ export function MessageGroup({ messages, onRetry, onReply, onDelete }: MessageGr
           onRetry={onRetry}
           onReply={onReply}
           onDelete={onDelete}
+          onReact={onReact ? (emoji) => onReact(msg.id, emoji) : undefined}
         />
       ))}
     </div>

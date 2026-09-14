@@ -4,11 +4,30 @@
  * Suporta texto + mídia (imagem, áudio, vídeo, documento) + caudas quando agrupadas.
  */
 
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
+
+function FloatingPalette({ onReact, close }: { onReact: (emoji: string) => void, close: () => void }) {
+  const emojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  return (
+    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 bg-white rounded-full shadow-lg border border-zinc-200 z-50 animate-in fade-in zoom-in-95 duration-200">
+      {emojis.map((e) => (
+        <button
+          key={e}
+          type="button"
+          onClick={() => { onReact(e); close(); }}
+          className="text-xl hover:scale-125 transition-transform p-1"
+        >
+          {e}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export interface MessageBubbleProps {
   mensagem: Mensagem;
@@ -19,6 +38,7 @@ export interface MessageBubbleProps {
   onRetry?: (id: string) => void;
   onReply?: (mensagem: Mensagem) => void;
   onDelete?: (id: string) => void;
+  onReact?: (emoji: string) => void;
 }
 
 function StatusIcon({ status }: { status?: MessageStatus }) {
@@ -45,7 +65,9 @@ export function MessageBubble({
   onRetry,
   onReply,
   onDelete,
+  onReact,
 }: MessageBubbleProps) {
+  const [showReactions, setShowReactions] = useState(false);
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
@@ -87,6 +109,24 @@ export function MessageBubble({
       {/* Botões de Ação (aparecem no hover da mensagem para outbound) */}
       {isOwn && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {onReact && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowReactions(!showReactions)}
+                className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+                title="Reagir"
+              >
+                <SmilePlus className="h-3.5 w-3.5" />
+              </button>
+              {showReactions && (
+                <FloatingPalette
+                  onReact={(emoji) => onReact(emoji)}
+                  close={() => setShowReactions(false)}
+                />
+              )}
+            </div>
+          )}
           {onDelete && (
             <button
               type="button"
@@ -246,6 +286,24 @@ export function MessageBubble({
       {/* Botões de Ação para inbound (à direita da bolha) */}
       {!isOwn && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {onReact && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowReactions(!showReactions)}
+                className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+                title="Reagir"
+              >
+                <SmilePlus className="h-3.5 w-3.5" />
+              </button>
+              {showReactions && (
+                <FloatingPalette
+                  onReact={(emoji) => onReact(emoji)}
+                  close={() => setShowReactions(false)}
+                />
+              )}
+            </div>
+          )}
           {onReply && (
             <button
               type="button"

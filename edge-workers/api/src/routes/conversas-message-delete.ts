@@ -52,7 +52,7 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
       return c.json({ ok: false, error: 'Instance not found' }, 404);
     }
 
-    const rawPhone = msg.conversas_chats?.contato_phone_normalized;
+    const rawPhone = Array.isArray(msg.conversas_chats) ? msg.conversas_chats[0]?.contato_phone_normalized : (msg.conversas_chats as any)?.contato_phone_normalized;
     const normalizedPhone = normalizeBrPhone(rawPhone) || rawPhone.replace(/\D/g, '');
     const remoteJid = normalizedPhone.startsWith('55') ? `${normalizedPhone}@s.whatsapp.net` : `55${normalizedPhone}@s.whatsapp.net`;
 

@@ -59,6 +59,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     mediaFilename?: string;
     mediaSizeBytes?: number;
     replyToId?: string;
+    isPtt?: boolean;
   };
 
   try {
@@ -67,7 +68,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename } = body;
+  const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename, isPtt } = body;
 
   const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document'];
   if (!VALID_TYPES.includes(type)) {
@@ -155,7 +156,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       status: 'pending',
       reply_to_id: quotedRow?.id ?? null,
       quoted_content: quotedRow?.content ?? null,
-      quoted_sender: quotedRow ? (quotedRow.direction === 'outbound' ? 'Você' : (chat.contato_nome || 'Cliente')) : null,
+      quoted_sender: quotedRow ? (quotedRow.direction === 'outbound' ? 'Você' : ((chat as any).contato_nome || 'Cliente')) : null,
       quoted_type: quotedRow?.type ?? null,
       timestamp,
     })
@@ -180,6 +181,8 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       evolutionBody = {
         number: recipientNumber,
         audio: mediaUrl,
+        delay: isPtt ? 1200 : 0,
+        encoding: !!isPtt,
       };
     } else if (['image', 'video', 'document'].includes(type) && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendMedia/${instance.instance_name}`;

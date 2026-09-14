@@ -23,6 +23,7 @@ export interface ChatHeaderProps {
   onDelete?: () => void;
   onMarkUnread?: () => void;
   notesOpen: boolean;
+  presenceStatus?: string | null;
 }
 
 export function ChatHeader({
@@ -35,6 +36,7 @@ export function ChatHeader({
   onDelete,
   onMarkUnread,
   notesOpen,
+  presenceStatus,
 }: ChatHeaderProps) {
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 bg-[#f0f2f5] border-b border-zinc-200">
@@ -60,8 +62,8 @@ export function ChatHeader({
         <div className="text-sm font-medium text-zinc-900 truncate">
           {chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
         </div>
-        <div className="text-[11px] text-zinc-500 truncate">
-          {chat.contato_phone_normalized}
+        <div className="text-[11px] text-[#25d366] font-medium truncate h-[16px] animate-in fade-in">
+          {presenceStatus === 'composing' ? 'digitando...' : presenceStatus === 'recording' ? 'gravando áudio...' : chat.contato_phone_normalized}
         </div>
       </div>
 

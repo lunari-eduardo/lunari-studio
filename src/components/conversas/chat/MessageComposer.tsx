@@ -8,20 +8,27 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, Send, X } from 'lucide-react';
+import { Mic, Send, X, Square, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Mensagem } from '@/modules/conversas/types';
 import { AttachMenu } from './AttachMenu';
+import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 export interface MessageComposerProps {
   onSend: (content: string) => Promise<void> | void;
-  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact') => void;
+  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact' | 'audio', isPtt?: boolean) => void;
   disabled?: boolean;
   replyingTo?: Mensagem | null;
   onCancelReply?: () => void;
 }
 
 const MAX_HEIGHT = 120;
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
 
 export function MessageComposer({
   onSend,
@@ -33,6 +40,7 @@ export function MessageComposer({
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isRecording, recordingTime, startRecording, stopRecording, cancelRecording } = useAudioRecorder();
 
   // Auto-resize
   useLayoutEffect(() => {
@@ -72,6 +80,21 @@ export function MessageComposer({
     }
   };
 
+  const handleStartRecording = async () => {
+    try {
+      await startRecording();
+    } catch (e) {
+      toast.error('Erro ao acessar microfone. Verifique as permissões.');
+    }
+  };
+
+  const handleStopAndSendAudio = async () => {
+    const file = await stopRecording();
+    if (file) {
+      onAttach(file, 'audio', true);
+    }
+  };
+
   const canSend = text.trim().length > 0 && !sending && !disabled;
 
   return (
@@ -104,23 +127,48 @@ export function MessageComposer({
       )}
 
       <div className="flex items-end gap-2 px-3 py-2">
-      <AttachMenu onAttach={onAttach} />
+      {!isRecording && <AttachMenu onAttach={onAttach} />}
 
-      <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm">
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={e => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Mensagem"
-          rows={1}
-          disabled={disabled}
-          className="w-full resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-zinc-400 disabled:opacity-50"
-          style={{ maxHeight: MAX_HEIGHT }}
-        />
+      <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center min-h-[42px] overflow-hidden">
+        {isRecording ? (
+          <div className="flex items-center gap-3 w-full px-4 text-red-500 animate-in fade-in">
+            <Mic className="h-5 w-5 animate-pulse" />
+            <span className="font-mono text-sm font-medium">{formatTime(recordingTime)}</span>
+            <span className="text-xs text-zinc-400 ml-auto mr-2">Gravando...</span>
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Mensagem"
+            rows={1}
+            disabled={disabled}
+            className="w-full resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-zinc-400 disabled:opacity-50"
+            style={{ maxHeight: MAX_HEIGHT }}
+          />
+        )}
       </div>
 
-      {canSend ? (
+      {isRecording ? (
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={cancelRecording}
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-red-100 text-red-500 transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleStopAndSendAudio}
+            className="h-9 w-9 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      ) : canSend ? (
         <button
           type="button"
           onClick={handleSend}
@@ -132,7 +180,7 @@ export function MessageComposer({
       ) : (
         <button
           type="button"
-          onClick={() => toast.info('Gravação de áudio em breve')}
+          onClick={handleStartRecording}
           aria-label="Gravar áudio"
           className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-zinc-600"
         >

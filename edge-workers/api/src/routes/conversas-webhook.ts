@@ -174,6 +174,77 @@ async function getOrCreateContato(
   return data?.id ?? null;
 }
 
+const presenceCache = new Map<string, { status: string, timestamp: number }>();
+
+async function handlePresenceUpdate(
+  supabase: any,
+  payload: any,
+  instance: ResolvedInstance,
+) {
+  try {
+    const rawId = payload?.id || payload?.remoteJid || '';
+    if (!rawId || rawId.includes('status@broadcast') || !rawId.endsWith('@s.whatsapp.net')) return;
+    
+    const phoneRaw = extractPhone(rawId);
+    const normalized = normalizeBrPhone(phoneRaw);
+    const phoneNormalized = normalized
+      ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
+      : phoneRaw;
+
+    // Achar o chat local para fazer broadcast na channel correta
+    const { data: chat } = await supabase
+      .from('conversas_chats')
+      .select('id')
+      .eq('contato_phone_normalized', phoneNormalized)
+      .eq('instance_id', instance.id)
+      .eq('user_id', instance.user_id)
+      .maybeSingle();
+
+    if (!chat) return;
+
+    // Identificar status
+    const presences = payload.presences || {};
+    let status = 'available';
+    for (const key of Object.keys(presences)) {
+      if (presences[key]?.lastKnownPresence) {
+        status = presences[key].lastKnownPresence;
+      }
+    }
+
+    // Debounce logic (in-memory per worker isolate)
+    const cacheKey = `${instance.id}_${phoneNormalized}`;
+    const now = Date.now();
+    const cached = presenceCache.get(cacheKey);
+
+    if (cached && cached.status === status && (now - cached.timestamp < 3000)) {
+      // Ignore if status is the same and less than 3 seconds elapsed
+      return;
+    }
+    
+    presenceCache.set(cacheKey, { status, timestamp: now });
+
+    // Limpar cache antigo ocasionalmente (ex: mais de 1 minuto)
+    if (Math.random() < 0.1) {
+      for (const [k, v] of presenceCache.entries()) {
+        if (now - v.timestamp > 60000) presenceCache.delete(k);
+      }
+    }
+
+    // Fazer broadcast usando o channel supabase
+    const channel = supabase.channel(`conversas_chat_${chat.id}_${instance.user_id}`);
+    await channel.send({
+      type: 'broadcast',
+      event: 'presence',
+      payload: { status },
+    });
+    // Removemos o canal logo em seguida, pois não precisamos ouvir
+    supabase.removeChannel(channel);
+
+  } catch (err) {
+    console.error('[conversas-webhook] Erro ao tratar PRESENCE_UPDATE:', err);
+  }
+}
+
 async function getOrCreateChat(
   supabase: any,
   userId: string,
@@ -356,7 +427,7 @@ async function processSingleMessage(
         }
 
         const data = await response.json();
-        const base64 = data.base64;
+        const base64 = (data as any).base64;
         if (!base64) return;
 
         // Converte base64 para ArrayBuffer
@@ -682,6 +753,10 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
 
       case 'CONNECTION_UPDATE':
         await handleConnectionUpdate(c.env, supabase, payload, instance, c.executionCtx);
+        break;
+
+      case 'PRESENCE_UPDATE':
+        await handlePresenceUpdate(supabase, payload, instance);
         break;
 
       case 'MESSAGES_DELETE':

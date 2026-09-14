@@ -71,11 +71,14 @@ export function ChatPanel({
     sendMessage,
     sendMediaMessage,
     retryMessage,
+    deleteMessage,
+    reactMessage,
     addNota,
     deleteNota,
     markAllRead,
     hasMore,
     loadMore,
+    presenceStatus,
   } = useConversasChat(chat.id, { autoMarkRead: true });
 
   const [notesOpen, setNotesOpen] = useState(false);
@@ -178,6 +181,7 @@ export function ChatPanel({
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
+          presenceStatus={presenceStatus}
         />
         <MessagesSkeleton />
       </div>
@@ -242,6 +246,7 @@ export function ChatPanel({
                         onRetry={retryMessage}
                         onReply={setReplyingTo}
                         onDelete={deleteMessage}
+                        onReact={reactMessage}
                       />
                     )}
                   </div>
