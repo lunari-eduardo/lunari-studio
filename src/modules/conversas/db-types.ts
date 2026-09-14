@@ -252,6 +252,10 @@ export interface DbConversasMensagem {
     media_filename: string | null;
     status: Database['public']['Enums']['conversas_message_status'];
     is_forwarded: boolean | null;
+    reply_to_id: string | null;
+    quoted_content: string | null;
+    quoted_sender: string | null;
+    quoted_type: string | null;
     timestamp: string;
     created_at: string;
   };
@@ -270,6 +274,10 @@ export interface DbConversasMensagem {
     media_filename?: string | null;
     status?: Database['public']['Enums']['conversas_message_status'];
     is_forwarded?: boolean | null;
+    reply_to_id?: string | null;
+    quoted_content?: string | null;
+    quoted_sender?: string | null;
+    quoted_type?: string | null;
     timestamp?: string;
     created_at?: string;
   };
@@ -288,6 +296,10 @@ export interface DbConversasMensagem {
     media_filename?: string | null;
     status?: Database['public']['Enums']['conversas_message_status'];
     is_forwarded?: boolean | null;
+    reply_to_id?: string | null;
+    quoted_content?: string | null;
+    quoted_sender?: string | null;
+    quoted_type?: string | null;
     timestamp?: string;
     created_at?: string;
   };

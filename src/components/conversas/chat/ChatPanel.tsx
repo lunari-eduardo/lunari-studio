@@ -78,6 +78,7 @@ export function ChatPanel({
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -235,6 +236,7 @@ export function ChatPanel({
                       <MessageGroup
                         messages={item.group!}
                         onRetry={retryMessage}
+                        onReply={setReplyingTo}
                       />
                     )}
                   </div>
@@ -246,9 +248,12 @@ export function ChatPanel({
 
         <MessageComposer
           onSend={async content => {
-            await sendMessage({ content });
+            await sendMessage({ content, replyToId: replyingTo?.id });
+            setReplyingTo(null);
           }}
           disabled={isUploadingMedia}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
           onAttach={async (file, kind) => {
             if (kind === 'contact') {
               toast.info('Envio de contato em breve');

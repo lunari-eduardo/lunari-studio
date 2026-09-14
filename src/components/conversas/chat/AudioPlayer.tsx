@@ -57,11 +57,25 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
     setIsPlaying(false);
     setCurrentTime(0);
 
+    const onCanPlay = () => {
+      setIsLoading(false);
+      setIsError(false);
+    };
+
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      if ((!duration || duration === Infinity) && audio.duration && audio.duration !== Infinity) {
-        setDuration(audio.duration);
+      if (audio.duration && audio.duration !== Infinity) {
+        setDuration(prev => (prev > 0 ? prev : audio.duration));
       }
+    };
+
+    const onPlaying = () => {
+      setIsLoading(false);
+      setIsPlaying(true);
+    };
+
+    const onPause = () => {
+      setIsPlaying(false);
     };
 
     const onEnded = () => {
@@ -76,17 +90,31 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', onCanPlay);
+    audio.addEventListener('playing', onPlaying);
+    audio.addEventListener('pause', onPause);
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
 
+    // Se o áudio já estiver em cache/pronto
+    if (audio.readyState >= 2) {
+      setIsLoading(false);
+      if (audio.duration && audio.duration !== Infinity) {
+        setDuration(audio.duration);
+      }
+    }
+
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', onCanPlay);
+      audio.removeEventListener('playing', onPlaying);
+      audio.removeEventListener('pause', onPause);
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('error', onError);
     };
-  }, [src, handleLoadedMetadata, duration]);
+  }, [src, handleLoadedMetadata]); // NOTA: duration removido das dependências para evitar re-trigger do loading
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -96,6 +124,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       audio.pause();
       setIsPlaying(false);
     } else {
+      setIsLoading(false);
       audio.play().then(() => {
         setIsPlaying(true);
       }).catch(err => {
@@ -134,7 +163,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
         className="hidden"
       />
 
-      {/* Botão Play / Pause */}
+      {/* Botão Play / Pause com identidade Lunari (dourado / grafite) */}
       <button
         type="button"
         onClick={togglePlay}
@@ -142,7 +171,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
         aria-label={isPlaying ? 'Pausar áudio' : 'Reproduzir áudio'}
         className={cn(
           'h-10 w-10 shrink-0 rounded-full flex items-center justify-center shadow-sm transition-all',
-          'bg-[#00a884] text-white hover:bg-[#008f6f]',
+          'bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95',
           isError && 'opacity-50 cursor-not-allowed bg-zinc-400'
         )}
       >
@@ -159,9 +188,9 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       <div className="flex-1 flex flex-col justify-center min-w-0">
         <div className="relative flex items-center h-4 w-full">
           {/* Barra de fundo */}
-          <div className="h-1 w-full bg-zinc-300/80 rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-zinc-200/90 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#00a884] rounded-full transition-all duration-75"
+              className="h-full bg-[#C9A87C] rounded-full transition-all duration-75"
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </div>
@@ -197,7 +226,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       <button
         type="button"
         onClick={toggleSpeed}
-        className="shrink-0 px-1.5 py-0.5 rounded-full bg-black/5 hover:bg-black/10 text-[11px] font-semibold text-zinc-700 transition-colors select-none"
+        className="shrink-0 px-2 py-0.5 rounded-full bg-black/5 hover:bg-black/10 text-[11px] font-semibold text-zinc-700 transition-colors select-none"
         title="Velocidade de reprodução"
       >
         {playbackRate}x

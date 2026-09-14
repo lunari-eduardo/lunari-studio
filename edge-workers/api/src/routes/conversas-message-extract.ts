@@ -187,3 +187,57 @@ export function extractTimestamp(msg: EvolutionMessagePayload): string {
   }
   return new Date().toISOString();
 }
+
+// ─── Extract Quoted / Reply Info (Fase P3) ──────────────────────────────────────
+
+export interface QuotedInfo {
+  stanzaId: string;
+  participant?: string | null;
+  content: string | null;
+  type: string | null;
+}
+
+export function extractQuotedInfo(msg: EvolutionMessagePayload): QuotedInfo | null {
+  const m = msg.message as any;
+  if (!m) return null;
+
+  const contextInfo =
+    m.extendedTextMessage?.contextInfo ||
+    m.imageMessage?.contextInfo ||
+    m.videoMessage?.contextInfo ||
+    m.audioMessage?.contextInfo ||
+    m.documentMessage?.contextInfo ||
+    m.stickerMessage?.contextInfo ||
+    m.contextInfo;
+
+  if (!contextInfo?.stanzaId) return null;
+
+  const quotedMsg = contextInfo.quotedMessage;
+  let quotedContent = '';
+  let quotedType = 'text';
+
+  if (quotedMsg) {
+    if (quotedMsg.conversation) quotedContent = quotedMsg.conversation;
+    else if (quotedMsg.extendedTextMessage?.text) quotedContent = quotedMsg.extendedTextMessage.text;
+    else if (quotedMsg.imageMessage) {
+      quotedContent = quotedMsg.imageMessage.caption || 'Foto';
+      quotedType = 'image';
+    } else if (quotedMsg.audioMessage) {
+      quotedContent = 'Áudio';
+      quotedType = 'audio';
+    } else if (quotedMsg.videoMessage) {
+      quotedContent = quotedMsg.videoMessage.caption || 'Vídeo';
+      quotedType = 'video';
+    } else if (quotedMsg.documentMessage) {
+      quotedContent = quotedMsg.documentMessage.fileName || 'Documento';
+      quotedType = 'document';
+    }
+  }
+
+  return {
+    stanzaId: contextInfo.stanzaId,
+    participant: contextInfo.participant || null,
+    content: quotedContent || null,
+    type: quotedType,
+  };
+}

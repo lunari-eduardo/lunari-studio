@@ -29,6 +29,7 @@ import {
   extractMediaInfo,
   extractDirection,
   extractTimestamp,
+  extractQuotedInfo,
   type EvolutionMessagePayload as BaseEvolutionMessagePayload,
 } from './conversas-message-extract.js';
 
@@ -278,6 +279,27 @@ async function processSingleMessage(
     throw new Error(`Falha ao criar chat para contato ${contatoId}`);
   }
 
+  // 2.5 Quote / Reply (Fase P3)
+  const quotedInfo = extractQuotedInfo(msg);
+  let replyToId: string | null = null;
+  let quotedSender = quotedInfo?.participant || null;
+
+  if (quotedInfo?.stanzaId) {
+    const { data: quotedRow } = await supabase
+      .from('conversas_mensagens')
+      .select('id, direction')
+      .eq('user_id', instance.user_id)
+      .eq('evolution_msg_id', quotedInfo.stanzaId)
+      .maybeSingle();
+
+    if (quotedRow) {
+      replyToId = quotedRow.id;
+      if (!quotedSender) {
+        quotedSender = quotedRow.direction === 'outbound' ? 'Você' : (contactPushName || 'Contato');
+      }
+    }
+  }
+
   // 3. Upsert mensagem (idempotente por user_id, evolution_msg_id)
   const initialStatus = direction === 'outbound' ? 'sent' : 'delivered';
   const { error: msgError } = await supabase
@@ -296,6 +318,10 @@ async function processSingleMessage(
         media_filename: mediaInfo.filename,
         media_size_bytes: mediaInfo.sizeBytes,
         status: initialStatus,
+        reply_to_id: replyToId,
+        quoted_content: quotedInfo?.content || null,
+        quoted_sender: quotedSender,
+        quoted_type: quotedInfo?.type || null,
         timestamp,
       },
       { onConflict: 'user_id,evolution_msg_id' },

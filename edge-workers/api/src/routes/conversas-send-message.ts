@@ -125,6 +125,18 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
   const timestamp = new Date().toISOString();
   const msgId = clientProvidedId || crypto.randomUUID();
 
+  // Quote / Reply (Fase P3)
+  let quotedRow: { id: string; evolution_msg_id: string | null; content: string; type: string; direction: string } | null = null;
+  if (body.replyToId) {
+    const { data: qMsg } = await supabaseAdmin
+      .from('conversas_mensagens')
+      .select('id, evolution_msg_id, content, type, direction')
+      .eq('id', body.replyToId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    quotedRow = qMsg;
+  }
+
   const { data: insertedMsg, error: insertError } = await supabaseAdmin
     .from('conversas_mensagens')
     .insert({
@@ -141,6 +153,10 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       media_filename: mediaFilename ?? null,
       media_size_bytes: body.mediaSizeBytes ?? null,
       status: 'pending',
+      reply_to_id: quotedRow?.id ?? null,
+      quoted_content: quotedRow?.content ?? null,
+      quoted_sender: quotedRow ? (quotedRow.direction === 'outbound' ? 'Você' : (chat.contato_nome || 'Cliente')) : null,
+      quoted_type: quotedRow?.type ?? null,
       timestamp,
     })
     .select()
@@ -177,21 +193,13 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       };
     }
 
-    // Phase 11: Quote / Reply
-    if (body.replyToId) {
-      const { data: quotedMsg } = await supabaseAdmin
-        .from('conversas_mensagens')
-        .select('evolution_msg_id')
-        .eq('id', body.replyToId)
-        .single();
-        
-      if (quotedMsg?.evolution_msg_id) {
-        evolutionBody.options = {
-          quoted: {
-            key: { id: quotedMsg.evolution_msg_id }
-          }
-        };
-      }
+    // Injeta citação na Evolution API v2 (options.quoted)
+    if (quotedRow?.evolution_msg_id) {
+      evolutionBody.options = {
+        quoted: {
+          key: { id: quotedRow.evolution_msg_id }
+        }
+      };
     }
 
     const response = await fetch(evolutionEndpoint, {

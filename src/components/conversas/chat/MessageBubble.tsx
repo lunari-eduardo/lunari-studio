@@ -4,7 +4,7 @@
  * Suporta texto + mídia (imagem, áudio, vídeo, documento) + caudas quando agrupadas.
  */
 
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2 } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
@@ -17,6 +17,7 @@ export interface MessageBubbleProps {
   /** Última do grupo (corte de cauda inferior + footer visível) */
   isLastInGroup?: boolean;
   onRetry?: (id: string) => void;
+  onReply?: (mensagem: Mensagem) => void;
 }
 
 function StatusIcon({ status }: { status?: MessageStatus }) {
@@ -41,6 +42,7 @@ export function MessageBubble({
   isFirstInGroup = false,
   isLastInGroup = true,
   onRetry,
+  onReply,
 }: MessageBubbleProps) {
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
@@ -74,15 +76,44 @@ export function MessageBubble({
   const showContent = Boolean(mensagem.content && !isDefaultMediaContent);
 
   return (
-    <div className={cn('w-full flex px-3 mb-0.5', isOwn ? 'justify-end' : 'justify-start')}>
+    <div
+      className={cn(
+        'group w-full flex items-center gap-1.5 px-3 mb-0.5',
+        isOwn ? 'justify-end' : 'justify-start'
+      )}
+    >
+      {/* Botão de Responder (aparece no hover da mensagem para outbound) */}
+      {isOwn && onReply && (
+        <button
+          type="button"
+          onClick={() => onReply(mensagem)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+          title="Responder mensagem"
+          aria-label="Responder"
+        >
+          <Reply className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       <div
         className={cn(
           'relative w-fit min-w-[70px] max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm text-sm break-words',
-          isOwn ? 'bg-[#d9fdd3] text-zinc-900' : 'bg-white text-zinc-900',
+          isOwn ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8]' : 'bg-white text-zinc-900 border border-zinc-100',
           radiusClass,
           failed && 'border border-red-400',
         )}
       >
+        {/* Bloco de Mensagem Citada (Quote / Reply) */}
+        {mensagem.quoted_content ? (
+          <div className="border-l-[3px] border-[#C9A87C] bg-black/5 dark:bg-white/5 rounded-r px-2 py-1 mb-1.5 text-xs select-none">
+            <span className="block font-semibold text-[11px] text-[#9A7F52] leading-tight mb-0.5">
+              {mensagem.quoted_sender || 'Mensagem'}
+            </span>
+            <p className="text-zinc-600 line-clamp-2 leading-relaxed text-[12px]">
+              {mensagem.quoted_content}
+            </p>
+          </div>
+        ) : null}
         {isMedia ? (
           <div className="space-y-1">
             {mensagem.type === 'image' && (
@@ -194,6 +225,19 @@ export function MessageBubble({
           </div>
         ) : null}
       </div>
+
+      {/* Botão de Responder para inbound (à direita da bolha) */}
+      {!isOwn && onReply && (
+        <button
+          type="button"
+          onClick={() => onReply(mensagem)}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+          title="Responder mensagem"
+          aria-label="Responder"
+        >
+          <Reply className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

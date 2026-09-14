@@ -8,9 +8,10 @@ import { MessageBubble } from './MessageBubble';
 export interface MessageGroupProps {
   messages: Mensagem[];
   onRetry?: (id: string) => void;
+  onReply?: (mensagem: Mensagem) => void;
 }
 
-export function MessageGroup({ messages, onRetry }: MessageGroupProps) {
+export function MessageGroup({ messages, onRetry, onReply }: MessageGroupProps) {
   if (messages.length === 0) return null;
   const isOwn = messages[0].direction === 'outbound';
 
@@ -23,6 +24,7 @@ export function MessageGroup({ messages, onRetry }: MessageGroupProps) {
           isFirstInGroup={idx === 0}
           isLastInGroup={idx === messages.length - 1}
           onRetry={onRetry}
+          onReply={onReply}
         />
       ))}
     </div>

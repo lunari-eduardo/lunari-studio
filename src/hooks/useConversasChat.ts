@@ -369,6 +369,8 @@ export function useConversasChat(
 
       // UUID gerado no cliente garante que o Realtime INSERT reconheça a mesma mensagem sem duplicar!
       const msgId = crypto.randomUUID();
+      const quotedMsg = input.replyToId ? mensagens.find(m => m.id === input.replyToId) : null;
+
       const optimisticMsg: Mensagem = {
         id: msgId,
         user_id: userId,
@@ -384,6 +386,10 @@ export function useConversasChat(
         media_size_bytes: input.mediaSizeBytes ?? null,
         status: 'pending',
         is_forwarded: null,
+        reply_to_id: input.replyToId ?? null,
+        quoted_content: quotedMsg?.content ?? (quotedMsg?.type === 'image' ? '📷 Foto' : quotedMsg?.type === 'audio' ? '🎤 Áudio' : null),
+        quoted_sender: quotedMsg ? (quotedMsg.direction === 'outbound' ? 'Você' : 'Contato') : null,
+        quoted_type: quotedMsg?.type ?? null,
         timestamp: new Date().toISOString(),
         created_at: new Date().toISOString(),
       };
