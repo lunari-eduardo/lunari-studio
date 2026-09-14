@@ -5,7 +5,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { EquipmentSyncNotification } from '@/components/equipments/EquipmentSyncNotification';
 import { useEquipmentSync } from '@/hooks/useEquipmentSync';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
-import { HelpFloatingButton } from '@/components/help/HelpFloatingButton';
 import { cn } from '@/lib/utils';
 import { AssistantLauncher } from '@/modules/assistant';
 
@@ -42,9 +41,6 @@ export default function Layout() {
       {/* Equipment sync notifications */}
       <EquipmentSyncNotification />
       
-      {/* Botão flutuante de ajuda contextual */}
-      <HelpFloatingButton />
-
       {/* Assistente Lu (Onda E.3) */}
       <AssistantLauncher />
     </div>;

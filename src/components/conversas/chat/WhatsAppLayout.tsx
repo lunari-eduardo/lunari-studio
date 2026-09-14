@@ -5,7 +5,6 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
@@ -102,7 +101,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             if (!connectedInstance) return;
             setIsSyncing(true);
             try {
-              await syncHistoricalChats(connectedInstance.id, { showToast: true });
+              await syncHistoricalChats(connectedInstance.id, { showToast: false });
             } finally {
               setIsSyncing(false);
             }
@@ -112,40 +111,32 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
           onTogglePin={async (chat, e) => {
             e?.stopPropagation();
             if (chat.pin === 'pinned') {
-              const ok = await unpinChat(chat.id);
-              if (ok) toast.success('Conversa desafixada');
+              await unpinChat(chat.id);
             } else {
-              const ok = await pinChat(chat.id);
-              if (ok) toast.success('Conversa fixada no topo');
+              await pinChat(chat.id);
             }
           }}
           onArchive={async (chat) => {
             if (chat.status === 'archived') {
               await unarchiveChat(chat.id);
-              toast.success('Conversa desarquivada');
             } else {
               await archiveChat(chat.id);
-              toast.success('Conversa arquivada');
             }
           }}
           onBlock={async (chat) => {
             if (chat.status === 'blocked') {
               await unblockChat(chat.id);
-              toast.success('Conversa desbloqueada');
             } else {
               await blockChat(chat.id);
-              toast.success('Conversa bloqueada');
             }
           }}
           onMarkUnread={async (chat) => {
             await markAsUnread(chat.id);
-            toast.success('Marcada como não lida');
           }}
           onDeleteChat={async (chat) => {
             if (!confirm(`Excluir conversa com ${chat.contato_nome ?? 'este contato'}?`))
               return;
             await deleteChat(chat.id);
-            toast.success('Conversa excluída');
           }}
         />
       </div>
@@ -162,28 +153,22 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             onArchive={async () => {
               if (selectedChat.status === 'archived') {
                 await unarchiveChat(selectedChat.id);
-                toast.success('Conversa desarquivada');
               } else {
                 await archiveChat(selectedChat.id);
-                toast.success('Conversa arquivada');
               }
             }}
             onBlock={async () => {
               if (selectedChat.status === 'blocked') {
                 await unblockChat(selectedChat.id);
-                toast.success('Conversa desbloqueada');
               } else {
                 await blockChat(selectedChat.id);
-                toast.success('Conversa bloqueada');
               }
             }}
             onPin={async () => {
               if (selectedChat.pin === 'pinned') {
-                const ok = await unpinChat(selectedChat.id);
-                if (ok) toast.success('Conversa desafixada');
+                await unpinChat(selectedChat.id);
               } else {
-                const ok = await pinChat(selectedChat.id);
-                if (ok) toast.success('Conversa fixada no topo');
+                await pinChat(selectedChat.id);
               }
             }}
             onDelete={async () => {
@@ -195,7 +180,6 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             }}
             onMarkUnread={async () => {
               await markAsUnread(selectedChat.id);
-              toast.success('Marcado como não lido');
             }}
           />
         ) : (

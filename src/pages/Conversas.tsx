@@ -10,7 +10,6 @@
  */
 
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import { ConnectLandingScreen } from '@/components/conversas/ConnectLandingScreen';
 import { WhatsAppLayout } from '@/components/conversas/chat/WhatsAppLayout';
@@ -33,8 +32,7 @@ export default function ConversasPage() {
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
         instanceId={connectedInstance}
-        onChatCreated={(chatId) => {
-          toast.success('Conversa iniciada!');
+        onChatCreated={(_chatId) => {
           // A Sidebar list vai atualizar automaticamente via Supabase Realtime
           // e WhatsAppLayout vai auto-selecionar caso seja a única ativa
         }}

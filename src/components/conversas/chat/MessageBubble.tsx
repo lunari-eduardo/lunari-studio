@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
@@ -80,11 +80,23 @@ export function MessageBubble({
   onReact,
 }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const { saveSticker } = useConversasStickers();
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
   const isMedia = mensagem.type !== 'text';
+
+  const handleCopy = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    const textToCopy = mensagem.content || '';
+    if (!textToCopy) return;
+    navigator.clipboard.writeText(textToCopy).catch(() => {});
+    setIsCopied(true);
+    setTimeout(() => {
+      setIsCopied(false);
+    }, 450);
+  };
 
   // Cauda: canto cortado apenas no primeiro e último do grupo.
   const cornerClass = isOwn
@@ -153,6 +165,17 @@ export function MessageBubble({
                 />
               )}
             </div>
+          )}
+          {Boolean(mensagem.content && !isDefaultMediaContent) && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700 transition-colors"
+              title="Copiar mensagem"
+              aria-label="Copiar"
+            >
+              {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
           )}
           {onDelete && (
             <button
@@ -316,7 +339,14 @@ export function MessageBubble({
             )}
 
             {showContent && (
-              <p className="whitespace-pre-wrap leading-relaxed mt-1">{mensagem.content}</p>
+              <p
+                className={cn(
+                  'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200',
+                  isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+                )}
+              >
+                {mensagem.content}
+              </p>
             )}
 
             {/* Figurinha sem mídia / pendente de download */}
@@ -344,7 +374,14 @@ export function MessageBubble({
             )}
           </div>
         ) : (
-          <p className="whitespace-pre-wrap leading-relaxed">{mensagem.content}</p>
+          <p
+            className={cn(
+              'whitespace-pre-wrap leading-relaxed transition-all duration-200',
+              isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+            )}
+          >
+            {mensagem.content}
+          </p>
         )}
 
         {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
@@ -419,6 +456,17 @@ export function MessageBubble({
                 />
               )}
             </div>
+          )}
+          {Boolean(mensagem.content && !isDefaultMediaContent) && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700 transition-colors"
+              title="Copiar mensagem"
+              aria-label="Copiar"
+            >
+              {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
           )}
           {onReply && (
             <button

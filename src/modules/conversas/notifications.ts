@@ -27,7 +27,11 @@ export function playNotificationSound() {
     }
     const source = audioContext.createBufferSource();
     source.buffer = notificationBuffer;
-    source.connect(audioContext.destination);
+    // Volume sutil e atenuado (quase imperceptível / não estridente)
+    const gainNode = audioContext.createGain();
+    gainNode.gain.setValueAtTime(0.18, audioContext.currentTime);
+    source.connect(gainNode);
+    gainNode.connect(audioContext.destination);
     source.start(0);
   } catch (e) {
     console.warn('Erro ao reproduzir som:', e);

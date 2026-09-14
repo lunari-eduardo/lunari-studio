@@ -329,22 +329,18 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   const archiveChat = useCallback(async (chatId: string) => {
     await updateChat(chatId, { status: 'archived' });
-    toast.success('Conversa arquivada');
   }, [updateChat]);
 
   const unarchiveChat = useCallback(async (chatId: string) => {
     await updateChat(chatId, { status: 'active' });
-    toast.success('Conversa desarquivada');
   }, [updateChat]);
 
   const blockChat = useCallback(async (chatId: string) => {
     await updateChat(chatId, { status: 'blocked' });
-    toast.success('Conversa bloqueada');
   }, [updateChat]);
 
   const unblockChat = useCallback(async (chatId: string) => {
     await updateChat(chatId, { status: 'active' });
-    toast.success('Conversa desbloqueada');
   }, [updateChat]);
 
   const pinChat = useCallback(async (chatId: string): Promise<boolean> => {
@@ -445,8 +441,6 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       toast.error('Erro ao excluir conversa');
       throw error;
     }
-
-    toast.success('Conversa excluída');
   }, [chats, removeChat]);
 
   // ─── Instance Operations ─────────────────────────────────────────────────────
@@ -731,9 +725,6 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       }
 
       const initialPayload = await initialResponse.json();
-      if (showToast) {
-        toast.success(`${initialPayload.synced} conversas descobertas. Baixando histórico...`);
-      }
 
       // 2. Refresh initial UI state
       const currentUserId = user?.id || (await loadUserId());
@@ -780,10 +771,6 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         if (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
           await new Promise(r => setTimeout(r, 600));
         }
-      }
-
-      if (showToast) {
-        toast.success('Conversas e mensagens recentes sincronizadas!');
       }
 
       return { synced: initialPayload.synced ?? 0, total: initialPayload.total ?? 0 };

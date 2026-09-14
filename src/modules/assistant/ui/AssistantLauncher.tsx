@@ -30,7 +30,7 @@ export function AssistantLauncher() {
         aria-label="Abrir assistente Lunari"
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-5 right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full",
+          "fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 md:bottom-8 md:right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full",
           "bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all",
           "hover:scale-105 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         )}

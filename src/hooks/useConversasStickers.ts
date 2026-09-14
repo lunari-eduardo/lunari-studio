@@ -72,7 +72,6 @@ export function useConversasStickers() {
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Figurinha salva com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['conversas_stickers'] });
     },
     onError: (err: Error) => {

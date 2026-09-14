@@ -660,16 +660,21 @@ export function useConversasChat(
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
+            id: msgId,
             chatId,
-            content: optimisticMsg.content,
-            msgId,
+            instanceId,
+            content: '',
             type: 'sticker',
             mediaUrl: finalMediaUrl,
+            mediaMimeType: isUrl ? 'image/webp' : (fileOrUrl as File).type || 'image/webp',
+            mediaFilename: isUrl ? 'sticker.webp' : (fileOrUrl as File).name,
+            mediaSizeBytes: isUrl ? 0 : (fileOrUrl as File).size,
           }),
         });
 
         if (!sendRes.ok) {
-          throw new Error('Falha ao enviar figurinha via Worker');
+          const errData = await sendRes.json().catch(() => ({}));
+          throw new Error(errData.error || errData.detail || 'Falha ao enviar figurinha via Worker');
         }
 
         const sendData = await sendRes.json();
@@ -680,7 +685,7 @@ export function useConversasChat(
               ? {
                   ...m,
                   status: 'sent',
-                  evolution_msg_id: sendData.key?.id || m.evolution_msg_id,
+                  evolution_msg_id: sendData.evolutionMsgId || sendData.key?.id || m.evolution_msg_id,
                   media_url: finalMediaUrl,
                 }
               : m,
@@ -769,7 +774,6 @@ export function useConversasChat(
         }
         throw new Error(errorMsg);
       }
-      toast.success('Mensagem apagada');
     } catch (err: any) {
       toast.error('Erro ao apagar: ' + err.message);
       // Revert on error
@@ -825,11 +829,6 @@ export function useConversasChat(
           errorMsg = text || `Erro HTTP ${response.status}`;
         }
         throw new Error(errorMsg);
-      }
-      if (finalEmoji) {
-        toast.success(`Reagiu com ${finalEmoji}`);
-      } else {
-        toast.success('Reação removida');
       }
     } catch (err: any) {
       toast.error('Erro ao reagir: ' + err.message);
