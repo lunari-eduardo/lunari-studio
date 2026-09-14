@@ -26,9 +26,10 @@ import {
 import { PAGE_TABS_LIST } from '@/components/layout/PageTabs';
 import { useFormularios } from '@/hooks/useFormularios';
 import { useFormularioTemplates } from '@/hooks/useFormularioTemplates';
-import { FormToolbar, type StatusFilter } from '../components/FormToolbar';
+import { FormToolbar, type CategoryFilter } from '../components/FormToolbar';
 import { FormCard, FormCardSkeleton } from '../components/FormCard';
 import { TemplateCard, TemplateCardSkeleton } from '../components/TemplateCard';
+import { CreateFormCard } from '../components/CreateFormCard';
 import FormularioTemplateEditor from '@/components/configuracoes/FormularioTemplateEditor';
 import type { FormularioTemplate } from '@/types/formulario';
 import { toast } from '@/hooks/use-toast';
@@ -70,7 +71,7 @@ export default function FormsListPage() {
   // ── Estado ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'meus' | 'biblioteca'>('meus');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('todas');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormularioTemplate | null>(null);
 
@@ -85,22 +86,27 @@ export default function FormsListPage() {
       const matchSearch =
         !q ||
         f.titulo.toLowerCase().includes(q) ||
-        (f.cliente?.nome?.toLowerCase().includes(q) ?? false);
-      const matchStatus = statusFilter === 'todos' || f.status_envio === statusFilter;
-      return matchSearch && matchStatus;
+        (f.cliente?.nome?.toLowerCase().includes(q) ?? false) ||
+        (f.descricao?.toLowerCase().includes(q) ?? false);
+      const matchCategory =
+        categoryFilter === 'todas' ||
+        (f as any).categoria?.toLowerCase() === categoryFilter.toLowerCase();
+      return matchSearch && matchCategory;
     });
-  }, [formularios, search, statusFilter]);
+  }, [formularios, search, categoryFilter]);
 
   const filteredTemplates = useMemo(() => {
     const q = search.trim().toLowerCase();
     return templates.filter(
       (t) =>
-        !q ||
-        t.nome.toLowerCase().includes(q) ||
-        t.categoria.toLowerCase().includes(q) ||
-        (t.descricao?.toLowerCase().includes(q) ?? false)
+        (!q ||
+          t.nome.toLowerCase().includes(q) ||
+          t.categoria.toLowerCase().includes(q) ||
+          (t.descricao?.toLowerCase().includes(q) ?? false)) &&
+        (categoryFilter === 'todas' ||
+          t.categoria.toLowerCase() === categoryFilter.toLowerCase())
     );
-  }, [templates, search]);
+  }, [templates, search, categoryFilter]);
 
   // ── Ações ───────────────────────────────────────────────────────────────────
   /** Abre o editor de template para criação de um novo. */
@@ -169,9 +175,8 @@ export default function FormsListPage() {
             <FormToolbar
               search={search}
               onSearchChange={setSearch}
-              statusFilter={statusFilter}
-              onStatusFilterChange={setStatusFilter}
-              onNewForm={handleNewForm}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={setCategoryFilter}
             />
           </div>
         </div>
@@ -184,13 +189,21 @@ export default function FormsListPage() {
                 <FormCardSkeleton key={i} />
               ))}
             </div>
+          ) : filteredFormularios.length === 0 && !search && categoryFilter === 'todas' ? (
+            /* Estado inicial com CTA */
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <CreateFormCard onClick={handleNewForm} />
+            </div>
           ) : filteredFormularios.length === 0 ? (
+            /* Estado vazio com filtro ativo */
             <EmptyMeusFormularios />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredFormularios.map((form) => (
                 <FormCard key={form.id} form={form} />
               ))}
+              {/* CTA para criar novo formulário */}
+              <CreateFormCard onClick={handleNewForm} />
             </div>
           )}
         </TabsContent>
@@ -203,7 +216,7 @@ export default function FormsListPage() {
                 <TemplateCardSkeleton key={i} />
               ))}
             </div>
-          ) : filteredTemplates.length === 0 ? (
+          ) : filteredTemplates.length === 0 && !search ? (
             <EmptyBiblioteca />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

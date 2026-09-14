@@ -1,18 +1,14 @@
 /**
- * FormToolbar — barra de filtro e ação da página de formulários.
+ * FormToolbar — barra de filtro da página de formulários.
  *
  * Filtros:
  *  • Busca textual por título (local, client-side)
- *  • Status de envio: Todos | Rascunho | Enviado | Respondido
+ *  • Categoria: Todas | Gestantes | Posificado | Família | Casamentos | Novos
  *
- * Ação:
- *  • Botão "+ Novo formulário" (preto) → abre o modal de criação via SendBriefingModal
- *    ou navegação para editor. Por ora, abre SendBriefingModal que requer cliente —
- *    fallback: toast indicando que vá pelo caminho "Comercial → Briefing".
+ * A ação "+ Novo formulário" foi movida para um card CTA na grid.
  */
-import { useState, useCallback } from 'react';
-import { Search, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,31 +19,29 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-export type StatusFilter = 'todos' | 'rascunho' | 'enviado' | 'respondido';
+export type CategoryFilter = 'todas' | 'gestantes' | 'posificado' | 'familia' | 'casamentos' | 'novos';
 
 interface FormToolbarProps {
   search: string;
   onSearchChange: (v: string) => void;
-  statusFilter: StatusFilter;
-  onStatusFilterChange: (v: StatusFilter) => void;
-  onNewForm: () => void;
-  isCreating?: boolean;
+  categoryFilter: CategoryFilter;
+  onCategoryFilterChange: (v: CategoryFilter) => void;
 }
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'todos', label: 'Todos' },
-  { value: 'rascunho', label: 'Rascunho' },
-  { value: 'enviado', label: 'Enviado' },
-  { value: 'respondido', label: 'Respondido' },
+const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
+  { value: 'todas', label: 'Todas as categorias' },
+  { value: 'gestantes', label: 'Gestantes' },
+  { value: 'posificado', label: 'Posificado' },
+  { value: 'familia', label: 'Família' },
+  { value: 'casamentos', label: 'Casamentos' },
+  { value: 'novos', label: 'Novos' },
 ];
 
 export function FormToolbar({
   search,
   onSearchChange,
-  statusFilter,
-  onStatusFilterChange,
-  onNewForm,
-  isCreating,
+  categoryFilter,
+  onCategoryFilterChange,
 }: FormToolbarProps) {
   const [focused, setFocused] = useState(false);
 
@@ -79,36 +73,25 @@ export function FormToolbar({
         />
       </div>
 
-      {/* Filtro de status */}
+      {/* Filtro de categoria */}
       <Select
-        value={statusFilter}
-        onValueChange={(v) => onStatusFilterChange(v as StatusFilter)}
+        value={categoryFilter}
+        onValueChange={(v) => onCategoryFilterChange(v as CategoryFilter)}
       >
         <SelectTrigger
-          className="h-9 w-36 bg-background border-border/70 text-sm"
-          aria-label="Filtrar por status"
+          className="h-9 w-48 bg-background border-border/70 text-sm"
+          aria-label="Filtrar por categoria"
         >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {STATUS_OPTIONS.map((opt) => (
+          {CATEGORY_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-
-      {/* Ação principal */}
-      <Button
-        onClick={onNewForm}
-        disabled={isCreating}
-        className="h-9 gap-1.5 bg-foreground text-background hover:bg-foreground/90 shrink-0"
-        aria-label="Criar novo formulário"
-      >
-        <Plus size={14} strokeWidth={2} aria-hidden />
-        Novo formulário
-      </Button>
     </div>
   );
 }
