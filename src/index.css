@@ -565,23 +565,29 @@
   .dark .dropdown-solid-item:hover { background-color: hsl(var(--surface-3)) !important; }
   .dark .dropdown-solid-header { background-color: hsl(var(--surface-3)) !important; }
 
+  /* Sidebar — item ativo (estética premium: sutil, dourado como acento) */
   .nav-item-lunar {
-    @apply relative flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-150;
+    @apply relative flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors duration-200;
     color: hsl(var(--foreground));
     background: transparent;
   }
   .nav-item-lunar:hover {
-    background: hsl(var(--accent-gold) / 0.20);
+    background: rgba(255, 255, 255, 0.04);
     /* inherit current text color — sidebar overrides with --sidebar-fg */
   }
   .nav-item-lunar.active {
-    color: hsl(var(--accent-gold));
-    background: hsl(var(--accent-gold) / 0.14);
+    color: hsl(var(--sidebar-active-fg));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--accent-gold) / 0.10) 0%,
+      hsl(var(--accent-gold) / 0.04) 40%,
+      rgba(255, 255, 255, 0.025) 100%
+    );
   }
   .nav-item-lunar.active::before {
     content: "";
     position: absolute;
-    left: 0;
+    left: -2px;
     top: 6px;
     bottom: 6px;
     width: 2px;

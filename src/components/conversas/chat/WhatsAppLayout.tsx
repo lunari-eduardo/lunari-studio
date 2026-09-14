@@ -97,7 +97,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             if (!connectedInstance) return;
             setIsSyncing(true);
             try {
-              await syncHistoricalChats(connectedInstance.id);
+              await syncHistoricalChats(connectedInstance.id, { showToast: true });
             } finally {
               setIsSyncing(false);
             }

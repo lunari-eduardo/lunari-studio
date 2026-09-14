@@ -52,7 +52,7 @@ export interface UseConversasReturn {
   checkInstanceStatus: (instanceId: string) => Promise<void>;
   disconnectInstance: (instanceId: string) => Promise<void>;
   deleteInstance: (instanceId: string) => Promise<void>;
-  syncHistoricalChats: (instanceId: string) => Promise<{ synced: number; total: number }>;
+  syncHistoricalChats: (instanceId: string, options?: { showToast?: boolean }) => Promise<{ synced: number; total: number }>;
 
   // ─── Derived ─────────────────────────────────────────────────────────────────
   totalUnread: number;
@@ -582,17 +582,18 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   // ─── Sync histórico ─────────────────────────────────────────────────────────
 
-  const syncHistoricalChats = useCallback(async (instanceId: string) => {
+  const syncHistoricalChats = useCallback(async (instanceId: string, options?: { showToast?: boolean }) => {
+    const showToast = options?.showToast ?? false;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Sessão expirada — faça login novamente.');
+        if (showToast) toast.error('Sessão expirada — faça login novamente.');
         return { synced: 0, total: 0 };
       }
 
       const workerUrl = import.meta.env.VITE_EDGE_API_URL;
       if (!workerUrl) {
-        toast.error('VITE_EDGE_API_URL não configurada no ambiente.');
+        if (showToast) toast.error('VITE_EDGE_API_URL não configurada no ambiente.');
         return { synced: 0, total: 0 };
       }
 
@@ -612,7 +613,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       }
 
       const initialPayload = await initialResponse.json();
-      toast.success(`${initialPayload.synced} conversas descobertas. Baixando histórico...`);
+      if (showToast) {
+        toast.success(`${initialPayload.synced} conversas descobertas. Baixando histórico...`);
+      }
 
       // 2. Refresh initial UI state
       const currentUserId = user?.id || (await loadUserId());
@@ -661,11 +664,17 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         }
       }
 
-      toast.success('Conversas e mensagens recentes sincronizadas!');
+      if (showToast) {
+        toast.success('Conversas e mensagens recentes sincronizadas!');
+      }
 
       return { synced: initialPayload.synced ?? 0, total: initialPayload.total ?? 0 };
     } catch (err: any) {
-      toast.error('Erro ao sincronizar conversas: ' + err.message);
+      if (showToast) {
+        toast.error('Erro ao sincronizar conversas: ' + err.message);
+      } else {
+        console.warn('[Sync] Auto-sync error:', err.message);
+      }
       return { synced: 0, total: 0 };
     }
   }, [user?.id, loadUserId]);
