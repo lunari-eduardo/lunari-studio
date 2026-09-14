@@ -148,7 +148,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       evolution_msg_id: null, // preenchido após envio
       direction: 'outbound',
       type: type as any,
-      content,
+      content: type === 'sticker' ? (content || '🎨 Figurinha') : content,
       media_url: mediaUrl ?? null,
       media_mime_type: body.mediaMimeType ?? null,
       media_filename: mediaFilename ?? null,
@@ -176,7 +176,13 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       text: content,
     };
 
-    if (type === 'audio' && mediaUrl) {
+    if (type === 'sticker' && mediaUrl) {
+      evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendSticker/${instance.instance_name}`;
+      evolutionBody = {
+        number: recipientNumber,
+        sticker: mediaUrl,
+      };
+    } else if (type === 'audio' && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendWhatsAppAudio/${instance.instance_name}`;
       evolutionBody = {
         number: recipientNumber,
@@ -184,13 +190,13 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
         delay: isPtt ? 1200 : 0,
         encoding: !!isPtt,
       };
-    } else if (['image', 'video', 'document', 'sticker'].includes(type) && mediaUrl) {
+    } else if (['image', 'video', 'document'].includes(type) && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendMedia/${instance.instance_name}`;
       evolutionBody = {
         number: recipientNumber,
-        mediatype: type === 'sticker' ? 'image' : type,
+        mediatype: type,
         mimetype: body.mediaMimeType ?? 'application/octet-stream',
-        caption: type === 'sticker' ? undefined : (content || undefined),
+        caption: content || undefined,
         media: mediaUrl,
         fileName: body.mediaFilename || `media_${Date.now()}`,
       };

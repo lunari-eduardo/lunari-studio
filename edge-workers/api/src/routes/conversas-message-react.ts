@@ -33,7 +33,7 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
 
   const { data: msg, error: msgError } = await supabaseAdmin
     .from('conversas_mensagens')
-    .select('id, evolution_msg_id, chat_id, instance_id, direction')
+    .select('id, evolution_msg_id, chat_id, instance_id, direction, reactions')
     .eq('id', msgId)
     .eq('user_id', userId)
     .maybeSingle();
@@ -84,7 +84,35 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
       return c.json({ error: 'Erro ao reagir via WhatsApp', detail: errText }, 500);
     }
 
-    return c.json({ success: true }, 200);
+    // Persistir reacao no banco de dados Supabase
+    let currentReactions: Array<{ emoji: string; fromMe: boolean; sender?: string; timestamp?: string }> = 
+      Array.isArray((msg as any).reactions) ? (msg as any).reactions : [];
+
+    const cleanEmoji = (reaction || '').trim();
+
+    if (!cleanEmoji) {
+      // Remover reação do usuario
+      currentReactions = currentReactions.filter(r => !r.fromMe);
+    } else {
+      // Se ja reagiu com o mesmo emoji, podemos substituir ou manter
+      const otherReactions = currentReactions.filter(r => !r.fromMe);
+      currentReactions = [
+        ...otherReactions,
+        {
+          emoji: cleanEmoji,
+          fromMe: true,
+          sender: 'Você',
+          timestamp: new Date().toISOString(),
+        },
+      ];
+    }
+
+    await supabaseAdmin
+      .from('conversas_mensagens')
+      .update({ reactions: currentReactions })
+      .eq('id', msgId);
+
+    return c.json({ success: true, reactions: currentReactions }, 200);
 
   } catch (err: any) {
     return c.json({ error: 'Erro de rede', detail: err.message }, 500);

@@ -312,6 +312,45 @@ async function processSingleMessage(
     return;
   }
 
+  // 0. Tratamento de Reações do WhatsApp (reactionMessage)
+  const reactionMsg = (msg.message as any)?.reactionMessage;
+  if (reactionMsg && reactionMsg.key?.id) {
+    const targetMsgId = reactionMsg.key.id;
+    const emoji = (reactionMsg.text || '').trim();
+    const fromMe = Boolean(msg.key.fromMe);
+
+    const { data: targetMsg } = await supabase
+      .from('conversas_mensagens')
+      .select('id, reactions')
+      .eq('evolution_msg_id', targetMsgId)
+      .eq('user_id', instance.user_id)
+      .maybeSingle();
+
+    if (targetMsg) {
+      let currentReactions = Array.isArray(targetMsg.reactions) ? targetMsg.reactions : [];
+      if (!emoji) {
+        currentReactions = currentReactions.filter((r: any) => r.fromMe !== fromMe);
+      } else {
+        const filtered = currentReactions.filter((r: any) => r.fromMe !== fromMe);
+        currentReactions = [
+          ...filtered,
+          {
+            emoji,
+            fromMe,
+            sender: fromMe ? 'Você' : (msg.pushName || 'Contato'),
+            timestamp: new Date().toISOString(),
+          }
+        ];
+      }
+
+      await supabase
+        .from('conversas_mensagens')
+        .update({ reactions: currentReactions })
+        .eq('id', targetMsg.id);
+    }
+    return;
+  }
+
   const content = extractMessageContent(msg);
   const msgType = extractMessageType(msg);
   const mediaInfo = extractMediaInfo(msg);
@@ -372,6 +411,19 @@ async function processSingleMessage(
   }
 
   // 3. Upsert mensagem (idempotente por user_id, evolution_msg_id)
+  // Preserva dados de mídia já existentes caso o registro já tenha sido baixado ou criado
+  const { data: existingMsg } = await supabase
+    .from('conversas_mensagens')
+    .select('id, media_url, media_mime_type, media_filename, media_size_bytes')
+    .eq('user_id', instance.user_id)
+    .eq('evolution_msg_id', msg.key.id)
+    .maybeSingle();
+
+  const finalMediaUrl = mediaInfo.mediaUrl || existingMsg?.media_url || null;
+  const finalMimeType = mediaInfo.mimeType || existingMsg?.media_mime_type || null;
+  const finalFilename = mediaInfo.filename || existingMsg?.media_filename || null;
+  const finalSizeBytes = mediaInfo.sizeBytes || existingMsg?.media_size_bytes || null;
+
   const initialStatus = direction === 'outbound' ? 'sent' : 'delivered';
   const { error: msgError } = await supabase
     .from('conversas_mensagens')
@@ -384,10 +436,10 @@ async function processSingleMessage(
         direction,
         type: msgType as any,
         content,
-        media_url: mediaInfo.mediaUrl,
-        media_mime_type: mediaInfo.mimeType,
-        media_filename: mediaInfo.filename,
-        media_size_bytes: mediaInfo.sizeBytes,
+        media_url: finalMediaUrl,
+        media_mime_type: finalMimeType,
+        media_filename: finalFilename,
+        media_size_bytes: finalSizeBytes,
         status: initialStatus,
         reply_to_id: replyToId,
         quoted_content: quotedInfo?.content || null,
@@ -404,7 +456,7 @@ async function processSingleMessage(
   }
 
   // 4. Download de Mídia Assíncrono (Fase 2)
-  if (['image', 'video', 'audio', 'document', 'sticker'].includes(msgType) && !mediaInfo.mediaUrl && ctx?.waitUntil) {
+  if (['image', 'video', 'audio', 'document', 'sticker'].includes(msgType) && !finalMediaUrl && ctx?.waitUntil) {
     ctx.waitUntil((async () => {
       try {
         const evoUrl = env.EVOLUTION_API_URL;
@@ -418,7 +470,7 @@ async function processSingleMessage(
             'Content-Type': 'application/json',
             apikey: evoKey,
           },
-          body: JSON.stringify({ message: msg }),
+          body: JSON.stringify({ message: msg, convertToMp4: false }),
         });
 
         if (!response.ok) {
@@ -427,8 +479,11 @@ async function processSingleMessage(
         }
 
         const data = await response.json();
-        const base64 = (data as any).base64;
-        if (!base64) return;
+        let base64 = (data as any).base64;
+        if (!base64 || typeof base64 !== 'string') return;
+
+        // Limpa prefixo Data URI (ex: data:image/webp;base64,) para não quebrar atob()
+        base64 = base64.replace(/^data:[^;]+;base64,/, '').trim();
 
         // Converte base64 para ArrayBuffer
         const binaryString = atob(base64);
@@ -438,13 +493,7 @@ async function processSingleMessage(
           bytes[i] = binaryString.charCodeAt(i);
         }
 
-        // Upload pro R2
-        const bucket = env.LUNARI_CONVERSAS;
-        if (!bucket) {
-          console.error('[conversas-webhook] LUNARI_CONVERSAS bucket not bound');
-          return;
-        }
-
+        // Upload pro R2 (mesma estrutura do media-upload para ficar roteável)
         const ext = mediaInfo.filename
           ? mediaInfo.filename.split('.').pop()
           : msgType === 'image'
@@ -453,22 +502,34 @@ async function processSingleMessage(
           ? 'mp4'
           : msgType === 'sticker'
           ? 'webp'
-          : 'ogg';
-        const r2Filename = `${instance.id}/${chatId}/${msg.key.id}.${ext}`;
+          : msgType === 'audio'
+          ? 'ogg'
+          : 'bin';
+        const r2Filename = `conversas/${instance.user_id}/${chatId}/${msg.key.id}.${ext}`;
+
+        const { bucket, bucketName } = getBucketBinding(env, r2Filename);
+        if (!bucket) {
+          console.error('[conversas-webhook] R2 bucket não resolvido para', r2Filename);
+          return;
+        }
 
         await bucket.put(r2Filename, bytes, {
           httpMetadata: {
-            contentType: mediaInfo.mimeType || 'application/octet-stream',
+            contentType: mediaInfo.mimeType || (msgType === 'sticker' ? 'image/webp' : 'application/octet-stream'),
           },
         });
 
-        const cdnBase = env.R2_CONVERSAS_CDN_BASE;
-        const finalUrl = `${cdnBase}/${r2Filename}`;
+        const finalUrl = getCdnUrl(env, r2Filename, bucketName);
 
         // Atualiza a mensagem no banco
         await supabase
           .from('conversas_mensagens')
-          .update({ media_url: finalUrl })
+          .update({
+            media_url: finalUrl,
+            media_mime_type: mediaInfo.mimeType || (msgType === 'sticker' ? 'image/webp' : null),
+            media_filename: mediaInfo.filename || (msgType === 'sticker' ? `sticker-${msg.key.id}.webp` : null),
+            media_size_bytes: mediaInfo.sizeBytes || bytes.length,
+          })
           .eq('evolution_msg_id', msg.key.id)
           .eq('user_id', instance.user_id);
           

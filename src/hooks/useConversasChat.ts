@@ -666,7 +666,10 @@ export function useConversasChat(
             content: '',
             type: 'sticker',
             mediaUrl: uploadData.mediaUrl,
-            mediaMimeType: uploadData.mediaMimeType || file.type || 'image/webp',
+            mediaMimeType:
+              uploadData.mediaMimeType ||
+              file.type ||
+              (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/webp'),
             mediaFilename: uploadData.mediaFilename || file.name,
             mediaSizeBytes: uploadData.mediaSizeBytes || file.size,
           }),
@@ -783,6 +786,30 @@ export function useConversasChat(
   }, [mensagens]);
 
   const reactMessage = useCallback(async (mensagemId: string, emoji: string) => {
+    // Snapshot para rollback
+    const snapshot = mensagens;
+
+    // Calcular nova reação com toggle
+    const targetMsg = mensagens.find(m => m.id === mensagemId);
+    if (!targetMsg) return;
+
+    const currentReactions: any[] = Array.isArray((targetMsg as any).reactions) ? (targetMsg as any).reactions : [];
+    const myExistingReaction = currentReactions.find((r: any) => r.fromMe);
+    const isSameEmoji = myExistingReaction?.emoji === emoji;
+    const finalEmoji = isSameEmoji ? '' : emoji;
+
+    // Update otimista imediato
+    const updatedReactions = isSameEmoji
+      ? currentReactions.filter((r: any) => !r.fromMe)
+      : [
+          ...currentReactions.filter((r: any) => !r.fromMe),
+          { emoji, fromMe: true, sender: 'Você', timestamp: new Date().toISOString() },
+        ];
+
+    setMensagens(prev =>
+      prev.map(m => (m.id === mensagemId ? { ...m, reactions: updatedReactions } as any : m))
+    );
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
@@ -793,7 +820,7 @@ export function useConversasChat(
           'Content-Type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ reaction: emoji }),
+        body: JSON.stringify({ reaction: finalEmoji }),
       });
 
       if (!response.ok) {
@@ -807,11 +834,17 @@ export function useConversasChat(
         }
         throw new Error(errorMsg);
       }
-      toast.success(`Reação enviada: ${emoji}`);
+      if (finalEmoji) {
+        toast.success(`Reagiu com ${finalEmoji}`);
+      } else {
+        toast.success('Reação removida');
+      }
     } catch (err: any) {
       toast.error('Erro ao reagir: ' + err.message);
+      // Reverte em caso de erro
+      setMensagens(snapshot);
     }
-  }, []);
+  }, [mensagens]);
 
   // ─── Notes ───────────────────────────────────────────────────────────────────
 

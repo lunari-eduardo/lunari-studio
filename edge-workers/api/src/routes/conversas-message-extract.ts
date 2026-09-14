@@ -160,10 +160,15 @@ export function extractMediaInfo(msg: EvolutionMessagePayload): MediaInfo {
   } else if (m.stickerMessage) {
     mimeType = 'image/webp';
     filename = `sticker-${msg.key?.id ?? Date.now()}.webp`;
-    // StickerMessage pode conter fileLength nos dados internos (depende da versão da Evolution)
     const stickerData = m.stickerMessage as Record<string, unknown> | null;
-    if (stickerData && typeof stickerData.fileLength === 'string') {
-      sizeBytes = parseInt(stickerData.fileLength, 10);
+    if (stickerData?.fileLength) {
+      if (typeof stickerData.fileLength === 'string') {
+        sizeBytes = parseInt(stickerData.fileLength, 10);
+      } else if (typeof stickerData.fileLength === 'number') {
+        sizeBytes = stickerData.fileLength;
+      } else if (typeof (stickerData.fileLength as any).low === 'number') {
+        sizeBytes = (stickerData.fileLength as any).low;
+      }
     }
   } else {
     return { mediaUrl: null, mimeType: null, filename: null, sizeBytes: null };

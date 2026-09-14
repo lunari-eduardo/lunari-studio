@@ -45,8 +45,13 @@ export interface ChatListSidebarProps {
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
+  isPinLimitReached?: boolean;
   /** Contadores dinâmicos para os filtros primários. */
   chatCounts: ChatCounts;
+  onArchive?: (chat: EnrichedChat) => void;
+  onBlock?: (chat: EnrichedChat) => void;
+  onMarkUnread?: (chat: EnrichedChat) => void;
+  onDeleteChat?: (chat: EnrichedChat) => void;
 }
 
 const FILTER_TABS: { key: PrimaryFilter; label: string; icon?: React.ElementType }[] = [
@@ -70,7 +75,12 @@ export function ChatListSidebar({
   onSyncChats,
   isSyncingChats,
   onTogglePin,
+  isPinLimitReached = false,
   chatCounts,
+  onArchive,
+  onBlock,
+  onMarkUnread,
+  onDeleteChat,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<PrimaryFilter>('all');
@@ -93,15 +103,20 @@ export function ChatListSidebar({
     });
   }, [chats, activeFilter, search]);
 
-  // ─── Ordenação: fixadas primeiro, depois por data ─────────────────────────────
+  // ─── Ordenação: fixadas primeiro, depois por data (mais recente primeiro) ──────
+  // ISO 8601 strings são lexicograficamente ordenáveis, então localeCompare funciona.
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
+      // Fixadas sempre no topo
       if (a.pin === 'pinned' && b.pin !== 'pinned') return -1;
       if (a.pin !== 'pinned' && b.pin === 'pinned') return 1;
-      const aDate = a.ultima_mensagem_data ?? '0';
-      const bDate = b.ultima_mensagem_data ?? '0';
-      return bDate.localeCompare(aDate);
+      // Depois por data decrescente (mais recente primeiro)
+      const aDate = a.ultima_mensagem_data ?? '';
+      const bDate = b.ultima_mensagem_data ?? '';
+      if (aDate !== bDate) return bDate.localeCompare(aDate);
+      // Desempate estável por id (mais antigo criado primeiro)
+      return a.id.localeCompare(b.id);
     });
   }, [filtered]);
 
@@ -214,6 +229,11 @@ export function ChatListSidebar({
                 isActive={c.id === selectedChatId}
                 onClick={() => onSelectChat(c)}
                 onTogglePin={onTogglePin}
+                isPinLimitReached={isPinLimitReached}
+                onArchive={onArchive}
+                onBlock={onBlock}
+                onMarkUnread={onMarkUnread}
+                onDelete={onDeleteChat}
               />
             ))}
           </div>

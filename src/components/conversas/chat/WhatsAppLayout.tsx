@@ -34,6 +34,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     deleteChat,
     markAsUnread,
     syncHistoricalChats,
+    isPinLimitReached,
   } = useConversas();
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -107,15 +108,44 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             }
           }}
           isSyncingChats={isSyncing}
+          isPinLimitReached={isPinLimitReached}
           onTogglePin={async (chat, e) => {
             e?.stopPropagation();
             if (chat.pin === 'pinned') {
-              await unpinChat(chat.id);
-              toast.success('Conversa desafixada');
+              const ok = await unpinChat(chat.id);
+              if (ok) toast.success('Conversa desafixada');
             } else {
-              await pinChat(chat.id);
-              toast.success('Conversa fixada no topo');
+              const ok = await pinChat(chat.id);
+              if (ok) toast.success('Conversa fixada no topo');
             }
+          }}
+          onArchive={async (chat) => {
+            if (chat.status === 'archived') {
+              await unarchiveChat(chat.id);
+              toast.success('Conversa desarquivada');
+            } else {
+              await archiveChat(chat.id);
+              toast.success('Conversa arquivada');
+            }
+          }}
+          onBlock={async (chat) => {
+            if (chat.status === 'blocked') {
+              await unblockChat(chat.id);
+              toast.success('Conversa desbloqueada');
+            } else {
+              await blockChat(chat.id);
+              toast.success('Conversa bloqueada');
+            }
+          }}
+          onMarkUnread={async (chat) => {
+            await markAsUnread(chat.id);
+            toast.success('Marcada como não lida');
+          }}
+          onDeleteChat={async (chat) => {
+            if (!confirm(`Excluir conversa com ${chat.contato_nome ?? 'este contato'}?`))
+              return;
+            await deleteChat(chat.id);
+            toast.success('Conversa excluída');
           }}
         />
       </div>
@@ -149,11 +179,11 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
             }}
             onPin={async () => {
               if (selectedChat.pin === 'pinned') {
-                await unpinChat(selectedChat.id);
-                toast.success('Conversa desfixada');
+                const ok = await unpinChat(selectedChat.id);
+                if (ok) toast.success('Conversa desafixada');
               } else {
-                await pinChat(selectedChat.id);
-                toast.success('Conversa fixada');
+                const ok = await pinChat(selectedChat.id);
+                if (ok) toast.success('Conversa fixada no topo');
               }
             }}
             onDelete={async () => {

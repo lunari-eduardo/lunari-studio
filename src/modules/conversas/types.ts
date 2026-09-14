@@ -49,6 +49,13 @@ export type MessageStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
 export type ContactType = 'cliente' | 'lead' | 'unknown';
 export type InstanciaStatus = 'connected' | 'disconnected' | 'connecting' | 'error';
 
+export interface MessageReaction {
+  emoji: string;
+  fromMe: boolean;
+  sender?: string;
+  timestamp?: string;
+}
+
 // ─── Evolução API payload types ───────────────────────────────────────────────
 
 export interface EvolutionWebhookPayload {

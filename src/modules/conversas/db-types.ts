@@ -256,6 +256,7 @@ export interface DbConversasMensagem {
     quoted_content: string | null;
     quoted_sender: string | null;
     quoted_type: string | null;
+    reactions: any[] | null;
     timestamp: string;
     created_at: string;
   };
@@ -278,6 +279,7 @@ export interface DbConversasMensagem {
     quoted_content?: string | null;
     quoted_sender?: string | null;
     quoted_type?: string | null;
+    reactions?: any;
     timestamp?: string;
     created_at?: string;
   };
@@ -300,6 +302,7 @@ export interface DbConversasMensagem {
     quoted_content?: string | null;
     quoted_sender?: string | null;
     quoted_type?: string | null;
+    reactions?: any;
     timestamp?: string;
     created_at?: string;
   };

@@ -52,8 +52,8 @@ export interface UseConversasReturn {
   unarchiveChat: (chatId: string) => Promise<void>;
   blockChat: (chatId: string) => Promise<void>;
   unblockChat: (chatId: string) => Promise<void>;
-  pinChat: (chatId: string) => Promise<void>;
-  unpinChat: (chatId: string) => Promise<void>;
+  pinChat: (chatId: string) => Promise<boolean>;
+  unpinChat: (chatId: string) => Promise<boolean>;
   markAsRead: (chatId: string) => Promise<void>;
   markAsUnread: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
@@ -69,6 +69,7 @@ export interface UseConversasReturn {
   activeChatsCount: number;
   connectedInstance: string | null;
   instanceViewState: 'initial' | 'reconnect' | 'connecting' | 'ready';
+  isPinLimitReached: boolean;
   /** Contadores para os filtros primários da sidebar. */
   chatCounts: {
     all: number;
@@ -300,10 +301,12 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   const updateChat = useCallback(
     async (chatId: string, updates: ChatUpdate) => {
-      // Optimistic
-      setChats(prev =>
-        prev.map(c => (c.id === chatId ? { ...c, ...updates } as EnrichedChat : c)),
-      );
+      // Snapshot para rollback
+      let previousChats: Chat[] = [];
+      setChats(prev => {
+        previousChats = prev;
+        return prev.map(c => (c.id === chatId ? { ...c, ...updates } as EnrichedChat : c));
+      });
 
       const { error } = await supabase
         .from('conversas_chats')
@@ -311,7 +314,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         .eq('id', chatId);
 
       if (error) {
-        toast.error('Erro ao atualizar conversa');
+        // Reverte imediatamente o estado local se o banco recusar (Rollback)
+        setChats(previousChats);
+        toast.error('Erro ao atualizar conversa: ' + (error.message || 'Falha na operação'));
         throw error;
       }
     },
@@ -342,17 +347,33 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     toast.success('Conversa desbloqueada');
   }, [updateChat]);
 
-  const pinChat = useCallback(async (chatId: string) => {
-    const pinnedCount = chats.filter(c => c.pin === 'pinned').length;
+  const pinChat = useCallback(async (chatId: string): Promise<boolean> => {
+    const targetChat = chats.find(c => c.id === chatId);
+    const instanceId = targetChat?.instance_id;
+    const pinnedCount = chats.filter(
+      c => c.pin === 'pinned' && (!instanceId || c.instance_id === instanceId)
+    ).length;
+
     if (pinnedCount >= 5) {
-      toast.error('Limite de 5 conversas fixadas atingido nesta versão.');
-      return;
+      toast.warning('Limite de 5 conversas fixadas atingido nesta versão.');
+      return false;
     }
-    await updateChat(chatId, { pin: 'pinned', pin_origin: 'lunari' });
+
+    try {
+      await updateChat(chatId, { pin: 'pinned', pin_origin: 'lunari' });
+      return true;
+    } catch {
+      return false;
+    }
   }, [updateChat, chats]);
 
-  const unpinChat = useCallback(async (chatId: string) => {
-    await updateChat(chatId, { pin: 'unpinned', pin_origin: null });
+  const unpinChat = useCallback(async (chatId: string): Promise<boolean> => {
+    try {
+      await updateChat(chatId, { pin: 'unpinned', pin_origin: null });
+      return true;
+    } catch {
+      return false;
+    }
   }, [updateChat]);
 
   const markAsRead = useCallback(
@@ -788,6 +809,13 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     }
   }, [connectedInstance, isLoading, syncHistoricalChats]);
 
+  const isPinLimitReached = useMemo(() => {
+    const pinnedCount = chats.filter(
+      c => c.pin === 'pinned' && (!connectedInstance || c.instance_id === connectedInstance)
+    ).length;
+    return pinnedCount >= 5;
+  }, [chats, connectedInstance]);
+
   return {
     chats,
     instancias,
@@ -814,5 +842,6 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     chatCounts,
     connectedInstance,
     instanceViewState,
+    isPinLimitReached,
   };
 }

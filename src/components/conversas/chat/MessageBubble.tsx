@@ -13,14 +13,25 @@ import { AudioPlayer } from './AudioPlayer';
 
 function FloatingPalette({ onReact, close }: { onReact: (emoji: string) => void, close: () => void }) {
   const emojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  const [selected, setSelected] = useState<string | null>(null);
+
   return (
-    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1 bg-white rounded-full shadow-lg border border-zinc-200 z-50 animate-in fade-in zoom-in-95 duration-200">
+    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-full shadow-lg border border-zinc-200/80 dark:border-zinc-700/80 z-50 animate-in fade-in zoom-in-95 duration-150 select-none">
       {emojis.map((e) => (
         <button
           key={e}
           type="button"
-          onClick={() => { onReact(e); close(); }}
-          className="text-xl hover:scale-125 transition-transform p-1"
+          onClick={() => {
+            setSelected(e);
+            setTimeout(() => {
+              onReact(e);
+              close();
+            }, 100);
+          }}
+          className={cn(
+            'text-xl p-1 rounded-full transition-all duration-150 hover:scale-130 active:scale-95',
+            selected === e && 'scale-140 rotate-6'
+          )}
         >
           {e}
         </button>
@@ -91,13 +102,17 @@ export function MessageBubble({
     : cn(cornerClass, 'rounded-b-md');
 
   // Ignora conteúdo gerado como fallback de mídia
+  const isSticker = mensagem.type === 'sticker';
+  const hasStickerMedia = isSticker && Boolean(mensagem.media_url);
+
   const isDefaultMediaContent =
-    mensagem.content === '🎤 Áudio' ||
-    mensagem.content === '🎥 Vídeo' ||
-    mensagem.content === '🎨 Figurinha' ||
-    mensagem.content?.startsWith('📄 ');
+    isMedia &&
+    ['🎤 Áudio', '🎥 Vídeo', '📎 Documento', '📷 Imagem', '🎨 Figurinha'].includes(mensagem.content);
 
   const showContent = Boolean(mensagem.content && !isDefaultMediaContent);
+
+  const reactions: any[] = Array.isArray((mensagem as any).reactions) ? (mensagem as any).reactions : [];
+  const hasReactions = reactions.length > 0;
 
   return (
     <div
@@ -154,10 +169,16 @@ export function MessageBubble({
 
       <div
         className={cn(
-          'relative w-fit min-w-[70px] max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm text-sm break-words',
-          isOwn ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8]' : 'bg-white text-zinc-900 border border-zinc-100',
-          radiusClass,
-          failed && 'border border-red-400',
+          'relative w-fit min-w-[60px] text-sm break-words',
+          hasReactions && 'mb-3',
+          hasStickerMedia
+            ? 'p-0 bg-transparent border-0 shadow-none'
+            : cn(
+                'max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm',
+                isOwn ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8]' : 'bg-white text-zinc-900 border border-zinc-100',
+                radiusClass,
+                failed && 'border border-red-400',
+              )
         )}
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
@@ -171,7 +192,42 @@ export function MessageBubble({
             </p>
           </div>
         ) : null}
-        {isMedia ? (
+
+        {hasStickerMedia ? (
+          /* Figurinha estilo WhatsApp: flutuante, sem borda de bolha e timestamp sutil */
+          <div className="relative inline-block select-none my-0.5">
+            <img
+              src={mensagem.media_url!}
+              alt="Figurinha"
+              className={cn(
+                'w-[130px] h-[130px] sm:w-[150px] sm:h-[150px] object-contain block drop-shadow-sm',
+                isPending && 'opacity-70 blur-[1px]'
+              )}
+              loading="lazy"
+            />
+            {isPending && (
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center rounded-lg">
+                <div className="p-2 rounded-full bg-black/50 text-white shadow-md">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              </div>
+            )}
+            {/* Timestamp flutuante no canto inferior da figurinha */}
+            <div className="absolute bottom-1 right-1 flex items-center gap-1 bg-black/45 backdrop-blur-[2px] text-white px-1.5 py-0.5 rounded-full text-[10px] leading-none shadow-sm select-none pointer-events-none">
+              <span className="text-[10px]">{formatTime(mensagem.timestamp)}</span>
+              {isOwn ? <StatusIcon status={mensagem.status} /> : null}
+              {failed && onRetry ? (
+                <button
+                  onClick={() => onRetry(mensagem.id)}
+                  className="ml-1 text-red-400 hover:text-red-200 pointer-events-auto"
+                  aria-label="Tentar enviar novamente"
+                >
+                  <RotateCw className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : isMedia ? (
           <div className="space-y-1">
             {mensagem.type === 'image' && (
               <div className="relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px]">
@@ -251,38 +307,25 @@ export function MessageBubble({
               <p className="whitespace-pre-wrap leading-relaxed mt-1">{mensagem.content}</p>
             )}
 
-            {/* Sticker: renderiza imagem WebP quando disponível */}
-            {mensagem.type === 'sticker' && (
-              mensagem.media_url ? (
-                <div className="relative rounded-lg overflow-hidden inline-block">
-                  <img
-                    src={mensagem.media_url}
-                    alt="Sticker"
-                    className={cn(
-                      'block object-contain',
-                      isPending && 'opacity-70 blur-[1px]'
-                    )}
-                    style={{ width: 200, height: 200 }}
-                    loading="lazy"
-                  />
-                  {isPending && (
-                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                      <div className="p-2 rounded-full bg-black/50 text-white shadow-md">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="w-[200px] h-[200px] bg-zinc-200 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
-                  Carregando figurinha...
-                </div>
-              )
+            {/* Figurinha sem mídia / pendente de download */}
+            {mensagem.type === 'sticker' && !mensagem.media_url && (
+              <div className="flex items-center gap-2 py-1 px-1 text-xs text-zinc-500">
+                {isPending ? (
+                  <>
+                    <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                    <span className="italic">Baixando figurinha...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base">🎨</span>
+                    <span className="italic">Figurinha não disponível</span>
+                  </>
+                )}
+              </div>
             )}
 
-            {!mensagem.media_url && !['image', 'audio', 'video', 'document'].includes(mensagem.type) && (
+            {!mensagem.media_url && !['image', 'audio', 'video', 'document', 'sticker'].includes(mensagem.type) && (
               <span className="text-zinc-500 italic text-xs">
-                {mensagem.type === 'sticker' && '🎨 Figurinha'}
                 {mensagem.type === 'location' && '📍 Localização'}
                 {mensagem.type === 'contact' && '👤 Contato'}
               </span>
@@ -292,8 +335,8 @@ export function MessageBubble({
           <p className="whitespace-pre-wrap leading-relaxed">{mensagem.content}</p>
         )}
 
-        {/* Footer: time + status icon (apenas no último do grupo) */}
-        {isLastInGroup ? (
+        {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
+        {!hasStickerMedia && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
             <span className="text-[10px] text-zinc-500 leading-none">
               {formatTime(mensagem.timestamp)}
@@ -310,6 +353,28 @@ export function MessageBubble({
             ) : null}
           </div>
         ) : null}
+
+        {/* Badge de Reações Estilo WhatsApp */}
+        {hasReactions && (
+          <div
+            className={cn(
+              'absolute -bottom-2.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs shadow-sm bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 select-none z-10 animate-in zoom-in-75 duration-150 hover:scale-110 transition-transform cursor-pointer',
+              isOwn ? 'right-2' : 'left-2'
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowReactions(prev => !prev);
+            }}
+            title={reactions.map((r: any) => `${r.emoji} (${r.sender || (r.fromMe ? 'Você' : 'Contato')})`).join(', ')}
+          >
+            {Array.from(new Set(reactions.map((r: any) => r.emoji))).slice(0, 3).map((e: any, idx) => (
+              <span key={idx} className="leading-none text-[13px]">{e}</span>
+            ))}
+            {reactions.length > 1 && (
+              <span className="text-[10px] text-zinc-500 font-medium ml-0.5">{reactions.length}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Botões de Ação para inbound (à direita da bolha) */}

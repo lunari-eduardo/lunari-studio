@@ -4,21 +4,38 @@
  * Visual premium: sem verde WhatsApp, sem azul double-check.
  * Indicador de não lida: ponto discreto à esquerda do avatar.
  * Badge de contexto: Lead / Cliente — discreto, monocromático.
+ * Menu de ações via "..." no hover.
  */
 
 import React from 'react';
-import { Pin } from 'lucide-react';
+import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { EnrichedChat } from '@/modules/conversas/types';
 import { ContactAvatar } from '../shared/ContactAvatar';
 import { formatChatTimestamp } from '../shared/format';
 import { useLazyContactAvatar } from './useLazyContactAvatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export interface ChatListItemProps {
   chat: EnrichedChat;
   isActive: boolean;
   onClick: () => void;
-  onTogglePin?: (chat: EnrichedChat, e: React.MouseEvent) => void;
+  /** Fixar / desafixar */
+  onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent | React.KeyboardEvent) => void;
+  isPinLimitReached?: boolean;
+  /** Arquivar / desarquivar */
+  onArchive?: (chat: EnrichedChat) => void;
+  /** Bloquear / desbloquear */
+  onBlock?: (chat: EnrichedChat) => void;
+  /** Marcar como não lida */
+  onMarkUnread?: (chat: EnrichedChat) => void;
+  /** Excluir conversa */
+  onDelete?: (chat: EnrichedChat) => void;
 }
 
 const CONTEXT_BADGE: Record<EnrichedChat['contato_tipo'], { label: string; className: string } | null> = {
@@ -32,11 +49,22 @@ export const ChatListItem = React.memo(function ChatListItem({
   isActive,
   onClick,
   onTogglePin,
+  isPinLimitReached = false,
+  onArchive,
+  onBlock,
+  onMarkUnread,
+  onDelete,
 }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
   const isUnread = unread > 0;
+  const isArchived = chat.status === 'archived';
+  const isBlocked = chat.status === 'blocked';
   const lastType = chat.ultima_mensagem_type;
   const badge = CONTEXT_BADGE[chat.contato_tipo];
+  const isPinned = chat.pin === 'pinned';
+  const canPinThisChat = isPinned || !isPinLimitReached;
+
+  const hasAnyAction = onTogglePin || onArchive || onBlock || onMarkUnread || onDelete;
 
   // Lazy avatar via IntersectionObserver
   const { avatar, elementRef } = useLazyContactAvatar(
@@ -60,9 +88,9 @@ export const ChatListItem = React.memo(function ChatListItem({
           : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50',
       )}
     >
-      {/* Indicador de não lida: ponto à esquerda do avatar */}
+      {/* Indicador de não lida: barra vertical à esquerda (estilo outlined) */}
       {isUnread && (
-        <span className="absolute left-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-r-full bg-zinc-900 dark:bg-zinc-100" />
       )}
 
       {/* Avatar */}
@@ -78,7 +106,7 @@ export const ChatListItem = React.memo(function ChatListItem({
         {/* Linha 1: Nome + badge contexto + timestamp */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            {chat.pin === 'pinned' && (
+            {isPinned && (
               <Pin className="h-3 w-3 text-amber-500 fill-amber-500 flex-shrink-0" />
             )}
             <span
@@ -118,10 +146,17 @@ export const ChatListItem = React.memo(function ChatListItem({
               : chat.ultima_mensagem ?? 'Sem mensagens ainda'}
           </span>
 
-          {/* Ações visíveis no hover */}
-          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* Pin rápido */}
-            {onTogglePin && (
+          {/* Ações: badge de unread + pin + menu */}
+          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Badge de não lida */}
+            {isUnread && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold mr-0.5">
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+
+            {/* Pin rápido (alternativa ao menu) */}
+            {onTogglePin && !hasAnyAction && canPinThisChat && (
               <span
                 role="button"
                 tabIndex={0}
@@ -134,21 +169,87 @@ export const ChatListItem = React.memo(function ChatListItem({
                 }}
                 className={cn(
                   'p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer',
-                  chat.pin === 'pinned'
+                  isPinned
                     ? 'text-amber-500'
                     : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300',
                 )}
-                title={chat.pin === 'pinned' ? 'Desafixar' : 'Fixar no topo'}
+                title={isPinned ? 'Desafixar' : 'Fixar no topo'}
               >
-                <Pin className={cn('h-3 w-3', chat.pin === 'pinned' ? 'fill-current' : '')} />
+                <Pin className={cn('h-3 w-3', isPinned ? 'fill-current' : '')} />
               </span>
             )}
 
-            {/* Badge de não lida (alternativa ao ponto) */}
-            {isUnread && (
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold">
-                {unread > 99 ? '99+' : unread}
-              </span>
+            {/* Menu de ações */}
+            {hasAnyAction && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.stopPropagation(); }}
+                    className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+                    title="Ações"
+                  >
+                    <MoreHorizontal className="h-3 w-3" />
+                  </span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {onTogglePin && (
+                    <DropdownMenuItem
+                      disabled={!canPinThisChat}
+                      onClick={(e) => {
+                        if (!canPinThisChat) return;
+                        e.stopPropagation();
+                        onTogglePin(chat);
+                      }}
+                      className={cn(!canPinThisChat && 'opacity-50 cursor-not-allowed')}
+                    >
+                      <Pin className="h-4 w-4 mr-2" />
+                      {isPinned
+                        ? 'Desafixar'
+                        : isPinLimitReached
+                        ? 'Fixar (Limite de 5 atingido)'
+                        : 'Fixar no topo'}
+                    </DropdownMenuItem>
+                  )}
+                  {onMarkUnread && (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onMarkUnread(chat); }}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      {isUnread ? 'Marcar como lida' : 'Marcar como não lida'}
+                    </DropdownMenuItem>
+                  )}
+                  {onArchive && (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onArchive(chat); }}
+                    >
+                      {isArchived
+                        ? <ArchiveRestore className="h-4 w-4 mr-2" />
+                        : <Archive className="h-4 w-4 mr-2" />}
+                      {isArchived ? 'Desarquivar' : 'Arquivar'}
+                    </DropdownMenuItem>
+                  )}
+                  {onBlock && (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onBlock(chat); }}
+                    >
+                      <Ban className="h-4 w-4 mr-2" />
+                      {isBlocked ? 'Desbloquear' : 'Bloquear'}
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onDelete(chat); }}
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir conversa
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
