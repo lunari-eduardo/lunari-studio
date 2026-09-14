@@ -85,7 +85,6 @@ export function MessageBubble({
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
   const isMedia = mensagem.type !== 'text';
-  const hasStickerMedia = isMedia && mensagem.type === 'sticker';
 
   // Cauda: canto cortado apenas no primeiro e último do grupo.
   const cornerClass = isOwn

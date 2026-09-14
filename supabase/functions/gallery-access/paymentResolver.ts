@@ -68,7 +68,7 @@ export async function resolvePaymentStatus(params: {
             p_manual_obs: null,
           });
         } catch (healErr) {
-          console.error(`[gallery-access] Auto-heal falhou para cobrança ${c.id}:`, healErr);
+          console.error("%s", `[gallery-access] Auto-heal falhou para cobrança ${c.id}:`, healErr);
         }
       }
     }

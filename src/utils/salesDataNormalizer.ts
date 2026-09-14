@@ -76,7 +76,7 @@ export function normalizeWorkflowItems(): NormalizedWorkflowData[] {
                 console.log(`⚠️ [SalesAnalytics] Cliente ${session.clienteId} sem origem no CRM`);
               }
             } catch (error) {
-              console.warn(`❌ [SalesAnalytics] Erro ao buscar origem no CRM para clientId ${session.clienteId}:`, error);
+              console.warn("%s", `❌ [SalesAnalytics] Erro ao buscar origem no CRM para clientId ${session.clienteId}:`, error);
             }
           }
           
@@ -117,7 +117,7 @@ export function normalizeWorkflowItems(): NormalizedWorkflowData[] {
 
           // Debug log detalhado para primeiras 3 sessões
           if (index < 3) {
-            console.log(`📊 [SalesAnalytics] Sessão ${index} normalizada:`, {
+            console.log("%s", `📊 [SalesAnalytics] Sessão ${index} normalizada:`, {
               id: normalized.id,
               dataOriginal: normalized.data,
               dataParsed: date.toISOString(),
@@ -133,7 +133,7 @@ export function normalizeWorkflowItems(): NormalizedWorkflowData[] {
 
           return normalized;
         } catch (error) {
-          console.error(`❌ [SalesAnalytics] Erro ao normalizar sessão ${index}:`, error);
+          console.error("%s", `❌ [SalesAnalytics] Erro ao normalizar sessão ${index}:`, error);
           return null;
         }
       })
@@ -158,7 +158,7 @@ export function normalizeWorkflowItems(): NormalizedWorkflowData[] {
     // Log específico para dados de julho 2025
     const julyData = activeSessions.filter(item => item.year === 2025 && item.month === 6); // Julho = 6
     if (julyData.length > 0) {
-      console.log(`🔍 [SalesAnalytics] Dados de Julho/2025 encontrados: ${julyData.length} sessões`, 
+      console.log("%s", `🔍 [SalesAnalytics] Dados de Julho/2025 encontrados: ${julyData.length} sessões`, 
         julyData.map(item => ({ data: item.data, month: item.month, valorPago: item.valorPago }))
       );
     }

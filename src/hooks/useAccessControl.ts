@@ -101,7 +101,7 @@ export const useAccessControlInternal = (opts?: { enabled?: boolean }): AccessCo
         const { data, error } = await supabase.rpc('get_access_state');
 
         if (error) {
-          console.error(`Access check attempt ${i + 1} failed:`, error);
+          console.error("%s", `Access check attempt ${i + 1} failed:`, error);
           
           // Primeiro verificar se é erro de autenticação
           if (isAuthError(error)) {
@@ -157,7 +157,7 @@ export const useAccessControlInternal = (opts?: { enabled?: boolean }): AccessCo
 
         return { status: 'no_subscription', reason: 'No data returned' };
       } catch (error: any) {
-        console.error(`Access check exception attempt ${i + 1}:`, error);
+        console.error("%s", `Access check exception attempt ${i + 1}:`, error);
         
         // Primeiro verificar se é erro de autenticação
         if (isAuthError(error)) {

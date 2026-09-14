@@ -232,7 +232,7 @@ export async function resolvePayment(params: {
             const ct = res.headers.get('content-type') || '';
             if (ct.includes('application/json')) return await res.json();
             const textBody = await res.text();
-            console.error(`❌ gallery-create-payment returned non-JSON (${ct}):`, textBody.substring(0, 300));
+            console.error("%s", `❌ gallery-create-payment returned non-JSON (${ct}):`, textBody.substring(0, 300));
             return null;
           };
 

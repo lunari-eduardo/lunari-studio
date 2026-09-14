@@ -234,7 +234,7 @@ export const useMonthLoader = ({
       try {
         await fetchAndCacheMonth(year, month);
       } catch (error) {
-        console.error(`❌ [WorkflowCache] Error loading ${key}:`, error);
+        console.error("%s", `❌ [WorkflowCache] Error loading ${key}:`, error);
         throw error;
       } finally {
         pendingLoads.current.delete(key);

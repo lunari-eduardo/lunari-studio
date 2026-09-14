@@ -279,7 +279,7 @@ export function useOnboarding() {
           data: formData,
         });
       } catch (err: any) {
-        console.error(`Erro ao salvar etapa ${stepToSave}:`, err);
+        console.error("%s", `Erro ao salvar etapa ${stepToSave}:`, err);
         toast.error('Erro ao salvar etapa. Tente novamente.');
         throw err;
       } finally {

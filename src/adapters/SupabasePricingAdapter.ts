@@ -250,7 +250,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
     // Try to load synchronously from cache, if empty try async load once
     console.warn(`SupabasePricingAdapter: No cached category table for: ${categoryId}, attempting async load...`);
     this.loadCategoryTableAsync(categoryId).catch(err => 
-      console.error(`Failed to async load category table for ${categoryId}:`, err)
+      console.error("%s", `Failed to async load category table for ${categoryId}:`, err)
     );
     return null;
   }
@@ -271,7 +271,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
         .maybeSingle();
 
       if (error) {
-        console.error(`Error loading category pricing table for ${categoryId}:`, error);
+        console.error("%s", `Error loading category pricing table for ${categoryId}:`, error);
         throw error;
       }
 
@@ -298,7 +298,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
       return null;
     } catch (error) {
-      console.error(`Failed to load category pricing table for ${categoryId}:`, error);
+      console.error("%s", `Failed to load category pricing table for ${categoryId}:`, error);
       return null;
     }
   }
@@ -376,7 +376,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
         if (error.code === '42P10') {
           console.error('❌ Unique constraint conflict for category table - this should not happen with id-based upsert');
         }
-        console.error(`❌ Error saving category pricing table for ${categoryId}:`, error);
+        console.error("%s", `❌ Error saving category pricing table for ${categoryId}:`, error);
         throw error;
       }
 
@@ -394,7 +394,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
       console.log(`✅ Successfully saved category pricing table: ${table.nome} for category ${categoryId}`);
     } catch (error) {
-      console.error(`❌ Failed to save category pricing table for ${categoryId}:`, error);
+      console.error("%s", `❌ Failed to save category pricing table for ${categoryId}:`, error);
       toast.error('Erro ao salvar tabela de preços por categoria');
       throw error;
     }

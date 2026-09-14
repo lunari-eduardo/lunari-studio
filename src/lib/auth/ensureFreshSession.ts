@@ -40,7 +40,7 @@ async function runRefresh(attempt = 1): Promise<{ session: Session | null; error
     return { session: data.session ?? null, error: null };
   } catch (e) {
     if (attempt < 3) {
-      console.warn(`[ensureFreshSession] Catch error no refresh. Tentativa ${attempt}/3. Retrying em 1s...`, e);
+      console.warn("%s", `[ensureFreshSession] Catch error no refresh. Tentativa ${attempt}/3. Retrying em 1s...`, e);
       await new Promise(r => setTimeout(r, 1000 * attempt));
       return runRefresh(attempt + 1);
     }

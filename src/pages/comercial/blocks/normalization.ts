@@ -133,7 +133,7 @@ export function normalizeBlock(raw: any): BlockData | null {
       });
 
     default:
-      console.warn(`Tipo de bloco desconhecido na normalização: ${type}`, raw);
+      console.warn("%s", `Tipo de bloco desconhecido na normalização: ${type}`, raw);
       // Tipo desconhecido: preserva como bloco de texto livre para não perder conteúdo
       return withId({
         type: 'text',

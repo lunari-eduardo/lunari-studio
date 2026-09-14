@@ -46,7 +46,7 @@ export async function repairAppointmentSessionDates() {
           const needsTimeFix = session.hora_sessao !== appointment.time;
 
           if (needsDateFix || needsTimeFix) {
-            console.log(`🔧 Repairing session ${session.id}:`, {
+            console.log("%s", `🔧 Repairing session ${session.id}:`, {
               date: needsDateFix ? `${session.data_sessao} → ${correctDate}` : 'OK',
               time: needsTimeFix ? `${session.hora_sessao} → ${appointment.time}` : 'OK'
             });
@@ -65,7 +65,7 @@ export async function repairAppointmentSessionDates() {
           }
         }
       } catch (error) {
-        console.error(`❌ Error repairing appointment ${appointment.id}:`, error);
+        console.error("%s", `❌ Error repairing appointment ${appointment.id}:`, error);
         errors++;
       }
     }

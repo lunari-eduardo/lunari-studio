@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
       error: authErr,
     } = await supabase.auth.getUser(token);
     if (authErr || !user) {
-      console.error(`[${requestId}] auth error`, authErr);
+      console.error("%s", `[${requestId}] auth error`, authErr);
       return json({ error: "Token inválido" }, 401);
     }
 
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     try {
       formData = await req.formData();
     } catch (e) {
-      console.error(`[${requestId}] formData parse error`, e);
+      console.error("%s", `[${requestId}] formData parse error`, e);
       return json(
         {
           error: "Body inválido (esperado multipart/form-data)",
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     try {
       creds = getR2Creds();
     } catch (e) {
-      console.error(`[${requestId}] R2 creds missing`, e);
+      console.error("%s", `[${requestId}] R2 creds missing`, e);
       return json({ error: e instanceof Error ? e.message : "R2 credentials missing" }, 500);
     }
 
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
           : undefined
       );
     } catch (e) {
-      console.error(`[${requestId}] r2Put error`, e);
+      console.error("%s", `[${requestId}] r2Put error`, e);
       return json({ error: e instanceof Error ? e.message : "Falha ao enviar para R2" }, 502);
     }
 
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
       200
     );
   } catch (e) {
-    console.error(`[${requestId}] fatal`, e);
+    console.error("%s", `[${requestId}] fatal`, e);
     return json({ error: e instanceof Error ? e.message : "Erro interno" }, 500);
   }
 });

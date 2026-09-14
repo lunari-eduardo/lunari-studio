@@ -112,7 +112,7 @@ async function downloadAllPhotosAsZip(
 
       zip.file(finalName, blob);
     } catch (err) {
-      console.warn(`Error fetching ${photo.filename}:`, err);
+      console.warn("%s", `Error fetching ${photo.filename}:`, err);
     }
 
     current++;

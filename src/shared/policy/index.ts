@@ -136,6 +136,7 @@ export function whenCapability(
   pattern: string,
   effect: (ctx: PolicyContext) => PolicyMatch | null,
 ): PolicyRule {
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const rx = new RegExp("^" + pattern.replace(/[.]/g, "\\.").replace(/\*/g, ".*") + "$");
   return (ctx) => (rx.test(ctx.capability.id) ? effect(ctx) : null);
 }

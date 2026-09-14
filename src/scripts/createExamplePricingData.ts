@@ -77,7 +77,7 @@ export async function createExamplePricingData() {
           .single();
 
         if (categoryError) {
-          console.error(`Failed to create category table for ${category.nome}:`, categoryError);
+          console.error("%s", `Failed to create category table for ${category.nome}:`, categoryError);
         } else {
           console.log(`✅ Created category pricing table: ${categoryData.nome}`);
         }

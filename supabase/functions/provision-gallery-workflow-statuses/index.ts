@@ -152,7 +152,7 @@ serve(async (req) => {
             .eq('id', existing.id);
 
           if (error) {
-            console.error(`❌ Erro ao atualizar ${statusDef.nome}:`, error);
+            console.error("%s", `❌ Erro ao atualizar ${statusDef.nome}:`, error);
             results.push({ nome: statusDef.nome, action: 'error', error: error.message });
           } else {
             console.log(`✅ Marcado como system status: ${statusDef.nome}`);
@@ -176,7 +176,7 @@ serve(async (req) => {
           });
 
         if (error) {
-          console.error(`❌ Erro ao criar ${statusDef.nome}:`, error);
+          console.error("%s", `❌ Erro ao criar ${statusDef.nome}:`, error);
           results.push({ nome: statusDef.nome, action: 'error', error: error.message });
         } else {
           console.log(`✅ Criado system status: ${statusDef.nome} (ordem: ${nextOrdem})`);

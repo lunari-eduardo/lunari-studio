@@ -29,7 +29,7 @@ function read(): BrandColor {
   }
   const cs = getComputedStyle(document.documentElement);
   const parse = (name: string, fallback: number) => {
-    const v = cs.getPropertyValue(name).trim().replace('%', '');
+    const v = cs.getPropertyValue(name).trim().replaceAll('%', '');
     const n = parseFloat(v);
     return Number.isFinite(n) ? n : fallback;
   };

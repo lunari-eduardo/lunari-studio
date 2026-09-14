@@ -23,8 +23,8 @@ async function logStep(
   detalhe: Record<string, unknown> = {},
 ) {
   const prefix = `[google-calendar-callback][${etapa}]`;
-  if (sucesso) console.log(prefix, JSON.stringify(detalhe));
-  else console.error(prefix, JSON.stringify(detalhe));
+  if (sucesso) console.log("%s", prefix, JSON.stringify(detalhe));
+  else console.error("%s", prefix, JSON.stringify(detalhe));
   try {
     await admin.from('google_oauth_debug').insert({
       user_id: userId,
@@ -33,7 +33,7 @@ async function logStep(
       detalhe,
     });
   } catch (e) {
-    console.error(`${prefix} falha ao gravar diagnóstico:`, e);
+    console.error("%s", `${prefix} falha ao gravar diagnóstico:`, e);
   }
 }
 

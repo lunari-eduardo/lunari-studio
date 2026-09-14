@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
 
     if (Object.keys(patchCliente).length > 0) {
       await supabase.from("clientes").update(patchCliente).eq("id", clienteId);
-      console.log(`[create-cobranca] CRM enriquecido para cliente=${clienteId}:`, Object.keys(patchCliente));
+      console.log("%s", `[create-cobranca] CRM enriquecido para cliente=${clienteId}:`, Object.keys(patchCliente));
     }
 
     const mergedCliente: ClienteContact = {

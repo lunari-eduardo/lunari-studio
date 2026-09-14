@@ -83,7 +83,7 @@ export async function migrateValorBasePacoteForClient(clienteId: string): Promis
         .eq('user_id', user.id);
 
       if (updateError) {
-        console.error(`❌ [Migration] Error updating session ${session.id}:`, updateError);
+        console.error("%s", `❌ [Migration] Error updating session ${session.id}:`, updateError);
       } else {
         corrected++;
         console.log(`✅ [Migration] Corrected session ${session.id}: valor_base_pacote = ${newValorBasePacote}`);

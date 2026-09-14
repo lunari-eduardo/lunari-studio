@@ -66,7 +66,7 @@ class EventBus {
         try {
           await l(event as DomainEvent<EventName>);
         } catch (e) {
-          console.error(`[event-bus] listener for "${name}" threw`, e);
+          console.error("%s", `[event-bus] listener for "${name}" threw`, e);
         }
       }),
     );

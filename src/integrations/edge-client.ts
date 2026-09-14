@@ -62,7 +62,7 @@ export async function invokeEdgeWorker<T = any>(
       return { data: text as unknown as T, error: null };
     }
   } catch (err: any) {
-    console.warn(`[invokeEdgeWorker:${functionName}] Falha na chamada ao Cloudflare Worker:`, err);
+    console.warn("%s", `[invokeEdgeWorker:${functionName}] Falha na chamada ao Cloudflare Worker:`, err);
     // Fallback gracioso para o Supabase Edge Functions caso ocorra falha de rede
     try {
       const { data, error } = await supabase.functions.invoke(functionName, {

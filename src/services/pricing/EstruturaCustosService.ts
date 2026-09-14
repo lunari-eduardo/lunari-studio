@@ -150,7 +150,7 @@ export class EstruturaCustosService {
       
       return await this.salvar(dadosAtualizados);
     } catch (error) {
-      console.error(`❌ Erro ao remover item de ${tipo}:`, error);
+      console.error("%s", `❌ Erro ao remover item de ${tipo}:`, error);
       return false;
     }
   }

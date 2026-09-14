@@ -97,6 +97,7 @@ export class DeadCodeCleaner {
         const names = namedImports[1].split(',').map(n => n.trim());
         names.forEach(name => {
           // Simple check: if name appears only in import, it might be unused
+          // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
           const namePattern = new RegExp(`\\b${name}\\b`, 'g');
           const occurrences = Array.from(code.matchAll(namePattern));
           

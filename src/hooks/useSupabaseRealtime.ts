@@ -67,7 +67,7 @@ export function useSupabaseRealtime(
           if (SUBSCRIPTION_DEBUG) console.log(`✅ [${tableName}] Successfully subscribed`);
         }
       } catch (error) {
-        console.error(`❌ Error setting up subscription for ${tableName}:`, error);
+        console.error("%s", `❌ Error setting up subscription for ${tableName}:`, error);
       }
     };
 

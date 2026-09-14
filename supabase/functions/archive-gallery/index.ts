@@ -60,7 +60,7 @@ async function deleteFromR2(
     });
     return res.ok || res.status === 204 || res.status === 404;
   } catch (e) {
-    console.error(`[archive-gallery] R2 delete failed for ${key}:`, e);
+    console.error("%s", `[archive-gallery] R2 delete failed for ${key}:`, e);
     return false;
   }
 }

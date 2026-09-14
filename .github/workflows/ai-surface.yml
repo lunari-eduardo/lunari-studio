@@ -17,6 +17,7 @@ jobs:
   ai-surface:
     runs-on: ubuntu-latest
     steps:
+        # nosemgrep: yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:

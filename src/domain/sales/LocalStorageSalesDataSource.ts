@@ -23,7 +23,7 @@ export class LocalStorageSalesDataSource implements SalesDataSource {
 
   private log(message: string, ...args: any[]) {
     if (this.config.enableDebugLogs) {
-      console.log(`🏪 [LocalStorageDataSource] ${message}`, ...args);
+      console.log("%s", `🏪 [LocalStorageDataSource] ${message}`, ...args);
     }
   }
 
@@ -64,7 +64,7 @@ export class LocalStorageSalesDataSource implements SalesDataSource {
       
       return 'nao-especificado';
     } catch (error) {
-      console.warn(`❌ [LocalStorageDataSource] Error loading client origin for ${clientId}:`, error);
+      console.warn("%s", `❌ [LocalStorageDataSource] Error loading client origin for ${clientId}:`, error);
       return 'nao-especificado';
     }
   }
@@ -141,7 +141,7 @@ export class LocalStorageSalesDataSource implements SalesDataSource {
 
         normalizedSessions.push(normalizedSession);
       } catch (error) {
-        console.error(`❌ [LocalStorageDataSource] Error normalizing session ${index}:`, error);
+        console.error("%s", `❌ [LocalStorageDataSource] Error normalizing session ${index}:`, error);
       }
     }
 

@@ -122,7 +122,7 @@ class RealtimeSubscriptionManager {
 
       return listenerId;
     } catch (error) {
-      console.error(`❌ Error subscribing to ${tableName}:`, error);
+      console.error("%s", `❌ Error subscribing to ${tableName}:`, error);
       return '';
     }
   }
@@ -273,7 +273,7 @@ class RealtimeSubscriptionManager {
             break;
         }
       } catch (error) {
-        console.error(`❌ Error in listener ${listenerId} for ${tableName}:`, error);
+        console.error("%s", `❌ Error in listener ${listenerId} for ${tableName}:`, error);
       }
     });
   }

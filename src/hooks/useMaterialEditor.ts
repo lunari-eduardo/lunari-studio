@@ -108,10 +108,14 @@ function setPath(obj: Record<string, any>, path: string, value: any): Record<str
   let cursor: any = clone;
   for (let i = 0; i < keys.length - 1; i++) {
     const k = keys[i];
+    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
     cursor[k] = Array.isArray(cursor[k]) ? [...cursor[k]] : { ...(cursor[k] ?? {}) };
     cursor = cursor[k];
   }
-  cursor[keys[keys.length - 1]] = value;
+  const lastKey = keys[keys.length - 1];
+  if (lastKey !== '__proto__' && lastKey !== 'constructor' && lastKey !== 'prototype') {
+    cursor[lastKey] = value;
+  }
   return clone as Record<string, any>;
 }
 

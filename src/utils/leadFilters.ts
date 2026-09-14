@@ -68,7 +68,7 @@ export function filterLeadsByPeriod(leads: Lead[], filter: FilterResult): Lead[]
     
     // Validação robusta de data
     if (isNaN(leadDate.getTime())) {
-      console.warn(`📅 [LeadFilters] Data inválida para lead ${lead.id}:`, lead.dataCriacao);
+      console.warn("%s", `📅 [LeadFilters] Data inválida para lead ${lead.id}:`, lead.dataCriacao);
       return false;
     }
     

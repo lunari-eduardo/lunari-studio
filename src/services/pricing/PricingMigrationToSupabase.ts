@@ -211,7 +211,7 @@ export class PricingMigrationToSupabase {
       try {
         localStorage.removeItem(key);
       } catch (e) {
-        console.warn(`Não foi possível remover ${key}:`, e);
+        console.warn("%s", `Não foi possível remover ${key}:`, e);
       }
     });
     

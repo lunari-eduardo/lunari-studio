@@ -46,7 +46,7 @@ export async function fingerprint(value: string | null | undefined): Promise<str
 
 /** Log estruturado único do fluxo — sempre com flow_id para correlação. */
 export function flog(flowId: string, stage: string, data: Record<string, unknown>) {
-  console.log(`[mcp:${stage}]`, JSON.stringify({ flow_id: flowId, ...data }));
+  console.log("%s", `[mcp:${stage}]`, JSON.stringify({ flow_id: flowId, ...data }));
 }
 
 export function decodeJwtPayload(jwt: string): Record<string, any> | null {

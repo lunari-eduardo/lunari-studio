@@ -249,7 +249,7 @@ export function AssistantChat() {
       // Executa assincronamente sem bloquear o effect.
       void (async () => {
         try {
-          console.info(`[LUNARI SYSTEM LOG] Iniciando tool ${toolName} com args:`, args);
+          console.info("%s", `[LUNARI SYSTEM LOG] Iniciando tool ${toolName} com args:`, args);
           // Convert namespaced name back (workflow__addPayment → workflow.addPayment).
           const capabilityId = toolName.replace(/__/g, ".");
           const result = await executeAssistantToolCall({
@@ -260,7 +260,7 @@ export function AssistantChat() {
           
           console.info(`[LUNARI SYSTEM LOG] tool ${capabilityId} finalizou com status: ${result.status}${result.latencyMs ? ` (${result.latencyMs}ms)` : ""}`);
           if (result.error) {
-            console.error(`[LUNARI SYSTEM ERROR] tool ${capabilityId} erro na execução local:`, result.error);
+            console.error("%s", `[LUNARI SYSTEM ERROR] tool ${capabilityId} erro na execução local:`, result.error);
             toast.error(`Erro interno da Tool ${capabilityId}: ${JSON.stringify(result.error)}`, { duration: 10000 });
           }
 
@@ -271,7 +271,7 @@ export function AssistantChat() {
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          console.error(`[LUNARI SYSTEM ERROR] tool ${toolName} exceção fatal capturada:`, message, err);
+          console.error("%s", `[LUNARI SYSTEM ERROR] tool ${toolName} exceção fatal capturada:`, message, err);
           toast.error(`Exceção fatal na Tool ${toolName}: ${message}`, { duration: 10000 });
           await addToolResult({
             tool: toolName,

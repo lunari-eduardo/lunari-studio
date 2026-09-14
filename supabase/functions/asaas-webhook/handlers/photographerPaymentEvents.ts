@@ -146,7 +146,7 @@ export async function upsertParcela(
     .maybeSingle();
 
   if (error) {
-    console.error(`Error upserting parcela ${payment.id}:`, error);
+    console.error("%s", `Error upserting parcela ${payment.id}:`, error);
     return false;
   }
 

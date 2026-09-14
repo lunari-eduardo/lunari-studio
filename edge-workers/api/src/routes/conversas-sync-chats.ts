@@ -429,7 +429,7 @@ export async function processSyncQueueBatch(
 
         processedCount++;
       } catch (err) {
-        console.warn(`[processSyncQueueBatch] Erro findMessages para ${item.remote_jid}:`, err);
+        console.warn("%s", `[processSyncQueueBatch] Erro findMessages para ${item.remote_jid}:`, err);
         await supabaseAdmin
           .from('conversas_sync_queue')
           .update({ status: 'error', error_msg: String(err), updated_at: new Date().toISOString() })

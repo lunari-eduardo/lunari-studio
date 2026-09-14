@@ -30,7 +30,7 @@ export function usePersistedState<T>(
         return parsed;
       }
     } catch (e) {
-      console.warn(`[usePersistedState] Error reading ${key}:`, e);
+      console.warn("%s", `[usePersistedState] Error reading ${key}:`, e);
     }
     return defaultValue;
   });
@@ -42,7 +42,7 @@ export function usePersistedState<T>(
     try {
       storage.setItem(key, JSON.stringify(state));
     } catch (e) {
-      console.warn(`[usePersistedState] Error saving ${key}:`, e);
+      console.warn("%s", `[usePersistedState] Error saving ${key}:`, e);
     }
   }, [key, state, storage]);
 

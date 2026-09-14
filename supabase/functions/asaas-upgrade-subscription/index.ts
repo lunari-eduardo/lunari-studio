@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
           { method: "DELETE", headers: { access_token: ASAAS_API_KEY } }
         );
         if (!cancelRes.ok) {
-          console.error(`Failed to cancel subscription ${currentSub.asaas_subscription_id} in Asaas:`, await cancelRes.text());
+          console.error("%s", `Failed to cancel subscription ${currentSub.asaas_subscription_id} in Asaas:`, await cancelRes.text());
         }
       }
 

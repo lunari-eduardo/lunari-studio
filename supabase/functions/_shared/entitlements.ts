@@ -13,7 +13,7 @@ export async function hasEntitlement(
     });
     
     if (error) {
-      console.error(`[hasEntitlement] Error checking key ${key} for user ${userId}:`, error);
+      console.error("%s", `[hasEntitlement] Error checking key ${key} for user ${userId}:`, error);
       return false;
     }
     

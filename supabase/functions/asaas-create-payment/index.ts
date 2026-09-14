@@ -277,14 +277,14 @@ Deno.serve(async (req) => {
           asaasData = retry.asaasData;
           ok = retry.ok;
         } else {
-          console.error(`[${requestId}] Customer recreation failed:`, createData);
+          console.error("%s", `[${requestId}] Customer recreation failed:`, createData);
         }
       }
     }
 
     if (!ok) {
       const errorMsg = asaasData.errors?.[0]?.description || "Falha ao processar pagamento com cartão";
-      console.error(`[${requestId}] Asaas payment error:`, JSON.stringify(asaasData.errors || asaasData));
+      console.error("%s", `[${requestId}] Asaas payment error:`, JSON.stringify(asaasData.errors || asaasData));
       return new Response(JSON.stringify({ error: errorMsg, requestId }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (purchaseError) {
-          console.error(`[${requestId}] Purchase insert error:`, purchaseError);
+          console.error("%s", `[${requestId}] Purchase insert error:`, purchaseError);
         } else {
           const { error: rpcError } = await adminClient.rpc("purchase_credits", {
             _user_id: userId,
@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
           });
 
           if (rpcError) {
-            console.error(`[${requestId}] RPC purchase_credits error:`, rpcError);
+            console.error("%s", `[${requestId}] RPC purchase_credits error:`, rpcError);
           } else {
             console.log(`[${requestId}] Credits added: ${credits} for user ${userId}`);
           }
@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error(`[${requestId}] Insert subscription error:`, insertError);
+      console.error("%s", `[${requestId}] Insert subscription error:`, insertError);
     }
 
     return new Response(
@@ -398,7 +398,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error(`[${requestId}] Error:`, error);
+    console.error("%s", `[${requestId}] Error:`, error);
     return new Response(
       JSON.stringify({ error: error.message, requestId }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

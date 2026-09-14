@@ -86,7 +86,7 @@ export async function conversasMarkReadRoute(c: Context<{ Bindings: Bindings }>)
       });
 
       if (!response.ok) {
-        console.warn(`[conversas-mark-read] Failed to mark read in Evolution: ${response.status}`, await response.text());
+        console.warn("%s", `[conversas-mark-read] Failed to mark read in Evolution: ${response.status}`, await response.text());
       }
     }
 

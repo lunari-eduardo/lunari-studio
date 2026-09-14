@@ -19,7 +19,7 @@ export class SupabaseSalesDataSource implements SalesDataSource {
   }
 
   private log(message: string, ...args: any[]) {
-    console.log(`📊 [SupabaseDataSource] ${message}`, ...args);
+    console.log("%s", `📊 [SupabaseDataSource] ${message}`, ...args);
   }
 
   private parseNumericValue(value: any): number {

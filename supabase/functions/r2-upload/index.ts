@@ -79,7 +79,7 @@ async function uploadToR2WithRetry(
       await uploadToR2(accountId, accessKeyId, secretAccessKey, bucketName, key, body, contentType);
       return; // success
     } catch (err) {
-      console.error(`[${requestId}] R2 attempt ${attempt + 1} failed:`, err);
+      console.error("%s", `[${requestId}] R2 attempt ${attempt + 1} failed:`, err);
       if (attempt === maxAttempts - 1) throw err;
     }
   }
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error(`[${requestId}] Auth error:`, authError);
+      console.error("%s", `[${requestId}] Auth error:`, authError);
       return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (galleryError || !gallery || gallery.user_id !== user.id) {
-      console.error(`[${requestId}] Gallery access denied:`, galleryError);
+      console.error("%s", `[${requestId}] Gallery access denied:`, galleryError);
       return new Response(JSON.stringify({ error: "Galeria não encontrada ou sem permissão" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (folderError || !folder) {
-        console.error(`[${requestId}] Invalid folder context: folderId=${folderId}, galleryId=${galleryId}`, folderError);
+        console.error("%s", `[${requestId}] Invalid folder context: folderId=${folderId}, galleryId=${galleryId}`, folderError);
         return new Response(
           JSON.stringify({ error: "Pasta inválida para esta galeria", code: "INVALID_FOLDER_CONTEXT" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
         );
 
         if (creditError || !hasCredits) {
-          console.error(`[${requestId}] Credit check failed:`, creditError);
+          console.error("%s", `[${requestId}] Credit check failed:`, creditError);
           return new Response(
             JSON.stringify({ 
               error: 'Créditos insuficientes',
@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error(`[${requestId}] DB insert error:`, insertError);
+      console.error("%s", `[${requestId}] DB insert error:`, insertError);
       // If unique constraint on upload_key, treat as idempotent hit
       if (insertError.code === '23505' && uploadKey) {
         console.log(`[${requestId}] Duplicate upload_key detected, fetching existing`);
@@ -445,7 +445,7 @@ Deno.serve(async (req) => {
         );
 
         if (consumeError || !creditConsumed) {
-          console.error(`[${requestId}] ⚠️ Credit consumption failed after successful upload:`, consumeError);
+          console.error("%s", `[${requestId}] ⚠️ Credit consumption failed after successful upload:`, consumeError);
         } else {
           console.log(`[${requestId}] Credit consumed successfully`);
         }
@@ -477,7 +477,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error(`[${requestId}] Error:`, error);
+    console.error("%s", `[${requestId}] Error:`, error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Erro interno" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

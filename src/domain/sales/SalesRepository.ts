@@ -26,7 +26,7 @@ export class SalesRepositoryImpl implements SalesRepository {
 
   private log(message: string, ...args: any[]) {
     if (import.meta.env.VITE_DEBUG_SALES === 'true') {
-      console.log(`📊 [SalesRepository] ${message}`, ...args);
+      console.log("%s", `📊 [SalesRepository] ${message}`, ...args);
     }
   }
 

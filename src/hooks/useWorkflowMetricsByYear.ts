@@ -87,7 +87,7 @@ export function useWorkflowMetricsByYear(year: number): WorkflowMetricsByYear {
           sessoes: dados.sessoes
         }));
 
-        console.log(`✅ [WorkflowMetricsByYear] Metrics for ${year}:`, result);
+        console.log("%s", `✅ [WorkflowMetricsByYear] Metrics for ${year}:`, result);
         setMetricsPorMes(result);
       } catch (err) {
         console.error('❌ [WorkflowMetricsByYear] Error:', err);

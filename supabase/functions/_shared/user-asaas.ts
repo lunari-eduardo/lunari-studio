@@ -31,7 +31,7 @@ export async function getPhotographerAsaasConfig(
     .maybeSingle();
 
   if (error) {
-    console.error(`[user-asaas] Erro ao buscar integracao Asaas para user ${userId}:`, error);
+    console.error("%s", `[user-asaas] Erro ao buscar integracao Asaas para user ${userId}:`, error);
     return null;
   }
 

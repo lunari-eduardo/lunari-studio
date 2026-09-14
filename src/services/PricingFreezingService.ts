@@ -64,7 +64,7 @@ class PricingFreezingService {
         
         if (user?.user) {
           const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(pacoteId);
-          console.log(`📦 Buscando pacote por ${isUuid ? 'ID (UUID)' : 'NOME'}:`, pacoteId);
+          console.log("%s", `📦 Buscando pacote por ${isUuid ? 'ID (UUID)' : 'NOME'}:`, pacoteId);
           
           let query = supabase
             .from('pacotes')

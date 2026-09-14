@@ -82,7 +82,7 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
 
       if (!response.ok) {
         const errText = await response.text();
-        console.warn(`[conversas-message-delete] Evolution API error: ${response.status}`, errText);
+        console.warn("%s", `[conversas-message-delete] Evolution API error: ${response.status}`, errText);
         // Continuamos e deletamos do DB de qualquer forma para não travar a UI? 
         // Depende da regra de negócios. Em muitos casos, se falhar na Evolution (ex: tempo limite excedido),
         // avisamos o usuário que não é possível apagar para todos, apenas apaga local.

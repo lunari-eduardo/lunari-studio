@@ -33,7 +33,7 @@ export function useShareTracking({ token, slug }: { token?: string, slug?: strin
         }
       });
     } catch (err) {
-      console.error(`Falha ao registrar evento ${eventType}:`, err);
+      console.error("%s", `Falha ao registrar evento ${eventType}:`, err);
     }
   }, [token, slug]);
 

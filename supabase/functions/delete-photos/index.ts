@@ -95,7 +95,7 @@ async function deleteFromR2(
 
     return response.ok || response.status === 204;
   } catch (error) {
-    console.error(`Failed to delete R2 file ${key}:`, error);
+    console.error("%s", `Failed to delete R2 file ${key}:`, error);
     return false;
   }
 }

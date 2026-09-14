@@ -400,7 +400,7 @@ export async function createAsaasPayment(
       pixQrCodeBase64 = qrResult.encodedImage;
     } else {
       pixQrCodeMissing = true;
-      console.warn(`[asaas-adapter] Falha não impeditiva ao buscar QR Code Pix para payment=${payData.id}:`, qrResult.error);
+      console.warn("%s", `[asaas-adapter] Falha não impeditiva ao buscar QR Code Pix para payment=${payData.id}:`, qrResult.error);
     }
   }
 

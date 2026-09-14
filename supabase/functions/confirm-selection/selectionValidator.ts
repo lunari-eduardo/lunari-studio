@@ -187,7 +187,7 @@ export async function validateAndLockSelection(params: {
               p_manual_obs: null,
             });
           } catch (healErr) {
-            console.error(`❌ Auto-heal falhou para cobrança ${c.id}:`, healErr);
+            console.error("%s", `❌ Auto-heal falhou para cobrança ${c.id}:`, healErr);
           }
         }
         const { data: refreshed } = await supabase

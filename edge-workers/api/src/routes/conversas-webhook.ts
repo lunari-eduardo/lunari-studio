@@ -673,9 +673,9 @@ async function handleConnectionUpdate(
       instance.id,
       instance.instance_name,
     ).then(res => {
-      console.log(`[conversas-webhook] Auto-sync concluído para ${instance.instance_name}:`, res);
+      console.log("%s", `[conversas-webhook] Auto-sync concluído para ${instance.instance_name}:`, res);
     }).catch(err => {
-      console.error(`[conversas-webhook] Erro no auto-sync para ${instance.instance_name}:`, err);
+      console.error("%s", `[conversas-webhook] Erro no auto-sync para ${instance.instance_name}:`, err);
     });
 
     if (ctx && typeof (ctx as any).waitUntil === 'function') {

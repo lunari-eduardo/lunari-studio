@@ -317,7 +317,7 @@ export async function corrigirSessoesModeloFixo(): Promise<{ migrated: number; s
               .eq('user_id', user.user.id);
 
             if (updateError) {
-              console.error(`❌ Erro ao atualizar sessão ${sessao.id}:`, updateError);
+              console.error("%s", `❌ Erro ao atualizar sessão ${sessao.id}:`, updateError);
               skipped++;
             } else {
               console.log(`✅ Sessão ${sessao.id} corrigida: R$ ${valorFotoExtra}`);
@@ -330,7 +330,7 @@ export async function corrigirSessoesModeloFixo(): Promise<{ migrated: number; s
           skipped++;
         }
       } catch (error) {
-        console.error(`❌ Erro ao processar sessão ${sessao.id}:`, error);
+        console.error("%s", `❌ Erro ao processar sessão ${sessao.id}:`, error);
         skipped++;
       }
     }

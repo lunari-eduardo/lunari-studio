@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
 
         if (!response.ok) {
           const txt = await response.text();
-          console.error(`[sync-all] Failed for ${appt.id}:`, txt);
+          console.error("%s", `[sync-all] Failed for ${appt.id}:`, txt);
           result.failed++;
           result.errors.push(`${clientName}: ${txt.slice(0, 200)}`);
           await supabase

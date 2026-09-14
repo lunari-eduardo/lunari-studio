@@ -38,7 +38,7 @@ export async function migrateCreditCardsToSupabase(): Promise<{
         console.log(`✅ Cartão migrado: ${card.nome}`);
       } catch (error) {
         errors++;
-        console.error(`❌ Erro ao migrar cartão ${card.nome}:`, error);
+        console.error("%s", `❌ Erro ao migrar cartão ${card.nome}:`, error);
       }
     }
 

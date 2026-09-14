@@ -263,7 +263,7 @@ export function useSalesAnalytics(
       };
     }).sort((a, b) => b.sessions - a.sessions);
     
-    console.log(`🎯 [useSalesAnalytics] ${origins.length} origens encontradas`, 
+    console.log("%s", `🎯 [useSalesAnalytics] ${origins.length} origens encontradas`, 
       origins.map(o => `${o.name}: ${o.sessions} sessões, R$ ${o.revenue.toLocaleString()}`));
     return origins;
   }, [filteredData, selectedYear, selectedCategory]);

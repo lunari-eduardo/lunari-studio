@@ -42,7 +42,7 @@ export function setStorageItem<T>(key: string, value: T): void {
   try {
     localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value, dateReplacer));
   } catch (error) {
-    console.error(`Error saving ${key} to localStorage`, error);
+    console.error("%s", `Error saving ${key} to localStorage`, error);
   }
 }
 

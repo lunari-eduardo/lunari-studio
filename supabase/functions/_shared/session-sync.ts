@@ -77,7 +77,7 @@ export async function syncSessionOnFinalize(args: SyncSessionArgs): Promise<Sync
     try { body = JSON.parse(text); } catch { /* keep raw */ }
 
     if (!res.ok) {
-      console.warn(`[syncSessionOnFinalize] falha HTTP ${res.status} para galeria ${galleryId}:`, body);
+      console.warn("%s", `[syncSessionOnFinalize] falha HTTP ${res.status} para galeria ${galleryId}:`, body);
       try {
         await supabase.from('audit_log').insert({
           action: 'SESSION_SYNC_EDGE_FAIL',
@@ -96,7 +96,7 @@ export async function syncSessionOnFinalize(args: SyncSessionArgs): Promise<Sync
     return { ok: true, status: res.status, body };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[syncSessionOnFinalize] erro de rede para galeria ${galleryId}:`, msg);
+    console.warn("%s", `[syncSessionOnFinalize] erro de rede para galeria ${galleryId}:`, msg);
     try {
       await supabase.from('audit_log').insert({
         action: 'SESSION_SYNC_EDGE_FAIL',

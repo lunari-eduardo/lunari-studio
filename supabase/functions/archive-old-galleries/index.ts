@@ -57,7 +57,7 @@ async function deleteFromR2(
     });
     return res.ok || res.status === 204 || res.status === 404;
   } catch (e) {
-    console.error(`[archive-old-galleries] R2 delete failed for ${key}:`, e);
+    console.error("%s", `[archive-old-galleries] R2 delete failed for ${key}:`, e);
     return false;
   }
 }
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
             
             if (rpcErr) {
                 // Se o RPC não permitir admin, caímos para deleção manual:
-                console.error(`[archive-old-galleries] RPC error for ${galeria.id}:`, rpcErr);
+                console.error("%s", `[archive-old-galleries] RPC error for ${galeria.id}:`, rpcErr);
                 errorsList.push({ id: galeria.id, err: rpcErr.message });
                 continue;
             }
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
             totalProcessed++;
 
         } catch(err: any) {
-            console.error(`Error processing gallery ${galeria.id}:`, err);
+            console.error("%s", `Error processing gallery ${galeria.id}:`, err);
             errorsList.push({ id: galeria.id, err: err.message });
         }
     }

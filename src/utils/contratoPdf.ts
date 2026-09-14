@@ -240,6 +240,7 @@ function buildPdfRoot(opts: GenerateContratoPdfOptions): HTMLElement {
 
   root.appendChild(styleEl);
 
+  // nosemgrep: typescript.react.security.audit.react-unsanitized-method.react-unsanitized-method
   root.insertAdjacentHTML('beforeend', `
     <div class="contrato-pdf-header">
       <h1 class="titulo-fixo">${escapeHtml(PDF_TITLE_FIXO)}</h1>
