@@ -30,6 +30,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     pinChat,
     unpinChat,
     deleteChat,
+    markAsUnread,
     syncHistoricalChats,
   } = useConversas();
 
@@ -158,6 +159,10 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
               await deleteChat(selectedChat.id);
               setSelectedChatId(null);
               setMobileShowChat(false);
+            }}
+            onMarkUnread={async () => {
+              await markAsUnread(selectedChat.id);
+              toast.success('Marcado como não lido');
             }}
           />
         ) : (

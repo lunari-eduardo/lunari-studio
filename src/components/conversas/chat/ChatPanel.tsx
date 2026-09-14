@@ -24,6 +24,7 @@ export interface ChatPanelProps {
   onBlock: () => void;
   onPin: () => void;
   onDelete: () => void;
+  onMarkUnread?: () => void;
 }
 
 function groupByDay(messages: Mensagem[]): Array<{ day: string; items: Mensagem[] }> {
@@ -61,6 +62,7 @@ export function ChatPanel({
   onBlock,
   onPin,
   onDelete,
+  onMarkUnread,
 }: ChatPanelProps) {
   const {
     mensagens,
@@ -174,6 +176,7 @@ export function ChatPanel({
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
+          onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
         />
         <MessagesSkeleton />
@@ -192,6 +195,7 @@ export function ChatPanel({
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
+          onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
         />
 
@@ -237,6 +241,7 @@ export function ChatPanel({
                         messages={item.group!}
                         onRetry={retryMessage}
                         onReply={setReplyingTo}
+                        onDelete={deleteMessage}
                       />
                     )}
                   </div>

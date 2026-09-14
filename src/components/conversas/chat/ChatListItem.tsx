@@ -17,6 +17,12 @@ export interface ChatListItemProps {
   isActive: boolean;
   onClick: () => void;
   onTogglePin?: (chat: Chat, e: React.MouseEvent) => void;
+  onArchive?: (id: string) => void;
+  onUnarchive?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onPin?: (id: string) => void;
+  onUnpin?: (id: string) => void;
+  onMarkUnread?: (id: string) => void;
 }
 
 import React from 'react';

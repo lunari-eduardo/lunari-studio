@@ -9,9 +9,10 @@ export interface MessageGroupProps {
   messages: Mensagem[];
   onRetry?: (id: string) => void;
   onReply?: (mensagem: Mensagem) => void;
+  onDelete?: (id: string) => void;
 }
 
-export function MessageGroup({ messages, onRetry, onReply }: MessageGroupProps) {
+export function MessageGroup({ messages, onRetry, onReply, onDelete }: MessageGroupProps) {
   if (messages.length === 0) return null;
   const isOwn = messages[0].direction === 'outbound';
 
@@ -25,6 +26,7 @@ export function MessageGroup({ messages, onRetry, onReply }: MessageGroupProps) 
           isLastInGroup={idx === messages.length - 1}
           onRetry={onRetry}
           onReply={onReply}
+          onDelete={onDelete}
         />
       ))}
     </div>

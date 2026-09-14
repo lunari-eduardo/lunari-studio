@@ -28,6 +28,7 @@ import { conversasSyncChatsRoute } from './routes/conversas-sync-chats.js';
 import { conversasMessageRetryRoute } from './routes/conversas-message-retry.js';
 import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 import { conversasMarkReadRoute } from './routes/conversas-mark-read.js';
+import { conversasMessageDeleteRoute } from './routes/conversas-message-delete.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -108,5 +109,6 @@ app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
 app.post('/api/conversas/sync-chats', conversasSyncChatsRoute);
 app.post('/api/conversas/fetch-avatar', conversasFetchAvatarRoute);
 app.post('/api/conversas/mark-read/:chatId', conversasMarkReadRoute);
+app.delete('/api/conversas/message/delete/:id', conversasMessageDeleteRoute);
 
 export default app;

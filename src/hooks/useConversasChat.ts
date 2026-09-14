@@ -44,6 +44,7 @@ export interface UseConversasChatReturn {
   }) => Promise<void>;
 
   retryMessage: (mensagemId: string) => Promise<void>;
+  deleteMessage: (mensagemId: string) => Promise<void>;
 
   addNota: (content: string) => Promise<void>;
   updateNota: (notaId: string, content: string) => Promise<void>;
@@ -339,6 +340,19 @@ export function useConversasChat(
           );
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'conversas_mensagens',
+          filter: `chat_id=eq.${chatId}`,
+        },
+        (payload) => {
+          if (DEBUG) console.log('[ConversasChat] Message delete:', payload.old);
+          setMensagens(prev => prev.filter(m => m.id !== payload.old.id));
+        },
+      )
       .subscribe();
 
     realtimeChannelRef.current = channel;
@@ -608,6 +622,34 @@ export function useConversasChat(
     [mensagens],
   );
 
+  const deleteMessage = useCallback(async (mensagemId: string) => {
+    // Snapshot
+    const snapshot = mensagens;
+    setMensagens(prev => prev.filter(m => m.id !== mensagemId));
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+      const response = await fetch(`${workerUrl}/api/conversas/message/delete/${mensagemId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error ?? 'Erro ao apagar mensagem');
+      }
+      toast.success('Mensagem apagada');
+    } catch (err: any) {
+      toast.error('Erro ao apagar: ' + err.message);
+      // Revert on error
+      setMensagens(snapshot);
+    }
+  }, [mensagens]);
+
   // ─── Notes ───────────────────────────────────────────────────────────────────
 
   const addNota = useCallback(
@@ -683,6 +725,7 @@ export function useConversasChat(
     sendMessage,
     sendMediaMessage,
     retryMessage,
+    deleteMessage,
     addNota,
     updateNota,
     deleteNota,

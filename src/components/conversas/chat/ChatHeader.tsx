@@ -21,6 +21,7 @@ export interface ChatHeaderProps {
   onBlock?: () => void;
   onPin?: () => void;
   onDelete?: () => void;
+  onMarkUnread?: () => void;
   notesOpen: boolean;
 }
 
@@ -32,6 +33,7 @@ export function ChatHeader({
   onBlock,
   onPin,
   onDelete,
+  onMarkUnread,
   notesOpen,
 }: ChatHeaderProps) {
   return (
@@ -104,6 +106,11 @@ export function ChatHeader({
             <DropdownMenuItem onSelect={onArchive}>
               {chat.status === 'archived' ? 'Desarquivar' : 'Arquivar'}
             </DropdownMenuItem>
+            {chat.unread_count === 0 && onMarkUnread ? (
+              <DropdownMenuItem onSelect={onMarkUnread}>
+                Marcar como não lido
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onSelect={onBlock}>
               {chat.status === 'blocked' ? 'Desbloquear' : 'Bloquear'}
             </DropdownMenuItem>

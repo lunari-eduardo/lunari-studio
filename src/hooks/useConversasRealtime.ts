@@ -46,6 +46,7 @@ export interface UseConversasReturn {
   pinChat: (chatId: string) => Promise<void>;
   unpinChat: (chatId: string) => Promise<void>;
   markAsRead: (chatId: string) => Promise<void>;
+  markAsUnread: (chatId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
   refreshQrCode: (instanceId: string) => Promise<void>;
   createInstance: (instanceName: string) => Promise<void>;
@@ -321,6 +322,24 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     },
     [],
   );
+
+  const markAsUnread = useCallback(async (chatId: string) => {
+    setChats(prev =>
+      prev.map(c =>
+        c.id === chatId ? { ...c, unread_count: 1 } as Chat : c,
+      ),
+    );
+
+    const { error } = await supabase
+      .from('conversas_chats')
+      .update({ unread_count: 1, updated_at: new Date().toISOString() })
+      .eq('id', chatId);
+
+    if (error) {
+      console.error('[Conversas] markAsUnread error:', error);
+      toast.error('Erro ao marcar como não lido');
+    }
+  }, []);
 
   const deleteChat = useCallback(async (chatId: string) => {
     // Snapshot
@@ -704,6 +723,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     pinChat,
     unpinChat,
     markAsRead,
+    markAsUnread,
     deleteChat,
     refreshQrCode,
     createInstance,

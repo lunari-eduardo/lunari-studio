@@ -578,11 +578,20 @@ async function handleChatsSet(
       : phoneRaw;
 
     const pushName = chat.name || chat.pushName || null;
+    const unreadCount = chat.unreadMessages || chat.unreadCount;
 
     const contatoId = await getOrCreateContato(supabase, instance.user_id, phoneNormalized, phoneRaw, pushName);
     if (!contatoId) continue;
 
-    await getOrCreateChat(supabase, instance.user_id, contatoId, instance.id, phoneNormalized, pushName);
+    const chatId = await getOrCreateChat(supabase, instance.user_id, contatoId, instance.id, phoneNormalized, pushName);
+    
+    if (chatId && typeof unreadCount === 'number') {
+      await supabase
+        .from('conversas_chats')
+        .update({ unread_count: unreadCount })
+        .eq('id', chatId)
+        .eq('user_id', instance.user_id);
+    }
   }
 }
 
@@ -682,6 +691,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
 
       case 'CHATS_SET':
       case 'CHATS_UPSERT':
+      case 'CHATS_UPDATE':
         await handleChatsSet(supabase, payload, instance);
         break;
 

@@ -4,7 +4,7 @@
  * Suporta texto + mídia (imagem, áudio, vídeo, documento) + caudas quando agrupadas.
  */
 
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
@@ -18,6 +18,7 @@ export interface MessageBubbleProps {
   isLastInGroup?: boolean;
   onRetry?: (id: string) => void;
   onReply?: (mensagem: Mensagem) => void;
+  onDelete?: (id: string) => void;
 }
 
 function StatusIcon({ status }: { status?: MessageStatus }) {
@@ -43,6 +44,7 @@ export function MessageBubble({
   isLastInGroup = true,
   onRetry,
   onReply,
+  onDelete,
 }: MessageBubbleProps) {
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
@@ -82,17 +84,32 @@ export function MessageBubble({
         isOwn ? 'justify-end' : 'justify-start'
       )}
     >
-      {/* Botão de Responder (aparece no hover da mensagem para outbound) */}
-      {isOwn && onReply && (
-        <button
-          type="button"
-          onClick={() => onReply(mensagem)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
-          title="Responder mensagem"
-          aria-label="Responder"
-        >
-          <Reply className="h-3.5 w-3.5" />
-        </button>
+      {/* Botões de Ação (aparecem no hover da mensagem para outbound) */}
+      {isOwn && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(mensagem.id)}
+              className="p-1.5 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-500"
+              title="Apagar mensagem"
+              aria-label="Apagar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onReply && (
+            <button
+              type="button"
+              onClick={() => onReply(mensagem)}
+              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+              title="Responder mensagem"
+              aria-label="Responder"
+            >
+              <Reply className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       )}
 
       <div
@@ -226,17 +243,32 @@ export function MessageBubble({
         ) : null}
       </div>
 
-      {/* Botão de Responder para inbound (à direita da bolha) */}
-      {!isOwn && onReply && (
-        <button
-          type="button"
-          onClick={() => onReply(mensagem)}
-          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
-          title="Responder mensagem"
-          aria-label="Responder"
-        >
-          <Reply className="h-3.5 w-3.5" />
-        </button>
+      {/* Botões de Ação para inbound (à direita da bolha) */}
+      {!isOwn && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {onReply && (
+            <button
+              type="button"
+              onClick={() => onReply(mensagem)}
+              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+              title="Responder mensagem"
+              aria-label="Responder"
+            >
+              <Reply className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(mensagem.id)}
+              className="p-1.5 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-500"
+              title="Apagar mensagem (apenas para mim)"
+              aria-label="Apagar"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
