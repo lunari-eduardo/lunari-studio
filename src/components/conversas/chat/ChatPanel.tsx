@@ -67,13 +67,14 @@ export function ChatPanel({
     notas,
     isLoading,
     sendMessage,
+    sendMediaMessage,
     retryMessage,
     addNota,
     deleteNota,
     markAllRead,
     hasMore,
     loadMore,
-  } = useConversasChat(chat.id);
+  } = useConversasChat(chat.id, { autoMarkRead: true });
 
   const [notesOpen, setNotesOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -249,46 +250,13 @@ export function ChatPanel({
           }}
           disabled={isUploadingMedia}
           onAttach={async (file, kind) => {
+            if (kind === 'contact') {
+              toast.info('Envio de contato em breve');
+              return;
+            }
             try {
               setIsUploadingMedia(true);
-              const toastId = toast.loading('Enviando mídia...');
-              const { data: { session } } = await supabase.auth.getSession();
-              if (!session?.access_token) {
-                toast.error('Não autorizado', { id: toastId });
-                return;
-              }
-
-              const formData = new FormData();
-              formData.append('file', file);
-              formData.append('chatId', chat.id);
-
-              const workerUrl = import.meta.env.VITE_EDGE_API_URL;
-              const res = await fetch(`${workerUrl}/api/conversas/media-upload`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${session.access_token}` },
-                body: formData,
-              });
-
-              if (!res.ok) throw new Error(await res.text());
-
-              const data = await res.json();
-              
-              if (data.mediaUrl) {
-                await sendMessage({
-                  content: '', 
-                  type: kind,
-                  mediaUrl: data.mediaUrl,
-                  mediaMimeType: data.mediaMimeType,
-                  mediaFilename: data.mediaFilename,
-                  mediaSizeBytes: data.mediaSizeBytes
-                });
-                toast.success('Mídia enviada', { id: toastId });
-              } else {
-                throw new Error('Upload falhou sem URL');
-              }
-            } catch (err) {
-              console.error(err);
-              toast.error('Erro ao enviar mídia. Verifique se o Worker foi feito deploy.', { id: toastId });
+              await sendMediaMessage(file, kind);
             } finally {
               setIsUploadingMedia(false);
             }

@@ -300,10 +300,14 @@ export function useConversasChat(
           if (DEBUG) console.log('[ConversasChat] New message:', payload.new);
           const newMsg = payload.new as Mensagem;
           setMensagens(prev => {
-            const exists = prev.some(
+            const existingIndex = prev.findIndex(
               m => m.id === newMsg.id || (m.evolution_msg_id && m.evolution_msg_id === newMsg.evolution_msg_id),
             );
-            if (exists) return prev;
+            if (existingIndex !== -1) {
+              const next = [...prev];
+              next[existingIndex] = { ...next[existingIndex], ...newMsg };
+              return next;
+            }
             return [...prev, newMsg].sort(
               (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
             );
@@ -343,7 +347,7 @@ export function useConversasChat(
       supabase.removeChannel(channel);
       realtimeChannelRef.current = null;
     };
-  }, [chatId, user?.id, markReadLocal]);
+  }, [chatId, user?.id, markReadLocal, autoMarkRead, markAllRead]);
 
   // ─── Send message ───────────────────────────────────────────────────────────
 
@@ -363,9 +367,10 @@ export function useConversasChat(
         throw new Error('Chat não carregado');
       }
 
-      const tempId = `temp-${Date.now()}`;
+      // UUID gerado no cliente garante que o Realtime INSERT reconheça a mesma mensagem sem duplicar!
+      const msgId = crypto.randomUUID();
       const optimisticMsg: Mensagem = {
-        id: tempId,
+        id: msgId,
         user_id: userId,
         chat_id: chatId,
         instance_id: instanceId,
@@ -390,7 +395,7 @@ export function useConversasChat(
         const { data: { session } } = await supabase.auth.getSession();
         const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
         
-        // Call Worker outbound endpoint
+        // Call Worker outbound endpoint com o mesmo msgId
         const response = await fetch(`${workerUrl}/api/conversas/send-message`, {
           method: 'POST',
           headers: { 
@@ -398,6 +403,7 @@ export function useConversasChat(
             ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
           },
           body: JSON.stringify({
+            id: msgId,
             chatId,
             instanceId,
             content: input.content,
@@ -417,23 +423,135 @@ export function useConversasChat(
 
         const result = await response.json();
 
-        // Replace temp message with real one from DB
+        // Atualiza status para 'sent'
         setMensagens(prev =>
           prev.map(m =>
-            m.id === tempId
-              ? { ...m, id: result.id ?? tempId, status: 'sent' as const }
+            m.id === msgId
+              ? { ...m, status: 'sent' as const, evolution_msg_id: result.evolutionMsgId ?? m.evolution_msg_id }
               : m,
           ),
         );
       } catch (err: any) {
-        // Mark temp message as failed
         setMensagens(prev =>
           prev.map(m =>
-            m.id === tempId ? { ...m, status: 'failed' as const } : m,
+            m.id === msgId ? { ...m, status: 'failed' as const } : m,
           ),
         );
         toast.error('Erro ao enviar: ' + err.message);
         throw err;
+      }
+    },
+    [chatId],
+  );
+
+  // ─── Send media message (com upload em background e preview imediato) ─────────
+
+  const sendMediaMessage = useCallback(
+    async (file: File, kind: 'image' | 'video' | 'document') => {
+      const userId = userIdRef.current;
+      const instanceId = instanceIdRef.current;
+      if (!chatId || !userId || !instanceId) {
+        throw new Error('Chat não carregado');
+      }
+
+      const msgId = crypto.randomUUID();
+      const localPreviewUrl = URL.createObjectURL(file);
+
+      // 1. Mensagem otimista na tela imediatamente com preview local
+      const optimisticMsg: Mensagem = {
+        id: msgId,
+        user_id: userId,
+        chat_id: chatId,
+        instance_id: instanceId,
+        evolution_msg_id: null,
+        direction: 'outbound',
+        type: kind,
+        content: '',
+        media_url: localPreviewUrl,
+        media_mime_type: file.type || 'application/octet-stream',
+        media_filename: file.name,
+        media_size_bytes: file.size,
+        status: 'pending',
+        is_forwarded: null,
+        timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
+
+      setMensagens(prev => [...prev, optimisticMsg]);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Sessão expirada');
+
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+        // 2. Upload para Cloudflare R2
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('chatId', chatId);
+
+        const uploadRes = await fetch(`${workerUrl}/api/conversas/media-upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error('Falha no upload: ' + errText);
+        }
+
+        const uploadData = await uploadRes.json();
+        if (!uploadData.mediaUrl) {
+          throw new Error('Upload concluído sem URL de mídia');
+        }
+
+        // 3. Enviar mensagem via WhatsApp Evolution Worker
+        const sendRes = await fetch(`${workerUrl}/api/conversas/send-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            id: msgId,
+            chatId,
+            instanceId,
+            content: '',
+            type: kind,
+            mediaUrl: uploadData.mediaUrl,
+            mediaMimeType: uploadData.mediaMimeType || file.type,
+            mediaFilename: uploadData.mediaFilename || file.name,
+            mediaSizeBytes: uploadData.mediaSizeBytes || file.size,
+          }),
+        });
+
+        if (!sendRes.ok) {
+          const errJson = await sendRes.json();
+          throw new Error(errJson.error || 'Falha ao despachar mídia para o WhatsApp');
+        }
+
+        const sendResult = await sendRes.json();
+
+        // 4. Atualizar com URL pública definitiva do R2 e status sent
+        setMensagens(prev =>
+          prev.map(m =>
+            m.id === msgId
+              ? {
+                  ...m,
+                  media_url: uploadData.mediaUrl,
+                  evolution_msg_id: sendResult.evolutionMsgId || m.evolution_msg_id,
+                  status: 'sent' as const,
+                }
+              : m,
+          ),
+        );
+      } catch (err: any) {
+        console.error('[sendMediaMessage] Erro:', err);
+        setMensagens(prev =>
+          prev.map(m => (m.id === msgId ? { ...m, status: 'failed' as const } : m)),
+        );
+        toast.error('Erro ao enviar mídia: ' + (err.message || 'Erro de conexão'));
       }
     },
     [chatId],
@@ -537,16 +655,18 @@ export function useConversasChat(
     }
   }, [notas]);
 
-  // ─── Derived ─────────────────────────────────────────────────────────────────
-
-  // Ordena por `timestamp` (messageTimestamp do WhatsApp), não `created_at`
-  // (que reflete o instante de inserção no banco). Em alta concorrência
-  // as duas divergem e mensagens podem aparecer fora de ordem cronológica
-  // real se usarmos `created_at`. (P2-14 da auditoria)
-  const sortedMensagens = useMemo(
-    () => [...mensagens].sort((a, b) => a.timestamp.localeCompare(b.timestamp)),
-    [mensagens],
-  );
+  // Ordena por `timestamp` (messageTimestamp do WhatsApp) e garante deduplicação total por ID
+  const sortedMensagens = useMemo(() => {
+    const seen = new Set<string>();
+    const unique: Mensagem[] = [];
+    for (const m of mensagens) {
+      if (!seen.has(m.id)) {
+        seen.add(m.id);
+        unique.push(m);
+      }
+    }
+    return unique.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }, [mensagens]);
 
   return {
     chat,
@@ -555,6 +675,7 @@ export function useConversasChat(
     isLoading,
     error,
     sendMessage,
+    sendMediaMessage,
     retryMessage,
     addNota,
     updateNota,

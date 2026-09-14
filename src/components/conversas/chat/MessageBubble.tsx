@@ -4,10 +4,11 @@
  * Suporta texto + mídia (imagem, áudio, vídeo, documento) + caudas quando agrupadas.
  */
 
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
+import { AudioPlayer } from './AudioPlayer';
 
 export interface MessageBubbleProps {
   mensagem: Mensagem;
@@ -43,6 +44,7 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
+  const isPending = mensagem.status === 'pending';
   const isMedia = mensagem.type !== 'text';
 
   // Cauda: canto cortado apenas no primeiro e último do grupo.
@@ -62,11 +64,20 @@ export function MessageBubble({
     ? cn(cornerClass, isOwn ? lastCornerClass : lastCornerClass)
     : cn(cornerClass, 'rounded-b-md');
 
+  // Ignora conteúdo gerado como fallback de mídia
+  const isDefaultMediaContent =
+    mensagem.content === '🎤 Áudio' ||
+    mensagem.content === '🎥 Vídeo' ||
+    mensagem.content === '🎨 Figurinha' ||
+    mensagem.content?.startsWith('📄 ');
+
+  const showContent = Boolean(mensagem.content && !isDefaultMediaContent);
+
   return (
     <div className={cn('w-full flex px-3 mb-0.5', isOwn ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'relative w-fit min-w-[70px] max-w-[80%] md:max-w-[65%] px-3 py-1.5 shadow-sm text-sm break-words',
+          'relative w-fit min-w-[70px] max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm text-sm break-words',
           isOwn ? 'bg-[#d9fdd3] text-zinc-900' : 'bg-white text-zinc-900',
           radiusClass,
           failed && 'border border-red-400',
@@ -74,23 +85,43 @@ export function MessageBubble({
       >
         {isMedia ? (
           <div className="space-y-1">
-            {mensagem.type === 'image' && mensagem.media_url ? (
-              <img
-                src={mensagem.media_url}
-                alt={mensagem.media_filename ?? 'imagem'}
-                className="rounded-lg max-w-full sm:max-w-[280px] block"
-                loading="lazy"
-              />
-            ) : null}
+            {mensagem.type === 'image' && (
+              <div className="relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px]">
+                {mensagem.media_url ? (
+                  <img
+                    src={mensagem.media_url}
+                    alt={mensagem.media_filename ?? 'imagem'}
+                    className={cn(
+                      'rounded-lg max-w-full block object-cover',
+                      isPending && 'opacity-70 blur-[1px]'
+                    )}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-[240px] h-[160px] bg-zinc-200 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
+                    Carregando imagem...
+                  </div>
+                )}
+
+                {/* Preload / Spinner de upload sobre a imagem */}
+                {isPending && (
+                  <div className="absolute inset-0 bg-black/25 flex items-center justify-center backdrop-blur-[1px]">
+                    <div className="p-2 rounded-full bg-black/50 text-white shadow-md">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             {mensagem.type === 'audio' && (
               mensagem.media_url ? (
-                <audio controls className="max-w-full w-[240px] h-10 mt-1 mb-1">
-                  <source src={mensagem.media_url} type={mensagem.media_mime_type || 'audio/ogg'} />
-                  Seu navegador não suporta áudio.
-                </audio>
+                <AudioPlayer src={mensagem.media_url} isOwn={isOwn} />
               ) : (
-                <span className="text-zinc-500 italic text-xs">🎤 Áudio (baixando...)</span>
+                <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
+                  <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                  <span>Baixando áudio...</span>
+                </div>
               )
             )}
 
@@ -100,7 +131,10 @@ export function MessageBubble({
                   <source src={mensagem.media_url} type={mensagem.media_mime_type || 'video/mp4'} />
                 </video>
               ) : (
-                <span className="text-zinc-500 italic text-xs">🎥 Vídeo (baixando...)</span>
+                <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
+                  <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                  <span>Baixando vídeo...</span>
+                </div>
               )
             )}
 
@@ -118,20 +152,23 @@ export function MessageBubble({
                   </span>
                 </a>
               ) : (
-                <span className="text-zinc-500 italic text-xs">📄 Documento (baixando...)</span>
+                <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
+                  <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />
+                  <span>Baixando documento...</span>
+                </div>
               )
             )}
 
-            {mensagem.content ? (
+            {showContent && (
               <p className="whitespace-pre-wrap leading-relaxed mt-1">{mensagem.content}</p>
-            ) : (
-              !mensagem.media_url && !['image', 'audio', 'video', 'document'].includes(mensagem.type) && (
-                <span className="text-zinc-500 italic text-xs">
-                  {mensagem.type === 'sticker' && '🎨 Sticker'}
-                  {mensagem.type === 'location' && '📍 Localização'}
-                  {mensagem.type === 'contact' && '👤 Contato'}
-                </span>
-              )
+            )}
+
+            {!mensagem.media_url && !['image', 'audio', 'video', 'document'].includes(mensagem.type) && (
+              <span className="text-zinc-500 italic text-xs">
+                {mensagem.type === 'sticker' && '🎨 Sticker'}
+                {mensagem.type === 'location' && '📍 Localização'}
+                {mensagem.type === 'contact' && '👤 Contato'}
+              </span>
             )}
           </div>
         ) : (

@@ -49,6 +49,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   // 2. Parsear body
   let body: {
+    id?: string;
     chatId: string;
     instanceId: string;
     content: string;
@@ -66,7 +67,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename } = body;
+  const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename } = body;
 
   const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document'];
   if (!VALID_TYPES.includes(type)) {
@@ -122,7 +123,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   // 4. Inserir mensagem com status 'pending'
   const timestamp = new Date().toISOString();
-  const msgId = crypto.randomUUID();
+  const msgId = clientProvidedId || crypto.randomUUID();
 
   const { data: insertedMsg, error: insertError } = await supabaseAdmin
     .from('conversas_mensagens')
