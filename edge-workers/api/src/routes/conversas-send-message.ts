@@ -73,8 +73,12 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Tipo inválido' }, 400);
   }
 
-  if (!chatId || !instanceId || !content) {
-    return c.json({ error: 'chatId, instanceId e content são obrigatórios' }, 400);
+  if (!chatId || !instanceId) {
+    return c.json({ error: 'chatId e instanceId são obrigatórios' }, 400);
+  }
+
+  if (type === 'text' && !content) {
+    return c.json({ error: 'content é obrigatório para mensagens de texto' }, 400);
   }
 
   // 3. Obter phone do chat + validar que pertence à instância fornecida

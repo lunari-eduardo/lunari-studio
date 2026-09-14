@@ -78,21 +78,60 @@ export function MessageBubble({
               <img
                 src={mensagem.media_url}
                 alt={mensagem.media_filename ?? 'imagem'}
-                className="rounded-lg max-w-[280px] block"
+                className="rounded-lg max-w-full sm:max-w-[280px] block"
                 loading="lazy"
               />
             ) : null}
+            
+            {mensagem.type === 'audio' && (
+              mensagem.media_url ? (
+                <audio controls className="max-w-full w-[240px] h-10 mt-1 mb-1">
+                  <source src={mensagem.media_url} type={mensagem.media_mime_type || 'audio/ogg'} />
+                  Seu navegador não suporta áudio.
+                </audio>
+              ) : (
+                <span className="text-zinc-500 italic text-xs">🎤 Áudio (baixando...)</span>
+              )
+            )}
+
+            {mensagem.type === 'video' && (
+              mensagem.media_url ? (
+                <video controls className="rounded-lg max-w-full sm:max-w-[280px] max-h-[300px] bg-black block">
+                  <source src={mensagem.media_url} type={mensagem.media_mime_type || 'video/mp4'} />
+                </video>
+              ) : (
+                <span className="text-zinc-500 italic text-xs">🎥 Vídeo (baixando...)</span>
+              )
+            )}
+
+            {mensagem.type === 'document' && (
+              mensagem.media_url ? (
+                <a 
+                  href={mensagem.media_url} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-2 p-2 bg-black/5 rounded-md hover:bg-black/10 transition-colors"
+                >
+                  <span className="text-2xl">📄</span>
+                  <span className="text-sm font-medium underline truncate max-w-[200px]">
+                    {mensagem.media_filename || 'Baixar documento'}
+                  </span>
+                </a>
+              ) : (
+                <span className="text-zinc-500 italic text-xs">📄 Documento (baixando...)</span>
+              )
+            )}
+
             {mensagem.content ? (
-              <p className="whitespace-pre-wrap leading-relaxed">{mensagem.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed mt-1">{mensagem.content}</p>
             ) : (
-              <span className="text-zinc-500 italic text-xs">
-                {mensagem.type === 'audio' && '🎤 Áudio'}
-                {mensagem.type === 'video' && '🎥 Vídeo'}
-                {mensagem.type === 'document' && `📄 ${mensagem.media_filename ?? 'Documento'}`}
-                {mensagem.type === 'sticker' && '🎨 Sticker'}
-                {mensagem.type === 'location' && '📍 Localização'}
-                {mensagem.type === 'contact' && '👤 Contato'}
-              </span>
+              !mensagem.media_url && !['image', 'audio', 'video', 'document'].includes(mensagem.type) && (
+                <span className="text-zinc-500 italic text-xs">
+                  {mensagem.type === 'sticker' && '🎨 Sticker'}
+                  {mensagem.type === 'location' && '📍 Localização'}
+                  {mensagem.type === 'contact' && '👤 Contato'}
+                </span>
+              )
             )}
           </div>
         ) : (
