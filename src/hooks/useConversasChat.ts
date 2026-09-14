@@ -654,8 +654,15 @@ export function useConversasChat(
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error ?? 'Erro ao apagar mensagem');
+        let errorMsg = 'Erro ao apagar mensagem';
+        try {
+          const err = await response.json();
+          errorMsg = err.error || err.detail || errorMsg;
+        } catch {
+          const text = await response.text();
+          errorMsg = text || `Erro HTTP ${response.status}`;
+        }
+        throw new Error(errorMsg);
       }
       toast.success('Mensagem apagada');
     } catch (err: any) {
@@ -680,9 +687,17 @@ export function useConversasChat(
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error ?? 'Erro ao reagir à mensagem');
+        let errorMsg = 'Erro ao reagir à mensagem';
+        try {
+          const err = await response.json();
+          errorMsg = err.error || err.detail || errorMsg;
+        } catch {
+          const text = await response.text();
+          errorMsg = text || `Erro HTTP ${response.status}`;
+        }
+        throw new Error(errorMsg);
       }
+      toast.success(`Reação enviada: ${emoji}`);
     } catch (err: any) {
       toast.error('Erro ao reagir: ' + err.message);
     }

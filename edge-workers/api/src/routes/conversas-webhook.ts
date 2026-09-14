@@ -656,12 +656,25 @@ async function handleChatsSet(
 
     const chatId = await getOrCreateChat(supabase, instance.user_id, contatoId, instance.id, phoneNormalized, pushName);
     
-    if (chatId && typeof unreadCount === 'number') {
-      await supabase
-        .from('conversas_chats')
-        .update({ unread_count: unreadCount })
-        .eq('id', chatId)
-        .eq('user_id', instance.user_id);
+    const rawPinned = (chat as any)?.pinned ?? (chat as any)?.isPinned;
+    const isPinnedFromWpp = rawPinned && (rawPinned === true || Number(rawPinned) > 0);
+
+    if (chatId) {
+      const updates: Record<string, any> = {};
+      if (typeof unreadCount === 'number') {
+        updates.unread_count = unreadCount;
+      }
+      if (isPinnedFromWpp) {
+        updates.pin = 'pinned';
+        updates.pin_origin = 'whatsapp';
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from('conversas_chats')
+          .update(updates)
+          .eq('id', chatId)
+          .eq('user_id', instance.user_id);
+      }
     }
   }
 }

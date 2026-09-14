@@ -4,7 +4,7 @@ import type { Bindings } from '../index.js';
 
 export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings }>) {
   if (!c.env.EVOLUTION_API_URL || !c.env.EVOLUTION_API_KEY) {
-    return c.json({ error: 'ConfiguraÃ§Ã£o de API incompleta' }, 500);
+    return c.json({ error: 'Configuracao de API incompleta' }, 500);
   }
 
   const authHeader = c.req.header('Authorization') ?? '';
@@ -19,7 +19,7 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
   const userId = userData.user.id;
 
   const msgId = c.req.param('id');
-  if (!msgId) return c.json({ error: 'ID da mensagem nÃ£o fornecido' }, 400);
+  if (!msgId) return c.json({ error: 'ID da mensagem nao fornecido' }, 400);
 
   let body: { reaction: string };
   try {
@@ -29,7 +29,7 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
   }
 
   const { reaction } = body;
-  if (reaction === undefined) return c.json({ error: 'ReaÃ§Ã£o nÃ£o fornecida' }, 400);
+  if (reaction === undefined) return c.json({ error: 'Reacao nao fornecida' }, 400);
 
   const { data: msg, error: msgError } = await supabaseAdmin
     .from('conversas_mensagens')
@@ -38,8 +38,8 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (msgError || !msg) return c.json({ error: 'Mensagem nÃ£o encontrada' }, 404);
-  if (!msg.evolution_msg_id) return c.json({ error: 'Mensagem ainda nÃ£o sincronizada com Evolution' }, 400);
+  if (msgError || !msg) return c.json({ error: 'Mensagem nao encontrada' }, 404);
+  if (!msg.evolution_msg_id) return c.json({ error: 'Mensagem ainda nao sincronizada com Evolution' }, 400);
 
   const { data: chat } = await supabaseAdmin
     .from('conversas_chats')
@@ -47,7 +47,7 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
     .eq('id', msg.chat_id)
     .maybeSingle();
 
-  if (!chat?.contato_phone_normalized) return c.json({ error: 'Telefone do contato nÃ£o disponÃ­vel' }, 400);
+  if (!chat?.contato_phone_normalized) return c.json({ error: 'Telefone do contato nao disponivel' }, 400);
 
   const { data: instance } = await supabaseAdmin
     .from('conversas_instancias')
@@ -55,7 +55,7 @@ export async function conversasMessageReactRoute(c: Context<{ Bindings: Bindings
     .eq('id', msg.instance_id)
     .maybeSingle();
 
-  if (!instance?.instance_name) return c.json({ error: 'InstÃ¢ncia nÃ£o encontrada' }, 404);
+  if (!instance?.instance_name) return c.json({ error: 'Instancia nao encontrada' }, 404);
 
   const recipientNumber = chat.contato_phone_normalized.startsWith('55') 
     ? chat.contato_phone_normalized 

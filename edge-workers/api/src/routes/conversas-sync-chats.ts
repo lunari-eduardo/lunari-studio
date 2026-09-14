@@ -197,6 +197,13 @@ export async function performSyncChats(
       chatEntry.unread_count = item.chat.unreadCount;
     }
 
+    // Se a Evolution API trouxer informacao de fixacao (pinned timestamp ou booleano)
+    const rawPinned = (item.chat as any)?.pinned ?? (item.chat as any)?.isPinned;
+    if (rawPinned && (rawPinned === true || Number(rawPinned) > 0)) {
+      chatEntry.pin = 'pinned';
+      chatEntry.pin_origin = 'whatsapp';
+    }
+
     chatsPayload.push(chatEntry);
   }
 
