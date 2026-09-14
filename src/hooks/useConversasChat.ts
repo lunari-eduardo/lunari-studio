@@ -261,12 +261,9 @@ export function useConversasChat(
     setMensagens(prev =>
       prev.map(m => (m.direction === 'inbound' && m.status !== 'read' ? { ...m, status: 'read' as const } : m)),
     );
-    await supabase
-      .from('conversas_chats')
-      .update({ unread_count: 0 })
-      .eq('id', chatId);
 
     // Call our worker to mark as read in Evolution API (Fase 8)
+    // A delegação de update({ unread_count: 0 }) agora é responsabilidade total do worker.
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {

@@ -132,11 +132,12 @@ export function ChatPanel({
     }
 
     const newCount = mensagens.length;
-    if (newCount > lastMessageCount.current) {
-      el.scrollTop = el.scrollHeight;
+    if (newCount > lastMessageCount.current && items.length > 0) {
+      // Usa o virtualizer para rolar para o último item garantindo renderização correta
+      rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
     }
     lastMessageCount.current = newCount;
-  }, [mensagens.length, rowVirtualizer.getTotalSize()]);
+  }, [mensagens.length, items.length, rowVirtualizer]);
 
   // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {
