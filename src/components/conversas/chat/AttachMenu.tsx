@@ -11,20 +11,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FileText, Image as ImageIcon, Paperclip, UserPlus, Video } from 'lucide-react';
+import { FileText, Image as ImageIcon, Paperclip, UserPlus, Video, Sticker } from 'lucide-react';
 
 export interface AttachMenuProps {
-  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact') => void;
+  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact' | 'sticker') => void;
 }
 
 export function AttachMenu({ onAttach }: AttachMenuProps) {
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
+  const stickerRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (
     ref: React.RefObject<HTMLInputElement>,
-    kind: 'image' | 'video' | 'document',
+    kind: 'image' | 'video' | 'document' | 'sticker',
   ) => {
     ref.current?.click();
     ref.current?.addEventListener(
@@ -57,6 +58,9 @@ export function AttachMenu({ onAttach }: AttachMenuProps) {
           <DropdownMenuItem onSelect={() => handleFile(videoRef, 'video')}>
             <Video className="h-4 w-4 mr-2" /> Vídeo
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => handleFile(stickerRef, 'sticker')}>
+            <Sticker className="h-4 w-4 mr-2" /> Figurinha
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => handleFile(docRef, 'document')}>
             <FileText className="h-4 w-4 mr-2" /> Documento
           </DropdownMenuItem>
@@ -71,6 +75,7 @@ export function AttachMenu({ onAttach }: AttachMenuProps) {
 
       <input ref={imageRef} type="file" accept="image/*" hidden />
       <input ref={videoRef} type="file" accept="video/*" hidden />
+      <input ref={stickerRef} type="file" accept="image/webp,image/png,.webp" hidden />
       <input ref={docRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" hidden />
     </>
   );

@@ -404,7 +404,7 @@ async function processSingleMessage(
   }
 
   // 4. Download de Mídia Assíncrono (Fase 2)
-  if (['image', 'video', 'audio', 'document'].includes(msgType) && !mediaInfo.mediaUrl && ctx?.waitUntil) {
+  if (['image', 'video', 'audio', 'document', 'sticker'].includes(msgType) && !mediaInfo.mediaUrl && ctx?.waitUntil) {
     ctx.waitUntil((async () => {
       try {
         const evoUrl = env.EVOLUTION_API_URL;
@@ -445,7 +445,15 @@ async function processSingleMessage(
           return;
         }
 
-        const ext = mediaInfo.filename ? mediaInfo.filename.split('.').pop() : (msgType === 'image' ? 'jpg' : msgType === 'video' ? 'mp4' : 'ogg');
+        const ext = mediaInfo.filename
+          ? mediaInfo.filename.split('.').pop()
+          : msgType === 'image'
+          ? 'jpg'
+          : msgType === 'video'
+          ? 'mp4'
+          : msgType === 'sticker'
+          ? 'webp'
+          : 'ogg';
         const r2Filename = `${instance.id}/${chatId}/${msg.key.id}.${ext}`;
 
         await bucket.put(r2Filename, bytes, {

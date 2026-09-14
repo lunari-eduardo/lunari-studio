@@ -10,6 +10,7 @@ import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversas } from '@/hooks/useConversasRealtime';
+import type { EnrichedChat } from '@/modules/conversas/types';
 
 export interface WhatsAppLayoutProps {
   onNewChat: () => void;
@@ -20,6 +21,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     chats,
     instancias,
     isLoading,
+    chatCounts,
     refreshQrCode,
     disconnectInstance,
     deleteInstance,
@@ -51,7 +53,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     [chats, selectedChatId],
   );
 
-  const handleSelect = (chat: typeof chats[number]) => {
+  const handleSelect = (chat: EnrichedChat) => {
     setSelectedChatId(chat.id);
     setMobileShowChat(true);
   };
@@ -63,6 +65,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
       >
         <ChatListSidebar
           chats={chats}
+          chatCounts={chatCounts}
           isLoading={isLoading}
           selectedChatId={selectedChatId}
           onSelectChat={handleSelect}

@@ -251,9 +251,38 @@ export function MessageBubble({
               <p className="whitespace-pre-wrap leading-relaxed mt-1">{mensagem.content}</p>
             )}
 
+            {/* Sticker: renderiza imagem WebP quando disponível */}
+            {mensagem.type === 'sticker' && (
+              mensagem.media_url ? (
+                <div className="relative rounded-lg overflow-hidden inline-block">
+                  <img
+                    src={mensagem.media_url}
+                    alt="Sticker"
+                    className={cn(
+                      'block object-contain',
+                      isPending && 'opacity-70 blur-[1px]'
+                    )}
+                    style={{ width: 200, height: 200 }}
+                    loading="lazy"
+                  />
+                  {isPending && (
+                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                      <div className="p-2 rounded-full bg-black/50 text-white shadow-md">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-[200px] h-[200px] bg-zinc-200 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
+                  Carregando figurinha...
+                </div>
+              )
+            )}
+
             {!mensagem.media_url && !['image', 'audio', 'video', 'document'].includes(mensagem.type) && (
               <span className="text-zinc-500 italic text-xs">
-                {mensagem.type === 'sticker' && '🎨 Sticker'}
+                {mensagem.type === 'sticker' && '🎨 Figurinha'}
                 {mensagem.type === 'location' && '📍 Localização'}
                 {mensagem.type === 'contact' && '👤 Contato'}
               </span>

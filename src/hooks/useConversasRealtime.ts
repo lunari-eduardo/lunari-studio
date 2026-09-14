@@ -6,6 +6,10 @@
  * - Lista de chats ordenados por última mensagem
  * - Lista de instâncias (status da conexão WhatsApp)
  * - CRUD de chats e operações comuns
+ *
+ * Fase 1: Cada chat é enriquecido com `contato_tipo` (cliente | lead | unknown)
+ * vindo de um join lazy com `conversas_contatos`. O hook expõe contadores
+ * dinâmicos derivados desses dados para alimentar os filtros da sidebar.
  */
 
 import { useEffect, useCallback, useState, useMemo, useId, useRef } from 'react';
@@ -14,7 +18,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { initAudio, playNotificationSound, showBrowserNotification, requestNotificationPermission } from '@/modules/conversas/notifications';
 import type { Chat, ChatUpdate } from './types';
-import type { InstanciaStatus } from './types';
+import type { InstanciaStatus, ContactType, EnrichedChat } from '@/modules/conversas/types';
+
+/** Chat enriquecido com tipo do contato (cliente | lead | unknown) */
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-assertions
+export type { EnrichedChat } from '@/modules/conversas/types';
 
 const DEBUG = false;
 
@@ -25,7 +33,8 @@ export interface UseConversasOptions {
 
 export interface UseConversasReturn {
   // ─── Data ──────────────────────────────────────────────────────────────────
-  chats: Chat[];
+  /** Chats enriquecidos com `contato_tipo` (cliente | lead | unknown). */
+  chats: EnrichedChat[];
   instancias: Array<{
     id: string;
     instance_name: string;
@@ -60,6 +69,13 @@ export interface UseConversasReturn {
   activeChatsCount: number;
   connectedInstance: string | null;
   instanceViewState: 'initial' | 'reconnect' | 'connecting' | 'ready';
+  /** Contadores para os filtros primários da sidebar. */
+  chatCounts: {
+    all: number;
+    unread: number;
+    cliente: number;
+    lead: number;
+  };
 }
 
 export function useConversas(options: UseConversasOptions = {}): UseConversasReturn {
@@ -70,6 +86,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
   const [instancias, setInstancias] = useState<UseConversasReturn['instancias']>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /** Mapa contato_id → tipo (cliente | lead | unknown). */
+  const [contatoTipoMap, setContatoTipoMap] = useState<Record<string, ContactType>>({});
 
   // Sufixo único por instância do hook — impede colisão de canais realtime.
   const hookId = useId();
@@ -82,13 +101,37 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     return session?.user?.id ?? null;
   }, [user?.id]);
 
-  const upsertChat = useCallback((list: Chat[], item: Chat): Chat[] => {
-    const exists = list.some(c => c.id === item.id);
-    if (exists) return list.map(c => (c.id === item.id ? item : c));
-    return [...list, item];
+  /** Carrega todos os contatos e retorna mapa { contato_id → tipo }. */
+  const loadContatoTipos = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('conversas_contatos')
+      .select('id, tipo')
+      .eq('user_id', userId);
+
+    if (!data) return {};
+    const map: Record<string, ContactType> = {};
+    for (const row of data) {
+      map[row.id] = row.tipo ?? 'unknown';
+    }
+    return map;
   }, []);
 
-  const removeChat = useCallback((list: Chat[], id: string): Chat[] => {
+  /** Enrikece um chat com `contato_tipo` a partir do mapa. */
+  const enrichChat = useCallback(
+    (chat: Chat, map: Record<string, ContactType>): EnrichedChat => ({
+      ...chat,
+      contato_tipo: map[chat.contato_id] ?? 'unknown',
+    }),
+    [],
+  );
+
+  const upsertChat = useCallback((list: EnrichedChat[], item: Chat): EnrichedChat[] => {
+    const exists = list.some(c => c.id === item.id);
+    if (exists) return list.map(c => (c.id === item.id ? enrichChat(item, contatoTipoMap) : c));
+    return [...list, enrichChat(item, contatoTipoMap)];
+  }, [contatoTipoMap, enrichChat]);
+
+  const removeChat = useCallback((list: EnrichedChat[], id: string): EnrichedChat[] => {
     return list.filter(c => c.id !== id);
   }, []);
 
@@ -111,7 +154,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
         if (DEBUG) console.log(`[Conversas] Loading data for user: ${userId}`);
 
-        const [chatsResult, instanciasResult] = await Promise.all([
+        const [chatsResult, instanciasResult, tipoMap] = await Promise.all([
           supabase
             .from('conversas_chats')
             .select('*')
@@ -122,13 +165,16 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             .select('id, instance_name, status, phone, qrcode_data, qrcode_expires_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: true }),
+          loadContatoTipos(userId),
         ]);
 
         if (chatsResult.error) throw chatsResult.error;
         if (instanciasResult.error) throw instanciasResult.error;
 
         if (!cancelled) {
-          setChats(chatsResult.data ?? []);
+          const rawChats: Chat[] = chatsResult.data ?? [];
+          setChats(rawChats);
+          setContatoTipoMap(tipoMap);
           setInstancias(instanciasResult.data ?? []);
           // Init notifications
           void initAudio();
@@ -146,9 +192,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
     load();
     return () => { cancelled = true; };
-  }, [loadUserId]); // eslint-disable-line react-hooks/exhaustive-deps
-  // loadUserId é stable (useCallback sem deps), adicionar na deps array
-  // causaria re-fetch desnecessário. O hook é usado 1× por página.
+  }, [loadUserId, loadContatoTipos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Realtime subscriptions ──────────────────────────────────────────────────
 
@@ -190,7 +234,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
                     payload.new.ultima_mensagem || undefined
                   );
                 }
-                return prev.map(c => (c.id === payload.new.id ? { ...c, ...payload.new } as Chat : c));
+                return prev.map(c => (c.id === payload.new.id ? { ...c, ...payload.new } as EnrichedChat : c));
               });
             } else if (payload.eventType === 'DELETE') {
               setChats(prev => removeChat(prev, payload.old.id));
@@ -216,6 +260,30 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
             );
           },
         )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversas_contatos',
+            filter: `user_id=eq.${currentUserId}`,
+          },
+          (payload) => {
+            if (DEBUG) console.log('[Conversas] Contato change:', payload.eventType, payload);
+            if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+              const tipo = (payload.new as { tipo?: ContactType }).tipo ?? 'unknown';
+              setContatoTipoMap(prev => ({ ...prev, [payload.new.id]: tipo }));
+              // Re-enriquecer chats afetados
+              setChats(prev =>
+                prev.map(c =>
+                  c.contato_id === payload.new.id
+                    ? { ...c, contato_tipo: tipo } as EnrichedChat
+                    : c,
+                ),
+              );
+            }
+          },
+        )
         .subscribe();
     };
 
@@ -234,7 +302,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     async (chatId: string, updates: ChatUpdate) => {
       // Optimistic
       setChats(prev =>
-        prev.map(c => (c.id === chatId ? { ...c, ...updates } as Chat : c)),
+        prev.map(c => (c.id === chatId ? { ...c, ...updates } as EnrichedChat : c)),
       );
 
       const { error } = await supabase
@@ -477,6 +545,16 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   const activeChatsCount = useMemo(
     () => chats.filter(c => c.status === 'active').length,
+    [chats],
+  );
+
+  const chatCounts = useMemo(
+    () => ({
+      all: chats.filter(c => c.status === 'active').length,
+      unread: chats.filter(c => c.status === 'active' && (c.unread_count ?? 0) > 0).length,
+      cliente: chats.filter(c => c.status === 'active' && c.contato_tipo === 'cliente').length,
+      lead: chats.filter(c => c.status === 'active' && c.contato_tipo === 'lead').length,
+    }),
     [chats],
   );
 
@@ -733,6 +811,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     syncHistoricalChats,
     totalUnread,
     activeChatsCount,
+    chatCounts,
     connectedInstance,
     instanceViewState,
   };

@@ -157,6 +157,14 @@ export function extractMediaInfo(msg: EvolutionMessagePayload): MediaInfo {
     mimeType = m.documentMessage.mimetype ?? 'application/octet-stream';
     filename = m.documentMessage.fileName ?? null;
     sizeBytes = m.documentMessage.fileLength ? parseInt(m.documentMessage.fileLength, 10) : null;
+  } else if (m.stickerMessage) {
+    mimeType = 'image/webp';
+    filename = `sticker-${msg.key?.id ?? Date.now()}.webp`;
+    // StickerMessage pode conter fileLength nos dados internos (depende da versão da Evolution)
+    const stickerData = m.stickerMessage as Record<string, unknown> | null;
+    if (stickerData && typeof stickerData.fileLength === 'string') {
+      sizeBytes = parseInt(stickerData.fileLength, 10);
+    }
   } else {
     return { mediaUrl: null, mimeType: null, filename: null, sizeBytes: null };
   }

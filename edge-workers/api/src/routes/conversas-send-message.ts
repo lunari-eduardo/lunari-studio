@@ -10,7 +10,7 @@
  *   chatId: string;
  *   instanceId: string;
  *   content: string;
- *   type?: 'text' | 'image' | 'audio' | 'video' | 'document';
+ *   type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker';
  *   mediaUrl?: string;
  *   mediaMimeType?: string;
  *   mediaFilename?: string;
@@ -70,7 +70,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
 
   const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename, isPtt } = body;
 
-  const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document'];
+  const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document', 'sticker'];
   if (!VALID_TYPES.includes(type)) {
     return c.json({ error: 'Tipo inválido' }, 400);
   }
@@ -184,15 +184,15 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
         delay: isPtt ? 1200 : 0,
         encoding: !!isPtt,
       };
-    } else if (['image', 'video', 'document'].includes(type) && mediaUrl) {
+    } else if (['image', 'video', 'document', 'sticker'].includes(type) && mediaUrl) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendMedia/${instance.instance_name}`;
       evolutionBody = {
         number: recipientNumber,
-        mediatype: type,
+        mediatype: type === 'sticker' ? 'image' : type,
         mimetype: body.mediaMimeType ?? 'application/octet-stream',
-        caption: content || undefined,
+        caption: type === 'sticker' ? undefined : (content || undefined),
         media: mediaUrl,
-        fileName: mediaFilename || `media_${Date.now()}`,
+        fileName: body.mediaFilename || `media_${Date.now()}`,
       };
     }
 

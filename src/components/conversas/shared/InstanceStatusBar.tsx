@@ -60,24 +60,24 @@ export function InstanceStatusBar({
         : 'Sem instância conectada';
 
   return (
-    <div className="px-3 py-2 border-b border-border bg-background/80 backdrop-blur-sm">
+    <div className="px-3 py-1.5 border-b border-border/60 bg-background/80">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="relative flex items-center justify-center h-2 w-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="relative flex items-center justify-center h-2 w-2 flex-shrink-0">
             <span
               className={cn(
-                'absolute inline-flex h-full w-full rounded-full opacity-60',
+                'absolute inline-flex h-full w-full rounded-full opacity-75',
                 dotColor,
                 connecting && 'animate-ping',
               )}
             />
             <span className={cn('relative inline-flex h-2 w-2 rounded-full', dotColor)} />
           </div>
-          <span className="text-xs font-medium text-foreground truncate">{label}</span>
+          <span className="text-[11px] font-medium text-foreground/80 truncate">{label}</span>
           {connected ? (
-            <Wifi className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+            <Wifi className="h-3 w-3 text-emerald-500 flex-shrink-0" />
           ) : (
-            <WifiOff className="h-3.5 w-3.5 text-red-500 flex-shrink-0" />
+            <WifiOff className="h-3 w-3 text-red-500/60 flex-shrink-0" />
           )}
         </div>
 
@@ -147,8 +147,8 @@ export function InstanceStatusBar({
         </div>
       </div>
 
-      <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground truncate">
-        <span className="truncate">{instanceName}</span>
+      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground/70 truncate">
+        <span className="truncate font-medium">{instanceName}</span>
         {connected && phone ? (
           <>
             <span>·</span>

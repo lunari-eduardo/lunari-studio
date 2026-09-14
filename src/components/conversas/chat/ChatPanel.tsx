@@ -70,6 +70,7 @@ export function ChatPanel({
     isLoading,
     sendMessage,
     sendMediaMessage,
+    sendSticker,
     retryMessage,
     deleteMessage,
     reactMessage,
@@ -271,7 +272,11 @@ export function ChatPanel({
             }
             try {
               setIsUploadingMedia(true);
-              await sendMediaMessage(file, kind);
+              if (kind === 'sticker') {
+                await sendSticker(file);
+              } else {
+                await sendMediaMessage(file, kind as 'image' | 'video' | 'document' | 'audio');
+              }
             } finally {
               setIsUploadingMedia(false);
             }

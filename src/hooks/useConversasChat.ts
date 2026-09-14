@@ -36,7 +36,7 @@ export interface UseConversasChatReturn {
   // ─── Operations ──────────────────────────────────────────────────────────────
   sendMessage: (input: {
     content: string;
-    type?: 'text' | 'image' | 'audio' | 'video' | 'document';
+    type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker';
     mediaUrl?: string;
     mediaMimeType?: string;
     mediaFilename?: string;
@@ -382,7 +382,7 @@ export function useConversasChat(
   const sendMessage = useCallback(
     async (input: {
       content: string;
-      type?: 'text' | 'image' | 'audio' | 'video' | 'document';
+      type?: 'text' | 'image' | 'audio' | 'video' | 'document' | 'sticker';
       mediaUrl?: string;
       mediaMimeType?: string;
       mediaFilename?: string;
@@ -592,6 +592,116 @@ export function useConversasChat(
     [chatId],
   );
 
+  // ─── Send sticker (Fase 2) ────────────────────────────────────────────────
+
+  const sendSticker = useCallback(
+    async (file: File) => {
+      const userId = userIdRef.current;
+      const instanceId = instanceIdRef.current;
+      if (!chatId || !userId || !instanceId) {
+        throw new Error('Chat não carregado');
+      }
+
+      const msgId = crypto.randomUUID();
+      const localPreviewUrl = URL.createObjectURL(file);
+
+      const optimisticMsg: Mensagem = {
+        id: msgId,
+        user_id: userId,
+        chat_id: chatId,
+        instance_id: instanceId,
+        evolution_msg_id: null,
+        direction: 'outbound',
+        type: 'sticker',
+        content: '🎨 Figurinha',
+        media_url: localPreviewUrl,
+        media_mime_type: file.type || 'image/webp',
+        media_filename: file.name,
+        media_size_bytes: file.size,
+        status: 'pending',
+        is_forwarded: null,
+        timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
+
+      setMensagens(prev => [...prev, optimisticMsg]);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Sessão expirada');
+
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+        // Upload sticker para R2
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('chatId', chatId);
+
+        const uploadRes = await fetch(`${workerUrl}/api/conversas/media-upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          body: formData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Falha no upload da figurinha');
+        }
+
+        const uploadData = await uploadRes.json();
+        if (!uploadData.mediaUrl) {
+          throw new Error('Upload concluído sem URL de mídia');
+        }
+
+        // Enviar sticker via Evolution API
+        const sendRes = await fetch(`${workerUrl}/api/conversas/send-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            id: msgId,
+            chatId,
+            instanceId,
+            content: '',
+            type: 'sticker',
+            mediaUrl: uploadData.mediaUrl,
+            mediaMimeType: uploadData.mediaMimeType || file.type || 'image/webp',
+            mediaFilename: uploadData.mediaFilename || file.name,
+            mediaSizeBytes: uploadData.mediaSizeBytes || file.size,
+          }),
+        });
+
+        if (!sendRes.ok) {
+          const errJson = await sendRes.json();
+          throw new Error(errJson.error || 'Falha ao enviar figurinha');
+        }
+
+        const sendResult = await sendRes.json();
+
+        setMensagens(prev =>
+          prev.map(m =>
+            m.id === msgId
+              ? {
+                  ...m,
+                  media_url: uploadData.mediaUrl,
+                  evolution_msg_id: sendResult.evolutionMsgId || m.evolution_msg_id,
+                  status: 'sent' as const,
+                }
+              : m,
+          ),
+        );
+      } catch (err: any) {
+        console.error('[sendSticker] Erro:', err);
+        setMensagens(prev =>
+          prev.map(m => (m.id === msgId ? { ...m, status: 'failed' as const } : m)),
+        );
+        toast.error('Erro ao enviar figurinha: ' + (err.message || 'Erro de conexão'));
+      }
+    },
+    [chatId],
+  );
+
   const retryMessage = useCallback(
     async (mensagemId: string) => {
       const msg = mensagens.find(m => m.id === mensagemId);
@@ -777,6 +887,7 @@ export function useConversasChat(
     error,
     sendMessage,
     sendMediaMessage,
+    sendSticker,
     retryMessage,
     deleteMessage,
     reactMessage,

@@ -16,7 +16,7 @@ import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 export interface MessageComposerProps {
   onSend: (content: string) => Promise<void> | void;
-  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact' | 'audio', isPtt?: boolean) => void;
+  onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact' | 'audio' | 'sticker', isPtt?: boolean) => void;
   disabled?: boolean;
   replyingTo?: Mensagem | null;
   onCancelReply?: () => void;

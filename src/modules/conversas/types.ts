@@ -138,6 +138,14 @@ export interface ChatWithContato extends Chat {
   contato?: Contato;
 }
 
+/**
+ * Chat com tipo do contato (cliente | lead | unknown).
+ * Retornado por useConversasRealtime para alimentar os filtros da sidebar.
+ */
+export interface EnrichedChat extends Chat {
+  contato_tipo: ContactType;
+}
+
 // ─── Estado UI ────────────────────────────────────────────────────────────────
 
 export interface ChatListFilters {
