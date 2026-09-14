@@ -309,9 +309,14 @@ export function useConversasChat(
             );
           });
 
-          // Auto-mark delivered/read for inbound
-          if (newMsg.direction === 'inbound' && newMsg.status === 'delivered') {
+          // Auto-mark read for inbound when chat is active
+          if (newMsg.direction === 'inbound') {
             markReadLocal(newMsg.id);
+            if (autoMarkRead) {
+              // The chat is open, so immediately tell the worker to sync read status
+              // and clear unread_count from DB.
+              void markAllRead();
+            }
           }
         },
       )

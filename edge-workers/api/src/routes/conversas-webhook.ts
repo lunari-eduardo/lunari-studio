@@ -213,6 +213,7 @@ async function processSingleMessage(
   supabase: any,
   msg: EvolutionMessagePayload,
   instance: ResolvedInstance,
+  ctx?: any,
 ) {
   if (!msg.key?.id) return;
 
@@ -305,9 +306,72 @@ async function processSingleMessage(
     throw msgError;
   }
 
-  // Incremento de não lidas: feito pelo trigger `tg_conversas_update_chat_last_message`
-  // no Supabase. Esta chamada RPC foi removida por gerar duplo incremento (P0-02).
-  // Ver migration `20260913210000_fix_unread_double_count.sql`.
+  // 4. Download de Mídia Assíncrono (Fase 2)
+  if (['image', 'video', 'audio', 'document'].includes(msgType) && !mediaInfo.mediaUrl && ctx?.waitUntil) {
+    ctx.waitUntil((async () => {
+      try {
+        const evoUrl = env.EVOLUTION_API_URL;
+        const evoKey = env.EVOLUTION_API_KEY;
+        if (!evoUrl || !evoKey) return;
+
+        // Pede a mídia em base64 para a Evolution
+        const response = await fetch(`${evoUrl}/chat/getBase64FromMediaMessage/${instance.instance_name}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: evoKey,
+          },
+          body: JSON.stringify({ message: msg }),
+        });
+
+        if (!response.ok) {
+          console.error('[conversas-webhook] Erro ao baixar mídia da Evolution:', await response.text());
+          return;
+        }
+
+        const data = await response.json();
+        const base64 = data.base64;
+        if (!base64) return;
+
+        // Converte base64 para ArrayBuffer
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Upload pro R2
+        const bucket = env.LUNARI_CONVERSAS;
+        if (!bucket) {
+          console.error('[conversas-webhook] LUNARI_CONVERSAS bucket not bound');
+          return;
+        }
+
+        const ext = mediaInfo.filename ? mediaInfo.filename.split('.').pop() : (msgType === 'image' ? 'jpg' : msgType === 'video' ? 'mp4' : 'ogg');
+        const r2Filename = `${instance.id}/${chatId}/${msg.key.id}.${ext}`;
+
+        await bucket.put(r2Filename, bytes, {
+          httpMetadata: {
+            contentType: mediaInfo.mimeType || 'application/octet-stream',
+          },
+        });
+
+        const cdnBase = env.R2_CONVERSAS_CDN_BASE;
+        const finalUrl = `${cdnBase}/${r2Filename}`;
+
+        // Atualiza a mensagem no banco
+        await supabase
+          .from('conversas_mensagens')
+          .update({ media_url: finalUrl })
+          .eq('evolution_msg_id', msg.key.id)
+          .eq('user_id', instance.user_id);
+          
+      } catch (err: any) {
+        console.error('[conversas-webhook] Falha no background media download:', err.message);
+      }
+    })());
+  }
 }
 
 async function handleMessagesUpsert(
@@ -315,6 +379,7 @@ async function handleMessagesUpsert(
   supabase: any,
   payload: unknown,
   instance: ResolvedInstance,
+  ctx?: any,
 ) {
   // Suporta payload como objeto único ou array
   const rawList = Array.isArray(payload)
@@ -326,7 +391,7 @@ async function handleMessagesUpsert(
     : [];
 
   for (const item of rawList) {
-    await processSingleMessage(env, supabase, item as EvolutionMessagePayload, instance);
+    await processSingleMessage(env, supabase, item as EvolutionMessagePayload, instance, ctx);
   }
 }
 
@@ -572,7 +637,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
     switch (event) {
       case 'MESSAGES_UPSERT':
       case 'MESSAGE_UPSERT':
-        await handleMessagesUpsert(c.env, supabase, payload, instance);
+        await handleMessagesUpsert(c.env, supabase, payload, instance, c.executionCtx);
         break;
 
       case 'MESSAGES_UPDATE':
