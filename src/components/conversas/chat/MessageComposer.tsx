@@ -8,10 +8,11 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, Send, X, Square, Trash2 } from 'lucide-react';
+import { Mic, Send, X, Square, Trash2, Sticker as StickerIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Mensagem } from '@/modules/conversas/types';
 import { AttachMenu } from './AttachMenu';
+import { StickerPickerPopover } from './StickerPickerPopover';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 
 export interface MessageComposerProps {
@@ -127,7 +128,20 @@ export function MessageComposer({
       )}
 
       <div className="flex items-end gap-2 px-3 py-2">
-      {!isRecording && <AttachMenu onAttach={onAttach} />}
+      {!isRecording && (
+        <div className="flex items-center gap-1 shrink-0">
+          <StickerPickerPopover onSendSticker={(url) => onAttach(url as any, 'sticker')}>
+            <button
+              type="button"
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 transition-colors text-zinc-500"
+              title="Figurinhas"
+            >
+              <StickerIcon className="w-5 h-5" />
+            </button>
+          </StickerPickerPopover>
+          <AttachMenu onAttach={onAttach} />
+        </div>
+      )}
 
       <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center min-h-[42px] overflow-hidden">
         {isRecording ? (

@@ -5,11 +5,12 @@
  */
 
 import { useState } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
+import { useConversasStickers } from '@/hooks/useConversasStickers';
 
 function FloatingPalette({ onReact, close }: { onReact: (emoji: string) => void, close: () => void }) {
   const emojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -79,10 +80,12 @@ export function MessageBubble({
   onReact,
 }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
+  const { saveSticker } = useConversasStickers();
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
   const isMedia = mensagem.type !== 'text';
+  const hasStickerMedia = isMedia && mensagem.type === 'sticker';
 
   // Cauda: canto cortado apenas no primeiro e último do grupo.
   const cornerClass = isOwn
@@ -124,6 +127,16 @@ export function MessageBubble({
       {/* Botões de Ação (aparecem no hover da mensagem para outbound) */}
       {isOwn && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {hasStickerMedia && !isPending && !failed && (
+            <button
+              type="button"
+              onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
+              className="p-1.5 rounded-full hover:bg-yellow-50 text-zinc-400 hover:text-yellow-500"
+              title="Salvar Figurinha"
+            >
+              <Star className="h-3.5 w-3.5" />
+            </button>
+          )}
           {onReact && (
             <div className="relative">
               <button
@@ -380,6 +393,16 @@ export function MessageBubble({
       {/* Botões de Ação para inbound (à direita da bolha) */}
       {!isOwn && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          {hasStickerMedia && !isPending && !failed && (
+            <button
+              type="button"
+              onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
+              className="p-1.5 rounded-full hover:bg-yellow-50 text-zinc-400 hover:text-yellow-500"
+              title="Salvar Figurinha"
+            >
+              <Star className="h-3.5 w-3.5" />
+            </button>
+          )}
           {onReact && (
             <div className="relative">
               <button

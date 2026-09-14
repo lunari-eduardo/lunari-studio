@@ -595,7 +595,7 @@ export function useConversasChat(
   // ─── Send sticker (Fase 2) ────────────────────────────────────────────────
 
   const sendSticker = useCallback(
-    async (file: File) => {
+    async (fileOrUrl: File | string) => {
       const userId = userIdRef.current;
       const instanceId = instanceIdRef.current;
       if (!chatId || !userId || !instanceId) {
@@ -603,7 +603,8 @@ export function useConversasChat(
       }
 
       const msgId = crypto.randomUUID();
-      const localPreviewUrl = URL.createObjectURL(file);
+      const isUrl = typeof fileOrUrl === 'string';
+      const localPreviewUrl = isUrl ? fileOrUrl : URL.createObjectURL(fileOrUrl as File);
 
       const optimisticMsg: Mensagem = {
         id: msgId,
@@ -613,11 +614,11 @@ export function useConversasChat(
         evolution_msg_id: null,
         direction: 'outbound',
         type: 'sticker',
-        content: '🎨 Figurinha',
+        content: '🧸 Figurinha',
         media_url: localPreviewUrl,
-        media_mime_type: file.type || 'image/webp',
-        media_filename: file.name,
-        media_size_bytes: file.size,
+        media_mime_type: isUrl ? 'image/webp' : (fileOrUrl as File).type || 'image/webp',
+        media_filename: isUrl ? 'sticker.webp' : (fileOrUrl as File).name,
+        media_size_bytes: isUrl ? 0 : (fileOrUrl as File).size,
         status: 'pending',
         is_forwarded: null,
         timestamp: new Date().toISOString(),
@@ -631,28 +632,27 @@ export function useConversasChat(
         if (!session?.access_token) throw new Error('Sessão expirada');
 
         const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+        let finalMediaUrl = localPreviewUrl;
+        
+        if (!isUrl) {
+          // Upload sticker para R2
+          const formData = new FormData();
+          formData.append('file', fileOrUrl as File);
+          formData.append('chatId', chatId);
 
-        // Upload sticker para R2
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('chatId', chatId);
+          const uploadRes = await fetch(`${workerUrl}/api/conversas/media-upload`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            body: formData,
+          });
 
-        const uploadRes = await fetch(`${workerUrl}/api/conversas/media-upload`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-          body: formData,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error('Falha no upload da figurinha');
+          if (!uploadRes.ok) {
+            throw new Error('Falha no upload da figurinha');
+          }
+          const uploadData = await uploadRes.json();
+          finalMediaUrl = uploadData.mediaUrl;
         }
 
-        const uploadData = await uploadRes.json();
-        if (!uploadData.mediaUrl) {
-          throw new Error('Upload concluído sem URL de mídia');
-        }
-
-        // Enviar sticker via Evolution API
         const sendRes = await fetch(`${workerUrl}/api/conversas/send-message`, {
           method: 'POST',
           headers: {
@@ -660,36 +660,28 @@ export function useConversasChat(
             Authorization: `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            id: msgId,
             chatId,
-            instanceId,
-            content: '',
+            content: optimisticMsg.content,
+            msgId,
             type: 'sticker',
-            mediaUrl: uploadData.mediaUrl,
-            mediaMimeType:
-              uploadData.mediaMimeType ||
-              file.type ||
-              (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/webp'),
-            mediaFilename: uploadData.mediaFilename || file.name,
-            mediaSizeBytes: uploadData.mediaSizeBytes || file.size,
+            mediaUrl: finalMediaUrl,
           }),
         });
 
         if (!sendRes.ok) {
-          const errJson = await sendRes.json();
-          throw new Error(errJson.error || 'Falha ao enviar figurinha');
+          throw new Error('Falha ao enviar figurinha via Worker');
         }
 
-        const sendResult = await sendRes.json();
-
+        const sendData = await sendRes.json();
+        
         setMensagens(prev =>
           prev.map(m =>
             m.id === msgId
               ? {
                   ...m,
-                  media_url: uploadData.mediaUrl,
-                  evolution_msg_id: sendResult.evolutionMsgId || m.evolution_msg_id,
-                  status: 'sent' as const,
+                  status: 'sent',
+                  evolution_msg_id: sendData.key?.id || m.evolution_msg_id,
+                  media_url: finalMediaUrl,
                 }
               : m,
           ),

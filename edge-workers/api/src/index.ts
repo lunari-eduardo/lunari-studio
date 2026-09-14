@@ -30,6 +30,7 @@ import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 import { conversasMarkReadRoute } from './routes/conversas-mark-read.js';
 import { conversasMessageDeleteRoute } from './routes/conversas-message-delete.js';
 import { conversasMessageReactRoute } from './routes/conversas-message-react.js';
+import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -98,6 +99,11 @@ app.post('/api/agenda/online/:slug/reserve', reserveAgendaOnlineSlotRoute);
 // ─── Conversas (WhatsApp / Evolution API) ────────────────────────────────────
 app.post('/api/conversas/webhook', conversasWebhookRoute);
 app.post('/api/conversas/send-message', conversasSendMessageRoute);
+
+app.get('/api/conversas/stickers', getConversasStickersRoute);
+app.post('/api/conversas/stickers', saveConversasStickersRoute);
+app.delete('/api/conversas/stickers/:id', deleteConversasStickersRoute);
+app.post('/api/conversas/stickers/proxy-send', proxyConversasStickersRoute);
 app.post('/api/conversas/message/retry/:id', conversasMessageRetryRoute);
 app.post('/api/conversas/media-upload', conversasMediaUploadRoute);
 
