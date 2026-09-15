@@ -226,6 +226,7 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
           'hover:border-border/80 hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-gold))]/40 focus-visible:border-[hsl(var(--accent-gold))]/40'
         )}
+        style={{ minHeight: '280px' }}
       >
         {/* Imagem de capa (placeholder gradiente por enquanto) */}
         <div
@@ -258,9 +259,12 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
                 size="icon-sm"
                 className={cn(
                   'absolute top-2 right-2 shrink-0',
-                  'opacity-0 group-hover:opacity-100 transition-opacity duration-150',
+                  // Mobile: sempre visível (touch target ≥44px). Desktop: hover.
+                  'opacity-100 md:opacity-0 md:group-hover:opacity-100',
+                  'transition-opacity duration-150',
                   'data-[state=open]:opacity-100',
-                  'h-7 w-7 bg-background/80 backdrop-blur-sm hover:bg-background'
+                  // h-10 w-10 = 40px (~ suficiente p/ mobile, mas ≥ h-9 evita clique acidental)
+                  'h-9 w-9 bg-background/85 backdrop-blur-sm hover:bg-background'
                 )}
               >
                 {isMenuDisabled ? (

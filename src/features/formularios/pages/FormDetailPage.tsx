@@ -198,14 +198,14 @@ export default function FormDetailPage() {
         <div className="mt-3 flex items-center gap-3 flex-wrap text-xs">
           <button
             onClick={handleBack}
-            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors min-h-[44px] px-2 -mx-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-gold))]/40"
             aria-label="Voltar para lista de formulários"
           >
             <ArrowLeft size={12} strokeWidth={1.8} />
             Formulários
           </button>
-          <span className="text-muted-foreground/50">/</span>
-          <span className="text-foreground font-medium truncate max-w-[40ch]">
+          <span className="text-muted-foreground/50" aria-hidden>/</span>
+          <span className="text-foreground font-medium truncate max-w-[40ch]" aria-current="page">
             {form.titulo}
           </span>
           <FormStatusBadge status={form.status_envio} />
