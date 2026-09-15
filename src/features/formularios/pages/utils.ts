@@ -42,12 +42,12 @@ export function defaultCampoFor(
   switch (tipo) {
     case 'texto_curto':
     case 'texto_longo':
-    case 'data':
     case 'selecao_cores':
       return { ...base, placeholder: '' };
     case 'selecao_unica':
     case 'multipla_escolha':
       return { ...base, opcoes: ['Opção 1', 'Opção 2'] };
+    case 'data':
     case 'upload_referencia':
     case 'upload_imagem':
       return {

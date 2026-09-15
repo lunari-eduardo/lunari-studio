@@ -56,6 +56,8 @@ export function useFormularios() {
           template_id: input.template_id || null,
           cliente_id: input.cliente_id || null,
           session_id: input.session_id || null,
+          expires_at: input.expires_at || null,
+          cover_url: input.cover_url || null,
           status: 'rascunho',
           status_envio: 'nao_enviado',
         })
@@ -83,14 +85,26 @@ export function useFormularios() {
 
   // Atualizar formulário
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...input }: Partial<FormularioCreateInput> & { 
+    mutationFn: async (args: {
       id: string;
+      updates?: Partial<FormularioCreateInput> & {
+        status?: Formulario['status'];
+        status_envio?: Formulario['status_envio'];
+        expires_at?: string | null;
+        cover_url?: string | null;
+      };
+    } & Partial<FormularioCreateInput> & {
       status?: Formulario['status'];
       status_envio?: Formulario['status_envio'];
+      expires_at?: string | null;
+      cover_url?: string | null;
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
-      const updateData: any = {};
+      const { id, updates, ...rest } = args;
+      const input = updates ? { ...rest, ...updates } : rest;
+      
+      const updateData: Record<string, any> = {};
       if (input.titulo !== undefined) updateData.titulo = input.titulo;
       if (input.titulo_cliente !== undefined) updateData.titulo_cliente = input.titulo_cliente;
       if (input.descricao !== undefined) updateData.descricao = input.descricao;
@@ -101,6 +115,8 @@ export function useFormularios() {
       if (input.session_id !== undefined) updateData.session_id = input.session_id;
       if (input.status !== undefined) updateData.status = input.status;
       if (input.status_envio !== undefined) updateData.status_envio = input.status_envio;
+      if (input.expires_at !== undefined) updateData.expires_at = input.expires_at;
+      if (input.cover_url !== undefined) updateData.cover_url = input.cover_url;
       
       const { data, error } = await supabase
         .from('formularios')
@@ -111,7 +127,7 @@ export function useFormularios() {
         .single();
       
       if (error) throw error;
-      return data;
+      return data as unknown as Formulario;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });

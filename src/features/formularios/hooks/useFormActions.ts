@@ -31,7 +31,11 @@ async function duplicateFormulario(formulario: Formulario, userId: string): Prom
   const { error } = await supabase.from('formularios').insert({
     user_id: userId,
     titulo: `${formulario.titulo} (cópia)`,
+    titulo_cliente: formulario.titulo_cliente,
     descricao: formulario.descricao,
+    mensagem_conclusao: formulario.mensagem_conclusao,
+    tempo_estimado: formulario.tempo_estimado,
+    cover_url: formulario.cover_url || null,
     campos: formulario.campos as unknown as never,
     cliente_id: formulario.cliente_id,
     session_id: formulario.session_id,

@@ -71,6 +71,57 @@ const TODOS_TIPOS: FormularioCampoTipo[] = [
   'selecao_cores',
 ];
 
+interface TipoContexto {
+  labelPlaceholder: string;
+  descricaoPlaceholder: string;
+  campoPlaceholder?: string;
+  dica?: string;
+}
+
+const CONTEXTO_POR_TIPO: Record<FormularioCampoTipo, TipoContexto> = {
+  texto_curto: {
+    labelPlaceholder: 'Ex: Qual é o seu nome completo?',
+    descricaoPlaceholder: 'Ex: Usaremos para personalizar seu atendimento e documentação.',
+    campoPlaceholder: 'Ex: Sofia Silva',
+  },
+  texto_longo: {
+    labelPlaceholder: 'Ex: Conte-nos sobre suas expectativas para o ensaio',
+    descricaoPlaceholder: 'Ex: Quanto mais detalhes você compartilhar, melhor prepararemos a experiência.',
+    campoPlaceholder: 'Ex: Gostaria de fotos bem espontâneas, com luz natural...',
+  },
+  data: {
+    labelPlaceholder: 'Ex: Qual é a data prevista para o parto ou evento?',
+    descricaoPlaceholder: 'Ex: Ajuda a planejar o timing ideal para a realização do ensaio.',
+    dica: 'O cliente verá um seletor de calendário nativo.',
+  },
+  selecao_unica: {
+    labelPlaceholder: 'Ex: Qual é o local de sua preferência para o ensaio?',
+    descricaoPlaceholder: 'Ex: Escolha o ambiente que melhor representa o seu estilo.',
+    dica: 'O cliente poderá escolher apenas uma entre as opções.',
+  },
+  multipla_escolha: {
+    labelPlaceholder: 'Ex: Quais cenários ou momentos mais te encantam?',
+    descricaoPlaceholder: 'Ex: Você pode marcar mais de uma alternativa.',
+    dica: 'O cliente poderá marcar múltiplas opções.',
+  },
+  upload_imagem: {
+    labelPlaceholder: 'Ex: Envie fotos ou arquivos que você gostaria que víssemos',
+    descricaoPlaceholder: 'Ex: Fotos do ultrassom, ensaio anterior, figurino ou local.',
+    dica: 'O cliente poderá anexar imagens (JPG, PNG) ou PDF.',
+  },
+  upload_referencia: {
+    labelPlaceholder: 'Ex: Compartilhe suas referências visuais e inspirações',
+    descricaoPlaceholder: 'Ex: Fotos do Pinterest, paletas ou poses que você ama.',
+    dica: 'Ideal para o cliente compartilhar inspirações visuais.',
+  },
+  selecao_cores: {
+    labelPlaceholder: 'Ex: Quais tons ou paleta você prefere para o figurino?',
+    descricaoPlaceholder: 'Ex: Indique as cores predominantes que gostaria de usar no dia.',
+    campoPlaceholder: 'Ex: Tons terrosos, bege, verde oliva, off-white',
+    dica: 'O cliente responderá descrevendo as cores e tons de sua preferência.',
+  },
+};
+
 interface QuestionEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -98,9 +149,11 @@ export function QuestionEditor({
 
   if (!campo) return null;
 
+  const contexto = CONTEXTO_POR_TIPO[campo.tipo];
   const showPlaceholder = !CAMPOS_SEM_PLACEHOLDER.includes(campo.tipo);
   const showOpcoes =
     campo.tipo === 'selecao_unica' || campo.tipo === 'multipla_escolha';
+  const opcoesValidas = opcoes.filter((o) => o.trim()).length;
 
   const handleOpcoesChange = (next: string[]) => {
     setOpcoes(next);
@@ -137,6 +190,7 @@ export function QuestionEditor({
           ? opcoes
           : ['Opção 1', 'Opção 2']
         : undefined,
+      placeholder: CAMPOS_SEM_PLACEHOLDER.includes(next) ? undefined : campo.placeholder,
     };
     onChange(updates);
   };
@@ -165,6 +219,9 @@ export function QuestionEditor({
             ))}
           </SelectContent>
         </Select>
+        {contexto?.dica && (
+          <p className="text-[11px] text-muted-foreground">{contexto.dica}</p>
+        )}
       </div>
 
       {/* Pergunta */}
@@ -176,7 +233,7 @@ export function QuestionEditor({
           id="q-label"
           value={campo.label}
           onChange={(e) => onChange({ label: e.target.value })}
-          placeholder="Ex: Qual é a data prevista para o parto?"
+          placeholder={contexto?.labelPlaceholder || 'Digite a pergunta...'}
           autoFocus
         />
       </div>
@@ -188,30 +245,35 @@ export function QuestionEditor({
           id="q-desc"
           value={campo.descricao ?? ''}
           onChange={(e) => onChange({ descricao: e.target.value || undefined })}
-          placeholder="Ex: Ajuda a planejar o timing ideal do ensaio."
+          placeholder={contexto?.descricaoPlaceholder || 'Texto explicativo opcional para orientar o cliente.'}
           rows={3}
         />
       </div>
 
-      {/* Placeholder (se aplicável) */}
+      {/* Placeholder (se aplicável para o tipo) */}
       {showPlaceholder && (
         <div className="space-y-2">
-          <Label htmlFor="q-placeholder">Placeholder</Label>
+          <Label htmlFor="q-placeholder">Texto de exemplo (placeholder)</Label>
           <Input
             id="q-placeholder"
             value={campo.placeholder ?? ''}
             onChange={(e) => onChange({ placeholder: e.target.value || undefined })}
-            placeholder="Ex: Sofia"
+            placeholder={contexto?.campoPlaceholder || 'Ex: Digite aqui...'}
           />
+          <p className="text-[11px] text-muted-foreground">
+            Exibido dentro do campo como orientação antes do cliente começar a digitar.
+          </p>
         </div>
       )}
 
-      {/* Opções */}
+      {/* Opções (apenas para Seleção única e Múltipla escolha) */}
       {showOpcoes && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Opções</Label>
-            <span className="text-[11px] text-muted-foreground">{opcoes.length} {opcoes.length === 1 ? 'opção' : 'opções'}</span>
+            <Label>Opções de resposta</Label>
+            <span className="text-[11px] text-muted-foreground">
+              {opcoes.length} {opcoes.length === 1 ? 'opção' : 'opções'}
+            </span>
           </div>
 
           <div className="space-y-2">
@@ -226,7 +288,7 @@ export function QuestionEditor({
                     onClick={() => handleMoveOpcao(idx, -1)}
                     disabled={idx === 0}
                     aria-label="Mover para cima"
-                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                   >
                     <ChevronUp size={12} aria-hidden />
                   </button>
@@ -235,7 +297,7 @@ export function QuestionEditor({
                     onClick={() => handleMoveOpcao(idx, 1)}
                     disabled={idx === opcoes.length - 1}
                     aria-label="Mover para baixo"
-                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
                   >
                     <ChevronDown size={12} aria-hidden />
                   </button>
@@ -243,6 +305,7 @@ export function QuestionEditor({
                 <Input
                   value={op}
                   onChange={(e) => handleOpcaoChange(idx, e.target.value)}
+                  placeholder={`Opção ${idx + 1}`}
                   className="h-9"
                 />
                 <Button
@@ -250,8 +313,9 @@ export function QuestionEditor({
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemoveOpcao(idx)}
+                  disabled={opcoes.length <= 1}
                   aria-label="Remover opção"
-                  className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                  className="h-9 w-9 text-muted-foreground hover:text-destructive disabled:opacity-30"
                 >
                   <Trash size={14} aria-hidden />
                 </Button>
@@ -259,12 +323,18 @@ export function QuestionEditor({
             ))}
           </div>
 
+          {opcoesValidas < 2 && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              Adicione pelo menos 2 opções para que o cliente possa escolher.
+            </p>
+          )}
+
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleAddOpcao}
-            className="gap-1.5"
+            className="gap-1.5 mt-1"
           >
             <Plus size={14} aria-hidden /> Adicionar opção
           </Button>
@@ -313,7 +383,7 @@ export function QuestionEditor({
       <Button
         onClick={handleClose}
         className="bg-foreground text-background hover:bg-foreground/90"
-        disabled={!campo.label.trim()}
+        disabled={!campo.label.trim() || (showOpcoes && opcoesValidas < 2)}
       >
         Salvar
       </Button>

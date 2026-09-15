@@ -84,11 +84,13 @@ export function FormPublicRenderer({
 
   const { data: primaryColor } = usePublicTheme(formulario?.user_id);
 
-  const isRespondido = formulario?.status_envio === 'respondido';
+  const isRespondido = !overrideForm && formulario?.status_envio === 'respondido';
   const isExpirado =
-    formulario?.expires_at && new Date(formulario.expires_at) < new Date();
+    !overrideForm &&
+    formulario?.expires_at &&
+    new Date(formulario.expires_at) < new Date();
   const isDisponivel =
-    formulario?.status === 'publicado' && !isRespondido && !isExpirado;
+    (overrideForm ? true : formulario?.status === 'publicado') && !isRespondido && !isExpirado;
 
   // Buscar resposta existente se já respondido. Inibido em override (preview).
   const { data: respostaExistente } = useFormularioRespostaPublica(
@@ -101,10 +103,18 @@ export function FormPublicRenderer({
   const [respondenteEmail, setRespondenteEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (campoId: string, value: any) => {
     if (readOnly) return;
     setRespostas((prev) => ({ ...prev, [campoId]: value }));
+    if (errors[campoId]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[campoId];
+        return next;
+      });
+    }
   };
 
   const handleFileUpload = async (campoId: string, files: File[]) => {
@@ -148,6 +158,43 @@ export function FormPublicRenderer({
     e.preventDefault();
     if (readOnly) return;
     if (!formulario || !isDisponivel) return;
+
+    // Validação estrita de todos os campos obrigatórios (incluindo rádio, checkbox, upload e texto)
+    const camposObrigatoriosList = (formulario.campos || []).filter((c) => c.obrigatorio);
+    const validationErrors: Record<string, string> = {};
+    let firstErrorCampoId: string | null = null;
+
+    camposObrigatoriosList.forEach((campo) => {
+      const val = respostas[campo.id];
+      let preenchido = false;
+
+      if (campo.tipo === 'upload_imagem' || campo.tipo === 'upload_referencia') {
+        preenchido = Array.isArray(val) && val.length > 0;
+      } else if (campo.tipo === 'multipla_escolha') {
+        preenchido = Array.isArray(val) && val.length > 0;
+      } else if (campo.tipo === 'selecao_unica') {
+        preenchido = typeof val === 'string' && val.trim().length > 0;
+      } else {
+        preenchido = val !== undefined && val !== null && String(val).trim().length > 0;
+      }
+
+      if (!preenchido) {
+        validationErrors[campo.id] = 'Esta pergunta é obrigatória.';
+        if (!firstErrorCampoId) {
+          firstErrorCampoId = campo.id;
+        }
+      }
+    });
+
+    if (firstErrorCampoId) {
+      setErrors(validationErrors);
+      const el = document.getElementById(`campo-${firstErrorCampoId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     try {
       await submitMutation.mutateAsync({
         formulario,
@@ -245,6 +292,15 @@ export function FormPublicRenderer({
         wrapInPublicTheme={wrapInPublicTheme}
       >
         <div className="min-h-screen bg-background">
+          {formulario.cover_url && (
+            <div className="w-full max-h-[300px] overflow-hidden bg-muted/20 border-b relative">
+              <img
+                src={formulario.cover_url}
+                alt="Capa do formulário"
+                className="w-full h-40 sm:h-56 object-cover"
+              />
+            </div>
+          )}
           <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
             <div className="max-w-2xl mx-auto px-4 py-4">
               <h1 className="text-lg font-semibold">
@@ -337,7 +393,7 @@ export function FormPublicRenderer({
   }
 
   // Formulário não publicado
-  if (formulario.status !== 'publicado') {
+  if (!overrideForm && formulario.status !== 'publicado') {
     return (
       <ContentWrapper
         primaryColor={primaryColor || undefined}
@@ -380,6 +436,16 @@ export function FormPublicRenderer({
       wrapInPublicTheme={wrapInPublicTheme}
     >
       <div className="min-h-screen bg-background">
+        {formulario.cover_url && (
+          <div className="w-full max-h-[340px] overflow-hidden bg-muted/20 border-b relative">
+            <img
+              src={formulario.cover_url}
+              alt="Capa do formulário"
+              className="w-full h-44 sm:h-64 object-cover"
+            />
+          </div>
+        )}
+
         <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-4 py-4">
             <h1 className="text-lg font-semibold">
@@ -448,6 +514,7 @@ export function FormPublicRenderer({
                 onRemoveFile={(index) => removeFile(campo.id, index)}
                 isUploading={uploading[campo.id]}
                 disabled={readOnly}
+                error={errors[campo.id]}
               />
             ))}
 
@@ -504,6 +571,7 @@ interface CampoRendererProps {
   onRemoveFile: (index: number) => void;
   isUploading?: boolean;
   disabled?: boolean;
+  error?: string;
 }
 
 function CampoRenderer({
@@ -516,6 +584,7 @@ function CampoRenderer({
   onRemoveFile,
   isUploading,
   disabled,
+  error,
 }: CampoRendererProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -534,7 +603,7 @@ function CampoRenderer({
   });
 
   return (
-    <div className="space-y-3">
+    <div id={`campo-${campo.id}`} className="space-y-3 scroll-mt-24">
       <div className="flex items-baseline gap-2">
         <span className="text-xs text-muted-foreground">
           {index}/{total}
@@ -555,8 +624,8 @@ function CampoRenderer({
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={campo.placeholder}
-          required={campo.obrigatorio}
           disabled={disabled}
+          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
         />
       )}
       {campo.tipo === 'texto_longo' && (
@@ -564,9 +633,9 @@ function CampoRenderer({
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={campo.placeholder}
-          required={campo.obrigatorio}
           rows={4}
           disabled={disabled}
+          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
         />
       )}
       {campo.tipo === 'data' && (
@@ -574,8 +643,8 @@ function CampoRenderer({
           type="date"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          required={campo.obrigatorio}
           disabled={disabled}
+          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
         />
       )}
       {campo.tipo === 'selecao_unica' && (
@@ -583,6 +652,7 @@ function CampoRenderer({
           value={value || ''}
           onValueChange={onChange}
           disabled={disabled}
+          className={cn(error && 'p-3 rounded-lg border border-destructive/40 bg-destructive/5')}
         >
           {(campo.opcoes || []).map((opcao, idx) => (
             <div key={idx} className="flex items-center space-x-2">
@@ -591,7 +661,7 @@ function CampoRenderer({
                 id={`${campo.id}-${idx}`}
                 disabled={disabled}
               />
-              <Label htmlFor={`${campo.id}-${idx}`} className="font-normal">
+              <Label htmlFor={`${campo.id}-${idx}`} className="font-normal cursor-pointer">
                 {opcao}
               </Label>
             </div>
@@ -599,7 +669,7 @@ function CampoRenderer({
         </RadioGroup>
       )}
       {campo.tipo === 'multipla_escolha' && (
-        <div className="space-y-2">
+        <div className={cn('space-y-2', error && 'p-3 rounded-lg border border-destructive/40 bg-destructive/5')}>
           {(campo.opcoes || []).map((opcao, idx) => {
             const checked = (value || []).includes(opcao);
             return (
@@ -617,7 +687,7 @@ function CampoRenderer({
                     );
                   }}
                 />
-                <Label htmlFor={`${campo.id}-${idx}`} className="font-normal">
+                <Label htmlFor={`${campo.id}-${idx}`} className="font-normal cursor-pointer">
                   {opcao}
                 </Label>
               </div>
@@ -634,6 +704,8 @@ function CampoRenderer({
               'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
               isDragActive
                 ? 'border-primary bg-primary/5'
+                : error
+                ? 'border-destructive bg-destructive/5'
                 : 'border-muted-foreground/25 hover:border-primary/50',
               disabled && 'pointer-events-none opacity-60',
             )}
@@ -687,7 +759,12 @@ function CampoRenderer({
           onChange={(e) => onChange(e.target.value)}
           placeholder={campo.placeholder || 'Ex: azul, verde, tons terrosos'}
           disabled={disabled}
+          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
         />
+      )}
+
+      {error && (
+        <p className="text-xs text-destructive font-medium mt-1">{error}</p>
       )}
     </div>
   );

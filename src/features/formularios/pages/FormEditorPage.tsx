@@ -98,6 +98,7 @@ export default function FormEditorPage() {
         'Obrigada por responder! Vamos te enviar mais detalhes em breve.',
       tempo_estimado: template?.tempo_estimado ?? 3,
       template_id: template?.id,
+      cover_url: template?.cover_url || null,
     })
       .then((created) => {
         // Redireciona para a rota com id, mantendo o templateId se houver.
@@ -132,6 +133,8 @@ export default function FormEditorPage() {
     if (draft.descricao !== savedSnapshot.descricao) return true;
     if (draft.mensagem_conclusao !== savedSnapshot.mensagem_conclusao) return true;
     if (draft.tempo_estimado !== savedSnapshot.tempo_estimado) return true;
+    if (draft.expires_at !== savedSnapshot.expires_at) return true;
+    if (draft.cover_url !== savedSnapshot.cover_url) return true;
     if (!formulariosAreEqual(draft.campos, savedSnapshot.campos)) return true;
     return false;
   }, [draft, savedSnapshot]);
@@ -162,6 +165,8 @@ export default function FormEditorPage() {
           descricao: draft.descricao,
           mensagem_conclusao: draft.mensagem_conclusao,
           tempo_estimado: draft.tempo_estimado,
+          expires_at: draft.expires_at,
+          cover_url: draft.cover_url,
           campos: draft.campos,
         },
       });
@@ -193,6 +198,8 @@ export default function FormEditorPage() {
           descricao: draft.descricao,
           mensagem_conclusao: draft.mensagem_conclusao,
           tempo_estimado: draft.tempo_estimado,
+          expires_at: draft.expires_at,
+          cover_url: draft.cover_url,
           campos: draft.campos,
         },
       });
@@ -214,7 +221,38 @@ export default function FormEditorPage() {
     setDraft((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
 
-  const canPublish = (draft?.titulo?.trim().length ?? 0) > 0;
+  const publishValidation = useMemo(() => {
+    const errors: string[] = [];
+    if (!draft) return { valid: false, errors: ['Formulário não carregado.'] };
+
+    if (!draft.titulo || !draft.titulo.trim()) {
+      errors.push('Dê um nome ao seu formulário.');
+    }
+
+    if (!draft.campos || draft.campos.length === 0) {
+      errors.push('Adicione pelo menos uma pergunta.');
+    } else {
+      draft.campos.forEach((c, idx) => {
+        const num = idx + 1;
+        if (!c.label || !c.label.trim()) {
+          errors.push(`A pergunta #${num} está sem enunciado.`);
+        }
+        if (['selecao_unica', 'multipla_escolha'].includes(c.tipo)) {
+          const validOptions = (c.opcoes || []).filter((o) => o.trim());
+          if (validOptions.length < 2) {
+            errors.push(`A pergunta #${num} precisa de pelo menos 2 opções.`);
+          }
+        }
+      });
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }, [draft]);
+
+  const canPublish = true;
   const requiredCount = draft?.campos.filter((c) => c.obrigatorio).length ?? 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -304,6 +342,7 @@ export default function FormEditorPage() {
         onOpenChange={setPublishOpen}
         alreadyPublished={draft.status === 'publicado'}
         isPending={updatePending || createPending}
+        validationErrors={publishValidation.errors}
         onConfirm={handlePublicar}
       />
 

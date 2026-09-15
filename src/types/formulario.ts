@@ -30,6 +30,7 @@ export interface FormularioTemplate {
   campos: FormularioCampo[];
   is_system: boolean;
   tempo_estimado: number;
+  cover_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +56,7 @@ export interface Formulario {
   respondido_em: string | null;
   public_token: string;
   expires_at: string | null;
+  cover_url?: string | null;
   created_at: string;
   updated_at: string;
   cliente?: {
@@ -84,6 +86,8 @@ export interface FormularioCreateInput {
   template_id?: string;
   cliente_id?: string;
   session_id?: string;
+  expires_at?: string | null;
+  cover_url?: string | null;
 }
 
 export interface FormularioTemplateCreateInput {
@@ -92,6 +96,7 @@ export interface FormularioTemplateCreateInput {
   descricao?: string;
   campos: FormularioCampo[];
   tempo_estimado?: number;
+  cover_url?: string | null;
 }
 
 // Labels para exibição
@@ -109,9 +114,10 @@ export const CAMPO_TIPO_LABELS: Record<FormularioCampoTipo, string> = {
 // Tipos de campo que NÃO precisam de placeholder
 export const CAMPOS_SEM_PLACEHOLDER: FormularioCampoTipo[] = [
   'data',
+  'selecao_unica',
+  'multipla_escolha',
   'upload_imagem',
   'upload_referencia',
-  'selecao_cores',
 ];
 
 export const STATUS_ENVIO_LABELS: Record<FormularioStatusEnvio, string> = {
