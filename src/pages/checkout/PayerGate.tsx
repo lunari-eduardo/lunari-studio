@@ -131,6 +131,11 @@ export default function PayerGate({
                 autoComplete="name"
                 className="bg-white border-neutral-200"
               />
+              <p className="text-[11px] text-neutral-500">
+                {value.nome.trim().length >= 2
+                  ? 'Este nome será usado em seus pagamentos. Após salvar, edições no campo são preservadas pelo valor original.'
+                  : 'Este nome será usado em seus pagamentos.'}
+              </p>
             </div>
           )}
           {showField('cpfCnpj') && (

@@ -41,35 +41,46 @@ Deno.serve(async (req) => {
     if (cobranca.provedor !== "infinitepay") return errorResponse("Cobrança não é InfinitePay", 400);
     if (cobranca.status === "pago") return jsonResponse({ success: false, error: "Cobrança já paga", code: "ALREADY_PAID" }, 400);
 
-    // 2. Enriquecimento do CRM (apenas dados secundários, NUNCA o nome)
-    // Nome do checkout vai para checkout_preferences, não para clientes.nome
+    // 2. Enriquecimento do CRM (dados secundários, NUNCA nome)
+    // Nome do checkout vai para clientes.nome_checkout (não clientes.nome)
     if (payerPatch && cobranca.cliente_id) {
       const { nome, ...rest } = payerPatch;
 
-      // Salvar dados secundários no CRM se estiverem vazios (comportamento original)
+      // Salvar dados secundários no CRM se estiverem vazios
       await enrichClienteIfMissing(supabase, cobranca.cliente_id, rest);
 
-      // Nome: salvar/atualizar na tabela de preferences de checkout
-      // NUNCA atualizar clientes.nome com dados do checkout
+      // Nome: salvar em clientes.nome_checkout APENAS se ainda estiver vazio
+      // (proteção "primeira vez wins"). NUNCA atualiza clientes.nome.
       if (nome && nome.trim().length >= 2) {
         const normalizedNome = nome.trim();
-        const normalizedEmail = rest.email ? rest.email.trim() : null;
-        const normalizedTelefone = rest.telefone ? rest.telefone.replace(/\D/g, "") : null;
-        const normalizedCpf = rest.cpfCnpj ? rest.cpfCnpj.replace(/\D/g, "") : null;
 
-        await supabase.rpc("upsert_checkout_preferences", {
-          p_cliente_id: cobranca.cliente_id,
-          p_nome_preferido: normalizedNome,
-          p_email_preferido: normalizedEmail,
-          p_telefone_preferido: normalizedTelefone,
-          p_cpf_preferido: normalizedCpf,
-        });
+        const { data: clienteDb } = await supabase
+          .from("clientes")
+          .select("nome_checkout, nome")
+          .eq("id", cobranca.cliente_id)
+          .maybeSingle();
 
-        console.log(`[pay-infinitepay-finalize] Nome preferido salvo: ${normalizedNome}`);
+        if (!clienteDb?.nome_checkout) {
+          // Só grava se nome_checkout está vazio
+          // Bate nome recebido vs CRM — se for igual ao CRM, ignora
+          const crmNomeTrim = (clienteDb?.nome || "").trim().toLowerCase();
+          if (!crmNomeTrim || normalizedNome.toLowerCase() !== crmNomeTrim) {
+            await supabase
+              .from("clientes")
+              .update({ nome_checkout: normalizedNome })
+              .eq("id", cobranca.cliente_id);
+
+            console.log(`[pay-infinitepay-finalize] nome_checkout salvo: ${normalizedNome}`);
+          } else {
+            console.log(`[pay-infinitepay-finalize] nome ignorado (igual ao CRM): ${normalizedNome}`);
+          }
+        } else {
+          console.log(`[pay-infinitepay-finalize] nome ignorado (já existe nome_checkout)`);
+        }
       }
     }
 
-    // 3. Resolver hints consolidados
+    // 3. Resolver hints consolidados (já busca nome_checkout internamente)
     const hints = await resolvePayerHints({
       supabase,
       clienteId: cobranca.cliente_id || null,
@@ -77,6 +88,8 @@ Deno.serve(async (req) => {
       sessionId: cobranca.session_id || null,
     });
 
+    // Nome enviado pelo usuário tem prioridade sobre o nome_checkout salvo
+    // (necessário porque o nome foi acabado de gravar)
     const clientNome = payerPatch?.nome || hints.name || "Cliente";
     const clientPhone = payerPatch?.telefone || hints.phone;
     const clientEmail = payerPatch?.email || hints.email;

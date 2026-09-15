@@ -177,6 +177,11 @@ export const PixCheckoutView: React.FC<PixCheckoutViewProps> = ({
                     maxLength={80}
                     className={checkoutInputClass('pixName')}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    {initialFullName
+                      ? 'Nome cadastrado para pagamentos — editável, mas o valor original é preservado.'
+                      : 'Este nome será usado em seus pagamentos.'}
+                  </p>
                   <FieldError name="pixName" />
                 </div>
               )}

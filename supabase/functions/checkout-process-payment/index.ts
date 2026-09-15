@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
     const { data: cliente } = effectiveClienteId ? await supabase
       .from("clientes")
-      .select("id, nome, email, telefone, whatsapp, cpf_cnpj, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, uf")
+      .select("id, nome, nome_checkout, email, telefone, whatsapp, cpf_cnpj, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, uf")
       .eq("id", effectiveClienteId)
       .maybeSingle() : { data: null };
 
@@ -106,21 +106,25 @@ Deno.serve(async (req) => {
 
       // Dados do titular do cartão (nome, CPF) NUNCA devem alterar o perfil do cliente no CRM
       // pois o pagador pode estar usando cartão de terceiros (cônjuge, pais, empresa).
-      // Nome do pagador vai para checkout_preferences, não para clientes.nome
+      // Nome do pagador vai para clientes.nome_checkout, não clientes.nome
       const candidateName = billingType === "CREDIT_CARD" ? undefined : payerContact?.name?.trim();
       const candidateCpf = billingType === "CREDIT_CARD" ? undefined : payerContact?.cpfCnpj?.trim();
       const candidateEmail = payerContact?.email?.trim();
       const candidatePhone = payerContact?.phone?.trim();
 
-      // Nome: salvar em checkout_preferences, NÃO em clientes.nome
-      if (candidateName && isEmpty(cliente?.nome)) {
-        await supabase.rpc("upsert_checkout_preferences", {
-          p_cliente_id: targetClienteId,
-          p_nome_preferido: candidateName,
-          p_email_preferido: candidateEmail?.toLowerCase() || null,
-          p_telefone_preferido: candidatePhone?.replace(/\D/g, "") || null,
-          p_cpf_preferido: candidateCpf?.replace(/\D/g, "") || null,
-        }).catch((e: Error) => console.warn("[checkout-process-payment] Falha ao salvar checkout_preferences:", e));
+      // Nome: salvar em clientes.nome_checkout APENAS se ainda estiver vazio
+      // (proteção "primeira vez wins"). clientes.nome nunca é alterado aqui.
+      if (candidateName && !cliente?.nome_checkout) {
+        const crmNomeTrim = (cliente?.nome || "").trim().toLowerCase();
+        if (!crmNomeTrim || candidateName.toLowerCase() !== crmNomeTrim) {
+          await supabase
+            .from("clientes")
+            .update({ nome_checkout: candidateName })
+            .eq("id", targetClienteId)
+            .then(({ error }) => {
+              if (error) console.warn("[checkout-process-payment] Falha ao salvar nome_checkout:", error);
+            });
+        }
       }
       if (candidateEmail && isEmpty(cliente?.email)) patch.email = candidateEmail.toLowerCase();
       if (candidatePhone && isEmpty(cliente?.whatsapp) && isEmpty(cliente?.telefone)) {
@@ -148,7 +152,12 @@ Deno.serve(async (req) => {
 
     const mergedCliente: ClienteContact = {
       id: cobranca.cliente_id || undefined,
-      nome: cliente?.nome || (billingType !== "CREDIT_CARD" ? payerContact?.name : undefined) || resolvedHints.name || "Cliente",
+      // Prioridade: nome_checkout → payerContact.name → nome do CRM (fallback) → "Cliente"
+      nome: cliente?.nome_checkout
+        || (billingType !== "CREDIT_CARD" ? payerContact?.name : undefined)
+        || cliente?.nome
+        || resolvedHints.name
+        || "Cliente",
       email: payerContact?.email || cliente?.email || resolvedHints.email || creditCardHolderInfo?.email,
       telefone: payerContact?.phone || cliente?.whatsapp || cliente?.telefone || resolvedHints.phone || creditCardHolderInfo?.phone,
       whatsapp: payerContact?.phone || cliente?.whatsapp || cliente?.telefone || resolvedHints.phone || creditCardHolderInfo?.phone,

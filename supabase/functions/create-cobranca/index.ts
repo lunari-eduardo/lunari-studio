@@ -271,10 +271,10 @@ Deno.serve(async (req) => {
       await cancelStalePendingChargesForSession(supabase, normalizedSessionId, cobrancaId);
     }
 
-    // 6. Buscar e mesclar dados do cliente
+    // 6. Buscar e mesclar dados do cliente (incluindo nome_checkout)
     const { data: clienteDb } = await supabase
       .from("clientes")
-      .select("nome, email, telefone, whatsapp, cpf_cnpj, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, uf")
+      .select("nome, nome_checkout, email, telefone, whatsapp, cpf_cnpj, cep, endereco, endereco_numero, endereco_complemento, bairro, cidade, uf")
       .eq("id", clienteId)
       .maybeSingle();
 
@@ -284,22 +284,25 @@ Deno.serve(async (req) => {
 
     // Dados do titular do cartão (nome, CPF) NUNCA devem alterar o perfil do cliente no CRM
     // pois o pagador pode estar usando cartão de terceiros (cônjuge, pais, empresa).
-    // Nome do pagador vai para checkout_preferences, não para clientes.nome
+    // Nome do pagador vai para clientes.nome_checkout, não clientes.nome
     const candName = billingType === "CREDIT_CARD" ? undefined : ((payerContact as any)?.name?.trim() || payerContact?.nome?.trim());
     const candCpf = billingType === "CREDIT_CARD" ? undefined : ((payerContact as any)?.cpfCnpj?.trim() || payerContact?.cpfCnpj?.trim());
     const candEmail = (payerContact as any)?.email?.trim() || payerContact?.email?.trim();
     const candPhone = (payerContact as any)?.phone?.trim() || payerContact?.whatsapp?.trim() || payerContact?.telefone?.trim();
 
-    // Nome: salvar em checkout_preferences, NÃO em clientes.nome
-    if (candName && isEmptyField(clienteDb?.nome)) {
-      // Salvar nome preferido no checkout_preferences
-      await supabase.rpc("upsert_checkout_preferences", {
-        p_cliente_id: clienteId,
-        p_nome_preferido: candName,
-        p_email_preferido: candEmail?.toLowerCase(),
-        p_telefone_preferido: candPhone?.replace(/\D/g, "") || null,
-        p_cpf_preferido: candCpf?.replace(/\D/g, "") || null,
-      }).catch((e: Error) => console.warn("[create-cobranca] Falha ao salvar checkout_preferences:", e));
+    // Nome: salvar em clientes.nome_checkout APENAS se ainda estiver vazio
+    // (proteção "primeira vez wins"). clientes.nome nunca é alterado aqui.
+    if (candName && !clienteDb?.nome_checkout) {
+      const crmNomeTrim = (clienteDb?.nome || "").trim().toLowerCase();
+      if (!crmNomeTrim || candName.toLowerCase() !== crmNomeTrim) {
+        await supabase
+          .from("clientes")
+          .update({ nome_checkout: candName })
+          .eq("id", clienteId)
+          .then(({ error }) => {
+            if (error) console.warn("[create-cobranca] Falha ao salvar nome_checkout:", error);
+          });
+      }
     }
     if (candEmail && isEmptyField(clienteDb?.email)) patchCliente.email = candEmail.toLowerCase();
     if (candPhone && isEmptyField(clienteDb?.whatsapp) && isEmptyField(clienteDb?.telefone)) {
@@ -318,7 +321,8 @@ Deno.serve(async (req) => {
 
     const mergedCliente: ClienteContact = {
       id: clienteId,
-      nome: clienteDb?.nome || candName || "Cliente",
+      // Prioridade: nome_checkout (escolhido pelo cliente) → candName (input) → nome do CRM (fallback)
+      nome: clienteDb?.nome_checkout || candName || clienteDb?.nome || "Cliente",
       email: clienteDb?.email || candEmail || creditCardHolderInfo?.email,
       telefone: clienteDb?.telefone || candPhone || creditCardHolderInfo?.phone,
       whatsapp: clienteDb?.whatsapp || candPhone || creditCardHolderInfo?.phone,

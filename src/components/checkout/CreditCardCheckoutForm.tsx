@@ -177,11 +177,16 @@ export const CreditCardCheckoutForm: React.FC<CreditCardCheckoutFormProps> = ({
               id="cc-name"
               value={cardName}
               onChange={(e) => setCardName(e.target.value.toUpperCase())}
-              placeholder="NOME COMPLETO"
+              placeholder={initialFullName ? '' : 'NOME COMPLETO'}
               autoComplete="cc-name"
               className={cn(checkoutInputClass(), 'pl-10')}
             />
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            {initialFullName
+              ? 'Nome cadastrado para pagamentos — editável, mas o valor original é preservado.'
+              : 'Este nome será usado em seus pagamentos.'}
+          </p>
         </div>
 
         <div className="space-y-1">
