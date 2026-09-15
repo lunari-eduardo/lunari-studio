@@ -1,16 +1,17 @@
 /**
  * FormsListPage — página principal de gestão de formulários.
  *
- * Escopo fases 1-3:
+ * Escopo fases 1-4:
  *  • Shell com header, tabs "Meus formulários" | "Biblioteca Lunari" e toolbar.
- *  • Listagem de formulários reais com FormCard (comportamento hover/menu •••).
- *  • Listagem de templates da biblioteca com TemplateCard (CTA dourado "Usar modelo").
- *  • Estado vazio ilustrativo para cada aba.
- *  • "+ Novo formulário" abre FormularioTemplateEditor (criação de template).
+ *  • Aba "Meus" usa FormCard (imagem de capa, badge de categoria, métricas).
+ *  • Aba "Biblioteca" usa TemplateCard + linha horizontal de chips por categoria
+ *    (categorias derivadas dos templates do banco — sem mock).
+ *  • CTA "Criar novo formulário" sempre visível como último card da grid em "Meus".
+ *  • Filtros client-side: busca + categoria (chips na Biblioteca, select nos Meus).
  *
  * FORA DO ESCOPO DESTA ETAPA:
- *  • Tela/editor de edição de formulário (vai para fase seguinte).
- *  • Página de detalhes / respostas (vai para fase seguinte).
+ *  • Tela de detalhes do formulário (Fase 5).
+ *  • Tabela de respostas (Fase 6).
  */
 import { useState, useMemo, useCallback } from 'react';
 import { FileText } from 'lucide-react';
@@ -30,22 +31,22 @@ import { FormToolbar, type CategoryFilter } from '../components/FormToolbar';
 import { FormCard, FormCardSkeleton } from '../components/FormCard';
 import { TemplateCard, TemplateCardSkeleton } from '../components/TemplateCard';
 import { CreateFormCard } from '../components/CreateFormCard';
+import { CategoryChips } from '../components/CategoryChips';
 import FormularioTemplateEditor from '@/components/configuracoes/FormularioTemplateEditor';
 import type { FormularioTemplate } from '@/types/formulario';
 import { toast } from '@/hooks/use-toast';
 
-function EmptyMeusFormularios() {
+function EmptyBusca({ termo }: { termo: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
         <FileText size={20} className="text-muted-foreground" strokeWidth={1.5} />
       </div>
       <h3 className="text-sm font-semibold text-foreground mb-1">
-        Nenhum formulário criado ainda
+        Nenhum resultado encontrado
       </h3>
       <p className="text-xs text-muted-foreground max-w-xs">
-        Envie briefings aos seus clientes pela aba <strong>Clientes</strong> para
-        que eles apareçam aqui.
+        Não encontramos nada para &quot;<strong>{termo}</strong>&quot;. Tente outro termo.
       </p>
     </div>
   );
@@ -71,7 +72,10 @@ export default function FormsListPage() {
   // ── Estado ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'meus' | 'biblioteca'>('meus');
   const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('todas');
+  /** Filtro de categoria da aba "Meus" (select). */
+  const [myCategoryFilter, setMyCategoryFilter] = useState<CategoryFilter>('todas');
+  /** Filtro de categoria da aba "Biblioteca" (chips). */
+  const [libraryCategoryFilter, setLibraryCategoryFilter] = useState<string>('todas');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormularioTemplate | null>(null);
 
@@ -80,6 +84,38 @@ export default function FormsListPage() {
   const { templates, isLoading: loadingTemplates, createTemplate } = useFormularioTemplates();
 
   // ── Filtro client-side ───────────────────────────────────────────────────────
+  const filteredTemplates = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return templates.filter((t) => {
+      const matchSearch =
+        !q ||
+        t.nome.toLowerCase().includes(q) ||
+        t.categoria.toLowerCase().includes(q) ||
+        (t.descricao?.toLowerCase().includes(q) ?? false);
+      const matchCategory =
+        libraryCategoryFilter === 'todas' ||
+        t.categoria === libraryCategoryFilter;
+      return matchSearch && matchCategory;
+    });
+  }, [templates, search, libraryCategoryFilter]);
+
+  /** Categorias únicas dos templates referenciados pelos formulários do usuário.
+   *  `Formulario` não tem campo `categoria` próprio — a categoria vem do template
+   *  origem (`template_id`). Exibimos apenas categorias que existem no banco. */
+  const myCategories = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of templates) if (t.categoria) set.add(t.categoria);
+    return Array.from(set);
+  }, [templates]);
+
+  /** Map template_id → categoria para lookup O(1) no filtro dos formulários. */
+  const templateCategoriaById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of templates) m.set(t.id, t.categoria);
+    return m;
+  }, [templates]);
+
+  /** Filtro client-side dos "Meus formulários" — busca + categoria do template. */
   const filteredFormularios = useMemo(() => {
     const q = search.trim().toLowerCase();
     return formularios.filter((f) => {
@@ -88,25 +124,15 @@ export default function FormsListPage() {
         f.titulo.toLowerCase().includes(q) ||
         (f.cliente?.nome?.toLowerCase().includes(q) ?? false) ||
         (f.descricao?.toLowerCase().includes(q) ?? false);
+      const formCategoria = f.template_id
+        ? templateCategoriaById.get(f.template_id)
+        : undefined;
       const matchCategory =
-        categoryFilter === 'todas' ||
-        (f as any).categoria?.toLowerCase() === categoryFilter.toLowerCase();
+        myCategoryFilter === 'todas' ||
+        formCategoria?.toLowerCase() === myCategoryFilter.toLowerCase();
       return matchSearch && matchCategory;
     });
-  }, [formularios, search, categoryFilter]);
-
-  const filteredTemplates = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return templates.filter(
-      (t) =>
-        (!q ||
-          t.nome.toLowerCase().includes(q) ||
-          t.categoria.toLowerCase().includes(q) ||
-          (t.descricao?.toLowerCase().includes(q) ?? false)) &&
-        (categoryFilter === 'todas' ||
-          t.categoria.toLowerCase() === categoryFilter.toLowerCase())
-    );
-  }, [templates, search, categoryFilter]);
+  }, [formularios, search, myCategoryFilter, templateCategoriaById]);
 
   // ── Ações ───────────────────────────────────────────────────────────────────
   /** Abre o editor de template para criação de um novo. */
@@ -136,6 +162,8 @@ export default function FormsListPage() {
   );
 
   // ── Render ───────────────────────────────────────────────────────────────────
+  const searchTerm = search.trim();
+
   return (
     <div className={PAGE_SCROLL_SHELL}>
       <PageContainer className="py-4 pb-10">
@@ -175,8 +203,9 @@ export default function FormsListPage() {
             <FormToolbar
               search={search}
               onSearchChange={setSearch}
-              categoryFilter={categoryFilter}
-              onCategoryFilterChange={setCategoryFilter}
+              categoryFilter={myCategoryFilter}
+              onCategoryFilterChange={setMyCategoryFilter}
+              availableCategories={myCategories}
             />
           </div>
         </div>
@@ -189,20 +218,20 @@ export default function FormsListPage() {
                 <FormCardSkeleton key={i} />
               ))}
             </div>
-          ) : filteredFormularios.length === 0 && !search && categoryFilter === 'todas' ? (
-            /* Estado inicial com CTA */
+          ) : formularios.length === 0 ? (
+            /* Estado inicial: zero formulários → CTA card apenas */
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <CreateFormCard onClick={handleNewForm} />
             </div>
           ) : filteredFormularios.length === 0 ? (
-            /* Estado vazio com filtro ativo */
-            <EmptyMeusFormularios />
+            /* Filtros/busca não retornaram nada */
+            <EmptyBusca termo={searchTerm || myCategoryFilter} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredFormularios.map((form) => (
                 <FormCard key={form.id} form={form} />
               ))}
-              {/* CTA para criar novo formulário */}
+              {/* CTA para criar novo formulário sempre presente */}
               <CreateFormCard onClick={handleNewForm} />
             </div>
           )}
@@ -210,14 +239,30 @@ export default function FormsListPage() {
 
         {/* ── Biblioteca Lunari ── */}
         <TabsContent value="biblioteca" className="mt-6">
+          {/* Subtítulo + chips horizontais (categorias derivadas do banco) */}
+          <div className="space-y-3 mb-6">
+            <p className="text-xs text-muted-foreground">
+              Modelos prontos e validados para fotógrafos começarem rapidamente.
+            </p>
+            {!loadingTemplates && templates.length > 0 && (
+              <CategoryChips
+                templates={templates}
+                active={libraryCategoryFilter}
+                onChange={setLibraryCategoryFilter}
+              />
+            )}
+          </div>
+
           {loadingTemplates ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <TemplateCardSkeleton key={i} />
               ))}
             </div>
-          ) : filteredTemplates.length === 0 && !search ? (
+          ) : templates.length === 0 ? (
             <EmptyBiblioteca />
+          ) : filteredTemplates.length === 0 ? (
+            <EmptyBusca termo={searchTerm || libraryCategoryFilter} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => (

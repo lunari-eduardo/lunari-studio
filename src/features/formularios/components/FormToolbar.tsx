@@ -2,12 +2,16 @@
  * FormToolbar — barra de filtro da página de formulários.
  *
  * Filtros:
- *  • Busca textual por título (local, client-side)
- *  • Categoria: Todas | Gestantes | Posificado | Família | Casamentos | Novos
+ *  • Busca textual (local, client-side).
+ *  • Categoria — derivada dos templates/formulários do banco, sem hardcode.
  *
- * A ação "+ Novo formulário" foi movida para um card CTA na grid.
+ * Princípio: nenhuma categoria fictícia. As opções vêm do que o usuário
+ * realmente tem no banco (templates via `useFormularioTemplates()`).
+ *
+ * A ação "+ Novo formulário" foi movida para um card CTA na grid
+ * (sem duplicação header/toolbar).
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import {
   Select,
@@ -19,31 +23,35 @@ import {
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-export type CategoryFilter = 'todas' | 'gestantes' | 'posificado' | 'familia' | 'casamentos' | 'novos';
+/** Valor literal "todas" + qualquer string livre (categoria do banco). */
+export type CategoryFilter = 'todas' | string;
 
 interface FormToolbarProps {
   search: string;
   onSearchChange: (v: string) => void;
   categoryFilter: CategoryFilter;
   onCategoryFilterChange: (v: CategoryFilter) => void;
+  /** Lista de categorias disponíveis (derivada do banco). Vazio = sem select. */
+  availableCategories: string[];
+  /** Label customizado do chip default. Default: "Todas as categorias". */
+  allLabel?: string;
 }
-
-const CATEGORY_OPTIONS: { value: CategoryFilter; label: string }[] = [
-  { value: 'todas', label: 'Todas as categorias' },
-  { value: 'gestantes', label: 'Gestantes' },
-  { value: 'posificado', label: 'Posificado' },
-  { value: 'familia', label: 'Família' },
-  { value: 'casamentos', label: 'Casamentos' },
-  { value: 'novos', label: 'Novos' },
-];
 
 export function FormToolbar({
   search,
   onSearchChange,
   categoryFilter,
   onCategoryFilterChange,
+  availableCategories,
+  allLabel = 'Todas as categorias',
 }: FormToolbarProps) {
   const [focused, setFocused] = useState(false);
+
+  /** Ordenar alfabeticamente para previsibilidade. */
+  const categories = useMemo(
+    () => [...availableCategories].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [availableCategories]
+  );
 
   return (
     <div
@@ -73,25 +81,28 @@ export function FormToolbar({
         />
       </div>
 
-      {/* Filtro de categoria */}
-      <Select
-        value={categoryFilter}
-        onValueChange={(v) => onCategoryFilterChange(v as CategoryFilter)}
-      >
-        <SelectTrigger
-          className="h-9 w-48 bg-background border-border/70 text-sm"
-          aria-label="Filtrar por categoria"
+      {/* Filtro de categoria — só renderiza se houver categorias disponíveis */}
+      {categories.length > 0 && (
+        <Select
+          value={categoryFilter}
+          onValueChange={(v) => onCategoryFilterChange(v as CategoryFilter)}
         >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {CATEGORY_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <SelectTrigger
+            className="h-9 w-48 bg-background border-border/70 text-sm"
+            aria-label="Filtrar por categoria"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">{allLabel}</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat} value={cat}>
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
