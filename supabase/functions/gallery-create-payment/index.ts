@@ -224,8 +224,12 @@ serve(async (req) => {
       visitorId: reqVisitorId || null,
     });
 
+    // NUNCA usar hints.name (que pode ser o nome do CRM de Step 3 de resolvePayerHints)
+    // como fallback para o nome. Nome do checkout só vem de payer?.nome explicitamente fornecido.
+    // Para nome, usamos ?? em vez de || para distinguir entre string vazia (do frontend)
+    // e null/undefined (não fornecido).
     const effectivePayer = {
-      nome: payer?.nome || hints.name || "Cliente Galeria",
+      nome: payer?.nome ?? undefined,   // só usa o nome se explicitamente fornecido
       email: payer?.email || hints.email,
       phone: payer?.phone || hints.phone,
       cpfCnpj: payer?.cpfCnpj || hints.cpfCnpj,
