@@ -41,21 +41,31 @@ Deno.serve(async (req) => {
     if (cobranca.provedor !== "infinitepay") return errorResponse("Cobrança não é InfinitePay", 400);
     if (cobranca.status === "pago") return jsonResponse({ success: false, error: "Cobrança já paga", code: "ALREADY_PAID" }, 400);
 
-    // 2. Enriquecimento do CRM
+    // 2. Enriquecimento do CRM (apenas dados secundários, NUNCA o nome)
+    // Nome do checkout vai para checkout_preferences, não para clientes.nome
     if (payerPatch && cobranca.cliente_id) {
       const { nome, ...rest } = payerPatch;
+
+      // Salvar dados secundários no CRM se estiverem vazios (comportamento original)
       await enrichClienteIfMissing(supabase, cobranca.cliente_id, rest);
 
+      // Nome: salvar/atualizar na tabela de preferences de checkout
+      // NUNCA atualizar clientes.nome com dados do checkout
       if (nome && nome.trim().length >= 2) {
-        const { data: c } = await supabase
-          .from("clientes")
-          .select("nome")
-          .eq("id", cobranca.cliente_id)
-          .maybeSingle();
+        const normalizedNome = nome.trim();
+        const normalizedEmail = rest.email ? rest.email.trim() : null;
+        const normalizedTelefone = rest.telefone ? rest.telefone.replace(/\D/g, "") : null;
+        const normalizedCpf = rest.cpfCnpj ? rest.cpfCnpj.replace(/\D/g, "") : null;
 
-        if (c && (!c.nome || (c.nome as string).trim() === "")) {
-          await supabase.from("clientes").update({ nome: nome.trim() }).eq("id", cobranca.cliente_id);
-        }
+        await supabase.rpc("upsert_checkout_preferences", {
+          p_cliente_id: cobranca.cliente_id,
+          p_nome_preferido: normalizedNome,
+          p_email_preferido: normalizedEmail,
+          p_telefone_preferido: normalizedTelefone,
+          p_cpf_preferido: normalizedCpf,
+        });
+
+        console.log(`[pay-infinitepay-finalize] Nome preferido salvo: ${normalizedNome}`);
       }
     }
 

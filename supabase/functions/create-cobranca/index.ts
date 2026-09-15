@@ -284,12 +284,23 @@ Deno.serve(async (req) => {
 
     // Dados do titular do cartão (nome, CPF) NUNCA devem alterar o perfil do cliente no CRM
     // pois o pagador pode estar usando cartão de terceiros (cônjuge, pais, empresa).
+    // Nome do pagador vai para checkout_preferences, não para clientes.nome
     const candName = billingType === "CREDIT_CARD" ? undefined : ((payerContact as any)?.name?.trim() || payerContact?.nome?.trim());
     const candCpf = billingType === "CREDIT_CARD" ? undefined : ((payerContact as any)?.cpfCnpj?.trim() || payerContact?.cpfCnpj?.trim());
     const candEmail = (payerContact as any)?.email?.trim() || payerContact?.email?.trim();
     const candPhone = (payerContact as any)?.phone?.trim() || payerContact?.whatsapp?.trim() || payerContact?.telefone?.trim();
 
-    if (candName && isEmptyField(clienteDb?.nome)) patchCliente.nome = candName;
+    // Nome: salvar em checkout_preferences, NÃO em clientes.nome
+    if (candName && isEmptyField(clienteDb?.nome)) {
+      // Salvar nome preferido no checkout_preferences
+      await supabase.rpc("upsert_checkout_preferences", {
+        p_cliente_id: clienteId,
+        p_nome_preferido: candName,
+        p_email_preferido: candEmail?.toLowerCase(),
+        p_telefone_preferido: candPhone?.replace(/\D/g, "") || null,
+        p_cpf_preferido: candCpf?.replace(/\D/g, "") || null,
+      }).catch((e: Error) => console.warn("[create-cobranca] Falha ao salvar checkout_preferences:", e));
+    }
     if (candEmail && isEmptyField(clienteDb?.email)) patchCliente.email = candEmail.toLowerCase();
     if (candPhone && isEmptyField(clienteDb?.whatsapp) && isEmptyField(clienteDb?.telefone)) {
       const phoneDigits = candPhone.replace(/\D/g, "");

@@ -12,7 +12,7 @@
  */
 import { useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, LayoutGrid, Clock, MessageSquare, Send, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, LayoutGrid, Clock, MessageSquare, Send, FileText, AlertCircle, Loader2, Pencil } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -182,6 +182,16 @@ export default function FormDetailPage() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
+                asChild
+              >
+                <Link to={`/app/formularios/${form.id}/editor`}>
+                  <Pencil size={14} strokeWidth={1.8} className="mr-1" />
+                  Editar formulário
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
                 size="sm"
                 asChild
               >

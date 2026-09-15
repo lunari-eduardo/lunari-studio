@@ -53,6 +53,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Formulario } from '@/types/formulario';
 import { useFormActions } from '../hooks/useFormActions';
+import { FormSharePopover } from './FormSharePopover';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -272,54 +273,59 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
             <StatusBadge status={form.status_envio} />
           </div>
 
-          {/* Menu ••• — visível em hover, canto superior direito */}
-          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
-            <DropdownMenuTrigger
-              asChild
-              onClick={(e) => e.stopPropagation()}
-              disabled={isMenuDisabled}
-              aria-label="Ações do formulário"
-            >
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className={cn(
-                  'absolute top-2 right-2 shrink-0',
-                  // Mobile: sempre visível (touch target ≥44px). Desktop: hover.
-                  'opacity-100 md:opacity-0 md:group-hover:opacity-100',
-                  'transition-opacity duration-150',
-                  'data-[state=open]:opacity-100',
-                  // h-10 w-10 = 40px (~ suficiente p/ mobile, mas ≥ h-9 evita clique acidental)
-                  'h-9 w-9 bg-background/85 backdrop-blur-sm hover:bg-background'
-                )}
-              >
-                {isMenuDisabled ? (
-                  <Loader2 size={14} className="animate-spin" strokeWidth={1.8} />
-                ) : (
-                  <MoreHorizontal size={14} strokeWidth={1.8} />
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
+          {/* Botões de ação — Share (esq.) e ••• (dir.), visíveis em hover no desktop */}
+          <div className="absolute top-2 right-2 flex items-center gap-1">
+            <FormSharePopover
+              form={form}
               align="end"
-              className="w-44"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {menuItems.map((item, i) => (
-                <div key={item.label}>
-                  {item.separatorBefore && i > 0 && <DropdownMenuSeparator />}
-                  <DropdownMenuItem
-                    onClick={item.onClick}
-                    className="gap-2 text-xs py-2"
-                  >
-                    <span className="text-muted-foreground shrink-0">{item.icon}</span>
-                    {item.label}
-                  </DropdownMenuItem>
-                </div>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            />
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+              <DropdownMenuTrigger
+                asChild
+                onClick={(e) => e.stopPropagation()}
+                disabled={isMenuDisabled}
+                aria-label="Ações do formulário"
+              >
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className={cn(
+                    'shrink-0',
+                    // Desktop: hover; mobile: sempre visível (touch target ≥44px).
+                    'opacity-100 md:opacity-0 md:group-hover:opacity-100',
+                    'transition-opacity duration-150',
+                    'data-[state=open]:opacity-100',
+                    'h-9 w-9 bg-background/85 backdrop-blur-sm hover:bg-background'
+                  )}
+                >
+                  {isMenuDisabled ? (
+                    <Loader2 size={14} className="animate-spin" strokeWidth={1.8} />
+                  ) : (
+                    <MoreHorizontal size={14} strokeWidth={1.8} />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-44"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {menuItems.map((item, i) => (
+                  <div key={item.label}>
+                    {item.separatorBefore && i > 0 && <DropdownMenuSeparator />}
+                    <DropdownMenuItem
+                      onClick={item.onClick}
+                      className="gap-2 text-xs py-2"
+                    >
+                      <span className="text-muted-foreground shrink-0">{item.icon}</span>
+                      {item.label}
+                    </DropdownMenuItem>
+                  </div>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Conteúdo do card */}

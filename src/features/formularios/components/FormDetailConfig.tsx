@@ -9,7 +9,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, Archive, ArchiveRestore, Pencil } from 'lucide-react';
+import { Save, Archive, ArchiveRestore } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -104,23 +104,17 @@ export function FormDetailConfig({ form }: Props) {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      {/* CTA para o novo editor — onde perguntas, opções e preview acontecem */}
+      {/* Link discreto para o editor — evita confusão com "Editor do formulário" como card grande */}
       {!isArchived && (
-        <div className="rounded-xl border border-border/60 bg-card p-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="space-y-0.5">
-            <h4 className="text-sm font-medium text-foreground">Editor do formulário</h4>
-            <p className="text-xs text-muted-foreground">
-              Adicione perguntas, configure tipos e visualize o resultado antes de publicar.
-            </p>
-          </div>
-          <Button
-            size="sm"
+        <p className="text-xs text-muted-foreground">
+          Quer ajustar perguntas ou configurações avançadas?{' '}
+          <button
             onClick={() => navigate(`/app/formularios/${form.id}/editor`)}
-            className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+            className="text-foreground underline underline-offset-2 hover:text-[hsl(var(--accent-gold))] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-gold))]/40 rounded"
           >
-            <Pencil size={14} strokeWidth={1.8} /> Editar formulário
-          </Button>
-        </div>
+            Editar formulário →
+          </button>
+        </p>
       )}
 
       <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">

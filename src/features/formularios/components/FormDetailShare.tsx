@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Formulario } from '@/types/formulario';
+import { getFormPublicUrl } from '../utils/publicUrl';
 
 interface Props {
   form: Formulario;
@@ -25,11 +26,7 @@ export function FormDetailShare({ form }: Props) {
   const [copied, setCopied] = useState(false);
 
   /** URL pública do formulário baseada no `public_token`. */
-  const publicUrl = useMemo(() => {
-    if (!form.public_token) return '';
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${origin}/f/${form.public_token}`;
-  }, [form.public_token]);
+  const publicUrl = useMemo(() => getFormPublicUrl(form), [form]);
 
   const handleCopy = async () => {
     if (!publicUrl) return;

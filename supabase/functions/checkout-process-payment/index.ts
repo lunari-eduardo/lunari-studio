@@ -106,12 +106,22 @@ Deno.serve(async (req) => {
 
       // Dados do titular do cartão (nome, CPF) NUNCA devem alterar o perfil do cliente no CRM
       // pois o pagador pode estar usando cartão de terceiros (cônjuge, pais, empresa).
+      // Nome do pagador vai para checkout_preferences, não para clientes.nome
       const candidateName = billingType === "CREDIT_CARD" ? undefined : payerContact?.name?.trim();
       const candidateCpf = billingType === "CREDIT_CARD" ? undefined : payerContact?.cpfCnpj?.trim();
       const candidateEmail = payerContact?.email?.trim();
       const candidatePhone = payerContact?.phone?.trim();
 
-      if (candidateName && isEmpty(cliente?.nome)) patch.nome = candidateName;
+      // Nome: salvar em checkout_preferences, NÃO em clientes.nome
+      if (candidateName && isEmpty(cliente?.nome)) {
+        await supabase.rpc("upsert_checkout_preferences", {
+          p_cliente_id: targetClienteId,
+          p_nome_preferido: candidateName,
+          p_email_preferido: candidateEmail?.toLowerCase() || null,
+          p_telefone_preferido: candidatePhone?.replace(/\D/g, "") || null,
+          p_cpf_preferido: candidateCpf?.replace(/\D/g, "") || null,
+        }).catch((e: Error) => console.warn("[checkout-process-payment] Falha ao salvar checkout_preferences:", e));
+      }
       if (candidateEmail && isEmpty(cliente?.email)) patch.email = candidateEmail.toLowerCase();
       if (candidatePhone && isEmpty(cliente?.whatsapp) && isEmpty(cliente?.telefone)) {
         const phoneDigits = candidatePhone.replace(/\D/g, "");
