@@ -15,7 +15,7 @@
  */
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { PAGE_SCROLL_SHELL } from '@/components/layout/PageTabs';
@@ -33,9 +33,11 @@ import { FormCard, FormCardSkeleton } from '../components/FormCard';
 import { TemplateCard, TemplateCardSkeleton } from '../components/TemplateCard';
 import { CreateFormCard } from '../components/CreateFormCard';
 import { CategoryChips } from '../components/CategoryChips';
+import { FormEditorPreview } from '../components/editor/FormEditorPreview';
 import FormularioTemplateEditor from '@/components/configuracoes/FormularioTemplateEditor';
-import type { FormularioTemplate } from '@/types/formulario';
+import type { FormularioTemplate, Formulario } from '@/types/formulario';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 function EmptyBusca({ termo }: { termo: string }) {
   return (
@@ -79,10 +81,11 @@ export default function FormsListPage() {
   const [libraryCategoryFilter, setLibraryCategoryFilter] = useState<string>('todas');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<FormularioTemplate | null>(null);
+  const [previewingTemplate, setPreviewingTemplate] = useState<FormularioTemplate | null>(null);
 
   // ── Queries ─────────────────────────────────────────────────────────────────
-  const { formularios, isLoading: loadingForms } = useFormularios();
-  const { templates, isLoading: loadingTemplates, createTemplate } = useFormularioTemplates();
+  const { formularios, isLoading: loadingForms, createFormulario } = useFormularios();
+  const { templates, isLoading: loadingTemplates } = useFormularioTemplates();
 
   // ── Filtro client-side ───────────────────────────────────────────────────────
   const filteredTemplates = useMemo(() => {
@@ -145,23 +148,55 @@ export default function FormsListPage() {
     navigate('/app/formularios/novo');
   }, [navigate]);
 
-  /** Clona um template da biblioteca para a biblioteca do usuário. */
+  /** Abre o preview de um template da biblioteca. */
+  const handlePreviewTemplate = useCallback((template: FormularioTemplate) => {
+    setPreviewingTemplate(template);
+  }, []);
+
+  // Converte o template em um Formulario simulado para o preview.
+  const previewFormulario: Formulario | null = useMemo(() => {
+    if (!previewingTemplate) return null;
+    return {
+      id: previewingTemplate.id,
+      public_token: previewingTemplate.id, // token fake para preview
+      titulo: previewingTemplate.nome,
+      descricao: previewingTemplate.descricao ?? null,
+      mensagem_conclusao: 'Obrigada por responder!',
+      campos: previewingTemplate.campos,
+      tempo_estimado: previewingTemplate.tempo_estimado ?? 0,
+      status: 'publicado',
+      status_envio: 'nao_enviado',
+      user_id: '',
+      created_at: '',
+      updated_at: '',
+      template_id: previewingTemplate.id,
+      cliente_id: null,
+      session_id: null,
+      titulo_cliente: null,
+      expires_at: null,
+      cover_url: null,
+      enviado_em: null,
+    };
+  }, [previewingTemplate]);
   const handleUseTemplate = useCallback(
     async (template: FormularioTemplate) => {
       try {
-        await createTemplate({
-          nome: `${template.nome} (cópia)`,
-          categoria: template.categoria,
-          descricao: template.descricao ?? undefined,
+        await createFormulario({
+          titulo: template.nome,
+          descricao: template.descricao ?? null,
           campos: template.campos,
-          tempo_estimado: template.tempo_estimado,
+          mensagem_conclusao: 'Obrigada por responder! Vamos te enviar mais detalhes em breve.',
+          tempo_estimado: template.tempo_estimado ?? 3,
+          template_id: template.id,
         });
-        toast({ title: `"${template.nome}" adicionado à sua biblioteca.` });
+        toast({ title: `"${template.nome}" adicionado aos seus formulários.` });
+        // Muda para a aba "Meus formulários" para o usuário ver o resultado
+        setActiveTab('meus');
       } catch {
         // erro tratado pelo hook via toast
       }
     },
-    [createTemplate]
+    [createFormulario]
   );
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -273,6 +308,7 @@ export default function FormsListPage() {
                   key={template.id}
                   template={template}
                   onUseTemplate={handleUseTemplate}
+                  onPreview={handlePreviewTemplate}
                 />
               ))}
             </div>
@@ -280,7 +316,27 @@ export default function FormsListPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Editor de template (criação/edição de template) */}
+      {/* Preview do template */}
+      {previewFormulario && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-background rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-3 shrink-0">
+              <span className="text-sm font-semibold">{previewingTemplate?.nome}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPreviewingTemplate(null)}
+                aria-label="Fechar preview"
+              >
+                <X size={16} />
+              </Button>
+            </div>
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <FormEditorPreview draft={previewFormulario} />
+            </div>
+          </div>
+        </div>
+      )}
       <FormularioTemplateEditor
         open={editorOpen}
         onOpenChange={(open) => {

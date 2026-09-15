@@ -51,10 +51,12 @@ interface TemplateCardProps {
   template: FormularioTemplate;
   /** Callback chamado ao clicar em "Usar modelo". */
   onUseTemplate: (template: FormularioTemplate) => void;
+  /** Callback chamado ao clicar em "Visualizar". */
+  onPreview?: (template: FormularioTemplate) => void;
   isUsing?: boolean;
 }
 
-export function TemplateCard({ template, onUseTemplate, isUsing }: TemplateCardProps) {
+export function TemplateCard({ template, onUseTemplate, onPreview, isUsing }: TemplateCardProps) {
   const { duplicateTemplate, isDuplicating } = useFormularioTemplates();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -66,6 +68,11 @@ export function TemplateCard({ template, onUseTemplate, isUsing }: TemplateCardP
   const handleDuplicate = async () => {
     setMenuOpen(false);
     await duplicateTemplate(template);
+  };
+
+  const handlePreview = () => {
+    setMenuOpen(false);
+    onPreview?.(template);
   };
 
   return (
@@ -128,7 +135,7 @@ export function TemplateCard({ template, onUseTemplate, isUsing }: TemplateCardP
 
           <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
             <DropdownMenuItem
-              onClick={() => setMenuOpen(false)}
+              onClick={handlePreview}
               className="gap-2 text-xs py-2"
             >
               <Eye size={14} strokeWidth={1.8} className="text-muted-foreground shrink-0" />
