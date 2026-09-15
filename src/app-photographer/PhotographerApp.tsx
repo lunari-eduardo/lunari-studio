@@ -1,5 +1,16 @@
 import * as React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
+
+function FormularioLegacyRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/app/formularios/${id}`} replace />;
+}
+
+function FormularioLegacyEditorRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/app/formularios/${id}/editor`} replace />;
+}
+
 import Layout from "@/components/layout/Layout";
 import Index from "@/pages/Index";
 import Agenda from "@/pages/Agenda";
@@ -223,6 +234,9 @@ export default function PhotographerApp() {
               <Route path="/sitemap.xml" element={<SitemapProxy />} />
 
               <Route path="/formulario/:token" element={<FormularioPublico />} />
+              <Route path="/formularios" element={<Navigate to="/app/formularios" replace />} />
+              <Route path="/formularios/:id" element={<FormularioLegacyRedirect />} />
+              <Route path="/formularios/:id/editor" element={<FormularioLegacyEditorRedirect />} />
               <Route path="/checkout/:cobrancaId" element={<PublicCheckout />} />
               <Route path="/pay/ip/:cobrancaId" element={<PublicCheckout />} />
               <Route path="/l/:cobrancaId" element={<ShareLinkFallback />} />

@@ -143,19 +143,23 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
   const camposCount = form.campos?.length ?? 0;
 
   const handleCardClick = () => {
-    navigate(`/formularios/${form.id}`);
+    if (isDraft) {
+      navigate(`/app/formularios/${form.id}/editor`);
+    } else {
+      navigate(`/app/formularios/${form.id}`);
+    }
   };
 
   const handleView = (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuOpen(false);
-    navigate(`/formularios/${form.id}`);
+    navigate(`/app/formularios/${form.id}`);
   };
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setMenuOpen(false);
-    if (editorUrl) navigate(editorUrl);
+    navigate(`/app/formularios/${form.id}/editor`);
   };
 
   const handleDuplicate = async (e: React.MouseEvent) => {
@@ -183,14 +187,14 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
 
   const menuItems = [
     {
-      label: 'Visualizar',
-      icon: <Eye size={14} strokeWidth={1.8} />,
-      onClick: handleView,
+      label: isDraft ? 'Editar no construtor' : 'Ver detalhes e respostas',
+      icon: isDraft ? <Pencil size={14} strokeWidth={1.8} /> : <Eye size={14} strokeWidth={1.8} />,
+      onClick: isDraft ? handleEdit : handleView,
     },
-    ...(editorUrl && isDraft
+    ...(!isDraft
       ? [
           {
-            label: 'Editar',
+            label: 'Editar formulário',
             icon: <Pencil size={14} strokeWidth={1.8} />,
             onClick: handleEdit,
           },
@@ -218,8 +222,8 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
     },
   ];
 
-  const isMenuDisabled = isArchiving || isDuplicating || isDeleting;
   const placeholderGradient = getPlaceholderGradient(form.id);
+  const isMenuDisabled = isArchiving || isDuplicating || isDeleting;
 
   return (
     <>
@@ -227,31 +231,44 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
         role="button"
         tabIndex={0}
         onClick={handleCardClick}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && handleCardClick()}
-        aria-label={`Formulário: ${form.titulo}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleCardClick();
+          }
+        }}
+        aria-label={`Formulário ${form.titulo}`}
         className={cn(
-          'group relative flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden',
-          'cursor-pointer transition-all duration-200',
+          'group relative flex flex-col rounded-xl border border-border/60 bg-card overflow-hidden text-left cursor-pointer select-none',
+          'transition-all duration-200 ease-out',
           'hover:border-border/80 hover:shadow-[0_4px_20px_rgba(0,0,0,0.1)]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--accent-gold))]/40 focus-visible:border-[hsl(var(--accent-gold))]/40'
         )}
         style={{ minHeight: '280px' }}
       >
-        {/* Imagem de capa (placeholder gradiente por enquanto) */}
+        {/* Imagem de capa (real ou placeholder gradiente) */}
         <div
           className={cn(
-            'relative h-32 w-full bg-gradient-to-br',
-            placeholderGradient,
+            'relative h-32 w-full bg-muted/20 overflow-hidden',
+            !form.cover_url && ['bg-gradient-to-br', placeholderGradient],
             'flex items-center justify-center'
           )}
         >
-          {/* Placeholder icon */}
-          <div className="opacity-30">
-            <FileText size={40} strokeWidth={1} className="text-foreground/40" />
-          </div>
+          {form.cover_url ? (
+            <img
+              src={form.cover_url}
+              alt={form.titulo}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            /* Placeholder icon */
+            <div className="opacity-30">
+              <FileText size={40} strokeWidth={1} className="text-foreground/40" />
+            </div>
+          )}
 
           {/* Status badge no canto superior esquerdo */}
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 z-10">
             <StatusBadge status={form.status_envio} />
           </div>
 

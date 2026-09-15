@@ -43,7 +43,7 @@ export function CoverUpload({
       try {
         const res = await gestaoR2Upload({
           file,
-          context: 'formulario_cover',
+          context: 'form',
           entityId: formularioId,
         });
 

@@ -8,6 +8,7 @@ export type GestaoContext =
   | "logo"
   | "blog"
   | "form"
+  | "formulario_cover"
   | "general"
   | "task"
   | "client-document"
@@ -44,6 +45,11 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     maxBytes: 50 * 1024 * 1024,
   },
   form: {
+    prefix: (u) => `gestao/form/${u}`,
+    isPublic: true,
+    maxBytes: 10 * 1024 * 1024,
+  },
+  formulario_cover: {
     prefix: (u) => `gestao/form/${u}`,
     isPublic: true,
     maxBytes: 10 * 1024 * 1024,
