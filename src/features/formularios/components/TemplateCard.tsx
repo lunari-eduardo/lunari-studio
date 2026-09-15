@@ -16,12 +16,23 @@ import {
   MoreHorizontal,
   Eye,
   Copy,
+  Trash2,
   Clock,
   LayoutGrid,
   Loader2,
   FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -57,8 +68,9 @@ interface TemplateCardProps {
 }
 
 export function TemplateCard({ template, onUseTemplate, onPreview, isUsing }: TemplateCardProps) {
-  const { duplicateTemplate, isDuplicating } = useFormularioTemplates();
+  const { duplicateTemplate, deleteTemplate, isDuplicating, isDeleting } = useFormularioTemplates();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const isSystem = template.is_system;
   const placeholderGradient = getPlaceholderGradient(template.id);
@@ -73,6 +85,12 @@ export function TemplateCard({ template, onUseTemplate, onPreview, isUsing }: Te
   const handlePreview = () => {
     setMenuOpen(false);
     onPreview?.(template);
+  };
+
+  const handleDelete = async () => {
+    setDeleteDialogOpen(false);
+    setMenuOpen(false);
+    await deleteTemplate(template.id);
   };
 
   return (
@@ -149,6 +167,18 @@ export function TemplateCard({ template, onUseTemplate, onPreview, isUsing }: Te
               <Copy size={14} strokeWidth={1.8} className="text-muted-foreground shrink-0" />
               {isSystem ? 'Usar como base' : 'Duplicar'}
             </DropdownMenuItem>
+            {!isSystem && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="gap-2 text-xs py-2 text-destructive focus:text-destructive"
+                >
+                  <Trash2 size={14} strokeWidth={1.8} className="shrink-0" />
+                  Excluir
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -218,6 +248,32 @@ export function TemplateCard({ template, onUseTemplate, onPreview, isUsing }: Te
           )}
         </Button>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O template &quot;{template.nome}&quot; será removido permanentemente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 }

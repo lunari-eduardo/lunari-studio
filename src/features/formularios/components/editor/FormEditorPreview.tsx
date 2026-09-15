@@ -82,7 +82,7 @@ export function FormEditorPreview({ draft }: Props) {
           </DesktopFrame>
         ) : (
           <MobileFrame>
-            <PreviewContent draft={draft} />
+            <PreviewContent draft={draft} forceHeight={700} />
           </MobileFrame>
         )}
       </div>
@@ -90,18 +90,8 @@ export function FormEditorPreview({ draft }: Props) {
   );
 }
 
-function PreviewContent({ draft }: { draft: Formulario }) {
-  // O renderer faz fetch pelo token. Para preview ao vivo (sem salvar),
-  // usamos uma versão interna que aceita o form direto. Como o renderer
-  // atual espera um token, optamos por sempre renderizar o estado atual
-  // do draft através de um pequeno wrapper que simula o hook:
-  // passamos o draft real (readOnly) montando o mesmo markup do renderer.
-  //
-  // Para manter paridade visual total sem duplicar markup, o ideal seria
-  // adicionar prop `overrideForm?: Formulario` ao FormPublicRenderer que
-  // curto-circuita o useFormularioPublico. Fizemos isso abaixo.
-
-  return <FormPublicRenderer token={draft.public_token} readOnly overrideForm={draft} wrapInPublicTheme />;
+function PreviewContent({ draft, forceHeight }: { draft: Formulario; forceHeight?: number }) {
+  return <FormPublicRenderer token={draft.public_token} readOnly overrideForm={draft} wrapInPublicTheme forceHeight={forceHeight} />;
 }
 
 function DesktopFrame({ children }: { children: React.ReactNode }) {

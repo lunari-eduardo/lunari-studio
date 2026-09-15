@@ -39,7 +39,12 @@ interface PublicThemeWrapperProps {
  * Enforces 'light' mode on the document for public-facing pages (Checkouts, Forms, etc.)
  * and injects the photographer's custom primary color dynamically into standard Tailwind variables.
  */
-export function PublicThemeWrapper({ children, primaryColor, className = '' }: PublicThemeWrapperProps) {
+export function PublicThemeWrapper({
+  children,
+  primaryColor,
+  className = '',
+  forceHeight,
+}: PublicThemeWrapperProps) {
   useEffect(() => {
     const html = document.documentElement;
     const hadDark = html.classList.contains('dark');
@@ -78,9 +83,13 @@ export function PublicThemeWrapper({ children, primaryColor, className = '' }: P
     return styles;
   }, [primaryColor]);
 
-  return (
-    <div className={`min-h-screen bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`} style={themeStyles}>
+    <div
+      className={`${forceHeight ? '' : 'min-h-screen'} bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`}
+      style={{
+        ...themeStyles,
+        ...(forceHeight ? { height: forceHeight } : {}),
+      }}
+    >
       {children}
     </div>
-  );
 }

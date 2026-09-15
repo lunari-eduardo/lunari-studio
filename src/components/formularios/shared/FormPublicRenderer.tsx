@@ -68,6 +68,11 @@ export interface FormPublicRendererProps {
    * inibidas — é apenas para preview visual.
    */
   overrideForm?: Formulario;
+  /**
+   * Altura fixa para o container raiz (substitui `min-h-screen`).
+   * Usado pelo FormEditorPreview para forçar altura da moldura mobile.
+   */
+  forceHeight?: number;
 }
 
 export function FormPublicRenderer({
@@ -75,6 +80,7 @@ export function FormPublicRenderer({
   readOnly = false,
   wrapInPublicTheme = true,
   overrideForm,
+  forceHeight,
 }: FormPublicRendererProps) {
   const fetched = useFormularioPublico(token);
   const formulario = overrideForm ?? fetched.data;
@@ -221,8 +227,9 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor || undefined}
         wrapInPublicTheme={wrapInPublicTheme}
+        forceHeight={forceHeight}
       >
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center' : 'min-h-screen bg-background flex items-center justify-center'}>
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-sm text-muted-foreground">
@@ -240,8 +247,9 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor || undefined}
         wrapInPublicTheme={wrapInPublicTheme}
+        forceHeight={forceHeight}
       >
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-destructive" />
@@ -263,8 +271,9 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor || undefined}
         wrapInPublicTheme={wrapInPublicTheme}
+        forceHeight={forceHeight}
       >
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <Clock className="h-8 w-8 text-muted-foreground" />
@@ -290,8 +299,9 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor || undefined}
         wrapInPublicTheme={wrapInPublicTheme}
+        forceHeight={forceHeight}
       >
-        <div className="min-h-screen bg-background">
+        <div className={forceHeight ? 'h-full bg-background' : 'min-h-screen bg-background'}>
           {formulario.cover_url && (
             <div className="w-full max-h-[300px] overflow-hidden bg-muted/20 border-b relative">
               <img
@@ -398,8 +408,9 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor || undefined}
         wrapInPublicTheme={wrapInPublicTheme}
+        forceHeight={forceHeight}
       >
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-muted-foreground" />
@@ -435,7 +446,7 @@ export function FormPublicRenderer({
       primaryColor={primaryColor || undefined}
       wrapInPublicTheme={wrapInPublicTheme}
     >
-      <div className="min-h-screen bg-background">
+      <div className={forceHeight ? 'h-full bg-background' : 'min-h-screen bg-background'}>
         {formulario.cover_url && (
           <div className="w-full max-h-[340px] overflow-hidden bg-muted/20 border-b relative">
             <img
@@ -552,10 +563,13 @@ function ContentWrapper({
   primaryColor,
   wrapInPublicTheme,
   children,
-}: ContentWrapperProps) {
+  forceHeight,
+}: ContentWrapperProps & { forceHeight?: number }) {
   if (!wrapInPublicTheme) return <>{children}</>;
   return (
-    <PublicThemeWrapper primaryColor={primaryColor}>{children}</PublicThemeWrapper>
+    <PublicThemeWrapper primaryColor={primaryColor} forceHeight={forceHeight}>
+      {children}
+    </PublicThemeWrapper>
   );
 }
 
