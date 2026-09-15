@@ -362,30 +362,23 @@ export function useSupabaseGalleries(options?: { enabled?: boolean }) {
   });
 
   const publishGallery = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (params: { id: string; markAsSent?: boolean } | string) => {
+      const id = typeof params === 'string' ? params : params.id;
+      const markAsSent = typeof params === 'string' ? true : (params.markAsSent ?? true);
+      
       const { data, error } = await supabase.rpc('prepare_gallery_share', { 
         p_gallery_id: id,
-        p_mark_as_sent: true 
+        p_mark_as_sent: markAsSent 
       });
       
       if (error) throw error;
       const result = data as any;
       if (result?.error) throw new Error(result.error);
-      
-      const nowIso = new Date().toISOString();
-      await supabase
-        .from('galerias')
-        .update({
-          status: 'enviado',
-          published_at: nowIso,
-          enviado_em: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('id', id);
 
       return result;
     },
-    onSuccess: (_, id) => {
+    onSuccess: (_, variables) => {
+      const id = typeof variables === 'string' ? variables : variables.id;
       queryClient.invalidateQueries({ queryKey: ['galleries'] });
       queryClient.invalidateQueries({ queryKey: ['galerias'] });
       queryClient.invalidateQueries({ queryKey: ['client-gallery', id] });
@@ -401,17 +394,6 @@ export function useSupabaseGalleries(options?: { enabled?: boolean }) {
         p_mark_as_sent: true 
       });
       if (error) throw error;
-
-      const nowIso = new Date().toISOString();
-      await supabase
-        .from('galerias')
-        .update({
-          status: 'enviado',
-          published_at: nowIso,
-          enviado_em: nowIso,
-          updated_at: nowIso,
-        })
-        .eq('id', id);
     },
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['galleries'] });

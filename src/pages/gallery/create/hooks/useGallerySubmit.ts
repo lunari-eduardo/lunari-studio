@@ -352,7 +352,7 @@ export function useGallerySubmit({
             });
 
             updateSettings({ lastSessionFont: sessionFont });
-            await publishSupabaseGallery(supabaseGalleryId);
+            await publishSupabaseGallery({ id: supabaseGalleryId, markAsSent: false });
             navigate(`/app/gallery/select/${supabaseGalleryId}`);
           } catch (error) {
             console.error('Error finalizing gallery:', error);

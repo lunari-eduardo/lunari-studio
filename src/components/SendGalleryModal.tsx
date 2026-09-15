@@ -71,6 +71,7 @@ export function SendGalleryModal({
       try {
         const { data, error } = await supabase.rpc('prepare_gallery_share', {
           p_gallery_id: gallery.id,
+          p_mark_as_sent: false,
         });
 
         if (error) throw error;
@@ -308,7 +309,7 @@ export function SendGalleryModal({
               setPrepareError(null);
               setIsPreparing(true);
               try {
-                const { data, error } = await supabase.rpc('prepare_gallery_share', { p_gallery_id: gallery.id });
+                const { data, error } = await supabase.rpc('prepare_gallery_share', { p_gallery_id: gallery.id, p_mark_as_sent: false });
                 if (error) throw error;
                 const result = data as { token?: string; ready?: boolean; error?: string };
                 if (!result?.ready) throw new Error(result?.error || 'Erro');

@@ -217,7 +217,7 @@ export function useDeliverCreateActions(state: DeliverCreateState) {
       updateSettings({ lastSessionFont: sessionFont });
 
       if (publishGallery) {
-        await publishGallery(supabaseGalleryId);
+        await publishGallery({ id: supabaseGalleryId, markAsSent: false });
       }
 
       queryClient.invalidateQueries({ queryKey: ['galleries'] });

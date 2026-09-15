@@ -132,9 +132,7 @@ export function useDeliverDetailActions(data: DeliverData) {
       const { error: updateError } = await supabase
         .from('galerias')
         .update({
-          status: 'enviado',
           published_at: nowIso,
-          enviado_em: nowIso,
           updated_at: nowIso,
           prazo_selecao: newExpiration ? newExpiration.toISOString() : null,
         })
