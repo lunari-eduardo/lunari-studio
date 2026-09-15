@@ -34,6 +34,7 @@ export const useClientesPageData = () => {
     return clientesSupabase.map((cliente) => ({
       id: cliente.id,
       nome: cliente.nome,
+      nome_checkout: cliente.nome_checkout,
       email: cliente.email || '',
       telefone: cliente.telefone,
       whatsapp: cliente.whatsapp,

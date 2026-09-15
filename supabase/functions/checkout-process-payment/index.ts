@@ -115,16 +115,13 @@ Deno.serve(async (req) => {
       // Nome: salvar em clientes.nome_checkout APENAS se ainda estiver vazio
       // (proteção "primeira vez wins"). clientes.nome nunca é alterado aqui.
       if (candidateName && !cliente?.nome_checkout) {
-        const crmNomeTrim = (cliente?.nome || "").trim().toLowerCase();
-        if (!crmNomeTrim || candidateName.toLowerCase() !== crmNomeTrim) {
-          await supabase
-            .from("clientes")
-            .update({ nome_checkout: candidateName })
-            .eq("id", targetClienteId)
-            .then(({ error }) => {
-              if (error) console.warn("[checkout-process-payment] Falha ao salvar nome_checkout:", error);
-            });
-        }
+        await supabase
+          .from("clientes")
+          .update({ nome_checkout: candidateName })
+          .eq("id", targetClienteId)
+          .then(({ error }) => {
+            if (error) console.warn("[checkout-process-payment] Falha ao salvar nome_checkout:", error);
+          });
       }
       if (candidateEmail && isEmpty(cliente?.email)) patch.email = candidateEmail.toLowerCase();
       if (candidatePhone && isEmpty(cliente?.whatsapp) && isEmpty(cliente?.telefone)) {

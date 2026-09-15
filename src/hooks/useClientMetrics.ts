@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ClientMetrics {
   id: string;
   nome: string;
+  nome_checkout?: string | null;
   email: string;
   telefone: string;
   origem?: string;
@@ -66,6 +67,7 @@ export function useClientMetrics(clientes: Cliente[]): ClientMetrics[] {
         metricsMap.set(cliente.id, {
           id: cliente.id,
           nome: cliente.nome || '',
+          nome_checkout: cliente.nome_checkout,
           email: cliente.email || '',
           telefone: cliente.telefone || '',
           origem: cliente.origem,

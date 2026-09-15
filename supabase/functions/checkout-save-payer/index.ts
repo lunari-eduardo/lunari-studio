@@ -65,12 +65,7 @@ Deno.serve(async (req) => {
     // clientes.nome NUNCA é alterado aqui (proteção do CRM)
     const patchCliente: Record<string, string> = {};
     if (normalizedNome.length >= 2 && !clienteDb?.nome_checkout) {
-      // Só salva se nome_checkout está vazio E o nome não é igual ao nome do CRM
-      // (proteção extra contra poluição acidental)
-      const crmNomeTrim = (clienteDb?.nome || "").trim().toLowerCase();
-      if (!crmNomeTrim || normalizedNome.toLowerCase() !== crmNomeTrim) {
-        patchCliente.nome_checkout = normalizedNome;
-      }
+      patchCliente.nome_checkout = normalizedNome;
     }
 
     if (Object.keys(patchCliente).length > 0) {

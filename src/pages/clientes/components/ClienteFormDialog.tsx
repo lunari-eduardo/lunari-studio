@@ -97,6 +97,22 @@ export const ClienteFormDialog: React.FC<ClienteFormDialogProps> = ({
             )}
           </div>
 
+          {editingClient && (editingClient as any).nome_checkout && (
+            <div className={FIELD_GROUP}>
+              <Label className={FIELD_LABEL}>
+                Nome para Cobrança (preenchido pelo cliente)
+              </Label>
+              <Input
+                value={(editingClient as any).nome_checkout}
+                readOnly
+                className="bg-neutral-50 border-neutral-200 text-neutral-500"
+              />
+              <p className="text-[11px] text-neutral-500 mt-1">
+                Nome fornecido pelo próprio cliente durante um checkout. Utilizado para emissão das cobranças.
+              </p>
+            </div>
+          )}
+
           <div className={FIELD_GROUP}>
             <Label htmlFor="email" className={FIELD_LABEL}>
               E-mail

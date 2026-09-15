@@ -2,6 +2,7 @@ export interface ClienteSupabase {
   id: string;
   user_id: string;
   nome: string;
+  nome_checkout?: string | null;
   email?: string;
   telefone: string;
   whatsapp?: string;

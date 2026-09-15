@@ -1,6 +1,7 @@
 export interface Cliente {
   id: string;
   nome: string;
+  nome_checkout?: string | null;
   email: string;
   telefone: string;
   whatsapp?: string;
