@@ -29,6 +29,7 @@ import ShareAnalysisPage from "@/pages/comercial/ShareAnalysisPage";
 import RelatoriosComercialPage from "@/pages/comercial/RelatoriosComercialPage";
 import BriefingPage from "@/pages/comercial/BriefingPage";
 import FormsListPage from "@/features/formularios/pages/FormsListPage";
+import FormDetailPage from "@/features/formularios/pages/FormDetailPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import PublicProposalViewer from "@/pages/comercial/PublicProposalViewer";
 import GalleryDashboard from '@/pages/gallery/GalleryDashboard';
@@ -333,6 +334,13 @@ export default function PhotographerApp() {
                   <RequireAdmin>
                     <PlanRestrictionGuard entitlement="forms">
                       <FormsListPage />
+                    </PlanRestrictionGuard>
+                  </RequireAdmin>
+                } />
+                <Route path="formularios/:id" element={
+                  <RequireAdmin>
+                    <PlanRestrictionGuard entitlement="forms">
+                      <FormDetailPage />
                     </PlanRestrictionGuard>
                   </RequireAdmin>
                 } />
