@@ -3,23 +3,17 @@
  *
  * Layout (referência visual):
  *  ← Formulários
- *  [Título editável inline]            [Badge Rascunho/Publicado]
+ *  [Título editável inline]
  *  [Subtítulo / "Alterações não salvas"]
  *
- *  [Visualizar] [Salvar] [Publicar] [...]
+ *  [Visualizar] [Salvar]
  *
  * "Voltar" usa window.history para manter compatibilidade com navegação
  * do navegador e respeitar o React Router.
  */
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { Formulario } from '@/types/formulario';
 
@@ -33,27 +27,18 @@ interface HeaderProps {
   draft: Formulario;
   onTituloChange: (v: string) => void;
   saveState: SaveState;
-  isPublishing: boolean;
-  canPublish: boolean;
   onVisualizar: () => void;
   onSalvar: () => void;
-  onPublicar: () => void;
-  onExcluir?: () => void;
 }
 
 export function FormEditorHeader({
   draft,
   onTituloChange,
   saveState,
-  isPublishing,
-  canPublish,
   onVisualizar,
   onSalvar,
-  onPublicar,
-  onExcluir,
 }: HeaderProps) {
   const navigate = useNavigate();
-  const publicado = draft.status === 'publicado';
 
   return (
     <header className="border-b bg-background sticky top-0 z-30">
@@ -85,17 +70,6 @@ export function FormEditorHeader({
             )}
           />
 
-          <span
-            className={cn(
-              'hidden sm:inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium',
-              publicado
-                ? 'bg-foreground text-background'
-                : 'border bg-background text-muted-foreground',
-            )}
-          >
-            {publicado ? 'Publicado' : 'Rascunho'}
-          </span>
-
           <div className="flex items-center gap-1.5 shrink-0">
             <Button
               variant="outline"
@@ -120,44 +94,6 @@ export function FormEditorHeader({
                 'Salvar'
               )}
             </Button>
-            <Button
-              size="sm"
-              onClick={onPublicar}
-              disabled={!canPublish || isPublishing}
-              className="h-9 gap-1.5 bg-foreground text-background hover:bg-foreground/90"
-            >
-              {isPublishing ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" aria-hidden />
-                </>
-              ) : publicado ? (
-                'Atualizar'
-              ) : (
-                'Publicar'
-              )}
-            </Button>
-            {onExcluir && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    aria-label="Mais ações"
-                  >
-                    <MoreVertical size={16} aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem
-                    onSelect={onExcluir}
-                    className="text-destructive focus:text-destructive gap-2"
-                  >
-                    Excluir formulário
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
         </div>
 

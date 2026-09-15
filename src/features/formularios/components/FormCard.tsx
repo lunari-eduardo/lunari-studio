@@ -58,19 +58,19 @@ import { FormSharePopover } from './FormSharePopover';
 // ── helpers ────────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  nao_enviado: 'Rascunho',
-  enviado: 'Enviado',
-  respondido: 'Respondido',
-  expirado: 'Expirado',
+  rascunho: 'Rascunho',
+  publicado: 'Publicado',
+  arquivado: 'Arquivado',
 };
 
-/** Badge com a paleta dourado/preto/branco — apenas cores semânticas neutras. */
+/** Badge com a paleta dourado/preto/branco — reflete status (visibilidade pública). */
 function StatusBadge({ status }: { status: string }) {
+  const isAnswered = status === 'respondido';
   const variants: Record<string, string> = {
-    nao_enviado: 'bg-muted text-muted-foreground border-border/50',
-    enviado: 'bg-muted text-muted-foreground border-border/50',
     respondido: 'bg-[hsl(var(--accent-gold))]/10 text-[hsl(var(--accent-gold))] border-[hsl(var(--accent-gold))]/20',
-    expirado: 'bg-muted text-muted-foreground border-border/50',
+    arquivado: 'bg-muted text-muted-foreground border-border/50',
+    rascunho: 'bg-muted text-muted-foreground border-border/50',
+    publicado: 'bg-foreground text-background',
   };
 
   return (
@@ -140,15 +140,10 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
   const isArchived = form.status === 'arquivado';
   const isExpired = form.status_envio === 'expirado';
   const isPending = form.status_envio === 'enviado';
-  const isDraft = form.status_envio === 'nao_enviado';
   const camposCount = form.campos?.length ?? 0;
 
   const handleCardClick = () => {
-    if (isDraft) {
-      navigate(`/app/formularios/${form.id}/editor`);
-    } else {
-      navigate(`/app/formularios/${form.id}`);
-    }
+    navigate(`/app/formularios/${form.id}`);
   };
 
   const handleView = (e: React.MouseEvent) => {
@@ -188,19 +183,15 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
 
   const menuItems = [
     {
-      label: isDraft ? 'Editar no construtor' : 'Ver detalhes e respostas',
-      icon: isDraft ? <Pencil size={14} strokeWidth={1.8} /> : <Eye size={14} strokeWidth={1.8} />,
-      onClick: isDraft ? handleEdit : handleView,
+      label: 'Ver detalhes e respostas',
+      icon: <Eye size={14} strokeWidth={1.8} />,
+      onClick: handleView,
     },
-    ...(!isDraft
-      ? [
-          {
-            label: 'Editar formulário',
-            icon: <Pencil size={14} strokeWidth={1.8} />,
-            onClick: handleEdit,
-          },
-        ]
-      : []),
+    {
+      label: 'Editar formulário',
+      icon: <Pencil size={14} strokeWidth={1.8} />,
+      onClick: handleEdit,
+    },
     {
       label: 'Duplicar',
       icon: <Copy size={14} strokeWidth={1.8} />,
@@ -270,7 +261,7 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
 
           {/* Status badge no canto superior esquerdo */}
           <div className="absolute top-2 left-2 z-10">
-            <StatusBadge status={form.status_envio} />
+            <StatusBadge status={isAnswered ? 'respondido' : form.status} />
           </div>
 
           {/* Botões de ação — Share (esq.) e ••• (dir.), visíveis em hover no desktop */}

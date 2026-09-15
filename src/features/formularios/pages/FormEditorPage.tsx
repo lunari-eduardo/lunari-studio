@@ -19,9 +19,8 @@
  *    como painel separado.
  *
  * Persistência:
- *  - `Salvar` no header faz update do draft (PUT formulario).
- *  - `Publicar` abre PublishDialog e em seguida faz update com status=
- *    'publicado'.
+ *  - `Salvar` no header faz update do draft (PUT formulario) e define
+ *    `status = 'publicado'` — todo formulário salvo fica acessível em `/f/{token}`.
  *  - Autosave não foi implementado (regra 20 — não criar autosave falso).
  *  - useBeforeUnload protege contra perda ao fechar/refresh.
  *
@@ -50,7 +49,6 @@ import { FormEditorSectionInfo } from '../components/editor/FormEditorSectionInf
 import { FormEditorSectionQuestions } from '../components/editor/FormEditorSectionQuestions';
 import { FormEditorSectionExperience } from '../components/editor/FormEditorSectionExperience';
 import { FormEditorPreview } from '../components/editor/FormEditorPreview';
-import { PublishDialog } from '../components/editor/PublishDialog';
 
 import type { Formulario } from '@/types/formulario';
 
@@ -76,7 +74,6 @@ export default function FormEditorPage() {
   const [savedSnapshot, setSavedSnapshot] = useState<Formulario | null>(null);
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'idle' });
   const [section, setSection] = useState<SectionId>('info');
-  const [publishOpen, setPublishOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   // ── Criação inicial ───────────────────────────────────────────────────────
@@ -153,42 +150,12 @@ export default function FormEditorPage() {
   useBeforeUnload(isDirty);
 
   // ── Mutations ─────────────────────────────────────────────────────────────
+  // Salvar define status = 'publicado' para que o formulário fique acessível
+  // na URL pública (/f/{token}) imediatamente após salvar.
   const handleSalvar = useCallback(async () => {
     if (!draft) return;
     setSaveState({ kind: 'saving' });
     try {
-      const updated = await updateFormulario({
-        id: draft.id,
-        updates: {
-          titulo: draft.titulo,
-          titulo_cliente: draft.titulo_cliente,
-          descricao: draft.descricao,
-          mensagem_conclusao: draft.mensagem_conclusao,
-          tempo_estimado: draft.tempo_estimado,
-          expires_at: draft.expires_at,
-          cover_url: draft.cover_url,
-          campos: draft.campos,
-        },
-      });
-      if (updated) {
-        setDraft(updated);
-        setSavedSnapshot(updated);
-      } else {
-        // Mesmo sem retorno, recarrega do cache
-        setSavedSnapshot(draft);
-      }
-      setSaveState({ kind: 'saved' });
-    } catch {
-      setSaveState({ kind: 'dirty' });
-    }
-  }, [draft, updateFormulario]);
-
-  const handlePublicar = useCallback(async () => {
-    if (!draft) return;
-    setPublishOpen(false);
-    setSaveState({ kind: 'saving' });
-    try {
-      // Salva antes de publicar (garante persistência das últimas mudanças)
       const updated = await updateFormulario({
         id: draft.id,
         updates: {
@@ -221,38 +188,6 @@ export default function FormEditorPage() {
     setDraft((prev) => (prev ? { ...prev, ...updates } : prev));
   }, []);
 
-  const publishValidation = useMemo(() => {
-    const errors: string[] = [];
-    if (!draft) return { valid: false, errors: ['Formulário não carregado.'] };
-
-    if (!draft.titulo || !draft.titulo.trim()) {
-      errors.push('Dê um nome ao seu formulário.');
-    }
-
-    if (!draft.campos || draft.campos.length === 0) {
-      errors.push('Adicione pelo menos uma pergunta.');
-    } else {
-      draft.campos.forEach((c, idx) => {
-        const num = idx + 1;
-        if (!c.label || !c.label.trim()) {
-          errors.push(`A pergunta #${num} está sem enunciado.`);
-        }
-        if (['selecao_unica', 'multipla_escolha'].includes(c.tipo)) {
-          const validOptions = (c.opcoes || []).filter((o) => o.trim());
-          if (validOptions.length < 2) {
-            errors.push(`A pergunta #${num} precisa de pelo menos 2 opções.`);
-          }
-        }
-      });
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-    };
-  }, [draft]);
-
-  const canPublish = true;
   const requiredCount = draft?.campos.filter((c) => c.obrigatorio).length ?? 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -297,11 +232,8 @@ export default function FormEditorPage() {
         draft={draft}
         onTituloChange={(v) => updateDraft({ titulo: v })}
         saveState={saveState}
-        isPublishing={createPending || updatePending}
-        canPublish={canPublish}
         onVisualizar={() => setPreviewOpen(true)}
         onSalvar={handleSalvar}
-        onPublicar={() => setPublishOpen(true)}
       />
 
       <div className="flex flex-1 min-h-0">
@@ -336,15 +268,6 @@ export default function FormEditorPage() {
           </aside>
         )}
       </div>
-
-      <PublishDialog
-        open={publishOpen}
-        onOpenChange={setPublishOpen}
-        alreadyPublished={draft.status === 'publicado'}
-        isPending={updatePending || createPending}
-        validationErrors={publishValidation.errors}
-        onConfirm={handlePublicar}
-      />
 
       {/* Mobile/tablet: preview como painel sobreposto */}
       {(isMobile || isTablet) && previewOpen && (

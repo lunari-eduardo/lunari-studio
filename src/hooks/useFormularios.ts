@@ -145,42 +145,6 @@ export function useFormularios() {
     },
   });
 
-  // Publicar formulário
-  const publishMutation = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user) throw new Error('Usuário não autenticado');
-      
-      const { data, error } = await supabase
-        .from('formularios')
-        .update({ 
-          status: 'publicado',
-          status_envio: 'enviado',
-          enviado_em: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      queryClient.invalidateQueries({ queryKey: ['formularios-cliente'] });
-      queryClient.invalidateQueries({ queryKey: ['formularios-session'] });
-      toast({ title: 'Formulário publicado e pronto para envio!' });
-    },
-    onError: (error) => {
-      console.error('Erro ao publicar formulário:', error);
-      toast({ 
-        title: 'Erro ao publicar formulário', 
-        description: error.message,
-        variant: 'destructive' 
-      });
-    },
-  });
-
   // Deletar formulário
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -216,11 +180,9 @@ export function useFormularios() {
     error,
     createFormulario: createMutation.mutateAsync,
     updateFormulario: updateMutation.mutateAsync,
-    publishFormulario: publishMutation.mutateAsync,
     deleteFormulario: deleteMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isPublishing: publishMutation.isPending,
     isDeleting: deleteMutation.isPending,
   };
 }

@@ -39,8 +39,7 @@ async function duplicateFormulario(formulario: Formulario, userId: string): Prom
     campos: formulario.campos as unknown as never,
     cliente_id: formulario.cliente_id,
     session_id: formulario.session_id,
-    status: 'rascunho',
-    status_envio: 'nao_enviado',
+    status: 'publicado', // duplicata já acessível em /f/{token}
   });
 
   if (error) throw error;
