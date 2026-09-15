@@ -60,6 +60,8 @@ export function TemplateCard({ template, onUseTemplate, isUsing }: TemplateCardP
 
   const isSystem = template.is_system;
   const placeholderGradient = getPlaceholderGradient(template.id);
+  const camposCount = template.campos?.length ?? 0;
+  const tempoEstimado = template.tempo_estimado ?? 0;
 
   const handleDuplicate = async () => {
     setMenuOpen(false);
@@ -175,15 +177,17 @@ export function TemplateCard({ template, onUseTemplate, isUsing }: TemplateCardP
         {/* Rodapé: métricas */}
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
           {/* Tempo estimado */}
-          <span className="flex items-center gap-1">
-            <Clock size={12} strokeWidth={1.8} />
-            ~{template.tempo_estimado} min
-          </span>
+          {tempoEstimado > 0 && (
+            <span className="flex items-center gap-1">
+              <Clock size={12} strokeWidth={1.8} />
+              ~{tempoEstimado} min
+            </span>
+          )}
 
           {/* Número de campos */}
           <span className="flex items-center gap-1">
             <LayoutGrid size={12} strokeWidth={1.8} />
-            {template.campos.length} campo{template.campos.length !== 1 ? 's' : ''}
+            {camposCount} campo{camposCount !== 1 ? 's' : ''}
           </span>
 
           {/* Spacer para empurrar o botão */}

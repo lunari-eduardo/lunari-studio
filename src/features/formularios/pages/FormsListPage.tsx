@@ -14,6 +14,7 @@
  *  • Tabela de respostas (Fase 6).
  */
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -135,11 +136,14 @@ export default function FormsListPage() {
   }, [formularios, search, myCategoryFilter, templateCategoriaById]);
 
   // ── Ações ───────────────────────────────────────────────────────────────────
-  /** Abre o editor de template para criação de um novo. */
+  const navigate = useNavigate();
+
+  /** Abre a nova página de editor de formulário (criação do zero).
+   *  O modal `FormularioTemplateEditor` continua sendo usado para editar
+   *  templates em Configurações (comportamento preservado). */
   const handleNewForm = useCallback(() => {
-    setEditingTemplate(null);
-    setEditorOpen(true);
-  }, []);
+    navigate('/app/formularios/novo');
+  }, [navigate]);
 
   /** Clona um template da biblioteca para a biblioteca do usuário. */
   const handleUseTemplate = useCallback(
@@ -153,7 +157,6 @@ export default function FormsListPage() {
           tempo_estimado: template.tempo_estimado,
         });
         toast({ title: `"${template.nome}" adicionado à sua biblioteca.` });
-        setActiveTab('meus');
       } catch {
         // erro tratado pelo hook via toast
       }

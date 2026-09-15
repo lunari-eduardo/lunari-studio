@@ -8,7 +8,8 @@
  * Não cria campos novos. Não mexe em permissões.
  */
 import { useState, useEffect } from 'react';
-import { Save, Archive, ArchiveRestore } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Save, Archive, ArchiveRestore, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,6 +28,7 @@ interface Props {
 export function FormDetailConfig({ form }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [titulo, setTitulo] = useState(form.titulo);
   const [descricao, setDescricao] = useState(form.descricao ?? '');
@@ -102,6 +104,25 @@ export function FormDetailConfig({ form }: Props) {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {/* CTA para o novo editor — onde perguntas, opções e preview acontecem */}
+      {!isArchived && (
+        <div className="rounded-xl border border-border/60 bg-card p-5 flex items-center justify-between gap-4 flex-wrap">
+          <div className="space-y-0.5">
+            <h4 className="text-sm font-medium text-foreground">Editor do formulário</h4>
+            <p className="text-xs text-muted-foreground">
+              Adicione perguntas, configure tipos e visualize o resultado antes de publicar.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => navigate(`/app/formularios/${form.id}/editor`)}
+            className="gap-1.5 bg-foreground text-background hover:bg-foreground/90"
+          >
+            <Pencil size={14} strokeWidth={1.8} /> Editar formulário
+          </Button>
+        </div>
+      )}
+
       <div className="rounded-xl border border-border/60 bg-card p-5 space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="titulo" className="text-xs">Título</Label>

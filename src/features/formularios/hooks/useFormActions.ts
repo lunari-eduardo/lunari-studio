@@ -66,6 +66,8 @@ export function useFormActions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-cliente'] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-session'] });
       toast({ title: 'Formulário arquivado.' });
     },
     onError: (error) => {
@@ -85,6 +87,8 @@ export function useFormActions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-cliente'] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-session'] });
       toast({ title: 'Formulário duplicado.' });
     },
     onError: (error) => {
@@ -104,6 +108,8 @@ export function useFormActions() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-cliente'] });
+      queryClient.invalidateQueries({ queryKey: ['formularios-session'] });
       toast({ title: 'Formulário excluído.' });
     },
     onError: (error) => {

@@ -30,6 +30,7 @@ import RelatoriosComercialPage from "@/pages/comercial/RelatoriosComercialPage";
 import BriefingPage from "@/pages/comercial/BriefingPage";
 import FormsListPage from "@/features/formularios/pages/FormsListPage";
 import FormDetailPage from "@/features/formularios/pages/FormDetailPage";
+import FormEditorPage from "@/features/formularios/pages/FormEditorPage";
 import ContratosPage from "@/pages/comercial/ContratosPage";
 import PublicProposalViewer from "@/pages/comercial/PublicProposalViewer";
 import GalleryDashboard from '@/pages/gallery/GalleryDashboard';
@@ -337,10 +338,24 @@ export default function PhotographerApp() {
                     </PlanRestrictionGuard>
                   </RequireAdmin>
                 } />
+                <Route path="formularios/novo" element={
+                  <RequireAdmin>
+                    <PlanRestrictionGuard entitlement="forms">
+                      <FormEditorPage />
+                    </PlanRestrictionGuard>
+                  </RequireAdmin>
+                } />
                 <Route path="formularios/:id" element={
                   <RequireAdmin>
                     <PlanRestrictionGuard entitlement="forms">
                       <FormDetailPage />
+                    </PlanRestrictionGuard>
+                  </RequireAdmin>
+                } />
+                <Route path="formularios/:id/editor" element={
+                  <RequireAdmin>
+                    <PlanRestrictionGuard entitlement="forms">
+                      <FormEditorPage />
                     </PlanRestrictionGuard>
                   </RequireAdmin>
                 } />

@@ -84,16 +84,23 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function FormattedDate({ date, label }: { date: string | null | undefined; label: string }) {
-  if (!date) return null;
+/**
+ * Métrica de data compacta para o rodapé do card.
+ * - Mostra só a data (sem label) num espaço pequeno, com ícone opcional.
+ */
+function DateMetric({ date, icon }: { date: string | null | undefined; icon?: React.ReactNode }) {
+  if (!date) {
+    return <span className="text-[11px] text-muted-foreground">—</span>;
+  }
   try {
     return (
-      <span className="text-[11px] text-muted-foreground">
-        {label} {format(new Date(date), 'dd MMM yyyy', { locale: ptBR })}
+      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        {icon}
+        {format(new Date(date), 'dd MMM yyyy', { locale: ptBR })}
       </span>
     );
   } catch {
-    return null;
+    return <span className="text-[11px] text-muted-foreground">—</span>;
   }
 }
 
@@ -130,8 +137,10 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
 
   const isAnswered = form.status_envio === 'respondido';
   const isArchived = form.status === 'arquivado';
+  const isExpired = form.status_envio === 'expirado';
   const isPending = form.status_envio === 'enviado';
   const isDraft = form.status_envio === 'nao_enviado';
+  const camposCount = form.campos?.length ?? 0;
 
   const handleCardClick = () => {
     navigate(`/formularios/${form.id}`);
@@ -299,12 +308,14 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
         {/* Conteúdo do card */}
         <div className="flex flex-col flex-1 gap-2 p-4">
           {/* Categoria badge */}
-          <Badge
-            variant="outline"
-            className="self-start text-[10px] px-2 py-0 font-medium border-[hsl(var(--accent-gold))]/30 text-[hsl(var(--accent-gold))] bg-[hsl(var(--accent-gold))]/5"
-          >
-            {(form as any).categoria || 'Geral'}
-          </Badge>
+          {(form as any).categoria && (
+            <Badge
+              variant="outline"
+              className="self-start text-[10px] px-2 py-0 font-medium border-[hsl(var(--accent-gold))]/30 text-[hsl(var(--accent-gold))] bg-[hsl(var(--accent-gold))]/5"
+            >
+              {(form as any).categoria}
+            </Badge>
+          )}
 
           {/* Título */}
           <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
@@ -336,7 +347,7 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
             {/* Número de perguntas */}
             <span className="flex items-center gap-1">
               <LayoutGrid size={12} strokeWidth={1.8} />
-              {form.campos.length} pergunta{form.campos.length !== 1 ? 's' : ''}
+              {camposCount} pergunta{camposCount !== 1 ? 's' : ''}
             </span>
 
             {/* Duração */}
@@ -347,23 +358,25 @@ export function FormCard({ form, responseCount, isLoading, editorUrl }: FormCard
               </span>
             )}
 
-            {/* Contagem de respostas ou data */}
-            <span className="ml-auto flex items-center gap-1">
+            {/* Métrica variável à direita: respostas, envio ou criação */}
+            <span className="ml-auto">
               {isAnswered ? (
-                <>
-                  <MessageSquare size={12} strokeWidth={1.8} className="text-[hsl(var(--accent-gold))]" />
-                  {responseCount ?? 1} resposta{(responseCount ?? 1) !== 1 ? 's' : ''}
-                </>
+                <span className="flex items-center gap-1">
+                  <MessageSquare
+                    size={12}
+                    strokeWidth={1.8}
+                    className="text-[hsl(var(--accent-gold))]"
+                  />
+                  {typeof responseCount === 'number'
+                    ? `${responseCount} resposta${responseCount !== 1 ? 's' : ''}`
+                    : 'Respondido'}
+                </span>
+              ) : isExpired ? (
+                <DateMetric date={form.expires_at} icon={<Clock size={12} strokeWidth={1.8} />} />
               ) : isPending ? (
-                <>
-                  <Send size={12} strokeWidth={1.8} />
-                  <FormattedDate date={form.enviado_em} label="" />
-                </>
+                <DateMetric date={form.enviado_em} icon={<Send size={12} strokeWidth={1.8} />} />
               ) : (
-                <>
-                  <FileText size={12} strokeWidth={1.8} />
-                  <FormattedDate date={form.created_at} label="" />
-                </>
+                <DateMetric date={form.created_at} icon={<FileText size={12} strokeWidth={1.8} />} />
               )}
             </span>
           </div>
