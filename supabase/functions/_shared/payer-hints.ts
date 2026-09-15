@@ -90,12 +90,6 @@ export function normalizeCpfCnpj(value?: string | null): string | undefined {
   return undefined;
 }
 
-function firstName(name?: string): string | undefined {
-  if (!name) return undefined;
-  const first = name.trim().split(/\s+/)[0];
-  return first || undefined;
-}
-
 export interface ResolveHintsArgs {
   supabase: any;
   clienteId?: string | null;
@@ -124,9 +118,6 @@ export async function resolvePayerHints({
   let rawCity: string | undefined;
   let rawState: string | undefined;
 
-  // Flag: nome veio do checkout_preferences (tem prioridade, não extrair primeiro nome)
-  let nameFromCheckoutPrefs = false;
-
   // 0. Buscar checkout preferences primeiro (prioridade máxima para nome preferido)
   // O nome preferido do checkout é independente do CRM
   if (resolvedClienteId) {
@@ -137,7 +128,6 @@ export async function resolvePayerHints({
       .maybeSingle();
 
     if (checkoutPrefs) {
-      nameFromCheckoutPrefs = true;
       // Se existe preference, usa ela (tem prioridade sobre tudo)
       if (checkoutPrefs.nome_preferido) rawName = checkoutPrefs.nome_preferido;
       if (checkoutPrefs.email_preferido && !rawEmail) rawEmail = checkoutPrefs.email_preferido;
@@ -147,20 +137,21 @@ export async function resolvePayerHints({
   }
 
   // 1. Se temos galleryId mas não temos clienteId, buscar cliente_id e dados denormalizados na galeria
+  // IMPORTANTE: nome do checkout NUNCA vem do CRM ou galeria - só do checkout_preferences
   if (galleryId) {
     const { data: gal } = await supabase
       .from("galerias")
-      .select("cliente_id, cliente_nome, cliente_email, cliente_telefone, session_id")
+      .select("cliente_id, cliente_email, cliente_telefone, session_id")
       .eq("id", galleryId)
       .maybeSingle();
 
     if (gal) {
       if (!resolvedClienteId && gal.cliente_id) resolvedClienteId = gal.cliente_id;
       if (!sessionId && gal.session_id) sessionId = gal.session_id;
-      // Nome do checkout_preferences já foi priorizado acima, só usa galeria se rawName ainda vazio
-      if (gal.cliente_nome && !rawName) rawName = gal.cliente_nome;
+      // Email e telefone podem vir da galeria (são dados de contato, não afetam nome)
       if (gal.cliente_email && !rawEmail) rawEmail = gal.cliente_email;
       if (gal.cliente_telefone && !rawPhone) rawPhone = gal.cliente_telefone;
+      // NUNCA usar gal.cliente_nome para o checkout
     }
   }
 
@@ -206,9 +197,9 @@ export async function resolvePayerHints({
       .maybeSingle();
 
     if (cliente) {
-      // rawName já pode ter valor do checkout_preferences (passo 0) - preservá-lo
-      // Só usa cliente.nome se rawName estiver vazio
-      if (!rawName) rawName = cliente.nome;
+      // rawName já tem valor do checkout_preferences (passo 0) - preservá-lo
+      // IMPORTANTE: NUNCA usar cliente.nome para o checkout - só nome_preferido do checkout_preferences
+      // Email, telefone e outros dados de contato podem vir do CRM se preferência vazia
       rawEmail = normalizeEmail(rawEmail) || cliente.email || rawEmail;
       rawPhone = normalizePhone(rawPhone) || cliente.whatsapp || cliente.telefone || rawPhone;
       rawCpf = normalizeCpfCnpj(rawCpf) || cliente.cpf_cnpj || rawCpf;
@@ -223,32 +214,30 @@ export async function resolvePayerHints({
   }
 
   // 4. Se temos visitorId, mesclar dados de galeria_visitantes
+  // IMPORTANTE: nome do visitante NUNCA vai para o checkout - só dados de contato
   if (visitorId) {
     const { data: visitor } = await supabase
       .from("galeria_visitantes")
-      .select("nome, email, telefone, cpf_cnpj")
+      .select("email, telefone, cpf_cnpj")
       .eq("id", visitorId)
       .maybeSingle();
 
     if (visitor) {
-      if (visitor.nome && !rawName) rawName = visitor.nome;
+      // NUNCA usar visitor.nome para o checkout
       if (visitor.email && !rawEmail) rawEmail = visitor.email;
       if (visitor.telefone && !rawPhone) rawPhone = visitor.telefone;
       if (visitor.cpf_cnpj && !rawCpf) rawCpf = visitor.cpf_cnpj;
     }
   }
 
-  // Determinar nome para display no checkout
-  // Se nome veio do checkout_preferences, usar completo
-  // Se veio de outra fonte (CRM, galeria), usar só primeiro nome (facilita que CRM tem "Maria e João")
-  let displayName: string | undefined = rawName?.trim();
-  if (displayName && !nameFromCheckoutPrefs) {
-    displayName = firstName(displayName);
-  }
+  // Nome para display no checkout
+  // rawName só vem de checkout_preferences (passo 0), então é sempre o nome completo
+  const displayName: string | undefined = rawName?.trim() || undefined;
 
   const hints: PayerHints = {
-    name: displayName || undefined,
-    firstName: firstName(rawName),
+    name: displayName,
+    // firstName mantido para compatibilidade, mas agora é sempre undefined (nome vem completo do checkout_preferences)
+    firstName: undefined,
     email: normalizeEmail(rawEmail),
     phone: normalizePhone(rawPhone),
     cpfCnpj: normalizeCpfCnpj(rawCpf),

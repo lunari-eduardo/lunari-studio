@@ -84,6 +84,8 @@ BEGIN
   END IF;
 
   -- Upsert: insere ou atualiza
+  -- CRÍTICO: nome_preferido só é salvo se ainda NÃO existir (protege contra edições posteriores)
+  -- O UI permite edição, mas o backend protege o valor original da primeira vez
   INSERT INTO public.cliente_checkout_preferences (
     cliente_id,
     user_id,
@@ -101,7 +103,13 @@ BEGIN
     p_cpf_preferido
   )
   ON CONFLICT (cliente_id) DO UPDATE SET
-    nome_preferido = COALESCE(p_nome_preferido, cliente_checkout_preferences.nome_preferido),
+    -- Nome: só salva se ainda não existir (proteção "primeira vez wins")
+    nome_preferido = CASE
+      WHEN cliente_checkout_preferences.nome_preferido IS NOT NULL
+        THEN cliente_checkout_preferences.nome_preferido
+      ELSE COALESCE(p_nome_preferido, cliente_checkout_preferences.nome_preferido)
+    END,
+    -- Outros campos: COALESCE padrão (preenche se vazio)
     email_preferido = COALESCE(p_email_preferido, cliente_checkout_preferences.email_preferido),
     telefone_preferido = COALESCE(p_telefone_preferido, cliente_checkout_preferences.telefone_preferido),
     cpf_preferido = COALESCE(p_cpf_preferido, cliente_checkout_preferences.cpf_preferido),
