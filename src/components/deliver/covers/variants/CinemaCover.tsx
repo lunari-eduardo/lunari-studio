@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { CoverVariantProps } from '../types';
 import { useCoverVideo } from '../shared/useCoverVideo';
 import { getPhotoUrl } from '@/lib/photoUrl';
-import { applyTitleCase } from '@/lib/typography';
+import { applyTitleCase } from '@/lib/textTransform';
 
 export default function CinemaCover({
   sessionName,
