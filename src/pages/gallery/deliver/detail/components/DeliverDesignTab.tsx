@@ -1,15 +1,23 @@
-import { Smartphone, Tablet, Monitor, Eye, Save } from 'lucide-react';
+import { useState } from 'react';
+import { Smartphone, Monitor, Eye, Save, Sparkles, LayoutTemplate } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { CoverCatalog } from '@/components/deliver/CoverCatalog';
+import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
+import { getFallbackCoverPhoto } from '@/components/deliver/covers/defaultPhotos';
+import { IframePreview } from '@/components/deliver/IframePreview';
 import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
 import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
-import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
-import { cn } from '@/lib/utils';
-
-import { Input } from '@/components/ui/input';
+import { FontSelect, getFontFamilyById } from '@/components/FontSelect';
+import { PRESET_COLORS } from '@/components/settings/customization/CustomizationAppearanceTab';
 import { CoverVideoUploader } from '@/components/deliver/CoverVideoUploader';
+import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
+import { TitleCaseMode } from '@/types/gallery';
+import { PhotoPaths } from '@/lib/photoUrl';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DeliverDesignTabProps {
   galleryId: string;
@@ -21,14 +29,24 @@ interface DeliverDesignTabProps {
   setThemeOverrides: (overrides: any) => void;
   coverId: string | null;
   setCoverId: (id: string | null) => void;
-  coverVideo: any;
-  setCoverVideo: (data: any) => void;
-  coverCinema: any;
-  setCoverCinema: (data: any) => void;
+  coverVideo?: any;
+  setCoverVideo?: (data: any) => void;
+  coverCinema?: any;
+  setCoverCinema?: (data: any) => void;
   previewViewport: 'mobile' | 'tablet' | 'desktop';
   setPreviewViewport: (vp: 'mobile' | 'tablet' | 'desktop') => void;
   photos: GaleriaPhoto[];
   publicToken?: string | null;
+  sessionFont?: string;
+  setSessionFont?: (font: string) => void;
+  sessionName?: string;
+  titleCaseMode?: TitleCaseMode;
+  setTitleCaseMode?: (mode: TitleCaseMode) => void;
+  subtitle?: string;
+  category?: string;
+  eventDate?: Date;
+  coverPhotoId?: string | null;
+  studioSettings?: any;
   saving: boolean;
   onSave: () => void;
 }
@@ -51,13 +69,66 @@ export function DeliverDesignTab({
   setPreviewViewport,
   photos,
   publicToken,
+  sessionFont = 'playfair',
+  setSessionFont,
+  sessionName = 'Ensaio Fotográfico',
+  titleCaseMode = 'normal',
+  setTitleCaseMode,
+  subtitle,
+  category,
+  eventDate,
+  coverPhotoId,
+  studioSettings,
   saving,
   onSave,
 }: DeliverDesignTabProps) {
+  const [previewTab, setPreviewTab] = useState<'cover' | 'grid'>('cover');
+
+  const activeTheme = THEME_REGISTRY[activeThemeId] || THEME_REGISTRY['lunari'];
+  const isDarkTheme = activeTheme?.backgroundMode === 'dark' || themeOverrides?.backgroundMode === 'dark';
+
+  const photographerCustomColor =
+    studioSettings?.customTheme?.primaryColor ||
+    studioSettings?.cor_primaria ||
+    studioSettings?.themeOverrides?.palette?.primary ||
+    studioSettings?.primaryColor;
+
+  const primaryColor = useCustomTheme
+    ? (themeOverrides?.palette?.primary || themeOverrides?.primaryColor || photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A')
+    : (photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A');
+  const resolvedFontFamily = getFontFamilyById(sessionFont);
+
+  // Foto de capa selecionada ou fallback fotográfico de alta qualidade
+  const activeCoverPhoto = photos.find((p) => p.id === coverPhotoId) || photos[0] || null;
+  const fallbackPhoto = getFallbackCoverPhoto(previewViewport === 'mobile' ? 'vertical' : 'horizontal');
+
+  const hasValidPhoto = Boolean(
+    activeCoverPhoto &&
+    ((activeCoverPhoto.preview_path && activeCoverPhoto.preview_path.trim() !== '' && !activeCoverPhoto.preview_path.includes('placeholder.svg')) ||
+     (activeCoverPhoto.storage_key && activeCoverPhoto.storage_key.trim() !== '' && !activeCoverPhoto.storage_key.includes('placeholder.svg')))
+  );
+
+  const coverPhotoPaths: PhotoPaths = hasValidPhoto && activeCoverPhoto
+    ? {
+        storageKey: activeCoverPhoto.storage_key || fallbackPhoto.storageKey,
+        previewPath: activeCoverPhoto.preview_path || activeCoverPhoto.storage_key || fallbackPhoto.previewPath,
+        width: activeCoverPhoto.width || fallbackPhoto.width,
+        height: activeCoverPhoto.height || fallbackPhoto.height,
+      }
+    : fallbackPhoto;
+
+  const viewportContainerStyles = {
+    mobile: 'w-[320px] sm:w-[340px] aspect-[9/16] max-h-full rounded-[28px] ring-1 ring-border/50 shadow-2xl',
+    tablet: 'w-full max-w-[768px] aspect-[4/3] max-h-full rounded-xl shadow-2xl border border-border/40',
+    desktop: 'w-full max-w-[960px] aspect-[16/9] max-h-full rounded-xl shadow-2xl border border-border/40',
+  };
+
   return (
     <div className="space-y-8 mt-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Coluna da Esquerda: Controles de Customização */}
         <div className="lg:col-span-1 space-y-8">
+          {/* Herança de Tema */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Herança de Tema</h3>
             <p className="text-sm text-muted-foreground">
@@ -121,6 +192,7 @@ export function DeliverDesignTab({
             </div>
           </div>
 
+          {/* Preset de Tema (quando personalizado) */}
           {useCustomTheme && (
             <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="space-y-4">
@@ -148,6 +220,50 @@ export function DeliverDesignTab({
 
               <div className="space-y-6">
                 <Label className="text-base font-semibold">Ajustes Visuais</Label>
+
+                {/* Seletor de Cor Primária / Destaque */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Cor de Destaque / Botões</Label>
+                    <span className="text-xs font-mono uppercase text-muted-foreground">{primaryColor}</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {PRESET_COLORS.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() =>
+                          setThemeOverrides({
+                            ...themeOverrides,
+                            palette: { ...(themeOverrides.palette || {}), primary: c.value },
+                          })
+                        }
+                        className={cn(
+                          'w-6 h-6 rounded-full border transition-all cursor-pointer hover:scale-110 flex items-center justify-center',
+                          primaryColor.toLowerCase() === c.value.toLowerCase()
+                            ? 'ring-2 ring-primary ring-offset-2 scale-110 border-transparent'
+                            : 'border-border/60 opacity-85 hover:opacity-100'
+                        )}
+                        style={{ backgroundColor: c.value }}
+                        title={c.label}
+                      />
+                    ))}
+                    <div className="relative flex items-center" title="Cor personalizada">
+                      <input
+                        type="color"
+                        value={primaryColor.startsWith('#') ? primaryColor : `#${primaryColor}`}
+                        onChange={(e) =>
+                          setThemeOverrides({
+                            ...themeOverrides,
+                            palette: { ...(themeOverrides.palette || {}), primary: e.target.value },
+                          })
+                        }
+                        className="w-6 h-6 rounded-full p-0 border border-border/60 cursor-pointer overflow-hidden opacity-90 hover:opacity-100"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm">Espaçamento (Gap)</Label>
@@ -170,17 +286,19 @@ export function DeliverDesignTab({
             </div>
           )}
 
-          {/* Capa da Galeria de Entrega — independente do Tema */}
-          <div className="space-y-4 pt-2 border-t">
-            <div>
-              <Label className="text-base font-semibold">Capa da Galeria</Label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Apresentação inicial (Hero). Independe do Tema (grid).
-              </p>
+          {/* Capa da Galeria de Entrega (Hero) */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[#cbb384]" />
+              <Label className="text-base font-semibold">Capa da Galeria (Hero)</Label>
             </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Apresentação inicial em tela cheia independente do tema de fotos.
+            </p>
             <CoverCatalog selectedCoverId={coverId} onSelect={setCoverId} />
           </div>
 
+          {/* Configuração de Vídeo para Capa Cinema */}
           {coverId === 'cinema' && (
             <div className="space-y-6 pt-6 border-t animate-in fade-in slide-in-from-top-2 duration-300">
               <div className="space-y-4">
@@ -191,7 +309,7 @@ export function DeliverDesignTab({
                   contextType="gallery-cover-video"
                   value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
                   onChange={(data) => {
-                    setCoverVideo({ ...coverVideo, desktopKey: data?.key || null });
+                    setCoverVideo?.({ ...coverVideo, desktopKey: data?.key || null });
                     if (data?.key) {
                       toast.success('Vídeo desktop enviado!');
                       setTimeout(() => onSave(), 100);
@@ -208,7 +326,7 @@ export function DeliverDesignTab({
                   contextType="gallery-cover-video"
                   value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
                   onChange={(data) => {
-                    setCoverVideo({ ...coverVideo, mobileKey: data?.key || null });
+                    setCoverVideo?.({ ...coverVideo, mobileKey: data?.key || null });
                     if (data?.key) {
                       toast.success('Vídeo mobile enviado!');
                       setTimeout(() => onSave(), 100);
@@ -225,7 +343,7 @@ export function DeliverDesignTab({
                   contextType="gallery-cover-poster"
                   value={coverVideo?.posterKey ? { key: coverVideo.posterKey, url: undefined } : null}
                   onChange={(data) => {
-                    setCoverVideo({ ...coverVideo, posterKey: data?.key || null });
+                    setCoverVideo?.({ ...coverVideo, posterKey: data?.key || null });
                     if (data?.key) {
                       toast.success('Poster enviado!');
                       setTimeout(() => onSave(), 100);
@@ -247,7 +365,7 @@ export function DeliverDesignTab({
                     placeholder="Ver galeria"
                     maxLength={24}
                     value={coverCinema?.ctaLabel || ''}
-                    onChange={(e) => setCoverCinema({ ...coverCinema, ctaLabel: e.target.value })}
+                    onChange={(e) => setCoverCinema?.({ ...coverCinema, ctaLabel: e.target.value })}
                   />
                 </div>
 
@@ -261,9 +379,10 @@ export function DeliverDesignTab({
                     ].map(pos => (
                       <Button
                         key={pos.id}
+                        type="button"
                         variant={(coverCinema?.contentPosition || 'bottom-left') === pos.id ? 'default' : 'outline'}
                         className="text-xs px-2"
-                        onClick={() => setCoverCinema({ ...coverCinema, contentPosition: pos.id })}
+                        onClick={() => setCoverCinema?.({ ...coverCinema, contentPosition: pos.id })}
                       >
                         {pos.label}
                       </Button>
@@ -281,9 +400,10 @@ export function DeliverDesignTab({
                     ].map(intensity => (
                       <Button
                         key={intensity.id}
+                        type="button"
                         variant={(coverCinema?.overlayIntensity || 'medium') === intensity.id ? 'default' : 'outline'}
                         className="text-xs px-2"
-                        onClick={() => setCoverCinema({ ...coverCinema, overlayIntensity: intensity.id })}
+                        onClick={() => setCoverCinema?.({ ...coverCinema, overlayIntensity: intensity.id })}
                       >
                         {intensity.label}
                       </Button>
@@ -294,6 +414,26 @@ export function DeliverDesignTab({
             </div>
           )}
 
+          {/* Tipografia da Sessão */}
+          {setSessionFont && (
+            <div className="space-y-4 pt-4 border-t">
+              <div>
+                <Label className="text-base font-semibold">Tipografia da Sessão</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Família tipográfica aplicada ao título da sessão na capa.
+                </p>
+              </div>
+              <FontSelect
+                value={sessionFont}
+                onChange={setSessionFont}
+                previewText={sessionName || 'Ensaio Gestante'}
+                titleCaseMode={titleCaseMode}
+                onTitleCaseModeChange={setTitleCaseMode}
+              />
+            </div>
+          )}
+
+          {/* Botão de Salvar */}
           <div className="pt-4 border-t">
             <Button onClick={onSave} className="w-full gap-2 rounded-xl" disabled={saving}>
               <Save className="h-4 w-4" />
@@ -302,63 +442,135 @@ export function DeliverDesignTab({
           </div>
         </div>
 
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="font-medium">
-              Preview:{' '}
-              {useCustomTheme
-                ? `${THEME_REGISTRY[activeThemeId]?.name} (personalizado)`
-                : 'Herança da conta'}
-            </h4>
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-md">
+        {/* Coluna da Direita: Área de Prévia Dinâmica Fixo na Rolagem */}
+        <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 self-start">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-2">
+              {/* Alternador de Modo de Prévia: Capa x Grid */}
+              <div className="flex items-center bg-muted p-1 rounded-lg">
+                <Button
+                  variant={previewTab === 'cover' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'h-7 px-3 text-xs font-medium rounded-md gap-1.5',
+                    previewTab === 'cover' && 'bg-background shadow-xs font-semibold'
+                  )}
+                  onClick={() => setPreviewTab('cover')}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-[#cbb384]" />
+                  Capa (Hero)
+                </Button>
+                <Button
+                  variant={previewTab === 'grid' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className={cn(
+                    'h-7 px-3 text-xs font-medium rounded-md gap-1.5',
+                    previewTab === 'grid' && 'bg-background shadow-xs font-semibold'
+                  )}
+                  onClick={() => setPreviewTab('grid')}
+                >
+                  <LayoutTemplate className="h-3.5 w-3.5" />
+                  Grid de Fotos
+                </Button>
+              </div>
+
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                {previewTab === 'cover' ? 'Visualização da Capa' : activeTheme?.name}
+              </span>
+            </div>
+
+            {/* Alternador de Viewport (Smartphone 9:16 x Desktop 16:9) */}
+            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
               <Button
                 variant={previewViewport === 'mobile' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8"
+                size="sm"
+                className={cn(
+                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
+                  previewViewport === 'mobile' && 'bg-background shadow-xs font-semibold'
+                )}
                 onClick={() => setPreviewViewport('mobile')}
+                title="Visualização Smartphone (9:16)"
               >
-                <Smartphone className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={previewViewport === 'tablet' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => setPreviewViewport('tablet')}
-              >
-                <Tablet className="h-4 w-4" />
+                <Smartphone className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Smartphone</span>
               </Button>
               <Button
                 variant={previewViewport === 'desktop' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('h-8 w-8', previewViewport === 'desktop' && 'bg-background shadow-sm')}
+                size="sm"
+                className={cn(
+                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
+                  previewViewport === 'desktop' && 'bg-background shadow-xs font-semibold'
+                )}
                 onClick={() => setPreviewViewport('desktop')}
+                title="Visualização Desktop (16:9)"
               >
-                <Monitor className="h-4 w-4" />
+                <Monitor className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Desktop</span>
               </Button>
             </div>
           </div>
 
-          <div className="min-h-[600px] h-[70vh] bg-muted rounded-2xl border border-muted overflow-hidden relative group shadow-lg">
-            <div className="absolute inset-0 bg-background overflow-hidden flex flex-col">
-              <ThemePreviewCanvas
-                themeId={activeThemeId}
-                themeOverrides={themeOverrides}
-                viewport={previewViewport}
-                skipHero={true}
-                isBlueprint={false}
-                previewPhotos={photos.slice(0, 12)}
-              />
+          {/* Canvas da Prévia com Dimensões Proporcionais */}
+          <div className="min-h-[580px] h-[calc(100vh-160px)] max-h-[760px] bg-zinc-950/85 dark:bg-black/95 rounded-2xl border border-border/60 overflow-hidden relative group shadow-2xl flex items-center justify-center p-3 sm:p-6">
+            <div
+              className={cn(
+                'bg-background overflow-hidden transition-all duration-300 ease-in-out relative flex flex-col',
+                viewportContainerStyles[previewViewport]
+              )}
+            >
+              {previewTab === 'cover' ? (
+                /* Prévia Interativa da Capa com Paridade Total usando Iframe com resolução nativa escalada */
+                <IframePreview
+                  title="Preview da Capa"
+                  viewport={previewViewport === 'desktop' ? 'desktop' : 'mobile'}
+                >
+                  <CoverRenderer
+                    coverId={coverId}
+                    coverPhoto={coverPhotoPaths}
+                    sessionName={sessionName || 'Ensaio Fotográfico'}
+                    subtitle={subtitle}
+                    sessionDate={eventDate}
+                    category={category}
+                    studioName={studioSettings?.studio_name || 'Lunari Studio'}
+                    sessionFont={resolvedFontFamily}
+                    titleCaseMode={titleCaseMode}
+                    isDark={isDarkTheme}
+                    primaryColor={primaryColor}
+                    coverVideo={coverVideo}
+                    ctaLabel={coverCinema?.ctaLabel}
+                    contentPosition={coverCinema?.contentPosition}
+                    overlayIntensity={coverCinema?.overlayIntensity}
+                    onEnter={() => setPreviewTab('grid')}
+                  />
+                </IframePreview>
+              ) : (
+                /* Prévia do Grid de Fotos do Tema */
+                <div className="w-full h-full relative overflow-hidden flex flex-col">
+                  <ThemePreviewCanvas
+                    themeId={activeThemeId}
+                    themeOverrides={themeOverrides}
+                    viewport={previewViewport}
+                    skipHero={true}
+                    isBlueprint={false}
+                    previewPhotos={photos.slice(0, 12)}
+                  />
+                </div>
+              )}
             </div>
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-              <Button
-                variant="secondary"
-                className="gap-2 rounded-full"
-                onClick={() => window.open(`/g/${publicToken}`, '_blank')}
-              >
-                <Eye className="h-4 w-4" />
-                Ver prévia completa
-              </Button>
-            </div>
+
+            {/* Ação rápida para ver link público em nova aba */}
+            {publicToken && (
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
+                <Button
+                  variant="secondary"
+                  className="gap-2 rounded-full shadow-lg"
+                  onClick={() => window.open(`/g/${publicToken}`, '_blank')}
+                >
+                  <Eye className="h-4 w-4" />
+                  Ver link público
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
