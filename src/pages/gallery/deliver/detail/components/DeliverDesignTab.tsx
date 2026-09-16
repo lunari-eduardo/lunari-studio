@@ -316,7 +316,7 @@ export function DeliverDesignTab({
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
-                  maxSizeMB={15}
+                  maxSizeMB={50}
                   label="Vídeo Principal (Desktop)"
                   description="Formato paisagem (16:9). Obrigatório."
                 />
@@ -333,7 +333,7 @@ export function DeliverDesignTab({
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
-                  maxSizeMB={15}
+                  maxSizeMB={50}
                   label="Vídeo Vertical (Celular)"
                   description="Recomendado para melhor enquadramento (9:16). Opcional."
                 />

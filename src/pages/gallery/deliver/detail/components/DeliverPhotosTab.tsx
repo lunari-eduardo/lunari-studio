@@ -175,9 +175,9 @@ export function DeliverPhotosTab({
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
-                  maxSizeMB={15}
+                  maxSizeMB={50}
                   label="Upload de Vídeo de Abertura (Hero)"
-                  description="Vídeo horizontal (16:9), até 15MB. Ficará isolado da grade de fotos."
+                  description="Vídeo horizontal (16:9), até 50MB. Ficará isolado da grade de fotos."
                 />
               </div>
             </div>

@@ -103,7 +103,7 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
   "gallery-cover-video": {
     prefix: (u, e) => `galleries/${e}/cover-video`,
     isPublic: true,
-    maxBytes: 15 * 1024 * 1024,
+    maxBytes: 50 * 1024 * 1024,
     allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
   },
   "gallery-cover-poster": {
