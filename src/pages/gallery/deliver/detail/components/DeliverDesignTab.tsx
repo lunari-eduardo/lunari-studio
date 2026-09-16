@@ -309,7 +309,11 @@ export function DeliverDesignTab({
                   contextType="gallery-cover-video"
                   value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
                   onChange={(data) => {
-                    setCoverVideo?.({ ...coverVideo, desktopKey: data?.key || null });
+                    setCoverVideo?.({ 
+                      ...coverVideo, 
+                      desktopKey: data?.key || null,
+                      desktopSize: data?.sizeBytes
+                    });
                     if (data?.key) {
                       toast.success('Vídeo desktop enviado!');
                       setTimeout(() => onSave(), 100);
@@ -326,7 +330,11 @@ export function DeliverDesignTab({
                   contextType="gallery-cover-video"
                   value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
                   onChange={(data) => {
-                    setCoverVideo?.({ ...coverVideo, mobileKey: data?.key || null });
+                    setCoverVideo?.({ 
+                      ...coverVideo, 
+                      mobileKey: data?.key || null,
+                      mobileSize: data?.sizeBytes
+                    });
                     if (data?.key) {
                       toast.success('Vídeo mobile enviado!');
                       setTimeout(() => onSave(), 100);

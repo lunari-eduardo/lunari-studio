@@ -88,6 +88,8 @@ export interface GallerySettings {
     desktopKey: string;
     mobileKey?: string | null;
     posterKey?: string | null;
+    desktopSize?: number;
+    mobileSize?: number;
   } | null;
   coverCinema?: {
     ctaLabel?: string;

@@ -122,7 +122,11 @@ export function DeliverCreateStep3Photos({
                   value={activeVideoKey ? { key: activeVideoKey, url: activeVideoUrl || undefined } : null}
                   onChange={(data) => {
                     if (data?.key) {
-                      setCoverVideo?.({ ...coverVideo, desktopKey: data.key });
+                      setCoverVideo?.({ 
+                        ...coverVideo, 
+                        desktopKey: data.key,
+                        desktopSize: data.sizeBytes
+                      });
                       setShowUploaderVideo(false);
                       toast.success('Vídeo enviado com sucesso para a capa!');
                     }

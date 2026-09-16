@@ -161,7 +161,11 @@ export function DeliverPhotosTab({
                   value={activeVideoKey ? { key: activeVideoKey, url: activeVideoUrl || undefined } : null}
                   onChange={async (data) => {
                     if (data?.key) {
-                      const novoCoverVideo = { ...coverVideo, desktopKey: data.key };
+                      const novoCoverVideo = { 
+                        ...coverVideo, 
+                        desktopKey: data.key,
+                        desktopSize: data.sizeBytes
+                      };
                       setCoverVideo?.(novoCoverVideo);
                       setShowUploaderVideo(false);
                       // Para garantir o salvamento automático sem depender do onSave (que pode ter state desatualizado)
