@@ -83,13 +83,15 @@ export function PublicThemeWrapper({
     return styles;
   }, [primaryColor]);
 
-    <div
-      className={`${forceHeight ? '' : 'min-h-screen'} bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`}
-      style={{
-        ...themeStyles,
-        ...(forceHeight ? { height: forceHeight } : {}),
-      }}
-    >
-      {children}
-    </div>
+    return (
+      <div
+        className={`${forceHeight ? '' : 'min-h-screen'} bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`}
+        style={{
+          ...themeStyles,
+          ...(forceHeight ? { height: forceHeight } : {}),
+        }}
+      >
+        {children}
+      </div>
+    );
 }

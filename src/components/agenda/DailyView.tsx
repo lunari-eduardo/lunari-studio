@@ -3,7 +3,7 @@ import { ptBR } from 'date-fns/locale';
 import { TimeInput } from "@/components/ui/time-input";
 import { useState, useRef } from 'react';
 import ConflictIndicator from './ConflictIndicator';
-import { Plus, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, Clock, Layers } from 'lucide-react';
 import { UnifiedEvent } from '@/modules/agenda/presentation';
 import UnifiedEventCard from './UnifiedEventCard';
 import { useAvailability } from '@/hooks/useAvailability';
@@ -624,32 +624,75 @@ export default function DailyView({
 
       {/* AlertDialog para conflito de ocupação */}
       <AlertDialog open={!!conflictState} onOpenChange={(open) => !open && setConflictState(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-[480px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Horário Ocupado</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este horário já está sendo ocupado pelo evento <strong>{conflictState?.occupiedByEvent?.title || conflictState?.occupiedByEvent?.client || 'em andamento'}</strong>. O que deseja fazer?
+            <div className="flex items-center gap-2">
+              <div className="rounded-full bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
+                <Clock className="h-4 w-4" />
+              </div>
+              <AlertDialogTitle>Horário Ocupado</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="pt-1.5 text-sm leading-relaxed text-left">
+              O horário das <span className="font-semibold text-foreground">{conflictState?.time}</span> já está ocupado pela sessão de{' '}
+              <strong className="text-foreground font-semibold">
+                {conflictState?.occupiedByEvent?.client || conflictState?.occupiedByEvent?.title || 'evento em andamento'}
+              </strong>. Escolha como deseja prosseguir:
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-2">
-            <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
-            <Button
-              variant="outline"
+
+          <div className="flex flex-col gap-2.5 py-1">
+            <button
+              type="button"
+              onClick={handleLiberarHorario}
+              className="group flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3.5 text-left transition-all hover:border-primary/60 hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <div className="mt-0.5 rounded-md bg-primary/15 p-1.5 text-primary shrink-0">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">Liberar horário</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase tracking-wider shrink-0">
+                    Recomendado
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Encurta a sessão anterior para terminar às {conflictState?.time}, liberando a agenda para o novo agendamento.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
               onClick={() => {
                 if (conflictState) {
                   handleProceedCreate(conflictState.actionType, conflictState.date, conflictState.time);
                   setConflictState(null);
                 }
               }}
+              className="group flex items-start gap-3 rounded-lg border border-border/50 bg-card/60 p-3.5 text-left transition-all hover:border-border hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
-              Agendar Simultaneamente (Sobrepor)
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleLiberarHorario}
+              <div className="mt-0.5 rounded-md bg-muted p-1.5 text-muted-foreground group-hover:text-foreground shrink-0">
+                <Layers className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-foreground block">
+                  Agendar simultaneamente (Sobrepor)
+                </span>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Mantém a sessão atual inalterada e cria um novo agendamento simultâneo no mesmo horário (overbooking).
+                </p>
+              </div>
+            </button>
+          </div>
+
+          <AlertDialogFooter className="pt-2 sm:justify-end">
+            <AlertDialogCancel
+              onClick={() => setConflictState(null)}
+              className="w-full sm:w-auto text-xs h-9 mt-0"
             >
-              Liberar Horário (Encurtar anterior)
-            </Button>
+              Cancelar
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

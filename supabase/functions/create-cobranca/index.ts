@@ -406,7 +406,27 @@ Deno.serve(async (req) => {
     if (provedor === "mercadopago") {
       adapterData = await createMercadoPagoPayment(supabase, adapterPayload, SUPABASE_URL, PUBLIC_SITE_URL);
     } else if (provedor === "infinitepay") {
-      adapterData = await createInfinitePayPayment(supabase, adapterPayload, SUPABASE_URL, PUBLIC_SITE_URL);
+      if (!billingType || billingType === "UNDEFINED") {
+        // Defer InfinitePay API call to pay-infinitepay-finalize for shareable links to speed up generation
+        const { data: integ } = await supabase
+          .from("usuarios_integracoes")
+          .select("dados_extras")
+          .eq("user_id", userId)
+          .eq("provedor", "infinitepay")
+          .eq("status", "ativo")
+          .maybeSingle();
+
+        if (!integ?.dados_extras?.handle) {
+           return errorResponse("Handle InfinitePay não configurado ou inativo", 400, "IP_NOT_CONFIGURED");
+        }
+
+        adapterData = {
+          success: true,
+          checkoutUrl: `${PUBLIC_SITE_URL}/l/${cobrancaId}`,
+        };
+      } else {
+        adapterData = await createInfinitePayPayment(supabase, adapterPayload, SUPABASE_URL, PUBLIC_SITE_URL);
+      }
     } else if (provedor === "asaas") {
       adapterData = await createAsaasPayment(supabase, adapterPayload, PUBLIC_SITE_URL);
     } else {
