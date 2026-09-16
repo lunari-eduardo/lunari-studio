@@ -1,4 +1,4 @@
-import { Image, Upload, Download, Trash2, Star, ImageIcon, Loader2 } from 'lucide-react';
+import { Image, Upload, Download, Trash2, Star, ImageIcon, Loader2, Film, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PhotoUploader, UploadedPhoto } from '@/components/PhotoUploader';
 import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 interface DeliverPhotosTabProps {
   galleryId: string;
+  coverModel?: string | null;
   photos: GaleriaPhoto[];
   photosLoading: boolean;
   coverPhotoId: string | null;
@@ -27,6 +28,7 @@ export function DeliverPhotosTab({
   photos,
   photosLoading,
   coverPhotoId,
+  coverModel,
   activeThemeId,
   showUploader,
   setShowUploader,
@@ -39,9 +41,21 @@ export function DeliverPhotosTab({
 }: DeliverPhotosTabProps) {
   const themeSupportsFeatured = THEME_REGISTRY[activeThemeId]?.featured?.enabled !== false;
   const highlightedCount = photos.filter((p) => (p.pesoVisual ?? 0) > 0).length;
+  const isCinemaCover = coverModel === 'cinema';
 
   return (
     <div className="space-y-4 mt-6">
+      {isCinemaCover && (
+        <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+          <Film className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+          <div className="space-y-1">
+            <p className="font-medium">Capa cinematográfica ativa</p>
+            <p className="text-xs text-muted-foreground">
+              A capa desta galeria é um vídeo exclusivo (modelo Cinema) — não é preciso escolher uma foto da grade como capa. O vídeo é gerenciado na aba <strong>Design</strong>.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h3 className="font-semibold text-lg">{photos.length} fotos entregues</h3>

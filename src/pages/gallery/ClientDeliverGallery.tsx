@@ -134,12 +134,29 @@ export default function ClientDeliverGallery({ data }: Props) {
   }, [allPhotos, activeFolderId, hasFolders]);
 
   const coverPhotoId = gallery.settings?.coverPhotoId;
-  const coverPhotoSource = coverPhotoId
-    ? allPhotos.find(p => p.id === coverPhotoId) || allPhotos[0]
-    : allPhotos[0];
+  const coverModel = (gallery.settings as any)?.coverId ?? (gallery.settings as any)?.defaultCoverId ?? null;
+  const isCinemaCover = coverModel === 'cinema';
+
+  // Quando a capa é Cinema, o hero usa exclusivamente coverVideo — não
+  // apontamos o coverPhoto para um vídeo da grade (isso causaria hero em
+  // fundo preto porque o <img> falharia ao tentar carregar um .mp4).
+  const coverPhotoSource = isCinemaCover
+    ? null
+    : coverPhotoId
+      ? allPhotos.find(p => p.id === coverPhotoId) || allPhotos[0]
+      : allPhotos[0];
 
   const coverPhoto: PhotoPaths | null = coverPhotoSource
     ? { storageKey: coverPhotoSource.storageKey, previewPath: coverPhotoSource.previewPath, width: coverPhotoSource.width, height: coverPhotoSource.height, mimeType: coverPhotoSource.mimeType }
+    : null;
+
+  // Foto de fallback para a capa (ex: Cinema): primeira foto da grade que não
+  // seja um vídeo. Usada quando o hero não tem poster nem foto de capa utilizável.
+  const fallbackPhotoSource = allPhotos.find(
+    (p) => !p.mimeType?.startsWith('video/')
+  );
+  const fallbackPhoto: PhotoPaths | null = fallbackPhotoSource
+    ? { storageKey: fallbackPhotoSource.storageKey, previewPath: fallbackPhotoSource.previewPath, width: fallbackPhotoSource.width, height: fallbackPhotoSource.height, mimeType: fallbackPhotoSource.mimeType }
     : null;
 
   useGalleryBranding({
@@ -194,6 +211,7 @@ export default function ClientDeliverGallery({ data }: Props) {
         <CoverRenderer
           coverId={resolvedCoverId}
           coverPhoto={coverPhoto}
+          fallbackPhoto={fallbackPhoto}
           sessionName={gallery.sessionName}
           subtitle={subtitleProp}
           sessionDate={sessionDateProp}
@@ -278,11 +296,12 @@ export default function ClientDeliverGallery({ data }: Props) {
         instagrams: ["@parquewiteck", "@meliterranea.cafe"]
       }}
     >
-      <ClientDeliverGalleryContent 
-        data={data} 
-        photos={photos} 
+      <ClientDeliverGalleryContent
+        data={data}
+        photos={photos}
         allPhotos={allPhotos}
         coverPhoto={coverPhoto}
+        fallbackPhoto={fallbackPhoto}
         coverId={resolvedCoverId}
         sessionFont={sessionFont}
         subtitle={subtitleProp}
@@ -304,8 +323,8 @@ export default function ClientDeliverGallery({ data }: Props) {
 }
 
 
-function ClientDeliverGalleryContent({ 
-  data, photos, allPhotos, coverPhoto, coverId, sessionFont, 
+function ClientDeliverGalleryContent({
+  data, photos, allPhotos, coverPhoto, fallbackPhoto, coverId, sessionFont,
   subtitle, sessionDate, category,
   handleDownloadAll, 
   isDownloading, handleDownloadSingle, showWelcome, handleCloseWelcome,
@@ -343,6 +362,7 @@ function ClientDeliverGalleryContent({
         <CoverRenderer
           coverId={coverId}
           coverPhoto={coverPhoto}
+          fallbackPhoto={fallbackPhoto}
           sessionName={gallery.sessionName}
           subtitle={subtitleProp}
           sessionDate={sessionDateProp}

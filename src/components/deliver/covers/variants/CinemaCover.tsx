@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { CoverVariantProps } from '../types';
 import { useCoverVideo } from '../shared/useCoverVideo';
+import { useVideoPoster } from '@/hooks/useVideoPoster';
 import { getPhotoUrl } from '@/lib/photoUrl';
 import { applyTitleCase } from '@/lib/textTransform';
 
@@ -12,6 +13,7 @@ export default function CinemaCover({
   sessionFont,
   titleCaseMode,
   coverPhoto,
+  fallbackPhoto,
   coverVideo,
   ctaLabel,
   contentPosition = 'bottom-left',
@@ -30,14 +32,20 @@ export default function CinemaCover({
     handleError
   } = useCoverVideo(desktopKey, mobileKey);
 
+  // Extrai um frame do vídeo como poster dinâmico (só usado se não houver
+  // poster customizado nem coverPhoto utilizável).
+  const videoFramePoster = useVideoPoster(videoUrl, Boolean(videoUrl));
+
   const [hasClicked, setHasClicked] = useState(false);
 
-  // Fallback poster logic
+  // Fallback poster: poster customizado → coverPhoto (se for foto) →
+  // primeira foto da galeria (fallbackPhoto) → frame extraído do vídeo.
   const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
   const customPosterUrl = posterKey ? `${cdnBase}/${posterKey}` : null;
   const isCoverVideoFile = coverPhoto?.mimeType?.startsWith('video/');
   const coverPhotoUrl = coverPhoto && !isCoverVideoFile ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
-  const posterUrl = customPosterUrl || coverPhotoUrl;
+  const fallbackPhotoUrl = fallbackPhoto ? getPhotoUrl(fallbackPhoto, 'fullscreen') : undefined;
+  const posterUrl = customPosterUrl || coverPhotoUrl || fallbackPhotoUrl || videoFramePoster || null;
 
   const handleCtaClick = () => {
     setHasClicked(true);
@@ -56,7 +64,7 @@ export default function CinemaCover({
   const formattedTitle = applyTitleCase(sessionName, titleCaseMode || 'normal');
 
   return (
-    <section className="relative h-[100svh] w-full overflow-hidden bg-black text-white">
+    <section className="relative h-[100svh] w-full overflow-hidden text-white" style={{ backgroundColor: '#0a0a0a' }}>
       {/* Poster fallback */}
       {posterUrl && (
         <img

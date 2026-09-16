@@ -4,6 +4,10 @@ import type { ComponentType, LazyExoticComponent } from 'react';
 
 export interface CoverVariantProps {
   coverPhoto: PhotoPaths | null;
+  /** Foto extra usada como poster de fallback (ex: primeira foto da galeria).
+   *  Usado por CinemaCover quando nem o poster customizado nem a coverPhoto
+   *  produzem uma imagem renderizável. */
+  fallbackPhoto?: PhotoPaths | null;
   sessionName: string;
   subtitle?: string;
   sessionDate?: string | Date | null;

@@ -1,4 +1,4 @@
-import { Image, User, Clock, MoreHorizontal, Pencil, Share2, Trash2, RotateCcw } from 'lucide-react';
+import { Image, User, Clock, MoreHorizontal, Pencil, Share2, Trash2, RotateCcw, Film } from 'lucide-react';
 import { Gallery } from '@/types/gallery';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface DeliverGalleryCardProps {
-  gallery: Gallery & { coverPhotoKey?: string | null; firstPhotoKey?: string | null };
+  gallery: Gallery & { coverPhotoKey?: string | null; firstPhotoKey?: string | null; coverId?: string | null };
   totalPhotos: number;
   onClick?: () => void;
   onEdit?: () => void;
@@ -31,13 +31,25 @@ function getDeliverStatus(gallery: Gallery): { label: string; variant: 'default'
   return { label: 'Rascunho', variant: 'secondary' };
 }
 
+// A thumbnail do card admin deve ser SEMPRE uma imagem estática.
+// Se a chave apontar para um arquivo de vídeo (caso da capa Cinema),
+// caímos para a primeira foto da grade.
+const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|quicktime|ogg|ogv)$/i;
+const isVideoKey = (key?: string | null): boolean => !!key && VIDEO_EXT_RE.test(key);
+
 export function DeliverGalleryCard({ gallery, totalPhotos, onClick, onEdit, onShare, onDelete, onReactivate }: DeliverGalleryCardProps) {
   const isExpired = gallery.status === 'expired';
   const status = getDeliverStatus(gallery);
 
-  // Use cover photo key if available, otherwise first photo key
-  const thumbnailKey = (gallery as any).coverPhotoKey || (gallery as any).firstPhotoKey;
-  const thumbnailUrl = thumbnailKey ? getDisplayUrl(thumbnailKey) : null;
+  const coverKey = (gallery as any).coverPhotoKey as string | null | undefined;
+  const firstKey = (gallery as any).firstPhotoKey as string | null | undefined;
+  const isCinemaCover = (gallery as any).coverId === 'cinema';
+
+  // Prioriza a foto de capa, mas só se não for vídeo.
+  // Para capa Cinema (vídeo exclusivo), usa sempre a primeira foto da grade.
+  const thumbnailKey = !isVideoKey(coverKey) ? coverKey : null;
+  const fallbackKey = thumbnailKey || firstKey || null;
+  const thumbnailUrl = fallbackKey ? getDisplayUrl(fallbackKey) : null;
 
   return (
     <div
@@ -91,7 +103,7 @@ export function DeliverGalleryCard({ gallery, totalPhotos, onClick, onEdit, onSh
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
                 className="text-destructive focus:text-destructive"
               >
@@ -101,6 +113,14 @@ export function DeliverGalleryCard({ gallery, totalPhotos, onClick, onEdit, onSh
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Cinema cover badge - top left */}
+        {isCinemaCover && !isExpired && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-sm px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
+            <Film className="h-3 w-3" />
+            Cinema
+          </div>
+        )}
 
         {/* Expired overlay */}
         {isExpired && (

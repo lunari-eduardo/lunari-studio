@@ -10,16 +10,17 @@ interface Props extends CoverVariantProps {
 export function CoverRenderer({ coverId, ...props }: Props) {
   const variant = COVER_REGISTRY[coverId ?? DEFAULT_COVER_ID] ?? COVER_REGISTRY[DEFAULT_COVER_ID];
   const Comp = variant.Component;
-  
+
   // Fallback que usa a foto de capa para evitar flashes
   const isVideo = props.coverPhoto?.mimeType?.startsWith('video/');
-  const fallbackUrl = props.coverPhoto && !isVideo ? getPhotoUrl(props.coverPhoto, 'preview') : undefined;
-  
+  const fallbackSource = isVideo ? (props.fallbackPhoto ?? null) : props.coverPhoto;
+  const fallbackUrl = fallbackSource ? getPhotoUrl(fallbackSource, 'preview') : undefined;
+
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <div 
-          className="w-full h-[100svh] bg-cover bg-center bg-no-repeat bg-background" 
+        <div
+          className="w-full h-[100svh] bg-cover bg-center bg-no-repeat bg-background"
           style={fallbackUrl ? { backgroundImage: `url(${fallbackUrl})` } : undefined}
         />
       }

@@ -97,6 +97,7 @@ export default function DeliverDetail() {
             photos={data.photos}
             photosLoading={data.photosLoading}
             coverPhotoId={data.coverPhotoId}
+            coverModel={data.coverId}
             activeThemeId={data.activeThemeId}
             showUploader={actions.showUploader}
             setShowUploader={actions.setShowUploader}
