@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TimeSlotOptionsMenu from './TimeSlotOptionsMenu';
-import { isSlotCoveredByEvent, getEventEndTime } from '@/modules/agenda/domain/conflict';
+import { isSlotCoveredByEvent, getEventEndTime, timeToMinutes, minutesToTime } from '@/modules/agenda/domain/conflict';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useAppointmentMutations } from "@/modules/agenda/presentation";
 
 interface DailyViewProps {
   date: Date;
@@ -69,9 +70,19 @@ export default function DailyView({
   const [showAddTimeSlot, setShowAddTimeSlot] = useState(false);
   const [newTimeInput, setNewTimeInput] = useState('');
   const [unlockConfirmTime, setUnlockConfirmTime] = useState<string | null>(null);
+  
+  const [conflictState, setConflictState] = useState<{
+    actionType: 'session' | 'meeting' | 'personal' | 'task';
+    date: Date;
+    time: string;
+    occupiedByEvent: UnifiedEvent;
+  } | null>(null);
+
   const dateKey = format(date, 'yyyy-MM-dd');
   const slotsContainerRef = useRef<HTMLDivElement>(null);
   
+  const { updateAppointment } = useAppointmentMutations();
+
   const {
     availability,
     availabilityTypes,
@@ -103,6 +114,22 @@ export default function DailyView({
       .filter(event => isSameDay(event.date, date))
       .map(event => event.time);
     
+    // FASE: Gerar slots adicionais para preencher o tempo total de cada sessão
+    const spannedTimes: string[] = [];
+    unifiedEvents
+      .filter(event => isSameDay(event.date, date))
+      .forEach(event => {
+        const dur = event.durationMinutes !== undefined ? event.durationMinutes : ((event.originalData as any)?.durationMinutes ?? 0);
+        if (dur > 30) {
+          let currentMin = timeToMinutes(event.time) + 30;
+          const endMin = timeToMinutes(event.time) + dur;
+          while (currentMin < endMin) {
+            spannedTimes.push(minutesToTime(currentMin));
+            currentMin += 30;
+          }
+        }
+      });
+
     // Não incluir slot de dia todo nos horários
     const availabilityTimes = availability
       .filter(s => s.date === dateKey && !s.isFullDay)
@@ -111,6 +138,7 @@ export default function DailyView({
     const merged = Array.from(new Set([
       ...customSlots,
       ...eventTimes,
+      ...spannedTimes,
       ...availabilityTimes
     ])).sort();
     
@@ -239,6 +267,51 @@ export default function DailyView({
       toast.success('Dia todo removido');
     }
   };
+
+  const handleCreateAttempt = (actionType: 'session' | 'meeting' | 'personal' | 'task', slotDate: Date, slotTime: string, occupiedByEvent?: UnifiedEvent) => {
+    if (occupiedByEvent) {
+      setConflictState({ actionType, date: slotDate, time: slotTime, occupiedByEvent });
+    } else {
+      handleProceedCreate(actionType, slotDate, slotTime);
+    }
+  };
+
+  const handleProceedCreate = (actionType: 'session' | 'meeting' | 'personal' | 'task', slotDate: Date, slotTime: string) => {
+    if (actionType === 'session') {
+      (onCreateSession || onCreateSlot)({ date: slotDate, time: slotTime });
+    } else if (actionType === 'meeting') {
+      onCreateMeeting?.({ date: slotDate, time: slotTime });
+    } else if (actionType === 'personal') {
+      onCreatePersonalEvent?.({ date: slotDate, time: slotTime });
+    } else if (actionType === 'task') {
+      onCreateTask?.({ date: slotDate, time: slotTime });
+    }
+  };
+
+  const handleLiberarHorario = async () => {
+    if (!conflictState?.occupiedByEvent) return;
+    const event = conflictState.occupiedByEvent;
+    
+    if (event.type === 'appointment') {
+      const apt = event.originalData as any;
+      const startMin = timeToMinutes(event.time);
+      const targetMin = timeToMinutes(conflictState.time);
+      const newDuration = targetMin - startMin;
+      
+      if (newDuration > 0) {
+        await updateAppointment(apt.id, { durationMinutes: newDuration });
+        toast.success('Horário liberado com sucesso.');
+        // Após liberar, prosseguir com a criação
+        handleProceedCreate(conflictState.actionType, conflictState.date, conflictState.time);
+      } else {
+        toast.error('Não é possível encurtar o evento para esta duração.');
+      }
+    } else {
+      toast.error('Não é possível encurtar este tipo de evento.');
+    }
+    setConflictState(null);
+  };
+
   return (
     <div className="pb-16 md:pb-4">
       {/* Header com botão de adicionar horário */}
@@ -442,13 +515,14 @@ export default function DailyView({
                           </div>
                           <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                             <TimeSlotOptionsMenu
-                              onCreateSession={() => (onCreateSession || onCreateSlot)({ date, time })}
-                              onCreateMeeting={() => onCreateMeeting?.({ date, time })}
-                              onCreatePersonalEvent={() => onCreatePersonalEvent?.({ date, time })}
-                              onCreateTask={() => onCreateTask?.({ date, time })}
+                              onCreateSession={() => handleCreateAttempt('session', date, time, spanningEvent)}
+                              onCreateMeeting={() => handleCreateAttempt('meeting', date, time, spanningEvent)}
+                              onCreatePersonalEvent={() => handleCreateAttempt('personal', date, time, spanningEvent)}
+                              onCreateTask={() => handleCreateAttempt('task', date, time, spanningEvent)}
                               onAvailable={() => handleMarkAvailable(time)}
                               onBlock={() => handleBlockSlot(time)}
                               onRemove={() => handleRemoveTimeSlot(time)}
+                              isOccupied={true}
                             />
                           </div>
                         </div>
@@ -462,10 +536,10 @@ export default function DailyView({
                     </span>
                     <div onClick={e => e.stopPropagation()}>
                       <TimeSlotOptionsMenu
-                        onCreateSession={() => (onCreateSession || onCreateSlot)({ date, time })}
-                        onCreateMeeting={() => onCreateMeeting?.({ date, time })}
-                        onCreatePersonalEvent={() => onCreatePersonalEvent?.({ date, time })}
-                        onCreateTask={() => onCreateTask?.({ date, time })}
+                        onCreateSession={() => handleCreateAttempt('session', date, time, undefined)}
+                        onCreateMeeting={() => handleCreateAttempt('meeting', date, time, undefined)}
+                        onCreatePersonalEvent={() => handleCreateAttempt('personal', date, time, undefined)}
+                        onCreateTask={() => handleCreateAttempt('task', date, time, undefined)}
                         onAvailable={() => {
                           handleRemoveAvailability(time);
                           if (onOpenAvailability) onOpenAvailability(date, time);
@@ -512,13 +586,14 @@ export default function DailyView({
                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                       <ConflictIndicator date={date} time={time} />
                       <TimeSlotOptionsMenu
-                        onCreateSession={() => (onCreateSession || onCreateSlot)({ date, time })}
-                        onCreateMeeting={() => onCreateMeeting?.({ date, time })}
-                        onCreatePersonalEvent={() => onCreatePersonalEvent?.({ date, time })}
-                        onCreateTask={() => onCreateTask?.({ date, time })}
+                        onCreateSession={() => handleCreateAttempt('session', date, time, startingEvents[0])}
+                        onCreateMeeting={() => handleCreateAttempt('meeting', date, time, startingEvents[0])}
+                        onCreatePersonalEvent={() => handleCreateAttempt('personal', date, time, startingEvents[0])}
+                        onCreateTask={() => handleCreateAttempt('task', date, time, startingEvents[0])}
                         onAvailable={() => handleMarkAvailable(time)}
                         onBlock={() => handleBlockSlot(time)}
                         onRemove={() => handleRemoveTimeSlot(time)}
+                        isOccupied={hasStartingEvents}
                       />
                     </div>
                   </div>
@@ -543,6 +618,38 @@ export default function DailyView({
             <AlertDialogAction onClick={() => unlockConfirmTime && handleUnblockSlot(unlockConfirmTime)}>
               Desbloquear
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog para conflito de ocupação */}
+      <AlertDialog open={!!conflictState} onOpenChange={(open) => !open && setConflictState(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Horário Ocupado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este horário já está sendo ocupado pelo evento <strong>{conflictState?.occupiedByEvent?.title || conflictState?.occupiedByEvent?.client || 'em andamento'}</strong>. O que deseja fazer?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 mt-2">
+            <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (conflictState) {
+                  handleProceedCreate(conflictState.actionType, conflictState.date, conflictState.time);
+                  setConflictState(null);
+                }
+              }}
+            >
+              Agendar Simultaneamente (Sobrepor)
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleLiberarHorario}
+            >
+              Liberar Horário (Encurtar anterior)
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

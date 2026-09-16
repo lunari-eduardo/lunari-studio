@@ -27,6 +27,7 @@ interface TimeSlotOptionsMenuProps {
   onRemove: () => void;
   isBlocked?: boolean;
   onUnblock?: () => void;
+  isOccupied?: boolean;
 }
 
 export default function TimeSlotOptionsMenu({
@@ -39,6 +40,7 @@ export default function TimeSlotOptionsMenu({
   onRemove,
   isBlocked,
   onUnblock,
+  isOccupied,
 }: TimeSlotOptionsMenuProps) {
   return (
     <DropdownMenu>
@@ -109,43 +111,47 @@ export default function TimeSlotOptionsMenu({
           <DropdownMenuSeparator />
         )}
 
-        {/* Disponibilidade e Bloqueio */}
-        <DropdownMenuItem
-          className="text-xs h-8 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAvailable();
-          }}
-        >
-          <Clock className="h-3.5 w-3.5 mr-2 text-lunar-success" />
-          Marcar disponível
-        </DropdownMenuItem>
+        {!isOccupied && (
+          <>
+            {/* Disponibilidade e Bloqueio */}
+            <DropdownMenuItem
+              className="text-xs h-8 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAvailable();
+              }}
+            >
+              <Clock className="h-3.5 w-3.5 mr-2 text-lunar-success" />
+              Marcar disponível
+            </DropdownMenuItem>
 
-        {isBlocked && onUnblock ? (
-          <DropdownMenuItem
-            className="text-xs h-8 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onUnblock();
-            }}
-          >
-            <Unlock className="h-3.5 w-3.5 mr-2 text-primary" />
-            Desbloquear
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem
-            className="text-xs h-8 cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBlock();
-            }}
-          >
-            <Ban className="h-3.5 w-3.5 mr-2 text-destructive" />
-            Bloquear horário
-          </DropdownMenuItem>
+            {isBlocked && onUnblock ? (
+              <DropdownMenuItem
+                className="text-xs h-8 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnblock();
+                }}
+              >
+                <Unlock className="h-3.5 w-3.5 mr-2 text-primary" />
+                Desbloquear
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                className="text-xs h-8 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBlock();
+                }}
+              >
+                <Ban className="h-3.5 w-3.5 mr-2 text-destructive" />
+                Bloquear horário
+              </DropdownMenuItem>
+            )}
+            
+            <DropdownMenuSeparator />
+          </>
         )}
-
-        <DropdownMenuSeparator />
 
         <DropdownMenuItem
           onClick={(e) => {
