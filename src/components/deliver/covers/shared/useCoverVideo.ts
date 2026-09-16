@@ -43,6 +43,9 @@ export function useCoverVideo(desktopKey?: string, mobileKey?: string | null) {
     return () => window.removeEventListener('orientationchange', checkOrientation);
   }, [desktopKey, mobileKey]);
 
+  const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
+  const videoUrl = activeKey ? `${cdnBase}/${activeKey}` : null;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -92,9 +95,6 @@ export function useCoverVideo(desktopKey?: string, mobileKey?: string | null) {
   const handleError = () => {
     setVideoState('failed');
   };
-
-  const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
-  const videoUrl = activeKey ? `${cdnBase}/${activeKey}` : null;
 
   return {
     videoUrl,

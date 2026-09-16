@@ -190,7 +190,13 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-video"
                   value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
-                  onChange={(data) => setCoverVideo({ ...coverVideo, desktopKey: data?.key })}
+                  onChange={(data) => {
+                    setCoverVideo({ ...coverVideo, desktopKey: data?.key || null });
+                    if (data?.key) {
+                      toast.success('Vídeo desktop enviado!');
+                      setTimeout(() => onSave(), 100);
+                    }
+                  }}
                   accept="video/mp4,video/webm,video/quicktime"
                   maxSizeMB={15}
                   label="Vídeo Principal (Desktop)"
@@ -201,7 +207,13 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-video"
                   value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
-                  onChange={(data) => setCoverVideo({ ...coverVideo, mobileKey: data?.key || null })}
+                  onChange={(data) => {
+                    setCoverVideo({ ...coverVideo, mobileKey: data?.key || null });
+                    if (data?.key) {
+                      toast.success('Vídeo mobile enviado!');
+                      setTimeout(() => onSave(), 100);
+                    }
+                  }}
                   accept="video/mp4,video/webm,video/quicktime"
                   maxSizeMB={15}
                   label="Vídeo Vertical (Celular)"
@@ -212,7 +224,13 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-poster"
                   value={coverVideo?.posterKey ? { key: coverVideo.posterKey, url: undefined } : null}
-                  onChange={(data) => setCoverVideo({ ...coverVideo, posterKey: data?.key || null })}
+                  onChange={(data) => {
+                    setCoverVideo({ ...coverVideo, posterKey: data?.key || null });
+                    if (data?.key) {
+                      toast.success('Poster enviado!');
+                      setTimeout(() => onSave(), 100);
+                    }
+                  }}
                   accept="image/jpeg,image/png,image/webp"
                   maxSizeMB={1}
                   label="Poster"

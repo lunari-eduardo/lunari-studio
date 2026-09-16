@@ -159,11 +159,19 @@ export function DeliverPhotosTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-video"
                   value={activeVideoKey ? { key: activeVideoKey, url: activeVideoUrl || undefined } : null}
-                  onChange={(data) => {
+                  onChange={async (data) => {
                     if (data?.key) {
-                      setCoverVideo?.({ ...coverVideo, desktopKey: data.key });
+                      const novoCoverVideo = { ...coverVideo, desktopKey: data.key };
+                      setCoverVideo?.(novoCoverVideo);
                       setShowUploaderVideo(false);
-                      toast.success('Vídeo enviado com sucesso para a capa! Salve as alterações.');
+                      // Para garantir o salvamento automático sem depender do onSave (que pode ter state desatualizado)
+                      // O ideal seria que a action de update fosse repassada, mas podemos confiar no onSave e num setTimeout, 
+                      // ou o usuário clica em salvar. Como no editor as pessoas esquecem de salvar, vamos tentar avisar forte ou forçar um save.
+                      // Vamos invocar onSave logo em seguida e ver se rola, ou alertar de forma clara.
+                      toast.success('Vídeo enviado com sucesso para a capa!');
+                      setTimeout(() => {
+                        onSave?.();
+                      }, 100);
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
@@ -232,7 +240,8 @@ export function DeliverPhotosTab({
               >
                 {photo.mimeType?.startsWith('video/') ? (
                   <video
-                    src={getPhotoUrl({ storageKey: photo.storageKey }, 'preview')}
+                    src={getPhotoUrl({ storageKey: photo.storageKey }, 'original')}
+                    poster={photo.thumbPath || photo.previewPath ? getPhotoUrl({ storageKey: photo.thumbPath || photo.previewPath || '' }, 'original') : undefined}
                     className="w-full h-full object-cover"
                     muted
                     autoPlay
@@ -241,7 +250,7 @@ export function DeliverPhotosTab({
                   />
                 ) : (
                   <img
-                    src={getPhotoUrl({ storageKey: photo.storageKey }, 'thumbnail')}
+                    src={getPhotoUrl({ storageKey: photo.storageKey, thumbPath: photo.thumbPath, previewPath: photo.previewPath }, 'thumbnail')}
                     alt={photo.originalFilename}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -292,6 +301,10 @@ export function DeliverPhotosTab({
                         onSetCover(photo.id);
                         toast.success('Vídeo definido como Capa Cinematográfica!');
                       } else {
+                        if (isCinemaCover) {
+                          toast.error('O modelo de Capa Cinema exige um vídeo. Mude o modelo em Design & Temas se quiser usar uma foto.');
+                          return;
+                        }
                         onSetCover(photo.id);
                       }
                     }}

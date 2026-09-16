@@ -46,12 +46,15 @@ export default function CinemaCover({
 
   const [hasClicked, setHasClicked] = useState(false);
 
-  // Fallback poster: poster customizado → coverPhoto (se for foto) →
-  // primeira foto da galeria (fallbackPhoto) → frame extraído do vídeo.
+  const isFallbackPhotoVideo = Boolean(
+    fallbackPhoto?.mimeType?.startsWith('video/') ||
+    /\.(mp4|webm|mov|m4v|quicktime)$/i.test(fallbackPhoto?.storageKey || '')
+  );
+
   const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
   const customPosterUrl = effectivePosterKey ? `${cdnBase}/${effectivePosterKey}` : null;
   const coverPhotoUrl = coverPhoto && !isCoverPhotoVideo ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
-  const fallbackPhotoUrl = fallbackPhoto ? getPhotoUrl(fallbackPhoto, 'fullscreen') : undefined;
+  const fallbackPhotoUrl = fallbackPhoto && !isFallbackPhotoVideo ? getPhotoUrl(fallbackPhoto, 'fullscreen') : undefined;
   const posterUrl = customPosterUrl || coverPhotoUrl || fallbackPhotoUrl || videoFramePoster || null;
 
   const handleCtaClick = () => {

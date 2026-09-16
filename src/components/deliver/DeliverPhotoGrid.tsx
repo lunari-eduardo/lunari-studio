@@ -116,9 +116,10 @@ export function DeliverPhotoGrid({
           </div>
         ) : (
           <>
-            {photo.mimeType?.startsWith('video/') ? (
+            {photo.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(photo.storageKey || '') ? (
               <video
                 src={url}
+                poster={photo.thumbPath || photo.previewPath ? getPhotoUrl({ storageKey: photo.thumbPath || photo.previewPath || '' }, 'original') : undefined}
                 muted
                 autoPlay
                 loop

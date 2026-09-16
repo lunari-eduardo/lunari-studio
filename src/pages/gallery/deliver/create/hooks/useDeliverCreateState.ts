@@ -40,6 +40,8 @@ export function useDeliverCreateState() {
   const [activeThemeId, setActiveThemeId] = useState<string>(DEFAULT_THEME_ID);
   const [themeOverrides, setThemeOverrides] = useState<any>({});
   const [coverId, setCoverId] = useState<string | null>(null);
+  const [coverVideo, setCoverVideo] = useState<any>(null);
+  const [coverCinema, setCoverCinema] = useState<any>(null);
 
   // Step 3: Photos
   const [supabaseGalleryId, setSupabaseGalleryId] = useState<string | null>(null);
@@ -142,6 +144,10 @@ export function useDeliverCreateState() {
     setThemeOverrides,
     coverId,
     setCoverId,
+    coverVideo,
+    setCoverVideo,
+    coverCinema,
+    setCoverCinema,
     // Step 3
     supabaseGalleryId,
     setSupabaseGalleryId,

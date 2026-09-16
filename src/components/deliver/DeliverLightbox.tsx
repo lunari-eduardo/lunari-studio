@@ -79,7 +79,7 @@ export function DeliverLightbox({ photos, currentIndex, onClose, onNavigate, onD
 
     prefetchIndexes.forEach((i) => {
       const p = photos[i];
-      if (!p.mimeType?.startsWith('video/')) {
+      if (!p.mimeType?.startsWith('video/') && !/\.(mp4|webm|mov|m4v)$/i.test(p.storageKey || '')) {
         const img = new Image();
         const pPaths: PhotoPaths = {
           storageKey: p.storageKey,
@@ -196,7 +196,7 @@ export function DeliverLightbox({ photos, currentIndex, onClose, onNavigate, onD
             }
           }}
         >
-          {photo.mimeType?.startsWith('video/') ? (
+          {photo.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(photo.storageKey || '') ? (
             <div 
               className="relative inline-flex max-w-full max-h-full"
               onClick={(e) => e.stopPropagation()}
@@ -204,6 +204,7 @@ export function DeliverLightbox({ photos, currentIndex, onClose, onNavigate, onD
               <video
                 key={photo.id}
                 src={url}
+                poster={photo.thumbPath || photo.previewPath ? getPhotoUrl({ storageKey: photo.thumbPath || photo.previewPath || '' }, 'original') : undefined}
                 controls
                 autoPlay
                 className="max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-120px)] max-h-[calc(100vh-140px)] md:max-h-[calc(100vh-160px)] object-contain rounded-[2px] shadow-2xl drop-shadow-[0_25px_60px_rgba(0,0,0,0.7)] select-none"

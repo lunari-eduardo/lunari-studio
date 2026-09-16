@@ -164,7 +164,7 @@ export function DeliverCreateStep2Visual({
             <div className="space-y-1">
               <h5 className="font-semibold text-sm">Capa Cinematográfica Ativa</h5>
               <p className="text-xs text-muted-foreground">
-                Esta capa exibe um vídeo em loop em tela cheia na entrada da galeria. Após salvar a entrega, você poderá enviar ou gerenciar o vídeo na aba <strong>Fotos</strong> e ajustar os detalhes visuais em <strong>Design & Temas</strong>.
+                Esta capa exibe um vídeo em loop em tela cheia na entrada da galeria. <strong>Na próxima etapa (Fotos)</strong>, você poderá enviar o arquivo de vídeo. Detalhes visuais poderão ser ajustados depois em <strong>Design & Temas</strong>.
               </p>
             </div>
           </div>
