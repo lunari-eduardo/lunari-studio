@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useResponsiveMode } from '@/hooks/useResponsiveMode';
 import { EquipmentSyncNotification } from '@/components/equipments/EquipmentSyncNotification';
 import { useEquipmentSync } from '@/hooks/useEquipmentSync';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
@@ -10,10 +11,14 @@ import { AssistantLauncher } from '@/modules/assistant';
 
 export default function Layout() {
   const isMobile = useIsMobile();
+  const responsiveMode = useResponsiveMode();
   const location = useLocation();
 
   // Inicializar monitoramento de equipamentos
   useEquipmentSync();
+
+  // Bottom nav is shown on mobile and tablet-portrait
+  const hasBottomNav = isMobile || responsiveMode === 'tablet-portrait';
 
   return <div className="flex h-screen bg-background">
       <Sidebar />
@@ -27,9 +32,9 @@ export default function Layout() {
         <main
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0 relative z-10",
-            isMobile && "pb-20"
+            hasBottomNav && "pb-20"
           )}
-          style={isMobile ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
+          style={hasBottomNav ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
         >
           <div className="animate-lunar">
             <Outlet />

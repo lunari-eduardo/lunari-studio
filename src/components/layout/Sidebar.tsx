@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useInputMode } from '@/hooks/useInputMode';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useResponsiveMode } from '@/hooks/useResponsiveMode';
 import {
   House,
   CalendarDays,
@@ -281,50 +280,151 @@ const DesktopNavItem = ({
   );
 };
 
-/* ────────────────────────── TABLET RAIL ────────────────────────── */
-const RailNavItem = ({ to, icon, label, isPro, showProBadge, end }: NavItemProps) => {
-  if (!to) return null;
+
+/* ────────────────────────── TABLET LANDSCAPE (click-expand) ────────────────────────── */
+const TabletLandscapeNavItem = ({
+  to,
+  icon,
+  label,
+  isPro,
+  showProBadge,
+  end,
+  expanded,
+  onNavigate,
+  subItems,
+  isSeparator,
+  groupLabel,
+}: NavItemProps & { expanded: boolean }) => {
+  const isComercial = to === '/app/comercial';
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) setIsOpen(false);
+  }, [expanded]);
+
+  if (isSeparator) return <div className="h-3" aria-hidden />;
 
   return (
-    <NavLink
-      to={to}
-      end={end}
-      aria-label={label}
-      className={({ isActive }) =>
-        cn(
-          'nav-item-lunar mb-0.5 flex items-center justify-center h-10 w-full rounded-md transition-colors duration-200 overflow-hidden hover:bg-white/5',
-          isActive
-            ? 'active text-[hsl(var(--sidebar-active-fg))]'
-            : 'text-[hsl(var(--sidebar-icon-collapsed))] hover:text-[hsl(var(--sidebar-icon-collapsed-hover))]'
-        )
-      }
-    >
-      {({ isActive }) => (
-        <span className={cn('flex items-center justify-center h-10 w-full flex-shrink-0 relative transition-colors duration-200', isActive && 'text-[hsl(var(--accent-gold))]')}>
-          {icon}
-          {isPro && showProBadge && (
-            <span className="absolute top-1 right-2">
-              <ProCrown />
-            </span>
+    <div className="flex flex-col">
+      {groupLabel && (
+        <p
+          className={cn(
+            'px-3 pt-3.5 pb-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-[hsl(var(--sidebar-fg))]/30 truncate transition-opacity duration-150 ease-out',
+            expanded ? 'opacity-100 delay-[60ms]' : 'opacity-0 pointer-events-none'
           )}
-        </span>
+        >
+          {groupLabel}
+        </p>
       )}
-    </NavLink>
+      <div className="flex w-full mb-0.5 group relative">
+        <NavLink
+          to={to}
+          end={end || isComercial}
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            cn(
+              'nav-item-lunar flex items-center h-9 rounded-md transition-colors duration-200 overflow-hidden hover:bg-white/5 flex-1',
+              isActive
+                ? 'active text-[hsl(var(--sidebar-active-fg))]'
+                : 'text-[hsl(var(--sidebar-fg))]'
+            )
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <span
+                className={cn(
+                  'flex items-center justify-center w-10 h-9 flex-shrink-0 relative transition-colors duration-200',
+                  isActive
+                    ? 'text-[hsl(var(--accent-gold))]'
+                    : expanded
+                      ? 'text-[hsl(var(--sidebar-icon))]/70'
+                      : 'text-[hsl(var(--sidebar-icon-collapsed))] group-hover:text-[hsl(var(--sidebar-icon-collapsed-hover))]'
+                )}
+              >
+                {icon}
+                {isPro && showProBadge && (
+                  <span className="absolute top-1 right-1.5">
+                    <ProCrown />
+                  </span>
+                )}
+              </span>
+              <span
+                className={cn(
+                  'text-[13px] font-medium whitespace-nowrap tracking-[-0.005em] transition-opacity duration-150 ease-out',
+                  expanded ? 'opacity-100 delay-[60ms]' : 'opacity-0 pointer-events-none'
+                )}
+              >
+                {label}
+              </span>
+            </>
+          )}
+        </NavLink>
+        {subItems && (
+          <button
+            onClick={(e) => { e.preventDefault(); expanded && setIsOpen(!isOpen); }}
+            className={cn(
+              'absolute right-2 top-0 bottom-0 flex items-center justify-center px-1 text-[hsl(var(--sidebar-fg))]/40 hover:text-[hsl(var(--sidebar-fg))] transition-opacity duration-150 ease-out',
+              expanded ? 'opacity-100 delay-[60ms]' : 'opacity-0 pointer-events-none'
+            )}
+          >
+            <ChevronDown size={13} className={cn('transition-transform duration-200', isOpen && 'rotate-180')} />
+          </button>
+        )}
+      </div>
+
+      {subItems && expanded && isOpen && (
+        <div className="flex flex-col ml-[2.5rem] mt-1 mb-2 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {subItems.map(sub => (
+            <NavLink
+              key={sub.to}
+              to={sub.to}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                cn(
+                  'text-[12px] py-1.5 px-2.5 rounded-md transition-colors hover:bg-white/5 flex items-center gap-2',
+                  isActive
+                    ? 'text-[hsl(var(--sidebar-active-fg))] bg-white/[0.04] font-medium'
+                    : 'text-[hsl(var(--sidebar-fg))]/70 hover:text-[hsl(var(--sidebar-fg))]'
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={cn('transition-colors', isActive ? 'text-[hsl(var(--accent-gold))]' : 'text-[hsl(var(--sidebar-icon))]/50')}>
+                    {sub.icon}
+                  </span>
+                  {sub.label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
 export default function Sidebar() {
-  const isMobile = useIsMobile();
-  const inputMode = useInputMode();
+  const responsiveMode = useResponsiveMode();
+  const location = useLocation();
   const { accessState } = useAccessControl();
   const { activeModule } = useActiveModule();
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isTabletExpanded, setIsTabletExpanded] = useState(false);
   const enterTimer = useRef<number | null>(null);
   const leaveTimer = useRef<number | null>(null);
 
-  const mode: 'mobile' | 'tablet' | 'desktop' =
-    isMobile ? 'mobile' : inputMode === 'touch' ? 'tablet' : 'desktop';
+  // Responsive mode: mobile + tablet-portrait both use bottom nav
+  const mode: 'mobile' | 'tablet-landscape' | 'desktop' =
+    responsiveMode === 'desktop' ? 'desktop' :
+    responsiveMode === 'tablet-landscape' ? 'tablet-landscape' : 'mobile';
+
+  // Reset tablet-landscape expand state on navigation
+  useEffect(() => {
+    setIsTabletExpanded(false);
+  }, [location.pathname]);
 
   const clearTimers = useCallback(() => {
     if (enterTimer.current) { window.clearTimeout(enterTimer.current); enterTimer.current = null; }
@@ -336,6 +436,7 @@ export default function Sidebar() {
   useEffect(() => {
     setIsOpen(false);
     setIsHovered(false);
+    setIsTabletExpanded(false);
     clearTimers();
   }, [mode, clearTimers]);
 
@@ -435,8 +536,12 @@ export default function Sidebar() {
   if (mode === 'mobile') {
     return <>
         <div
-          className="fixed bottom-0 left-0 right-0 backdrop-blur-sm shadow-lunar-md z-40 px-2 pt-2 border-t border-border bg-background/80"
-          style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+          className="fixed bottom-0 left-0 right-0 shadow-lunar-md z-40 px-2 pt-2 border-t"
+          style={{
+            backgroundColor: 'hsl(var(--sidebar-bg))',
+            borderColor: 'hsl(var(--sidebar-border))',
+            paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+          }}
         >
           <div className="grid grid-cols-5 h-12 gap-1">
             {currentNavItems.slice(0, 4).map(item => (
@@ -517,39 +622,92 @@ export default function Sidebar() {
       </>;
   }
 
-  /* ────────────────────────── TABLET (rail estático) ────────────────────────── */
-  if (mode === 'tablet') {
+  /* ────────────────────────── TABLET LANDSCAPE (click-to-expand) ────────────────────────── */
+  if (mode === 'tablet-landscape') {
+    const closeTablet = useCallback(() => setIsTabletExpanded(false), []);
+
     return (
-      <div className="w-16 shrink-0 h-screen relative z-40">
+      <div className="shrink-0 h-screen relative z-40" style={{ width: '4rem' }}>
         <aside
-          aria-label="Navegação principal"
-          className="absolute inset-y-0 left-0 w-16 flex flex-col px-2 py-3 border-r overflow-hidden"
+          aria-expanded={isTabletExpanded}
           style={{
-            backgroundColor: '#151515',
+            width: isTabletExpanded ? '15rem' : '4rem',
+            transitionDuration: '200ms',
+            transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+            transitionProperty: 'width, box-shadow',
+            willChange: 'width',
+            backgroundColor: 'hsl(var(--sidebar-bg))',
             color: 'hsl(var(--sidebar-fg))',
-            borderColor: 'rgba(255,255,255,0.04)',
           }}
+          className={cn(
+            'absolute inset-y-0 left-0 flex flex-col py-3 border-r overflow-hidden',
+            isTabletExpanded && 'shadow-lunar-md'
+          )}
         >
-          <div className="h-10 flex items-center justify-center mb-3">
-            <img src={logoIconWhite} alt="Lunari" className="h-7 w-7 object-contain" />
+          {/* Logo */}
+          <div className="h-10 flex items-center justify-center mb-3 px-3 overflow-hidden relative">
+            <img
+              src={logoIconWhite}
+              alt="Lunari"
+              className={cn(
+                'h-7 w-7 object-contain flex-shrink-0 transition-opacity duration-150 ease-out',
+                isTabletExpanded ? 'opacity-0' : 'opacity-100'
+              )}
+            />
+            <img
+              src={logoFullWhite}
+              alt="Lunari"
+              className={cn(
+                'h-5 object-contain object-left absolute left-3.5 transition-opacity duration-150 ease-out',
+                isTabletExpanded ? 'opacity-100' : 'opacity-0'
+              )}
+            />
           </div>
 
-          <div className="mb-2 px-1">
-            <ProductSwitcher expanded={false} />
+          {/* Product switcher */}
+          <div className="px-2 mb-3 overflow-hidden">
+            <ProductSwitcher expanded={isTabletExpanded} />
           </div>
 
-          <div className="flex-1 pt-3 overflow-y-auto scrollbar-elegant">
-            <div className="space-y-0">
+          {/* Expand/collapse toggle */}
+          <div className="px-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsTabletExpanded(v => !v)}
+              className={cn(
+                'w-full justify-start gap-2 h-8 text-[hsl(var(--sidebar-fg))] hover:bg-white/5',
+                !isTabletExpanded && 'justify-center px-0'
+              )}
+            >
+              {isTabletExpanded ? <ChevronDown size={14} className="rotate-180" /> : <Menu size={14} />}
+              {isTabletExpanded && <span className="text-xs font-medium">Recolher</span>}
+            </Button>
+          </div>
+
+          {/* Navigation items */}
+          <div className="flex-1 overflow-y-auto scrollbar-elegant px-2">
+            <div className="flex flex-col">
               {currentNavItems.map(item => (
-                <RailNavItem
+                <TabletLandscapeNavItem
                   key={item.to || (item as any).label}
                   {...item}
                   showProBadge={showProBadge}
+                  expanded={isTabletExpanded}
+                  onNavigate={closeTablet}
                 />
               ))}
             </div>
           </div>
         </aside>
+
+        {/* Overlay when expanded */}
+        {isTabletExpanded && (
+          <div
+            className="fixed inset-0 z-[-1]"
+            onClick={() => setIsTabletExpanded(false)}
+          />
+        )}
       </div>
     );
   }
