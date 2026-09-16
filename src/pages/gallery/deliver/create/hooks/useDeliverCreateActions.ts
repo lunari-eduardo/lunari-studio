@@ -52,6 +52,8 @@ export function useDeliverCreateActions(state: DeliverCreateState) {
     photoCount,
     welcomeMessage,
     welcomeMessageEnabled,
+    coverVideo,
+    coverCinema,
   } = state;
 
   const handleClientCreate = async (data: ClientFormData) => {

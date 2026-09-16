@@ -44,8 +44,6 @@ export default function CinemaCover({
   // poster customizado nem foto utilizável).
   const videoFramePoster = useVideoPoster(videoUrl, Boolean(videoUrl));
 
-  const [hasClicked, setHasClicked] = useState(false);
-
   const isFallbackPhotoVideo = Boolean(
     fallbackPhoto?.mimeType?.startsWith('video/') ||
     /\.(mp4|webm|mov|m4v|quicktime)$/i.test(fallbackPhoto?.storageKey || '')
@@ -58,7 +56,6 @@ export default function CinemaCover({
   const posterUrl = customPosterUrl || coverPhotoUrl || fallbackPhotoUrl || videoFramePoster || null;
 
   const handleCtaClick = () => {
-    setHasClicked(true);
     onEnter();
   };
 
@@ -75,27 +72,12 @@ export default function CinemaCover({
 
   return (
     <section className="relative h-[100svh] w-full overflow-hidden text-white" style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Poster fallback */}
-      {posterUrl && (
-        <img
-          src={posterUrl}
-          alt={sessionName}
-          className="absolute inset-0 w-full h-full object-cover"
-          onLoad={() => {
-            if (videoState === 'idle') setVideoState('posterReady');
-          }}
-        />
-      )}
-
       {/* Video element */}
       {shouldLoadVideo && videoUrl && !prefersReducedMotion && (
         <video
           ref={videoRef}
           src={videoUrl}
-          className={cn(
-            "absolute inset-0 w-full h-full object-cover transition-opacity duration-700",
-            videoState === 'videoReady' ? "opacity-100" : "opacity-0"
-          )}
+          className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted
           loop
@@ -134,7 +116,6 @@ export default function CinemaCover({
       <div 
         className={cn(
           "relative z-10 h-full w-full max-w-[1440px] mx-auto flex flex-col justify-end transition-opacity duration-400 px-6 pb-14 sm:px-10 sm:pb-16 lg:px-14 lg:pb-20",
-          hasClicked && !prefersReducedMotion ? "opacity-0" : "opacity-100",
           contentPosition === 'center' ? "justify-center items-center text-center" : 
           contentPosition === 'bottom-center' ? "items-center text-center" : 
           "items-start text-left"
@@ -142,13 +123,13 @@ export default function CinemaCover({
       >
         <div className="flex flex-col gap-4 max-w-3xl">
           {studioName && (
-            <p className="text-[11px] tracking-[0.32em] uppercase opacity-80 font-medium">
+            <p className="text-[11px] tracking-[0.32em] uppercase opacity-100 font-medium">
               {studioName}
             </p>
           )}
 
           <h1 
-            className="font-semibold text-balance"
+            className="font-semibold text-balance text-white"
             style={{ 
               fontFamily: sessionFont,
               fontSize: 'clamp(2.4rem, 7vw, 6rem)',
@@ -161,7 +142,7 @@ export default function CinemaCover({
 
           {subtitle && (
             <p 
-              className="opacity-85 max-w-2xl text-balance mt-2"
+              className="opacity-100 max-w-2xl text-balance mt-2"
               style={{ fontSize: 'clamp(0.95rem, 1.6vw, 1.25rem)' }}
             >
               {subtitle}
@@ -171,7 +152,7 @@ export default function CinemaCover({
           <div className={cn("mt-8", contentPosition !== 'bottom-left' && "mx-auto")}>
             <button
               onClick={handleCtaClick}
-              className="h-12 px-8 rounded-none border border-white/80 text-xs tracking-[0.2em] uppercase transition-all hover:bg-white/12 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none w-full sm:w-auto min-w-[200px]"
+              className="h-12 px-8 rounded-none border border-white text-white text-xs tracking-[0.2em] uppercase transition-all hover:bg-white/12 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none w-full sm:w-auto min-w-[200px]"
             >
               {ctaLabel || 'Ver galeria'}
             </button>
