@@ -84,6 +84,16 @@ export interface GallerySettings {
   titleCaseMode?: TitleCaseMode;
   photoSpacing?: number;
   subtitulo?: string;
+  coverVideo?: {
+    desktopKey: string;
+    mobileKey?: string | null;
+    posterKey?: string | null;
+  } | null;
+  coverCinema?: {
+    ctaLabel?: string;
+    contentPosition?: 'bottom-left' | 'center' | 'bottom-center';
+    overlayIntensity?: 'soft' | 'medium' | 'strong';
+  } | null;
 }
 
 

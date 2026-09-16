@@ -42,6 +42,21 @@ export async function gestaoR2DeleteRoute(c: Context<{ Bindings: Bindings }>) {
     ];
     let allowed = ownPrefixes.some((p) => storagePath.startsWith(p));
 
+    if (!allowed && storagePath.startsWith("galleries/")) {
+      const parts = storagePath.split("/");
+      const galleryId = parts[1];
+      if (galleryId && galleryId.length === 36) {
+        const { data: gallery } = await supabase
+          .from('galerias')
+          .select('user_id')
+          .eq('id', galleryId)
+          .single();
+        if (gallery && gallery.user_id === user.id) {
+          allowed = true;
+        }
+      }
+    }
+
     if (!allowed && storagePath.startsWith("gestao/support/")) {
       const { data: isAdmin } = await supabase.rpc("support_is_admin", { _uid: user.id });
       if (isAdmin === true) {

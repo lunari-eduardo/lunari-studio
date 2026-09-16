@@ -1,9 +1,11 @@
+import { lazy } from 'react';
 import type { CoverVariant } from './types';
 import {
   FullscreenThumbnail,
   FloatingFrameThumbnail,
   SplitThumbnail,
   EditorialThumbnail,
+  CinemaThumbnail,
 } from './thumbnails';
 
 import FullscreenCover from './variants/FullscreenCover';
@@ -39,6 +41,13 @@ export const COVER_REGISTRY: Record<string, CoverVariant> = {
     description: 'Tipografia monumental atravessando a costura da fotografia',
     Component: EditorialCover,
     Thumbnail: EditorialThumbnail,
+  },
+  cinema: {
+    id: 'cinema',
+    name: 'Cinema',
+    description: 'Vídeo imersivo em tela cheia com transição suave',
+    Component: lazy(() => import('./variants/CinemaCover')),
+    Thumbnail: CinemaThumbnail,
   },
 };
 

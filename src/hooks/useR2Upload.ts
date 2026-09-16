@@ -11,8 +11,9 @@ export type R2Context =
   | 'client-document'
   | 'contrato-assinado'
   | 'proposals-pdf'
-  | 'conversas-media'
-  | 'general';
+  | 'general'
+  | 'gallery-cover-video'
+  | 'gallery-cover-poster';
 
 export interface R2UploadResult {
   url: string;          // CDN URL se público; vazio se privado

@@ -235,6 +235,8 @@ serve(async (req) => {
             subtitulo: galleryConfig?.subtitulo || undefined,
             dataEvento: galleryConfig?.dataEvento || undefined,
             categoria: galleryConfig?.categoria || undefined,
+            coverVideo: galleryConfig?.coverVideo || null,
+            coverCinema: galleryConfig?.coverCinema || null,
           },
           saleSettings: normalizedSaleSettings,
           saleModeSource,

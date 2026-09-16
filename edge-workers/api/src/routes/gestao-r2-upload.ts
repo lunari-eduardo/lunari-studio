@@ -8,7 +8,6 @@ export type GestaoContext =
   | "logo"
   | "blog"
   | "form"
-  | "formulario_cover"
   | "general"
   | "task"
   | "client-document"
@@ -17,7 +16,8 @@ export type GestaoContext =
   | "support-faq"
   | "proposals"
   | "proposals-pdf"
-  | "conversas-media";
+  | "gallery-cover-video"
+  | "gallery-cover-poster";
 
 interface ContextRule {
   prefix: (userId: string, entityId?: string) => string;
@@ -45,11 +45,6 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     maxBytes: 50 * 1024 * 1024,
   },
   form: {
-    prefix: (u) => `gestao/form/${u}`,
-    isPublic: true,
-    maxBytes: 10 * 1024 * 1024,
-  },
-  formulario_cover: {
     prefix: (u) => `gestao/form/${u}`,
     isPublic: true,
     maxBytes: 10 * 1024 * 1024,
@@ -105,16 +100,17 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     maxBytes: 50 * 1024 * 1024,
     allowedTypes: ["application/pdf"],
   },
-  "conversas-media": {
-    prefix: (u, e) => `conversas/${u}${e ? "/" + e : ""}`,
-    isPublic: false,
-    maxBytes: 50 * 1024 * 1024,
-    allowedTypes: [
-      "image/jpeg", "image/png", "image/webp", "image/gif",
-      "audio/ogg", "audio/mpeg", "audio/mp4", "audio/aac", "audio/opus",
-      "video/mp4", "video/quicktime", "video/webm",
-      "application/pdf",
-    ],
+  "gallery-cover-video": {
+    prefix: (u, e) => `galleries/${e}/cover-video`,
+    isPublic: true,
+    maxBytes: 15 * 1024 * 1024,
+    allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
+  },
+  "gallery-cover-poster": {
+    prefix: (u, e) => `galleries/${e}/cover-video`,
+    isPublic: true,
+    maxBytes: 1 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
   },
 };
 
@@ -145,6 +141,24 @@ export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
     const rule = GESTAO_RULES[context];
     if (!rule) return c.json({ error: `Contexto inválido: ${context}` }, 400);
 
+    if (context === "gallery-cover-video" || context === "gallery-cover-poster") {
+      if (!entityId || entityId.length !== 36) {
+        return c.json({ error: "ID da galeria inválido ou ausente." }, 400);
+      }
+      const { data: gallery, error: galErr } = await supabase
+        .from('galerias')
+        .select('user_id')
+        .eq('id', entityId)
+        .single();
+      
+      if (galErr || !gallery) {
+        return c.json({ error: "Galeria não encontrada." }, 404);
+      }
+      if (gallery.user_id !== user.id) {
+        return c.json({ error: "Acesso negado à galeria." }, 403);
+      }
+    }
+
     if (file.size > rule.maxBytes) {
       return c.json(
         { error: `Arquivo excede ${(rule.maxBytes / 1024 / 1024).toFixed(0)}MB` },
@@ -163,10 +177,11 @@ export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
     const { bucket, bucketName } = getBucketBinding(c.env, storagePath);
 
     const isPdf = context === "proposals-pdf";
+    const isCover = context === "gallery-cover-video" || context === "gallery-cover-poster";
     await bucket.put(storagePath, fileData, {
       httpMetadata: {
         contentType: file.type || "application/octet-stream",
-        cacheControl: isPdf ? "public, max-age=31536000, immutable" : undefined,
+        cacheControl: (isPdf || isCover) ? "public, max-age=31536000, immutable" : undefined,
         contentDisposition: isPdf ? "inline" : undefined,
       },
     });

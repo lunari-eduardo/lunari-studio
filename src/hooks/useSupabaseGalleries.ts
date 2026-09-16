@@ -55,6 +55,21 @@ export interface GaleriaConfiguracoes {
   photoSpacing?: number;
   notasInternas?: string;
   coverPhotoId?: string;
+  coverVideo?: {
+    desktopKey: string;
+    mobileKey?: string | null;
+    posterKey?: string | null;
+    durationSec?: number;
+    sizeBytes?: number;
+    width?: number;
+    height?: number;
+    uploadedAt?: string;
+  } | null;
+  coverCinema?: {
+    ctaLabel?: string;
+    contentPosition?: 'bottom-left' | 'center' | 'bottom-center';
+    overlayIntensity?: 'soft' | 'medium' | 'strong';
+  } | null;
 }
 
 export interface Galeria {

@@ -111,6 +111,7 @@ export default function DeliverDetail() {
 
         <TabsContent value="design">
           <DeliverDesignTab
+            galleryId={data.id!}
             useCustomTheme={data.useCustomTheme}
             setUseCustomTheme={data.setUseCustomTheme}
             activeThemeId={data.activeThemeId}
@@ -119,6 +120,10 @@ export default function DeliverDetail() {
             setThemeOverrides={data.setThemeOverrides}
             coverId={data.coverId}
             setCoverId={data.setCoverId}
+            coverVideo={data.coverVideo}
+            setCoverVideo={data.setCoverVideo}
+            coverCinema={data.coverCinema}
+            setCoverCinema={data.setCoverCinema}
             previewViewport={data.previewViewport}
             setPreviewViewport={data.setPreviewViewport}
             photos={data.photos}
