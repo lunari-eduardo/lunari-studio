@@ -96,12 +96,23 @@ export function DeliverPhotosTab({
                   !isCover && !showHighlight && 'border-transparent'
                 )}
               >
-                <img
-                  src={getPhotoUrl({ storageKey: photo.storageKey }, 'thumbnail')}
-                  alt={photo.originalFilename}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+                {photo.mimeType?.startsWith('video/') ? (
+                  <video
+                    src={getPhotoUrl({ storageKey: photo.storageKey }, 'preview')}
+                    className="w-full h-full object-cover"
+                    muted
+                    autoPlay
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={getPhotoUrl({ storageKey: photo.storageKey }, 'thumbnail')}
+                    alt={photo.originalFilename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                )}
 
                 {/* Badge CAPA */}
                 {isCover && (

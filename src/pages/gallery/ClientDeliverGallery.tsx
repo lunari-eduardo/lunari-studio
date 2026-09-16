@@ -139,7 +139,7 @@ export default function ClientDeliverGallery({ data }: Props) {
     : allPhotos[0];
 
   const coverPhoto: PhotoPaths | null = coverPhotoSource
-    ? { storageKey: coverPhotoSource.storageKey, previewPath: coverPhotoSource.previewPath, width: coverPhotoSource.width, height: coverPhotoSource.height }
+    ? { storageKey: coverPhotoSource.storageKey, previewPath: coverPhotoSource.previewPath, width: coverPhotoSource.width, height: coverPhotoSource.height, mimeType: coverPhotoSource.mimeType }
     : null;
 
   useGalleryBranding({

@@ -79,14 +79,25 @@ export default function SplitCover({
     >
       {/* Coluna da Esquerda: Fotografia com proporção fixa (não deforma a hero) */}
       <div className="relative w-full h-[48%] md:h-full md:mr-[-40px] z-10 overflow-hidden shadow-2xl md:shadow-[20px_0_40px_-15px_rgba(0,0,0,0.45)] bg-neutral-900 shrink-0">
-        <img
-          src={coverUrl}
-          alt={sessionName}
-          className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
-          onError={(e) => {
-            e.currentTarget.src = getFallbackCoverUrl('vertical');
-          }}
-        />
+        {coverPhoto?.mimeType?.startsWith('video/') ? (
+          <video
+            src={coverUrl}
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <img
+            src={coverUrl}
+            alt={sessionName}
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 ease-out hover:scale-[1.02]"
+            onError={(e) => {
+              e.currentTarget.src = getFallbackCoverUrl('vertical');
+            }}
+          />
+        )}
       </div>
 
       {/* Coluna da Direita: Painel Editorial de Tipografia */}

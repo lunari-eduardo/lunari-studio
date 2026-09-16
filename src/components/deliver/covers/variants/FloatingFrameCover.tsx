@@ -259,15 +259,26 @@ export default function FloatingFrameCover({
             boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)',
           }}
         >
-          <img
-            src={coverUrl}
-            alt={sessionName || 'Cover photo'}
-            draggable={false}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
-            onError={(e) => {
-              e.currentTarget.src = getFallbackCoverUrl('vertical');
-            }}
-          />
+          {coverPhoto?.mimeType?.startsWith('video/') ? (
+            <video
+              src={coverUrl}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <img
+              src={coverUrl}
+              alt={sessionName || 'Cover photo'}
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out hover:scale-[1.02]"
+              onError={(e) => {
+                e.currentTarget.src = getFallbackCoverUrl('vertical');
+              }}
+            />
+          )}
         </div>
       </div>
 

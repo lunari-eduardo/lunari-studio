@@ -218,14 +218,25 @@ export default function EditorialCover({
           height: `${spec.photo.height}px`,
         }}
       >
-        <img
-          src={coverUrl}
-          alt={sessionName}
-          className={`w-full h-full object-cover transition-transform duration-[2000ms] ease-out scale-100 ${spec.orientation === 'vertical' ? 'hover:scale-105 object-center' : 'object-[center_top_15%]'}`}
-          onError={(e) => {
-            e.currentTarget.src = getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
-          }}
-        />
+        {coverPhoto?.mimeType?.startsWith('video/') ? (
+          <video
+            src={coverUrl}
+            className={`w-full h-full object-cover transition-transform duration-[2000ms] ease-out scale-100 ${spec.orientation === 'vertical' ? 'hover:scale-105 object-center' : 'object-[center_top_15%]'}`}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <img
+            src={coverUrl}
+            alt={sessionName}
+            className={`w-full h-full object-cover transition-transform duration-[2000ms] ease-out scale-100 ${spec.orientation === 'vertical' ? 'hover:scale-105 object-center' : 'object-[center_top_15%]'}`}
+            onError={(e) => {
+              e.currentTarget.src = getFallbackCoverUrl(spec.orientation === 'vertical' ? 'vertical' : 'horizontal');
+            }}
+          />
+        )}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{

@@ -35,7 +35,8 @@ export default function CinemaCover({
   // Fallback poster logic
   const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
   const customPosterUrl = posterKey ? `${cdnBase}/${posterKey}` : null;
-  const coverPhotoUrl = coverPhoto ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
+  const isCoverVideoFile = coverPhoto?.mimeType?.startsWith('video/');
+  const coverPhotoUrl = coverPhoto && !isCoverVideoFile ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
   const posterUrl = customPosterUrl || coverPhotoUrl;
 
   const handleCtaClick = () => {

@@ -34,6 +34,7 @@ export interface PhotoPaths {
   previewPath?: string | null;
   width?: number;
   height?: number;
+  mimeType?: string | null;
 }
 
 /**

@@ -79,18 +79,32 @@ export default function FullscreenCover({
 
   return (
     <section className="relative h-full min-h-full w-full flex flex-col justify-end overflow-hidden select-none bg-neutral-950">
-      {/* 1. Imagem de Fundo com Zoom Suave na Entrada */}
-      <img
-        src={coverUrl}
-        alt={sessionName}
-        className={cn(
-          'absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transform-none',
-          mounted ? 'scale-100' : 'scale-[1.04]'
-        )}
-        onError={(e) => {
-          e.currentTarget.src = getFallbackCoverUrl('horizontal');
-        }}
-      />
+      {/* 1. Imagem ou Vídeo de Fundo com Zoom Suave na Entrada */}
+      {coverPhoto?.mimeType?.startsWith('video/') ? (
+        <video
+          src={coverUrl}
+          className={cn(
+            'absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transform-none',
+            mounted ? 'scale-100' : 'scale-[1.04]'
+          )}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      ) : (
+        <img
+          src={coverUrl}
+          alt={sessionName}
+          className={cn(
+            'absolute inset-0 w-full h-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transform-none',
+            mounted ? 'scale-100' : 'scale-[1.04]'
+          )}
+          onError={(e) => {
+            e.currentTarget.src = getFallbackCoverUrl('horizontal');
+          }}
+        />
+      )}
 
       {/* 2. Duplo Véu de Contraste */}
       {/* 2a. Gradiente vertical profundo de baixo para cima */}
