@@ -58,6 +58,22 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Galerias: dono da galeria pode deletar cover-video
+    if (!allowed && storagePath.startsWith("galleries/")) {
+      const parts = storagePath.split("/");
+      const galId = parts[1];
+      if (galId && galId.length === 36) {
+        const { data: gallery } = await supabase
+          .from("galerias")
+          .select("user_id")
+          .eq("id", galId)
+          .single();
+        if (gallery?.user_id === user.id) {
+          allowed = true;
+        }
+      }
+    }
+
     if (!allowed) {
       return json({ error: "Acesso negado" }, 403);
     }

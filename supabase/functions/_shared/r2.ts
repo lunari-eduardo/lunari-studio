@@ -223,7 +223,9 @@ export type GestaoContext =
   | "support-ticket"
   | "support-faq"
   | "proposals"
-  | "proposals-pdf";
+  | "proposals-pdf"
+  | "gallery-cover-video"
+  | "gallery-cover-poster";
 
 interface ContextRule {
   prefix: (userId: string, entityId?: string) => string;
@@ -326,6 +328,20 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     bucket: "lunari-commercial-documents",
     maxBytes: 50 * 1024 * 1024, // 50MB max for PDF proposals
     allowedTypes: ["application/pdf"],
+  },
+  "gallery-cover-video": {
+    prefix: (_u, e) => `galleries/${e}/cover-video`,
+    isPublic: true,
+    bucket: R2_PUBLIC_BUCKET,
+    maxBytes: 15 * 1024 * 1024,
+    allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
+  },
+  "gallery-cover-poster": {
+    prefix: (_u, e) => `galleries/${e}/cover-video`,
+    isPublic: true,
+    bucket: R2_PUBLIC_BUCKET,
+    maxBytes: 2 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
   },
 };
 

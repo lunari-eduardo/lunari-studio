@@ -1,4 +1,5 @@
-import { Image, User, Clock, MoreHorizontal, Pencil, Share2, Trash2, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { Image, User, Clock, MoreHorizontal, Pencil, Share2, Trash2, RotateCcw, Film } from 'lucide-react';
 import { Gallery } from '@/types/gallery';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 interface DeliverGalleryCardProps {
-  gallery: Gallery & { coverPhotoKey?: string | null; firstPhotoKey?: string | null };
+  gallery: Gallery & { coverPhotoKey?: string | null; firstPhotoKey?: string | null; coverId?: string | null };
   totalPhotos: number;
   onClick?: () => void;
   onEdit?: () => void;
@@ -31,12 +32,24 @@ function getDeliverStatus(gallery: Gallery): { label: string; variant: 'default'
   return { label: 'Rascunho', variant: 'secondary' };
 }
 
+const VIDEO_EXT_RE = /\.(mp4|webm|mov|m4v|quicktime|ogg|ogv)$/i;
+const isVideoKey = (key?: string | null): boolean => !!key && VIDEO_EXT_RE.test(key);
+
 export function DeliverGalleryCard({ gallery, totalPhotos, onClick, onEdit, onShare, onDelete, onReactivate }: DeliverGalleryCardProps) {
   const isExpired = gallery.status === 'expired';
   const status = getDeliverStatus(gallery);
+  const [imgError, setImgError] = useState(false);
 
-  // Use cover photo key if available, otherwise first photo key
-  const thumbnailKey = (gallery as any).coverPhotoKey || (gallery as any).firstPhotoKey;
+  const coverKey = (gallery as any).coverPhotoKey as string | null | undefined;
+  const firstKey = (gallery as any).firstPhotoKey as string | null | undefined;
+  const posterKey = (gallery as any).configuracoes?.coverVideo?.posterKey as string | null | undefined;
+  const isCinemaCover = (gallery as any).coverId === 'cinema';
+
+  // A thumbnail do card admin deve ser SEMPRE uma imagem estática.
+  // Se a chave apontar para um arquivo de vídeo, usa o poster dedicado ou a primeira foto estática.
+  const staticCoverKey = !isVideoKey(coverKey) ? coverKey : null;
+  const staticFirstKey = !isVideoKey(firstKey) ? firstKey : null;
+  const thumbnailKey = staticCoverKey || posterKey || staticFirstKey || null;
   const thumbnailUrl = thumbnailKey ? getDisplayUrl(thumbnailKey) : null;
 
   return (
@@ -49,15 +62,24 @@ export function DeliverGalleryCard({ gallery, totalPhotos, onClick, onEdit, onSh
     >
       {/* Photo Preview */}
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-        {thumbnailUrl ? (
+        {thumbnailUrl && !imgError ? (
           <img
             src={thumbnailUrl}
             alt=""
+            onError={() => setImgError(true)}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Image className="h-10 w-10 text-muted-foreground/30" />
+          </div>
+        )}
+
+        {/* Cinema cover badge - top left */}
+        {isCinemaCover && !isExpired && (
+          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-sm px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-foreground shadow-sm">
+            <Film className="h-3 w-3" />
+            Cinema
           </div>
         )}
 

@@ -57,10 +57,7 @@ export function useDeliverDetailActions(data: DeliverData) {
     if (!id || !gallery) return;
     setSaving(true);
     try {
-      // Quando a capa é Cinema, o vídeo é dedicado — não usar foto da grade.
-      // Limpamos coverPhotoId para evitar inconsistência entre modelo de capa
-      // e foto selecionada (que poderia virar o Bug 1 — hero em fundo preto).
-      const effectiveCoverPhotoId = coverId === 'cinema' ? null : (coverPhotoId || undefined);
+      const effectiveCoverPhotoId = coverPhotoId || undefined;
 
       await updateGallery({
         id,

@@ -47,11 +47,23 @@ export function useCoverVideo(desktopKey?: string, mobileKey?: string | null) {
     const video = videoRef.current;
     if (!video) return;
 
+    // Safari/iOS requer que a propriedade DOM muted seja explicitamente true
+    video.muted = true;
+    video.defaultMuted = true;
+
+    // Se o vídeo já carregou (cache do navegador), marca como pronto imediatamente
+    if (video.readyState >= 2 && videoState === 'idle') {
+      setVideoState('videoReady');
+      if (!prefersReducedMotion) {
+        video.play().catch(() => {});
+      }
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            if (videoState === 'videoReady' && !prefersReducedMotion) {
+            if (!prefersReducedMotion) {
               video.play().catch(() => {});
             }
           } else {
@@ -64,12 +76,16 @@ export function useCoverVideo(desktopKey?: string, mobileKey?: string | null) {
 
     observer.observe(video);
     return () => observer.disconnect();
-  }, [videoState, prefersReducedMotion]);
+  }, [videoUrl, videoState, prefersReducedMotion]);
 
   const handleCanPlay = () => {
     setVideoState('videoReady');
-    if (!prefersReducedMotion) {
-      videoRef.current?.play().catch(() => {});
+    const video = videoRef.current;
+    if (video) {
+      video.muted = true;
+      if (!prefersReducedMotion) {
+        video.play().catch(() => {});
+      }
     }
   };
 

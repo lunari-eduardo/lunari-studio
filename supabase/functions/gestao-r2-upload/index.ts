@@ -84,6 +84,23 @@ Deno.serve(async (req) => {
       return json({ error: `Tipo não permitido: ${file.type || "desconhecido"}` }, 400);
     }
 
+    if (context === "gallery-cover-video" || context === "gallery-cover-poster") {
+      if (!entityId || entityId.length !== 36) {
+        return json({ error: "ID da galeria inválido ou ausente." }, 400);
+      }
+      const { data: gallery, error: galErr } = await supabase
+        .from('galerias')
+        .select('user_id')
+        .eq('id', entityId)
+        .single();
+      if (galErr || !gallery) {
+        return json({ error: "Galeria não encontrada." }, 404);
+      }
+      if (gallery.user_id !== user.id) {
+        return json({ error: "Você não tem permissão para alterar esta galeria." }, 403);
+      }
+    }
+
     const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const storagePath = `${rule.prefix(user.id, entityId)}/${filename}`;
@@ -103,6 +120,7 @@ Deno.serve(async (req) => {
 
     try {
       const isPdf = context === "proposals-pdf";
+      const isGalleryCover = context === "gallery-cover-video" || context === "gallery-cover-poster";
       await r2Put(
         creds,
         storagePath,
@@ -113,6 +131,10 @@ Deno.serve(async (req) => {
           ? {
               cacheControl: "public, max-age=31536000, immutable",
               contentDisposition: "inline",
+            }
+          : isGalleryCover
+          ? {
+              cacheControl: "public, max-age=31536000, immutable",
             }
           : undefined
       );

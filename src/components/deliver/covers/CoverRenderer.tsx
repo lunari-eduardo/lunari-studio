@@ -12,7 +12,10 @@ export function CoverRenderer({ coverId, ...props }: Props) {
   const Comp = variant.Component;
 
   // Fallback que usa a foto de capa para evitar flashes
-  const isVideo = props.coverPhoto?.mimeType?.startsWith('video/');
+  const isVideo = Boolean(
+    props.coverPhoto?.mimeType?.startsWith('video/') ||
+    /\.(mp4|webm|mov|m4v|quicktime)$/i.test(props.coverPhoto?.storageKey || '')
+  );
   const fallbackSource = isVideo ? (props.fallbackPhoto ?? null) : props.coverPhoto;
   const fallbackUrl = fallbackSource ? getPhotoUrl(fallbackSource, 'preview') : undefined;
 

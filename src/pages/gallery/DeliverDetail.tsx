@@ -98,6 +98,9 @@ export default function DeliverDetail() {
             photosLoading={data.photosLoading}
             coverPhotoId={data.coverPhotoId}
             coverModel={data.coverId}
+            coverVideo={data.coverVideo}
+            setCoverVideo={data.setCoverVideo}
+            setCoverId={data.setCoverId}
             activeThemeId={data.activeThemeId}
             showUploader={actions.showUploader}
             setShowUploader={actions.setShowUploader}
@@ -107,6 +110,7 @@ export default function DeliverDetail() {
             onToggleHighlight={actions.handleToggleHighlight}
             onSetCover={actions.handleSetCover}
             onDeletePhoto={actions.handlePhotoDelete}
+            onSave={actions.handleSave}
           />
         </TabsContent>
 

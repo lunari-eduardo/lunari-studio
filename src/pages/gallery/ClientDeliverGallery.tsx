@@ -134,17 +134,9 @@ export default function ClientDeliverGallery({ data }: Props) {
   }, [allPhotos, activeFolderId, hasFolders]);
 
   const coverPhotoId = gallery.settings?.coverPhotoId;
-  const coverModel = (gallery.settings as any)?.coverId ?? (gallery.settings as any)?.defaultCoverId ?? null;
-  const isCinemaCover = coverModel === 'cinema';
-
-  // Quando a capa é Cinema, o hero usa exclusivamente coverVideo — não
-  // apontamos o coverPhoto para um vídeo da grade (isso causaria hero em
-  // fundo preto porque o <img> falharia ao tentar carregar um .mp4).
-  const coverPhotoSource = isCinemaCover
-    ? null
-    : coverPhotoId
-      ? allPhotos.find(p => p.id === coverPhotoId) || allPhotos[0]
-      : allPhotos[0];
+  const coverPhotoSource = coverPhotoId
+    ? allPhotos.find(p => p.id === coverPhotoId) || allPhotos[0]
+    : allPhotos[0];
 
   const coverPhoto: PhotoPaths | null = coverPhotoSource
     ? { storageKey: coverPhotoSource.storageKey, previewPath: coverPhotoSource.previewPath, width: coverPhotoSource.width, height: coverPhotoSource.height, mimeType: coverPhotoSource.mimeType }

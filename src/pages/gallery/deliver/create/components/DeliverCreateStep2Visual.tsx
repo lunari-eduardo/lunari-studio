@@ -1,4 +1,4 @@
-import { Sparkles, Palette, Sun, Moon } from 'lucide-react';
+import { Sparkles, Palette, Sun, Moon, Film } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -157,6 +157,18 @@ export function DeliverCreateStep2Visual({
               : 'Usar capa padrão do meu estúdio'
           }
         />
+
+        {coverId === 'cinema' && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3 mt-3 animate-fade-in">
+            <Film className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h5 className="font-semibold text-sm">Capa Cinematográfica Ativa</h5>
+              <p className="text-xs text-muted-foreground">
+                Esta capa exibe um vídeo em loop em tela cheia na entrada da galeria. Após salvar a entrega, você poderá enviar ou gerenciar o vídeo na aba <strong>Fotos</strong> e ajustar os detalhes visuais em <strong>Design & Temas</strong>.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Layout e Espaçamento */}

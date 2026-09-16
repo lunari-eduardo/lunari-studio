@@ -20,7 +20,15 @@ export default function CinemaCover({
   overlayIntensity = 'medium',
   onEnter,
 }: CoverVariantProps) {
-  const { desktopKey, mobileKey, posterKey } = coverVideo || {};
+  const isCoverPhotoVideo = Boolean(
+    coverPhoto?.mimeType?.startsWith('video/') ||
+    /\.(mp4|webm|mov|m4v|quicktime)$/i.test(coverPhoto?.storageKey || '')
+  );
+
+  const effectiveDesktopKey = coverVideo?.desktopKey || (isCoverPhotoVideo ? coverPhoto?.storageKey : undefined);
+  const effectiveMobileKey = coverVideo?.mobileKey || (isCoverPhotoVideo ? coverPhoto?.storageKey : null);
+  const effectivePosterKey = coverVideo?.posterKey || null;
+
   const {
     videoUrl,
     videoRef,
@@ -30,10 +38,10 @@ export default function CinemaCover({
     shouldLoadVideo,
     handleCanPlay,
     handleError
-  } = useCoverVideo(desktopKey, mobileKey);
+  } = useCoverVideo(effectiveDesktopKey, effectiveMobileKey);
 
   // Extrai um frame do vídeo como poster dinâmico (só usado se não houver
-  // poster customizado nem coverPhoto utilizável).
+  // poster customizado nem foto utilizável).
   const videoFramePoster = useVideoPoster(videoUrl, Boolean(videoUrl));
 
   const [hasClicked, setHasClicked] = useState(false);
@@ -41,9 +49,8 @@ export default function CinemaCover({
   // Fallback poster: poster customizado → coverPhoto (se for foto) →
   // primeira foto da galeria (fallbackPhoto) → frame extraído do vídeo.
   const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
-  const customPosterUrl = posterKey ? `${cdnBase}/${posterKey}` : null;
-  const isCoverVideoFile = coverPhoto?.mimeType?.startsWith('video/');
-  const coverPhotoUrl = coverPhoto && !isCoverVideoFile ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
+  const customPosterUrl = effectivePosterKey ? `${cdnBase}/${effectivePosterKey}` : null;
+  const coverPhotoUrl = coverPhoto && !isCoverPhotoVideo ? getPhotoUrl(coverPhoto, 'fullscreen') : undefined;
   const fallbackPhotoUrl = fallbackPhoto ? getPhotoUrl(fallbackPhoto, 'fullscreen') : undefined;
   const posterUrl = customPosterUrl || coverPhotoUrl || fallbackPhotoUrl || videoFramePoster || null;
 
@@ -91,12 +98,15 @@ export default function CinemaCover({
           loop
           playsInline
           preload="metadata"
-          poster={posterUrl}
+          poster={posterUrl || undefined}
           disablePictureInPicture
           tabIndex={-1}
           aria-hidden="true"
           onCanPlay={handleCanPlay}
+          onLoadedData={handleCanPlay}
+          onPlaying={handleCanPlay}
           onError={handleError}
+          onContextMenu={(e) => e.preventDefault()}
         />
       )}
 

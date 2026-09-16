@@ -65,11 +65,50 @@ export async function invokeEdgeWorker<T = any>(
     console.warn("%s", `[invokeEdgeWorker:${functionName}] Falha na chamada ao Cloudflare Worker:`, err);
     // Fallback gracioso para o Supabase Edge Functions caso ocorra falha de rede
     try {
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        body: options.body,
-        headers: options.headers,
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tlnjspsywycbudhewsfv.supabase.co';
+      const fallbackUrl = `${supabaseUrl}/functions/v1/${functionName}`;
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const fallbackHeaders: Record<string, string> = {
+        ...(options.headers || {}),
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      };
+      if (token) {
+        fallbackHeaders['Authorization'] = `Bearer ${token}`;
+      }
+
+      let fallbackBody: BodyInit | undefined = undefined;
+      if (options.body instanceof FormData) {
+        fallbackBody = options.body;
+      } else if (options.body !== undefined) {
+        fallbackHeaders['Content-Type'] = 'application/json';
+        fallbackBody = JSON.stringify(options.body);
+      }
+
+      const fallbackRes = await fetch(fallbackUrl, {
+        method: options.method || (options.body ? 'POST' : 'GET'),
+        headers: fallbackHeaders,
+        body: fallbackBody,
       });
-      return { data, error: error ? new Error(error.message) : null };
+
+      if (!fallbackRes.ok) {
+        const errText = await fallbackRes.text();
+        let parsedErr = errText;
+        try {
+          parsedErr = JSON.parse(errText).error || errText;
+        } catch {}
+        return { data: null, error: new Error(parsedErr || `Supabase function error: ${fallbackRes.status}`) };
+      }
+
+      const contentType = fallbackRes.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await fallbackRes.json();
+        return { data, error: null };
+      } else {
+        const text = await fallbackRes.text();
+        return { data: text as unknown as T, error: null };
+      }
     } catch (supabaseErr: any) {
       return { data: null, error: err };
     }

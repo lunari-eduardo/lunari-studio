@@ -1,14 +1,22 @@
-import { Image, Upload, Download, Trash2, Star, ImageIcon, Loader2, Film, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Image, Upload, Download, Trash2, Star, ImageIcon, Loader2, Film, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PhotoUploader, UploadedPhoto } from '@/components/PhotoUploader';
+import { CoverVideoUploader } from '@/components/deliver/CoverVideoUploader';
 import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
 import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
 import { getPhotoUrl } from '@/lib/photoUrl';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface DeliverPhotosTabProps {
   galleryId: string;
   coverModel?: string | null;
+  coverVideo?: any;
+  setCoverVideo?: (v: any) => void;
+  setCoverId?: (id: string | null) => void;
+  onSave?: () => void;
   photos: GaleriaPhoto[];
   photosLoading: boolean;
   coverPhotoId: string | null;
@@ -25,10 +33,14 @@ interface DeliverPhotosTabProps {
 
 export function DeliverPhotosTab({
   galleryId,
+  coverModel,
+  coverVideo,
+  setCoverVideo,
+  setCoverId,
+  onSave,
   photos,
   photosLoading,
   coverPhotoId,
-  coverModel,
   activeThemeId,
   showUploader,
   setShowUploader,
@@ -43,17 +55,125 @@ export function DeliverPhotosTab({
   const highlightedCount = photos.filter((p) => (p.pesoVisual ?? 0) > 0).length;
   const isCinemaCover = coverModel === 'cinema';
 
+  const [showUploaderVideo, setShowUploaderVideo] = useState(false);
+
+  const existingVideos = photos.filter(
+    (p) => p.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(p.storageKey)
+  );
+
+  const cdnBase = import.meta.env.VITE_R2_PUBLIC_URL || 'https://media.lunarihub.com';
+  const activeVideoKey = coverVideo?.desktopKey;
+  const activeVideoUrl = activeVideoKey ? `${cdnBase}/${activeVideoKey}` : null;
+
   return (
-    <div className="space-y-4 mt-6">
+    <div className="space-y-6 mt-6">
+      {/* 🎬 SEÇÃO DA CAPA CINEMATOGRÁFICA (VÍDEO HERO) */}
       {isCinemaCover && (
-        <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-          <Film className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-          <div className="space-y-1">
-            <p className="font-medium">Capa cinematográfica ativa</p>
-            <p className="text-xs text-muted-foreground">
-              A capa desta galeria é um vídeo exclusivo (modelo Cinema) — não é preciso escolher uma foto da grade como capa. O vídeo é gerenciado na aba <strong>Design</strong>.
-            </p>
+        <div className="rounded-xl border border-primary/25 bg-gradient-to-br from-primary/5 via-background to-muted/20 p-4 sm:p-5 shadow-sm space-y-4">
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+                <Film className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-sm sm:text-base">Vídeo da Capa Cinematográfica (Hero)</h4>
+                  <Badge variant="default" className="text-[10px] uppercase font-bold tracking-wider">Cinema</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Reproduzido em tela cheia na entrada da galeria. <strong>Não é contabilizado nem listado</strong> na grade de fotos entregues.
+                </p>
+              </div>
+            </div>
+
+            {activeVideoKey && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUploaderVideo(!showUploaderVideo)}
+                  className="text-xs gap-1.5"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {showUploaderVideo ? 'Cancelar alteração' : 'Trocar vídeo'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setCoverVideo?.(null);
+                    toast.info('Vídeo de capa removido. Clique em salvar para confirmar.');
+                  }}
+                  className="text-xs text-destructive hover:text-destructive gap-1"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remover
+                </Button>
+              </div>
+            )}
           </div>
+
+          {/* Vídeo Ativo ou Painel de Configuração */}
+          {activeVideoUrl && !showUploaderVideo ? (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-3 rounded-lg bg-card border border-border/60">
+              <div className="relative w-full sm:w-52 aspect-video rounded-lg overflow-hidden border bg-black shrink-0">
+                <video src={activeVideoUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+              </div>
+              <div className="space-y-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-foreground font-medium">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  Vídeo pronto para reprodução
+                </div>
+                <p>O vídeo roda sem áudio e em loop contínuo na recepção do visitante.</p>
+                <p className="text-[11px] opacity-75">Configurações adicionais de escurecimento e texto estão na aba <strong>Design & Temas</strong>.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Sugestão / Atalho se já houver vídeo na galeria */}
+              {existingVideos.length > 0 && !showUploaderVideo && (
+                <div className="flex items-center justify-between p-3.5 rounded-lg bg-primary/10 border border-primary/30 flex-wrap gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <Film className="h-4 w-4 text-primary shrink-0" />
+                    <p className="text-xs text-foreground">
+                      Identificamos o vídeo <strong>"{existingVideos[0].originalFilename}"</strong> enviado nesta galeria.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setCoverVideo?.({ ...coverVideo, desktopKey: existingVideos[0].storageKey });
+                      toast.success('Vídeo vinculado como Capa Cinematográfica! Salve as alterações.');
+                    }}
+                    className="text-xs gap-1.5"
+                  >
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                    Usar este vídeo como Capa Cinematográfica
+                  </Button>
+                </div>
+              )}
+
+              {/* Uploader Dedicado */}
+              <div className="p-3 bg-card rounded-lg border border-border/60">
+                <CoverVideoUploader
+                  galleryId={galleryId}
+                  contextType="gallery-cover-video"
+                  value={activeVideoKey ? { key: activeVideoKey, url: activeVideoUrl || undefined } : null}
+                  onChange={(data) => {
+                    if (data?.key) {
+                      setCoverVideo?.({ ...coverVideo, desktopKey: data.key });
+                      setShowUploaderVideo(false);
+                      toast.success('Vídeo enviado com sucesso para a capa! Salve as alterações.');
+                    }
+                  }}
+                  accept="video/mp4,video/webm,video/quicktime"
+                  maxSizeMB={15}
+                  label="Upload de Vídeo de Abertura (Hero)"
+                  description="Vídeo horizontal (16:9), até 15MB. Ficará isolado da grade de fotos."
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -164,7 +284,17 @@ export function DeliverPhotosTab({
                     variant={isCover ? 'default' : 'secondary'}
                     size="icon"
                     className={cn('h-8 w-8', isCover && 'bg-[#cbb384] hover:bg-[#bfa574] text-white')}
-                    onClick={() => onSetCover(photo.id)}
+                    onClick={() => {
+                      const isVid = photo.mimeType?.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(photo.storageKey);
+                      if (isVid) {
+                        setCoverId?.('cinema');
+                        setCoverVideo?.({ ...coverVideo, desktopKey: photo.storageKey });
+                        onSetCover(photo.id);
+                        toast.success('Vídeo definido como Capa Cinematográfica!');
+                      } else {
+                        onSetCover(photo.id);
+                      }
+                    }}
                     title={isCover ? 'Remover capa' : 'Definir como capa'}
                   >
                     <ImageIcon className={cn('h-4 w-4', isCover && 'fill-current')} />
