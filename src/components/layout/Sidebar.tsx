@@ -623,90 +623,88 @@ export default function Sidebar() {
 
   /* ────────────────────────── TABLET LANDSCAPE (click-to-expand) ────────────────────────── */
   if (mode === 'tablet-landscape') {
-    return (
-      <div className="shrink-0 h-screen relative z-40" style={{ width: '4rem' }}>
-        <aside
-          aria-expanded={isTabletExpanded}
-          style={{
-            width: isTabletExpanded ? '15rem' : '4rem',
-            transitionDuration: '200ms',
-            transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
-            transitionProperty: 'width, box-shadow',
-            willChange: 'width',
-            backgroundColor: 'hsl(var(--sidebar-bg))',
-            color: 'hsl(var(--sidebar-fg))',
-          }}
-          className={cn(
-            'absolute inset-y-0 left-0 flex flex-col py-3 border-r overflow-hidden',
-            isTabletExpanded && 'shadow-lunar-md'
-          )}
-        >
-          {/* Logo */}
-          <div className="h-10 flex items-center justify-center mb-3 px-3 overflow-hidden relative">
-            <img
-              src={logoIconWhite}
-              alt="Lunari"
-              className={cn(
-                'h-7 w-7 object-contain flex-shrink-0 transition-opacity duration-150 ease-out',
-                isTabletExpanded ? 'opacity-0' : 'opacity-100'
-              )}
-            />
-            <img
-              src={logoFullWhite}
-              alt="Lunari"
-              className={cn(
-                'h-5 object-contain object-left absolute left-3.5 transition-opacity duration-150 ease-out',
-                isTabletExpanded ? 'opacity-100' : 'opacity-0'
-              )}
-            />
-          </div>
-
-          {/* Product switcher */}
-          <div className="px-2 mb-3 overflow-hidden">
-            <ProductSwitcher expanded={isTabletExpanded} />
-          </div>
-
-          {/* Expand/collapse toggle */}
-          <div className="px-2 mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsTabletExpanded(v => !v)}
-              className={cn(
-                'w-full justify-start gap-2 h-8 text-[hsl(var(--sidebar-fg))] hover:bg-white/5',
-                !isTabletExpanded && 'justify-center px-0'
-              )}
-            >
-              {isTabletExpanded ? <ChevronDown size={14} className="rotate-180" /> : <Menu size={14} />}
-              {isTabletExpanded && <span className="text-xs font-medium">Recolher</span>}
-            </Button>
-          </div>
-
-          {/* Navigation items */}
-          <div className="flex-1 overflow-y-auto scrollbar-elegant px-2">
-            <div className="flex flex-col">
-              {currentNavItems.map(item => (
-                <TabletLandscapeNavItem
-                  key={item.to || (item as any).label}
-                  {...item}
-                  showProBadge={showProBadge}
-                  expanded={isTabletExpanded}
-                  onNavigate={closeTablet}
-                />
-              ))}
-            </div>
-          </div>
-        </aside>
-
-        {/* Overlay when expanded */}
-        {isTabletExpanded && (
-          <div
-            className="fixed inset-0 z-[-1]"
-            onClick={() => setIsTabletExpanded(false)}
-          />
+    return <>
+      <aside
+        aria-expanded={isTabletExpanded}
+        style={{
+          width: isTabletExpanded ? '15rem' : '4rem',
+          transitionDuration: '200ms',
+          transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+          transitionProperty: 'width, box-shadow',
+          willChange: 'width',
+          backgroundColor: 'hsl(var(--sidebar-bg))',
+          color: 'hsl(var(--sidebar-fg))',
+        }}
+        className={cn(
+          'shrink-0 sticky top-0 self-start h-full z-40 flex flex-col py-3 border-r overflow-hidden',
+          isTabletExpanded && 'shadow-lunar-md'
         )}
-      </div>
-    );
+      >
+        {/* Logo */}
+        <div className="h-10 flex items-center justify-center mb-3 px-3 overflow-hidden relative">
+          <img
+            src={logoIconWhite}
+            alt="Lunari"
+            className={cn(
+              'h-7 w-7 object-contain flex-shrink-0 transition-opacity duration-150 ease-out',
+              isTabletExpanded ? 'opacity-0' : 'opacity-100'
+            )}
+          />
+          <img
+            src={logoFullWhite}
+            alt="Lunari"
+            className={cn(
+              'h-5 object-contain object-left absolute left-3.5 transition-opacity duration-150 ease-out',
+              isTabletExpanded ? 'opacity-100' : 'opacity-0'
+            )}
+          />
+        </div>
+
+        {/* Product switcher */}
+        <div className="px-2 mb-3 overflow-hidden">
+          <ProductSwitcher expanded={isTabletExpanded} />
+        </div>
+
+        {/* Expand/collapse toggle */}
+        <div className="px-2 mb-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsTabletExpanded(v => !v)}
+            className={cn(
+              'w-full justify-start gap-2 h-8 text-[hsl(var(--sidebar-fg))] hover:bg-white/5',
+              !isTabletExpanded && 'justify-center px-0'
+            )}
+          >
+            {isTabletExpanded ? <ChevronDown size={14} className="rotate-180" /> : <Menu size={14} />}
+            {isTabletExpanded && <span className="text-xs font-medium">Recolher</span>}
+          </Button>
+        </div>
+
+        {/* Navigation items */}
+        <div className="flex-1 overflow-y-auto scrollbar-elegant px-2">
+          <div className="flex flex-col">
+            {currentNavItems.map(item => (
+              <TabletLandscapeNavItem
+                key={item.to || (item as any).label}
+                {...item}
+                showProBadge={showProBadge}
+                expanded={isTabletExpanded}
+                onNavigate={closeTablet}
+              />
+            ))}
+          </div>
+        </div>
+      </aside>
+
+      {/* Overlay when expanded */}
+      {isTabletExpanded && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsTabletExpanded(false)}
+        />
+      )}
+    </>;
   }
 
   /* ────────────────────────── DESKTOP (hover-expand) ────────────────────────── */
@@ -714,65 +712,63 @@ export default function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={400}>
-      <div className="shrink-0 h-screen relative z-40" style={{ width: '4rem' }}>
-        <aside
-          onMouseEnter={handleEnter}
-          onMouseLeave={handleLeave}
-          aria-expanded={isHovered}
-          style={{
-            width: isHovered ? '15rem' /* 240px */ : '4rem',
-            transitionDuration: `${expandDuration}ms`,
-            transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
-            transitionProperty: 'width, box-shadow',
-            willChange: 'width',
-            backgroundColor: '#151515',
-            color: 'hsl(var(--sidebar-fg))',
-          }}
-          className={cn(
-            'absolute inset-y-0 left-0 flex flex-col py-3 border-r overflow-hidden',
-            isHovered && 'shadow-lunar-md'
-          )}
-        >
-          {/* Logo: ícone quando colapsado, full quando expandido */}
-          <div className="h-10 flex items-center px-3 mb-3 overflow-hidden relative">
-            <img
-              src={logoIconWhite}
-              alt="Lunari"
-              className={cn(
-                'absolute left-3 top-1/2 -translate-y-1/2 h-7 w-7 object-contain transition-opacity duration-150 ease-out',
-                isHovered ? 'opacity-0' : 'opacity-100 delay-[60ms]'
-              )}
-            />
-            <img
-              src={logoFullWhite}
-              alt="Lunari"
-              className={cn(
-                'absolute left-3.5 top-1/2 -translate-y-1/2 h-5 object-contain object-left transition-opacity duration-150 ease-out',
-                isHovered ? 'opacity-100 delay-[60ms]' : 'opacity-0'
-              )}
-            />
-          </div>
+      <aside
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        aria-expanded={isHovered}
+        style={{
+          width: isHovered ? '15rem' /* 240px */ : '4rem',
+          transitionDuration: `${expandDuration}ms`,
+          transitionTimingFunction: 'cubic-bezier(0.32, 0.72, 0, 1)',
+          transitionProperty: 'width, box-shadow',
+          willChange: 'width',
+          backgroundColor: '#151515',
+          color: 'hsl(var(--sidebar-fg))',
+        }}
+        className={cn(
+          'shrink-0 sticky top-0 self-start h-full z-40 flex flex-col py-3 border-r overflow-hidden',
+          isHovered && 'shadow-lunar-md'
+        )}
+      >
+        {/* Logo: ícone quando colapsado, full quando expandido */}
+        <div className="h-10 flex items-center px-3 mb-3 overflow-hidden relative">
+          <img
+            src={logoIconWhite}
+            alt="Lunari"
+            className={cn(
+              'absolute left-3 top-1/2 -translate-y-1/2 h-7 w-7 object-contain transition-opacity duration-150 ease-out',
+              isHovered ? 'opacity-0' : 'opacity-100 delay-[60ms]'
+            )}
+          />
+          <img
+            src={logoFullWhite}
+            alt="Lunari"
+            className={cn(
+              'absolute left-3.5 top-1/2 -translate-y-1/2 h-5 object-contain object-left transition-opacity duration-150 ease-out',
+              isHovered ? 'opacity-100 delay-[60ms]' : 'opacity-0'
+            )}
+          />
+        </div>
 
-          {/* Seletor de produto (workspace) */}
-          <div className="px-2 mb-3">
-            <ProductSwitcher expanded={isHovered} />
-          </div>
+        {/* Seletor de produto (workspace) */}
+        <div className="px-2 mb-3">
+          <ProductSwitcher expanded={isHovered} />
+        </div>
 
-          {/* Menu principal */}
-          <div className="flex-1 overflow-y-auto scrollbar-elegant px-2">
-            <div className="flex flex-col">
-              {currentNavItems.map(item => (
-                <DesktopNavItem
-                  key={item.to || (item as any).label}
-                  {...item}
-                  showProBadge={showProBadge}
-                  expanded={isHovered}
-                />
-              ))}
-            </div>
+        {/* Menu principal */}
+        <div className="flex-1 overflow-y-auto scrollbar-elegant px-2">
+          <div className="flex flex-col">
+            {currentNavItems.map(item => (
+              <DesktopNavItem
+                key={item.to || (item as any).label}
+                {...item}
+                showProBadge={showProBadge}
+                expanded={isHovered}
+              />
+            ))}
           </div>
-        </aside>
-      </div>
+        </div>
+      </aside>
     </TooltipProvider>
   );
 }

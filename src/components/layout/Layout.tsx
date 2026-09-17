@@ -20,7 +20,7 @@ export default function Layout() {
   // Bottom nav is shown on mobile and tablet-portrait
   const hasBottomNav = isMobile || responsiveMode === 'tablet-portrait';
 
-  return <div className="flex bg-background" style={{ minHeight: '100dvh' }}>
+  return <div className="flex bg-background" style={{ height: '100dvh' }}>
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
