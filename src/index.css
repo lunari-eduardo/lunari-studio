@@ -842,6 +842,7 @@ html {
 
 body {
   overscroll-behavior-y: none;
+  background-color: hsl(var(--sidebar-bg));
 }
 
 button,

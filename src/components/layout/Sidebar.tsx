@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useResponsiveMode } from '@/hooks/useResponsiveMode';
 import {
   House,
@@ -186,6 +186,7 @@ const DesktopNavItem = ({
         <NavLink
           to={to}
           end={end || isComercial}
+          onClick={() => onNavigate?.()}
           className={({ isActive }) =>
             cn(
               'nav-item-lunar flex items-center h-9 rounded-md transition-colors duration-200 overflow-hidden hover:bg-white/5 flex-1',
@@ -407,7 +408,6 @@ const TabletLandscapeNavItem = ({
 
 export default function Sidebar() {
   const responsiveMode = useResponsiveMode();
-  const location = useLocation();
   const { accessState } = useAccessControl();
   const { activeModule } = useActiveModule();
   const [isOpen, setIsOpen] = useState(false);
@@ -420,11 +420,6 @@ export default function Sidebar() {
   const mode: 'mobile' | 'tablet-landscape' | 'desktop' =
     responsiveMode === 'desktop' ? 'desktop' :
     responsiveMode === 'tablet-landscape' ? 'tablet-landscape' : 'mobile';
-
-  // Reset tablet-landscape expand state on navigation
-  useEffect(() => {
-    setIsTabletExpanded(false);
-  }, [location.pathname]);
 
   const clearTimers = useCallback(() => {
     if (enterTimer.current) { window.clearTimeout(enterTimer.current); enterTimer.current = null; }
@@ -531,29 +526,30 @@ export default function Sidebar() {
 
   const toggleSidebar = () => setIsOpen(v => !v);
   const closeSidebar = useCallback(() => setIsOpen(false), []);
+  const closeTablet = useCallback(() => setIsTabletExpanded(false), []);
 
   /* ────────────────────────── MOBILE ────────────────────────── */
   if (mode === 'mobile') {
     return <>
         <div
-          className="fixed bottom-0 left-0 right-0 shadow-lunar-md z-40 px-2 pt-2 border-t"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t"
           style={{
             backgroundColor: 'hsl(var(--sidebar-bg))',
             borderColor: 'hsl(var(--sidebar-border))',
-            paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          <div className="grid grid-cols-5 h-12 gap-1">
+          <div className="grid grid-cols-5 h-14 gap-1 px-2 pt-1">
             {currentNavItems.slice(0, 4).map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) => cn(
-                  'flex flex-col items-center justify-center py-1 rounded-md text-lunar-text transition-all duration-150 text-center',
+                  'flex flex-col items-center justify-center py-1.5 rounded-md transition-all duration-150 text-center',
                   isActive
-                    ? 'text-lunar-accent bg-lunar-surface shadow-sm'
-                    : 'hover:bg-lunar-surface/30 hover:shadow-lunar-sm hover:translate-y-[-1px]'
+                    ? 'text-[hsl(var(--sidebar-active-fg))] bg-white/10'
+                    : 'text-[hsl(var(--sidebar-fg))]/70 hover:text-[hsl(var(--sidebar-fg))] hover:bg-white/5'
                 )}
               >
                 <div className="mb-0.5 relative">
@@ -564,13 +560,16 @@ export default function Sidebar() {
                     </span>
                   )}
                 </div>
-                <span className="text-2xs font-medium leading-tight">{item.label}</span>
+                <span className="text-[10px] font-medium leading-tight">{item.label}</span>
               </NavLink>
             ))}
 
-            <button onClick={toggleSidebar} className="flex flex-col items-center justify-center text-lunar-text py-1 rounded-md hover:shadow-lunar-sm hover:translate-y-[-1px] transition-all duration-150 bg-muted hover:bg-muted/80">
-              <Menu size={14} className="mb-0.5" />
-              <span className="text-2xs font-medium">Mais</span>
+            <button
+              onClick={toggleSidebar}
+              className="flex flex-col items-center justify-center py-1.5 rounded-md text-[hsl(var(--sidebar-fg))]/70 hover:text-[hsl(var(--sidebar-fg))] hover:bg-white/5 transition-all duration-150"
+            >
+              <Menu size={18} className="mb-0.5" strokeWidth={1.6} />
+              <span className="text-[10px] font-medium leading-tight">Mais</span>
             </button>
           </div>
         </div>
@@ -624,8 +623,6 @@ export default function Sidebar() {
 
   /* ────────────────────────── TABLET LANDSCAPE (click-to-expand) ────────────────────────── */
   if (mode === 'tablet-landscape') {
-    const closeTablet = useCallback(() => setIsTabletExpanded(false), []);
-
     return (
       <div className="shrink-0 h-screen relative z-40" style={{ width: '4rem' }}>
         <aside

@@ -20,7 +20,7 @@ export default function Layout() {
   // Bottom nav is shown on mobile and tablet-portrait
   const hasBottomNav = isMobile || responsiveMode === 'tablet-portrait';
 
-  return <div className="flex h-screen bg-background">
+  return <div className="flex bg-background" style={{ minHeight: '100dvh' }}>
       <Sidebar />
       
       <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
@@ -28,13 +28,13 @@ export default function Layout() {
 
         <TrialBanner />
         <Header />
-        
+
         <main
           className={cn(
             "flex-1 overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0 relative z-10",
-            hasBottomNav && "pb-20"
+            hasBottomNav && "pb-14"
           )}
-          style={hasBottomNav ? { paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' } : undefined}
+          style={hasBottomNav ? { paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' } : undefined}
         >
           <div className="animate-lunar">
             <Outlet />
