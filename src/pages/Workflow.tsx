@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import VendaAvulsaPanel from "@/modules/finance/presentation/vendaAvulsa/VendaAvulsaPanel";
+import { invalidateFinanceAll } from "@/modules/finance/infrastructure/realtime/invalidateFinanceAll";
+import { invalidateMonthMetricsTTL } from "@/features/workflow/data/metricsRepo";
 
 import { WorkflowTable } from "@/components/workflow/WorkflowTable";
 import { WorkflowFilters } from "@/components/workflow/WorkflowFilters";
@@ -77,11 +81,23 @@ function WorkflowContent() {
 
   // ── UI state ────────────────────────────────────────────────────────
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [showMetrics, setShowMetrics] = useState(true);
+  const [vendaAvulsaOpen, setVendaAvulsaOpen] = useState(false);
   const [isTasksPanelOpen, setIsTasksPanelOpen] = usePersistedState(
     "workflow_tasks_panel_open",
     true,
   );
+
+  const handleVendaSucesso = useCallback(() => {
+    invalidateFinanceAll(queryClient);
+    if (user?.id) {
+      invalidateMonthMetricsTTL(user.id, month.currentMonth.year, month.currentMonth.month);
+    }
+    window.dispatchEvent(new CustomEvent("workflow-session-updated"));
+    window.dispatchEvent(new CustomEvent("payment-created"));
+    month.forceRefresh();
+  }, [queryClient, user?.id, month]);
 
   // ── Atalhos de teclado: ← → navegam meses, T volta pra hoje ─────────
   useEffect(() => {
@@ -217,6 +233,13 @@ function WorkflowContent() {
             handleFieldUpdate: actions.handleFieldUpdate,
             forceRefresh: month.forceRefresh,
           }}
+          onOpenVendaAvulsa={() => setVendaAvulsaOpen(true)}
+        />
+
+        <VendaAvulsaPanel
+          aberto={vendaAvulsaOpen}
+          onFechar={() => setVendaAvulsaOpen(false)}
+          onSucesso={handleVendaSucesso}
         />
       </WorkflowMonthDataProvider>
     );
@@ -237,16 +260,31 @@ function WorkflowContent() {
           isLoading={isColdMetrics}
         />
 
-        <WorkflowMonthSwitcher
-          month={month.currentMonth.month}
-          year={month.currentMonth.year}
-          isPreloading={month.isPreloading}
-          isColdLoading={isColdSessions || isColdMetrics}
-          isRevalidating={isRevalidating}
-          onNavigate={month.applyDelta}
-          onHoverPrev={() => prefetchAdjacent(-1)}
-          onHoverNext={() => prefetchAdjacent(1)}
-        />
+        <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+          <div className="hidden sm:block sm:w-[140px] shrink-0" />
+          <div className="flex-1 flex justify-center">
+            <WorkflowMonthSwitcher
+              month={month.currentMonth.month}
+              year={month.currentMonth.year}
+              isPreloading={month.isPreloading}
+              isColdLoading={isColdSessions || isColdMetrics}
+              isRevalidating={isRevalidating}
+              onNavigate={month.applyDelta}
+              onHoverPrev={() => prefetchAdjacent(-1)}
+              onHoverNext={() => prefetchAdjacent(1)}
+            />
+          </div>
+          <div className="shrink-0">
+            <Button
+              size="sm"
+              onClick={() => setVendaAvulsaOpen(true)}
+              className="gap-1.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2} />
+              Venda avulsa
+            </Button>
+          </div>
+        </div>
 
         <div className="relative rounded-lg bg-card/30 backdrop-blur-xl dark:bg-card/[0.04] border border-white/50 dark:border-white/10 overflow-hidden">
           {/* Barra fina de revalidação — não bloqueia interação */}
@@ -360,7 +398,11 @@ function WorkflowContent() {
         }
       />
 
-
+      <VendaAvulsaPanel
+        aberto={vendaAvulsaOpen}
+        onFechar={() => setVendaAvulsaOpen(false)}
+        onSucesso={handleVendaSucesso}
+      />
     </div>
   );
 }

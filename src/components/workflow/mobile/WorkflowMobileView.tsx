@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { Search, ChevronLeft, ChevronRight, Filter, ChevronDown, Check, ArrowDown, ArrowUp, X } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Filter, ChevronDown, Check, ArrowDown, ArrowUp, X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +64,7 @@ interface WorkflowMobileViewProps {
     handleFieldUpdate: (id: string, field: string, value: any, silent?: boolean) => void;
     forceRefresh: () => void;
   };
+  onOpenVendaAvulsa?: () => void;
 }
 
 export function WorkflowMobileView({
@@ -81,6 +82,7 @@ export function WorkflowMobileView({
   productOptions,
   statusOptions,
   actions,
+  onOpenVendaAvulsa,
 }: WorkflowMobileViewProps) {
   // Apenas 1 card expandido por vez
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
@@ -111,8 +113,8 @@ export function WorkflowMobileView({
 
   return (
     <div className="w-full space-y-3.5 px-2.5 pt-1 pb-16">
-      {/* 1. CABEÇALHO COM TÍTULO E SUBTÍTULO */}
-      <div className="flex items-center justify-between">
+      {/* 1. CABEÇALHO COM TÍTULO E SUBTÍTULO + AÇÃO VENDA AVULSA */}
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground">
             Workflow
@@ -121,6 +123,17 @@ export function WorkflowMobileView({
             Suas sessões, tudo sob controle.
           </p>
         </div>
+
+        {onOpenVendaAvulsa && (
+          <Button
+            size="sm"
+            onClick={onOpenVendaAvulsa}
+            className="gap-1.5 h-8 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm text-xs shrink-0"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+            Venda avulsa
+          </Button>
+        )}
       </div>
 
       {/* 2. BARRA DE MÉTRICAS COMPACTA */}
