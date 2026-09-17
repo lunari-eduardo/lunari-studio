@@ -49,6 +49,7 @@ interface DeliverDesignTabProps {
   studioSettings?: any;
   saving: boolean;
   onSave: () => void;
+  onUpdateCoverVideo?: (v: any) => Promise<void>;
 }
 
 export function DeliverDesignTab({
@@ -81,6 +82,7 @@ export function DeliverDesignTab({
   studioSettings,
   saving,
   onSave,
+  onUpdateCoverVideo,
 }: DeliverDesignTabProps) {
   const [previewTab, setPreviewTab] = useState<'cover' | 'grid'>('cover');
 
@@ -308,15 +310,21 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-video"
                   value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
-                  onChange={(data) => {
-                    setCoverVideo?.({ 
+                  onChange={async (data) => {
+                    const novoCoverVideo = { 
                       ...coverVideo, 
                       desktopKey: data?.key || null,
-                      desktopSize: data?.sizeBytes
-                    });
+                      desktopSize: data?.sizeBytes || null
+                    };
+                    if (onUpdateCoverVideo) {
+                      await onUpdateCoverVideo(novoCoverVideo);
+                    } else {
+                      setCoverVideo?.(novoCoverVideo);
+                    }
                     if (data?.key) {
-                      toast.success('Vídeo desktop enviado!');
-                      setTimeout(() => onSave(), 100);
+                      toast.success('Vídeo desktop salvo com sucesso!');
+                    } else {
+                      toast.info('Vídeo desktop removido!');
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
@@ -329,15 +337,21 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-video"
                   value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
-                  onChange={(data) => {
-                    setCoverVideo?.({ 
+                  onChange={async (data) => {
+                    const novoCoverVideo = { 
                       ...coverVideo, 
                       mobileKey: data?.key || null,
-                      mobileSize: data?.sizeBytes
-                    });
+                      mobileSize: data?.sizeBytes || null
+                    };
+                    if (onUpdateCoverVideo) {
+                      await onUpdateCoverVideo(novoCoverVideo);
+                    } else {
+                      setCoverVideo?.(novoCoverVideo);
+                    }
                     if (data?.key) {
-                      toast.success('Vídeo mobile enviado!');
-                      setTimeout(() => onSave(), 100);
+                      toast.success('Vídeo mobile salvo com sucesso!');
+                    } else {
+                      toast.info('Vídeo mobile removido!');
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"
@@ -350,15 +364,24 @@ export function DeliverDesignTab({
                   galleryId={galleryId}
                   contextType="gallery-cover-poster"
                   value={coverVideo?.posterKey ? { key: coverVideo.posterKey, url: undefined } : null}
-                  onChange={(data) => {
-                    setCoverVideo?.({ ...coverVideo, posterKey: data?.key || null });
+                  onChange={async (data) => {
+                    const novoCoverVideo = { 
+                      ...coverVideo, 
+                      posterKey: data?.key || null 
+                    };
+                    if (onUpdateCoverVideo) {
+                      await onUpdateCoverVideo(novoCoverVideo);
+                    } else {
+                      setCoverVideo?.(novoCoverVideo);
+                    }
                     if (data?.key) {
-                      toast.success('Poster enviado!');
-                      setTimeout(() => onSave(), 100);
+                      toast.success('Poster salvo com sucesso!');
+                    } else {
+                      toast.info('Poster removido!');
                     }
                   }}
                   accept="image/jpeg,image/png,image/webp"
-                  maxSizeMB={1}
+                  maxSizeMB={2}
                   label="Poster"
                   description="Mostrado antes do vídeo carregar. Se não enviado, usa a foto de capa da galeria."
                 />

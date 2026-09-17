@@ -12,10 +12,11 @@ import { toast } from 'sonner';
 
 interface DeliverPhotosTabProps {
   galleryId: string;
-  coverModel?: string | null;
+  coverId?: string | null;
   coverVideo?: any;
   setCoverVideo?: (v: any) => void;
   setCoverId?: (id: string | null) => void;
+  onUpdateCoverVideo?: (v: any) => Promise<void>;
   onSave?: () => void;
   photos: GaleriaPhoto[];
   photosLoading: boolean;
@@ -37,6 +38,7 @@ export function DeliverPhotosTab({
   coverVideo,
   setCoverVideo,
   setCoverId,
+  onUpdateCoverVideo,
   onSave,
   photos,
   photosLoading,
@@ -100,9 +102,13 @@ export function DeliverPhotosTab({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setCoverVideo?.(null);
-                    toast.info('Vídeo de capa removido. Clique em salvar para confirmar.');
+                  onClick={async () => {
+                    if (onUpdateCoverVideo) {
+                      await onUpdateCoverVideo(null);
+                    } else {
+                      setCoverVideo?.(null);
+                    }
+                    toast.info('Vídeo de capa removido com sucesso.');
                   }}
                   className="text-xs text-destructive hover:text-destructive gap-1"
                 >
@@ -141,9 +147,14 @@ export function DeliverPhotosTab({
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      setCoverVideo?.({ ...coverVideo, desktopKey: existingVideos[0].storageKey });
-                      toast.success('Vídeo vinculado como Capa Cinematográfica! Salve as alterações.');
+                    onClick={async () => {
+                      const novoCoverVideo = { ...coverVideo, desktopKey: existingVideos[0].storageKey };
+                      if (onUpdateCoverVideo) {
+                        await onUpdateCoverVideo(novoCoverVideo);
+                      } else {
+                        setCoverVideo?.(novoCoverVideo);
+                      }
+                      toast.success('Vídeo vinculado como Capa Cinematográfica!');
                     }}
                     className="text-xs gap-1.5"
                   >
@@ -166,16 +177,13 @@ export function DeliverPhotosTab({
                         desktopKey: data.key,
                         desktopSize: data.sizeBytes
                       };
-                      setCoverVideo?.(novoCoverVideo);
+                      if (onUpdateCoverVideo) {
+                        await onUpdateCoverVideo(novoCoverVideo);
+                      } else {
+                        setCoverVideo?.(novoCoverVideo);
+                      }
                       setShowUploaderVideo(false);
-                      // Para garantir o salvamento automático sem depender do onSave (que pode ter state desatualizado)
-                      // O ideal seria que a action de update fosse repassada, mas podemos confiar no onSave e num setTimeout, 
-                      // ou o usuário clica em salvar. Como no editor as pessoas esquecem de salvar, vamos tentar avisar forte ou forçar um save.
-                      // Vamos invocar onSave logo em seguida e ver se rola, ou alertar de forma clara.
-                      toast.success('Vídeo enviado com sucesso para a capa!');
-                      setTimeout(() => {
-                        onSave?.();
-                      }, 100);
+                      toast.success('Vídeo enviado e salvo com sucesso na capa!');
                     }
                   }}
                   accept="video/mp4,video/webm,video/quicktime"

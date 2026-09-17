@@ -110,6 +110,7 @@ export default function DeliverDetail() {
             onToggleHighlight={actions.handleToggleHighlight}
             onSetCover={actions.handleSetCover}
             onDeletePhoto={actions.handlePhotoDelete}
+            onUpdateCoverVideo={actions.handleUpdateCoverVideo}
             onSave={actions.handleSave}
           />
         </TabsContent>
@@ -144,6 +145,7 @@ export default function DeliverDetail() {
             coverPhotoId={data.coverPhotoId}
             studioSettings={data.settings}
             saving={actions.saving}
+            onUpdateCoverVideo={actions.handleUpdateCoverVideo}
             onSave={actions.handleSave}
           />
         </TabsContent>

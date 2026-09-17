@@ -58,7 +58,8 @@ export function CoverVideoUploader({ galleryId, contextType, value, onChange, ac
     }
 
     let meta = { duration: 0, width: 0, height: 0 };
-    if (file.type.startsWith('video/')) {
+    const isVideo = file.type.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+    if (isVideo) {
       try {
         meta = await validateVideo(file);
         if (meta.duration > 20) {
@@ -66,7 +67,7 @@ export function CoverVideoUploader({ galleryId, contextType, value, onChange, ac
           return;
         }
       } catch (err) {
-        toast.error('Vídeo inválido.');
+        toast.error('Vídeo inválido ou formato não suportado.');
         return;
       }
     }

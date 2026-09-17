@@ -26,6 +26,7 @@ import {
   Tag,
   Percent,
   Image as ImageIcon,
+  Images,
   FileText,
   DollarSign,
   Send,
@@ -376,16 +377,19 @@ export function WorkflowMobileCard({
   const pendenteSessaoSugerido =
     fin.totalVisual > 0 ? (fin.pendenteSess ?? 0) : pendenteVisual;
 
-  // Gatilho do botão Cobrar
+  const canCobrarSessao = pendenteSessaoSugerido > 0.001;
+  const canCobrarExtras = extrasPendente > 0.001 && !extrasFullyPaid;
+  const canCobrarTudo = canCobrarSessao && canCobrarExtras;
+  const showChargeDropdown = canCobrarExtras || extrasPendente > 0.001;
+
+  // Gatilho do botão Cobrar quando não houver dropdown
   const handleCobrarClick = useCallback(() => {
-    if (extrasPendente > 0.01 && pendenteSessaoSugerido > 0.01) {
-      setShowCombinedChargeModal(true);
-    } else if (extrasPendente > 0.01 && pendenteSessaoSugerido <= 0.01) {
+    if (canCobrarExtras && !canCobrarSessao) {
       setShowExtraChargeModal(true);
-    } else {
+    } else if (canCobrarSessao) {
       setShowChargeModal(true);
     }
-  }, [extrasPendente, pendenteSessaoSugerido]);
+  }, [canCobrarExtras, canCobrarSessao]);
 
   return (
     <>
@@ -879,7 +883,7 @@ export function WorkflowMobileCard({
                           variant="outline"
                           onClick={() => {
                             const g = galerias.find((item) => item.tipo === "selecao");
-                            if (g) window.open(`/app/galeria/${g.id}`, "_blank");
+                            if (g) window.open(`/app/gallery/select/${g.id}`, "_blank", "noopener,noreferrer");
                           }}
                           className="h-7 text-xs gap-1"
                         >
@@ -917,7 +921,7 @@ export function WorkflowMobileCard({
                             const g = galerias.find(
                               (item) => item.tipo === "entrega" || item.tipo === "transfer",
                             );
-                            if (g) window.open(`/app/galeria/${g.id}`, "_blank");
+                            if (g) window.open(`/app/gallery/transfer/${g.id}`, "_blank", "noopener,noreferrer");
                           }}
                           className="h-7 text-xs gap-1"
                         >
@@ -1051,20 +1055,81 @@ export function WorkflowMobileCard({
             <div className="p-3 bg-card/90 border-t border-border/30 flex items-center gap-2">
               <Button
                 variant="outline"
-                className="flex-1 h-10 text-xs font-medium gap-1.5"
+                className="flex-1 h-10 text-xs font-medium gap-1.5 shrink-0 min-w-0"
                 onClick={() => setShowManualPaymentModal(true)}
               >
-                <DollarSign className="h-4 w-4" />
-                Adicionar pagamento
+                <DollarSign className="h-4 w-4 shrink-0" />
+                <span className="truncate">Adicionar pagamento</span>
               </Button>
 
-              <Button
-                className="flex-1 h-10 text-xs font-medium gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleCobrarClick}
-              >
-                <Send className="h-4 w-4" />
-                Cobrar via link
-              </Button>
+              {showChargeDropdown ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      disabled={!canCobrarSessao && !canCobrarExtras}
+                      className="flex-1 h-10 text-xs font-medium gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 min-w-0"
+                    >
+                      <Send className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Cobrar via link</span>
+                      <ChevronDown className="h-3.5 w-3.5 ml-auto opacity-70 shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" side="top" sideOffset={6} className="w-60 p-1">
+                    <DropdownMenuItem
+                      disabled={!canCobrarSessao}
+                      onClick={() => canCobrarSessao && setShowChargeModal(true)}
+                      className="gap-2.5 cursor-pointer py-2"
+                    >
+                      <Send className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium">Cobrar sessão</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {formatCurrencyBRL(pendenteSessaoSugerido)}
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!canCobrarExtras}
+                      onClick={() => canCobrarExtras && setShowExtraChargeModal(true)}
+                      className="gap-2.5 cursor-pointer py-2"
+                    >
+                      <Images className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium">Cobrar extras</div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {formatCurrencyBRL(extrasPendente)}
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                    {canCobrarTudo && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setShowCombinedChargeModal(true)}
+                          className="gap-2.5 cursor-pointer py-2"
+                        >
+                          <Send className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium">Cobrar tudo</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {formatCurrencyBRL(pendenteSessaoSugerido + extrasPendente)} • 1 link único
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  disabled={!canCobrarSessao}
+                  className="flex-1 h-10 text-xs font-medium gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 min-w-0"
+                  onClick={() => setShowChargeModal(true)}
+                >
+                  <Send className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Cobrar via link</span>
+                </Button>
+              )}
             </div>
           </div>
         )}

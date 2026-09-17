@@ -11,6 +11,11 @@ function FormularioLegacyEditorRedirect() {
   return <Navigate to={`/app/formularios/${id}/editor`} replace />;
 }
 
+function GaleriaLegacyRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/app/gallery/select/${id}`} replace />;
+}
+
 import Layout from "@/components/layout/Layout";
 import Index from "@/pages/Index";
 import Agenda from "@/pages/Agenda";
@@ -378,6 +383,7 @@ export default function PhotographerApp() {
                 } />
                 <Route path="feed-test" element={<Navigate to="/app/workflow" replace />} />
                 <Route path="preferencias" element={<Navigate to="/app/minha-conta" replace />} />
+                <Route path="galeria/:id" element={<GaleriaLegacyRedirect />} />
 
                 {/* Compat: rotas admin antigas redirecionam para admin.lunarihub.com */}
                 <Route path="admin/usuarios" element={<RedirectToAdminHost to="/usuarios" />} />

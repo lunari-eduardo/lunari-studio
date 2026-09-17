@@ -104,12 +104,12 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     prefix: (u, e) => `galleries/${e}/cover-video`,
     isPublic: true,
     maxBytes: 50 * 1024 * 1024,
-    allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
+    allowedTypes: ["video/mp4", "video/webm", "video/quicktime", "video/m4v", "video/x-m4v"],
   },
   "gallery-cover-poster": {
     prefix: (u, e) => `galleries/${e}/cover-video`,
     isPublic: true,
-    maxBytes: 1 * 1024 * 1024,
+    maxBytes: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/webp"],
   },
 };
@@ -165,11 +165,22 @@ export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
         400
       );
     }
-    if (rule.allowedTypes && !rule.allowedTypes.includes(file.type)) {
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    let effectiveMime = file.type;
+    if (!effectiveMime || effectiveMime === 'application/octet-stream') {
+      if (['mp4', 'm4v'].includes(ext)) effectiveMime = 'video/mp4';
+      else if (ext === 'webm') effectiveMime = 'video/webm';
+      else if (ext === 'mov') effectiveMime = 'video/quicktime';
+      else if (['jpg', 'jpeg'].includes(ext)) effectiveMime = 'image/jpeg';
+      else if (ext === 'png') effectiveMime = 'image/png';
+      else if (ext === 'webp') effectiveMime = 'image/webp';
+    }
+
+    if (rule.allowedTypes && !rule.allowedTypes.includes(effectiveMime)) {
       return c.json({ error: `Tipo não permitido: ${file.type || "desconhecido"}` }, 400);
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const storagePath = `${rule.prefix(user.id, entityId)}/${filename}`;
     const fileData = await file.arrayBuffer();
@@ -180,7 +191,7 @@ export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
     const isCover = context === "gallery-cover-video" || context === "gallery-cover-poster";
     await bucket.put(storagePath, fileData, {
       httpMetadata: {
-        contentType: file.type || "application/octet-stream",
+        contentType: effectiveMime || file.type || "application/octet-stream",
         cacheControl: (isPdf || isCover) ? "public, max-age=31536000, immutable" : undefined,
         contentDisposition: isPdf ? "inline" : undefined,
       },

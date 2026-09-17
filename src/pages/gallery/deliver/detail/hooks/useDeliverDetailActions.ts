@@ -53,6 +53,26 @@ export function useDeliverDetailActions(data: DeliverData) {
     reloadPhotos,
   } = data;
 
+  const handleUpdateCoverVideo = async (newCoverVideo: any) => {
+    if (!id || !gallery) return;
+    try {
+      data.setCoverVideo(newCoverVideo);
+      await updateGallery({
+        id,
+        data: {
+          configuracoes: {
+            ...gallery.configuracoes,
+            coverVideo: newCoverVideo,
+          } as any,
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao salvar vídeo de capa:', error);
+      toast.error('Erro ao salvar vídeo de capa');
+      throw error;
+    }
+  };
+
   const handleSave = async () => {
     if (!id || !gallery) return;
     setSaving(true);
@@ -75,7 +95,7 @@ export function useDeliverDetailActions(data: DeliverData) {
             subtitulo: subtitle.trim() || undefined,
             categoria: category.trim() || undefined,
             dataEvento: eventDate ? eventDate.toISOString() : undefined,
-            coverVideo,
+            coverVideo: data.coverVideo,
             coverCinema,
           } as any,
           themeId: useCustomTheme ? activeThemeId : null,
@@ -255,6 +275,7 @@ export function useDeliverDetailActions(data: DeliverData) {
     showEmailModal,
     setShowEmailModal,
     handleSave,
+    handleUpdateCoverVideo,
     handlePublish,
     handleDelete,
     handlePhotoDelete,

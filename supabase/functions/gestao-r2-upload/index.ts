@@ -80,7 +80,18 @@ Deno.serve(async (req) => {
         400
       );
     }
-    if (rule.allowedTypes && !rule.allowedTypes.includes(file.type)) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    let effectiveMime = file.type;
+    if (!effectiveMime || effectiveMime === 'application/octet-stream') {
+      if (['mp4', 'm4v'].includes(ext)) effectiveMime = 'video/mp4';
+      else if (ext === 'webm') effectiveMime = 'video/webm';
+      else if (ext === 'mov') effectiveMime = 'video/quicktime';
+      else if (['jpg', 'jpeg'].includes(ext)) effectiveMime = 'image/jpeg';
+      else if (ext === 'png') effectiveMime = 'image/png';
+      else if (ext === 'webp') effectiveMime = 'image/webp';
+    }
+
+    if (rule.allowedTypes && !rule.allowedTypes.includes(effectiveMime)) {
       return json({ error: `Tipo não permitido: ${file.type || "desconhecido"}` }, 400);
     }
 
@@ -101,7 +112,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
     const filename = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const storagePath = `${rule.prefix(user.id, entityId)}/${filename}`;
     const fileData = await file.arrayBuffer();
@@ -125,7 +135,7 @@ Deno.serve(async (req) => {
         creds,
         storagePath,
         fileData,
-        file.type || "application/octet-stream",
+        effectiveMime || file.type || "application/octet-stream",
         rule.bucket,
         isPdf
           ? {
