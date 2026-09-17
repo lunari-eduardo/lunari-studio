@@ -421,14 +421,13 @@ export default function VendaAvulsaPanel({ aberto, onFechar, onSucesso }: VendaA
         {/* Pagamento */}
         <section className="space-y-3">
           <SectionHeader label="Pagamento" />
-          <div className="flex items-center justify-between bg-muted/20 border border-border/50 rounded-lg p-3">
-            <PaidToggle
-              checked={registrarPagamento}
-              onChange={setRegistrarPagamento}
-              label="Recebido"
-              labelInactive="A receber"
-            />
-          </div>
+          <PaidToggle
+            checked={registrarPagamento}
+            onChange={setRegistrarPagamento}
+            label="Recebido"
+            labelInactive="A receber"
+            variant="segmented"
+          />
           
           {registrarPagamento && (
             <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2">

@@ -11,7 +11,8 @@ interface UseClienteFormStateProps {
   clientesSupabase: any[];
   clientMetrics: ClientMetrics[];
   adicionarClienteSupabase: (data: any) => Promise<any>;
-  atualizarClienteSupabase: (id: string, data: any) => Promise<any>;
+  adicionarClienteCompletoSupabase: (data: any) => Promise<any>;
+  atualizarClienteCompletoSupabase: (id: string, data: any) => Promise<any>;
   removerClienteSupabase: (id: string) => Promise<any>;
   verificarClienteTemDados: (id: string) => Promise<{ temDados: boolean; sessoes: number; pagamentos: number }>;
 }
@@ -20,7 +21,8 @@ export const useClienteFormState = ({
   clientesSupabase,
   clientMetrics,
   adicionarClienteSupabase,
-  atualizarClienteSupabase,
+  adicionarClienteCompletoSupabase,
+  atualizarClienteCompletoSupabase,
   removerClienteSupabase,
   verificarClienteTemDados,
 }: UseClienteFormStateProps) => {
@@ -139,11 +141,34 @@ export const useClienteFormState = ({
 
   const handleEditClient = (client: ClientMetrics) => {
     setEditingClient(client as Cliente);
+    
+    // Find the full client data from Supabase list
+    const fullClient = clientesSupabase.find(c => c.id === client.id);
+    
+    // Find family members (we need to map them from familia array)
+    const conjugeData = fullClient?.familia?.find((f: any) => f.tipo === 'conjuge');
+    const filhosData = fullClient?.familia?.filter((f: any) => f.tipo === 'filho') || [];
+    
     setFormData({
       nome: client.nome,
       email: client.email,
       telefone: client.telefone,
       origem: (client as any).origem || '',
+      whatsapp: fullClient?.whatsapp || '',
+      data_nascimento: fullClient?.data_nascimento || '',
+      cep: fullClient?.cep || '',
+      endereco: fullClient?.endereco || '',
+      endereco_numero: fullClient?.endereco_numero || '',
+      endereco_complemento: fullClient?.endereco_complemento || '',
+      bairro: fullClient?.bairro || '',
+      cidade: fullClient?.cidade || '',
+      uf: fullClient?.uf || '',
+      cpf_cnpj: fullClient?.cpf_cnpj || '',
+      observacoes: fullClient?.observacoes || '',
+      familia: {
+        conjuge: conjugeData ? { nome: conjugeData.nome, dataNascimento: conjugeData.data_nascimento } : undefined,
+        filhos: filhosData.map((f: any) => ({ id: f.id, nome: f.nome, dataNascimento: f.data_nascimento }))
+      }
     });
     setShowClientForm(true);
   };
@@ -196,10 +221,10 @@ export const useClienteFormState = ({
 
     try {
       if (editingClient) {
-        await atualizarClienteSupabase(editingClient.id, formData);
+        await atualizarClienteCompletoSupabase(editingClient.id, formData);
         toast.success('Cliente atualizado com sucesso');
       } else {
-        await adicionarClienteSupabase(formData);
+        await adicionarClienteCompletoSupabase(formData);
         toast.success('Cliente adicionado com sucesso');
       }
       setShowClientForm(false);

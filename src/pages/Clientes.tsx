@@ -15,7 +15,7 @@ import { useClienteFormState } from './clientes/hooks/useClienteFormState';
 import { ClientesTable } from './clientes/components/ClientesTable';
 import { ClientesGrid } from './clientes/components/ClientesGrid';
 import { ClientesPagination } from './clientes/components/ClientesPagination';
-import { ClienteFormDialog } from './clientes/components/ClienteFormDialog';
+import { ClienteFormDrawer } from './clientes/components/ClienteFormDrawer';
 
 export default function Clientes() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,7 +26,8 @@ export default function Clientes() {
     clientesSupabase,
     isLoadingSupabase,
     adicionarClienteSupabase,
-    atualizarClienteSupabase,
+    adicionarClienteCompletoSupabase,
+    atualizarClienteCompletoSupabase,
     removerClienteSupabase,
     verificarClienteTemDados,
     clientesLegacy,
@@ -78,7 +79,8 @@ export default function Clientes() {
     clientesSupabase,
     clientMetrics,
     adicionarClienteSupabase,
-    atualizarClienteSupabase,
+    adicionarClienteCompletoSupabase,
+    atualizarClienteCompletoSupabase,
     removerClienteSupabase,
     verificarClienteTemDados,
   });
@@ -205,8 +207,7 @@ export default function Clientes() {
           </div>
         )}
 
-        {/* Modal de Formulário */}
-        <ClienteFormDialog
+        <ClienteFormDrawer
           open={showClientForm}
           onOpenChange={handleModalClose}
           editingClient={editingClient}

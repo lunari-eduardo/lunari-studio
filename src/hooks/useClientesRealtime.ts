@@ -485,6 +485,57 @@ export function useClientesRealtime() {
     }
   }, [atualizarCliente, syncFamiliaData]);
 
+  const adicionarClienteCompleto = useCallback(async (
+    dadosCliente: any
+  ) => {
+    try {
+      const { conjuge, filhos, ...dadosBasicos } = dadosCliente;
+      
+      const FIELD_MAP: Record<string, keyof ClienteSupabase> = {
+        nome: 'nome',
+        email: 'email',
+        telefone: 'telefone',
+        whatsapp: 'whatsapp',
+        endereco: 'endereco',
+        observacoes: 'observacoes',
+        origem: 'origem',
+        dataNascimento: 'data_nascimento',
+        data_nascimento: 'data_nascimento',
+        cpf_cnpj: 'cpf_cnpj',
+        cep: 'cep',
+        endereco_numero: 'endereco_numero',
+        endereco_complemento: 'endereco_complemento',
+        bairro: 'bairro',
+        cidade: 'cidade',
+        uf: 'uf',
+      };
+
+      const insertData: any = {};
+      for (const [key, col] of Object.entries(FIELD_MAP)) {
+        if (key in dadosBasicos) {
+          const v = (dadosBasicos as any)[key];
+          if (col === 'nome' && (v === null || v === undefined || v === '')) continue;
+          insertData[col] = v === '' ? null : v;
+        }
+      }
+
+      const novoCliente = await adicionarCliente(insertData);
+
+      if (conjuge !== undefined || filhos !== undefined) {
+        await syncFamiliaData(
+          novoCliente.id,
+          conjuge || { nome: '', dataNascimento: '' },
+          filhos || []
+        );
+      }
+      return novoCliente;
+    } catch (error) {
+      console.error('❌ Erro ao adicionar cliente completo:', error);
+      toast.error('Erro ao adicionar cliente');
+      throw error;
+    }
+  }, [adicionarCliente, syncFamiliaData]);
+
   // ============= COMPUTED VALUES =============
   
   const clientesCompletos = useMemo((): ClienteCompleto[] => {
@@ -599,6 +650,7 @@ export function useClientesRealtime() {
     
     // Client operations
     adicionarCliente,
+    adicionarClienteCompleto,
     atualizarCliente,
     removerCliente,
     atualizarClienteCompleto,
