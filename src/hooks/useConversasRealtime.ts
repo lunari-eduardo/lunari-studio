@@ -409,12 +409,14 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
   );
 
   const markAsUnread = useCallback(async (chatId: string) => {
+    // Atualização otimista na interface
     setChats(prev =>
       prev.map(c =>
         c.id === chatId ? { ...c, unread_count: 1 } as Chat : c,
       ),
     );
 
+    // Atualiza o banco de dados diretamente (fallback visual imediato)
     const { error } = await supabase
       .from('conversas_chats')
       .update({ unread_count: 1, updated_at: new Date().toISOString() })
@@ -423,6 +425,22 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     if (error) {
       console.error('[Conversas] markAsUnread error:', error);
       toast.error('Erro ao marcar como não lido');
+    }
+
+    // Call our worker to mark as unread in Evolution API
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+        if (workerUrl) {
+          await fetch(`${workerUrl}/api/conversas/mark-unread/${chatId}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[Conversas] markAsUnread worker error:', error);
     }
   }, []);
 

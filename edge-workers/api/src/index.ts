@@ -28,6 +28,7 @@ import { conversasSyncChatsRoute } from './routes/conversas-sync-chats.js';
 import { conversasMessageRetryRoute } from './routes/conversas-message-retry.js';
 import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 import { conversasMarkReadRoute } from './routes/conversas-mark-read.js';
+import { conversasMarkUnreadRoute } from './routes/conversas-mark-unread.js';
 import { conversasMessageDeleteRoute } from './routes/conversas-message-delete.js';
 import { conversasMessageReactRoute } from './routes/conversas-message-react.js';
 import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
@@ -116,6 +117,7 @@ app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
 app.post('/api/conversas/sync-chats', conversasSyncChatsRoute);
 app.post('/api/conversas/fetch-avatar', conversasFetchAvatarRoute);
 app.post('/api/conversas/mark-read/:chatId', conversasMarkReadRoute);
+app.post('/api/conversas/mark-unread/:chatId', conversasMarkUnreadRoute);
 app.delete('/api/conversas/message/delete/:id', conversasMessageDeleteRoute);
 app.post('/api/conversas/message/react/:id', conversasMessageReactRoute);
 

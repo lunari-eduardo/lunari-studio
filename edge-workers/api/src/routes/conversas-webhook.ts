@@ -702,6 +702,7 @@ async function handleMessagesDelete(
 }
 
 async function handleChatsSet(
+  env: Bindings,
   supabase: any,
   payload: unknown,
   instance: ResolvedInstance,
@@ -719,7 +720,19 @@ async function handleChatsSet(
 
   for (const chat of chatsList) {
     const rawId = chat.remoteJid || chat.id || chat.jid || '';
-    if (!rawId || rawId.includes('status@broadcast') || !rawId.endsWith('@s.whatsapp.net')) continue;
+    
+    // Ignorar status@broadcast
+    if (!rawId || rawId.includes('status@broadcast')) continue;
+
+    // A Evolution v2.3.7 emite CHATS_UPDATE usando @lid e removendo todos os dados (incluindo unreadCount).
+    // Como não temos mapeamento de @lid para telefone nativamente sem buscar mensagens antigas, 
+    // e o unreadCount não vem no webhook de qualquer forma, descartamos explicitamente updates vazios de @lid.
+    if (rawId.endsWith('@lid') && chat.unreadCount === undefined && chat.unreadMessages === undefined) {
+      console.warn(`[conversas-webhook] Ignorando CHATS_UPDATE vazio com @lid (limitação Evolution v2.3.7): ${rawId}`);
+      continue;
+    }
+
+    if (!rawId.endsWith('@s.whatsapp.net')) continue;
 
     const phoneRaw = extractPhone(rawId);
     const normalized = normalizeBrPhone(phoneRaw);
@@ -875,7 +888,7 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
       case 'CHATS_SET':
       case 'CHATS_UPSERT':
       case 'CHATS_UPDATE':
-        await handleChatsSet(supabase, payload, instance);
+        await handleChatsSet(c.env, supabase, payload, instance);
         break;
 
       case 'MESSAGES_SET':
