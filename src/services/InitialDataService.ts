@@ -21,70 +21,33 @@ export class InitialDataService {
   private static initialized = false;
   
   /**
-   * Checks if user is new (no data in Supabase) and initializes default data
+   * Inicializa dados padrão apenas se todas as tabelas estiverem realmente vazias
+   * Recebe as coleções recém-carregadas para evitar queries redundantes
    */
-  static async initializeDefaultDataIfNeeded(): Promise<boolean> {
+  static async initializeDefaultDataIfEmpty(
+    userId: string,
+    categorias: any[],
+    pacotes: any[],
+    produtos: any[],
+    etapas: any[]
+  ): Promise<boolean> {
     if (this.initialized) return false;
     
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) {
-        console.log('🚀 User not authenticated, skipping initialization');
-        return false;
-      }
+      const isEmpty = categorias.length === 0 && pacotes.length === 0 && produtos.length === 0 && etapas.length === 0;
 
-      console.log('🚀 Checking if user needs default data initialization...');
-      
-      // Check if all tables are empty
-      const isEmpty = await this.isUserEmpty(user.user.id);
-      
       if (isEmpty) {
-        console.log('🚀 New user detected, initializing default data...');
-        await this.populateDefaultData(user.user.id);
+        console.log('🚀 New user detected (all arrays empty), initializing default data...');
+        await this.populateDefaultData(userId);
         this.initialized = true;
         return true;
       } else {
-        console.log('🚀 Existing user detected, skipping initialization');
         this.initialized = true;
         return false;
       }
     } catch (error) {
-      console.error('❌ Error in initializeDefaultDataIfNeeded:', error);
+      console.error('❌ Error in initializeDefaultDataIfEmpty:', error);
       return false;
-    }
-  }
-
-  /**
-   * Checks if user has any configuration data
-   */
-  private static async isUserEmpty(userId: string): Promise<boolean> {
-    try {
-      const [categorias, pacotes, produtos, etapas] = await Promise.all([
-        supabase.from('categorias').select('id', { count: 'exact' }).eq('user_id', userId).limit(1),
-        supabase.from('pacotes').select('id', { count: 'exact' }).eq('user_id', userId).limit(1),
-        supabase.from('produtos').select('id', { count: 'exact' }).eq('user_id', userId).limit(1),
-        supabase.from('etapas_trabalho').select('id', { count: 'exact' }).eq('user_id', userId).limit(1)
-      ]);
-
-      const isEmpty = (
-        (categorias.count === 0 || !categorias.data?.length) &&
-        (pacotes.count === 0 || !pacotes.data?.length) &&
-        (produtos.count === 0 || !produtos.data?.length) &&
-        (etapas.count === 0 || !etapas.data?.length)
-      );
-
-      console.log('🔍 User emptiness check:', {
-        categorias: categorias.count,
-        pacotes: pacotes.count,
-        produtos: produtos.count,
-        etapas: etapas.count,
-        isEmpty
-      });
-
-      return isEmpty;
-    } catch (error) {
-      console.error('❌ Error checking if user is empty:', error);
-      return false; // Assume not empty on error to avoid unnecessary initialization
     }
   }
 

@@ -17,11 +17,8 @@ import { WorkflowEventBridge } from "@/modules/workflow";
 import { WorkflowRealtimeBridge } from "@/features/workflow/realtime";
 import { TasksRealtimeBridge, AttachmentsRealtimeBridge } from "@/modules/tasks";
 import { FinanceRealtimeBridge } from "@/modules/finance";
-// Side-effect imports: registram capabilities e eventos nos módulos
-import "@/modules/billing";
-import "@/modules/gallery";
 
-import { usePricingBootstrap } from "./hooks/usePricingBootstrap";
+
 import { useAppForceUpdate } from "./hooks/useAppForceUpdate";
 import { usePWAUpdate } from "./hooks/usePWAUpdate";
 
@@ -42,6 +39,7 @@ const queryClient = new QueryClient({
       retry: (count, error) => isAuthError(error) && count < 2,
       retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 4000),
       refetchOnWindowFocus: false,
+      staleTime: 60000,
     },
   },
 });
@@ -55,7 +53,6 @@ function ContextFallback() {
 }
 
 function App() {
-  const { error: pricingError } = usePricingBootstrap();
   usePWAUpdate();
   useAppForceUpdate();
 
@@ -65,10 +62,7 @@ function App() {
     console.log(
       `🚀 Lunari 2.0 v${import.meta.env.VITE_APP_VERSION || "1.0.0"} - context=${context}`
     );
-    if (pricingError) {
-      console.warn("⚠️ Pricing system had initialization issues:", pricingError);
-    }
-  }, [context, pricingError]);
+  }, [context]);
 
   return (
     <RootErrorBoundary>

@@ -66,9 +66,6 @@ class ConfigurationService {
         
         // Executa migração completa se necessário
         await ConfigurationMigrationService.migrateAll();
-        
-        // Inicializa dados padrão se usuário for novo
-        await InitialDataService.initializeDefaultDataIfNeeded();
       } else {
         console.log('User not authenticated, using localStorage adapter only');
         this.asyncAdapter = null;

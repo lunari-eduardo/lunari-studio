@@ -12,6 +12,7 @@ import { EtapaEquipamentos } from '@/components/precificacao/EtapaEquipamentos';
 import { EtapaMetas } from '@/components/precificacao/EtapaMetas';
 import { EtapaCalculadora } from '@/components/precificacao/EtapaCalculadora';
 import { PricingProvider, usePricing } from '@/contexts/PricingContext';
+import { usePricingBootstrap } from '@/hooks/usePricingBootstrap';
 
 const ETAPAS = [
   { value: 'custos', label: 'Custos' },
@@ -22,6 +23,7 @@ const ETAPAS = [
 type EtapaValue = (typeof ETAPAS)[number]['value'];
 
 export default function Precificacao() {
+  const { error: pricingError } = usePricingBootstrap();
   const [custosFixosTotal, setCustosFixosTotal] = useState(0);
   const [precoFinalServico, setPrecoFinalServico] = useState(0);
   const [margemLucroDesejada, setMargemLucroDesejada] = useState(30);

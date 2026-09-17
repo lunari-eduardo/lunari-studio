@@ -44,26 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, nextSession) => {
         console.log('🔐 Auth event:', event, 'User:', nextSession?.user?.id || 'none');
         
-        // Bloqueio de acesso para contas em período de retenção
+        // Deixa apenas para logs e atualizações de estado padrão
         if (nextSession?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', nextSession.user.id)
-            .maybeSingle();
-
-          const accountStatus = (profile as any)?.account_status;
-
-          if (accountStatus === 'pending_deletion') {
-            console.log('🚫 Conta em período de retenção. Acesso negado.');
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            if (!window.location.pathname.includes('/auth')) {
-              window.location.href = '/auth?error=account_pending_deletion';
-            }
-            return;
-          }
+          // A verificação de account_status ocorrerá no loop principal de boot inicial (ensureFreshSession)
+          // ou em rotas/módulos específicos para evitar que isso atrase todo `onAuthStateChange`.
         }
 
         setSession(nextSession);
@@ -85,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (fresh?.user) {
           const { data: profile } = await supabase
             .from('profiles')
-            .select('*')
+            .select('account_status')
             .eq('id', fresh.user.id)
             .maybeSingle();
 

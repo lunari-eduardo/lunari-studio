@@ -1,13 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import Auth from "@/pages/Auth";
-import ResetPassword from "@/pages/ResetPassword";
-import NotFound from "@/pages/NotFound";
 
-import AdminUsuarios from "@/pages/AdminUsuarios";
-import AdminPlanos from "@/pages/AdminPlanos";
-import AdminConteudos from "@/pages/AdminConteudos";
-import AdminConteudoNovo from "@/pages/AdminConteudoNovo";
-import AdminConteudoEditar from "@/pages/AdminConteudoEditar";
 
 import { LunariSupportHostProvider } from "@/integrations/support-host";
 import { SupportAdminRoutes } from "@/modules/support";
@@ -17,15 +9,27 @@ import { AdminAuthGate } from "./components/AdminAuthGate";
 
 import DashboardPage from "./modules/dashboard/DashboardPage";
 import UsuariosLayout from "./modules/usuarios/UsuariosLayout";
-import AssinaturasPage from "./modules/usuarios/pages/AssinaturasPage";
-import EmailsAutorizadosPage from "./modules/usuarios/pages/EmailsAutorizadosPage";
-import IntegracoesPage from "./modules/usuarios/pages/IntegracoesPage";
-import EstrategiaPage from "./modules/usuarios/pages/EstrategiaPage";
 import StoragePage from "./modules/storage/StoragePage";
 import SistemaPage from "./modules/sistema/SistemaPage";
 import LogsPage from "./modules/audit-logs/LogsPage";
 import ConfiguracoesPage from "./modules/configuracoes/ConfiguracoesPage";
 import AssistantRolloutPage from "./modules/assistant-rollout/AssistantRolloutPage";
+
+
+
+const Auth = React.lazy(() => import("@/pages/Auth"));
+const ResetPassword = React.lazy(() => import("@/pages/ResetPassword"));
+const NotFound = React.lazy(() => import("@/pages/NotFound"));
+const AdminUsuarios = React.lazy(() => import("@/pages/AdminUsuarios"));
+const AdminPlanos = React.lazy(() => import("@/pages/AdminPlanos"));
+const AdminConteudos = React.lazy(() => import("@/pages/AdminConteudos"));
+const AdminConteudoNovo = React.lazy(() => import("@/pages/AdminConteudoNovo"));
+const AdminConteudoEditar = React.lazy(() => import("@/pages/AdminConteudoEditar"));
+const AssinaturasPage = React.lazy(() => import("./modules/usuarios/pages/AssinaturasPage"));
+const EmailsAutorizadosPage = React.lazy(() => import("./modules/usuarios/pages/EmailsAutorizadosPage"));
+const IntegracoesPage = React.lazy(() => import("./modules/usuarios/pages/IntegracoesPage"));
+const EstrategiaPage = React.lazy(() => import("./modules/usuarios/pages/EstrategiaPage"));
+
 
 /**
  * AdminApp — entry do subdomínio admin.lunarihub.com

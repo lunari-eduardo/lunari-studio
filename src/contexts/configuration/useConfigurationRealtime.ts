@@ -1,5 +1,6 @@
-﻿import { useEffect, useCallback, useRef, useMemo } from "react";
+import { useEffect, useCallback, useRef, useMemo } from "react";
 import { configurationService } from "@/services/ConfigurationService";
+import { InitialDataService } from "@/services/InitialDataService";
 import { useSupabaseRealtime } from "@/hooks/useSupabaseRealtime";
 import { realtimeSubscriptionManager } from "@/services/RealtimeSubscriptionManager";
 import type { Categoria, Pacote, Produto, EtapaTrabalho } from "@/types/configuration";
@@ -281,12 +282,26 @@ export function useConfigurationRealtime({
 
         await configurationService.initialize();
 
-        const [cats, pacs, prods, steps] = await Promise.all([
+        let [cats, pacs, prods, steps] = await Promise.all([
           configurationService.loadCategoriasAsync(),
           configurationService.loadPacotesAsync(),
           configurationService.loadProdutosAsync(),
           configurationService.loadEtapasAsync(),
         ]);
+
+        const populated = await InitialDataService.initializeDefaultDataIfEmpty(
+          currentUserId, cats, pacs, prods, steps
+        );
+
+        if (populated) {
+          // Se recém-populado, recarrega para pegar os IDs inseridos no Supabase
+          [cats, pacs, prods, steps] = await Promise.all([
+            configurationService.loadCategoriasAsync(),
+            configurationService.loadPacotesAsync(),
+            configurationService.loadProdutosAsync(),
+            configurationService.loadEtapasAsync(),
+          ]);
+        }
 
         categoriasOps.set(cats);
         pacotesOps.set(pacs);
