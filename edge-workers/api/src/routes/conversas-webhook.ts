@@ -706,7 +706,17 @@ async function handleChatsSet(
   payload: unknown,
   instance: ResolvedInstance,
 ) {
-  const chatsList = Array.isArray(payload) ? payload : Array.isArray((payload as any)?.chats) ? (payload as any).chats : [];
+  // CHATS_UPDATE (singular) chega como objeto único direto da Evolution v2.
+  // CHATS_SET/CHATS_UPSERT chegam como array ou { chats: [...] }.
+  // Normalizar para sempre iterar objeto por objeto.
+  const chatsList: any[] = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as any)?.chats)
+    ? (payload as any).chats
+    : payload && typeof payload === 'object'
+    ? [payload]
+    : [];
+
   for (const chat of chatsList) {
     const rawId = chat.remoteJid || chat.id || chat.jid || '';
     if (!rawId || rawId.includes('status@broadcast') || !rawId.endsWith('@s.whatsapp.net')) continue;
@@ -718,31 +728,47 @@ async function handleChatsSet(
       : phoneRaw;
 
     const pushName = chat.name || chat.pushName || null;
-    const unreadCount = chat.unreadMessages || chat.unreadCount;
+
+    // Resolved unread é o número autoritativo que o Lunari deve refletir.
+    // Protobuf Baileys/Evolution expõe apenas `unreadCount` (uint32) — não existe
+    // `unreadMessages`. Quando o usuário marca manualmente como não lido no
+    // celular, o Evolution pode mandar `markedAsUnread: true` sem incrementar
+    // `unreadCount` → nesse caso forçamos 1 para o badge aparecer.
+    const explicitCount = typeof chat.unreadCount === 'number' ? chat.unreadCount : null;
+    const markedAsUnread = chat.markedAsUnread === true;
+    const resolvedUnread: number | null =
+      explicitCount !== null
+        ? explicitCount
+        : markedAsUnread
+        ? 1
+        : null;
 
     const contatoId = await getOrCreateContato(supabase, instance.user_id, phoneNormalized, phoneRaw, pushName);
     if (!contatoId) continue;
 
     const chatId = await getOrCreateChat(supabase, instance.user_id, contatoId, instance.id, phoneNormalized, pushName);
-    
+
     const rawPinned = (chat as any)?.pinned ?? (chat as any)?.isPinned;
     const isPinnedFromWpp = rawPinned && (rawPinned === true || Number(rawPinned) > 0);
 
     if (chatId) {
       const updates: Record<string, any> = {};
-      if (typeof unreadCount === 'number') {
-        updates.unread_count = unreadCount;
+      if (resolvedUnread !== null) {
+        updates.unread_count = resolvedUnread;
       }
       if (isPinnedFromWpp) {
         updates.pin = 'pinned';
         updates.pin_origin = 'whatsapp';
       }
       if (Object.keys(updates).length > 0) {
-        await supabase
+        const { error } = await supabase
           .from('conversas_chats')
           .update(updates)
           .eq('id', chatId)
           .eq('user_id', instance.user_id);
+        if (error) {
+          console.error('[conversas-webhook] handleChatsSet update error:', error.message);
+        }
       }
     }
   }
