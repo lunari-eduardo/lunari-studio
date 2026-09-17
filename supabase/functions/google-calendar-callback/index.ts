@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encryptToken } from "../_shared/crypto.ts";
 
 const GOOGLE_CLIENT_ID = Deno.env.get('GOOGLE_CALENDAR_CLIENT_ID');
 const GOOGLE_CLIENT_SECRET = Deno.env.get('GOOGLE_CALENDAR_CLIENT_SECRET');
@@ -196,8 +197,8 @@ serve(async (req) => {
     const integrationPayload = {
       user_id: userId,
       provedor: 'google_calendar',
-      access_token: tokenData.access_token,
-      refresh_token: refreshToken,
+      access_token: await encryptToken(tokenData.access_token),
+      refresh_token: refreshToken ? await encryptToken(refreshToken) : null,
       expira_em: expiresAt,
       conectado_em: new Date().toISOString(),
       status: refreshToken ? 'ativo' : 'pendente',

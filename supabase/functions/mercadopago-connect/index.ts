@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encryptToken } from "../_shared/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,7 +40,6 @@ serve(async (req) => {
     console.log('[mercadopago-connect] User authenticated:', user.id);
 
     const body = await req.json();
-    console.log('[mercadopago-connect] Request body:', JSON.stringify(body));
 
     const { code, redirectUri, redirect_uri } = body;
     const finalRedirectUri = redirectUri || redirect_uri || `${supabaseUrl}/functions/v1/mercadopago-connect`;
@@ -84,25 +84,25 @@ serve(async (req) => {
 
     console.log('[mercadopago-connect] Token exchange successful, user_id:', mpResult.user_id);
 
-    // Save tokens to database
-    const integrationData = {
-      user_id: user.id,
-      provedor: 'mercadopago',
-      access_token: mpResult.access_token,
-      refresh_token: mpResult.refresh_token || null,
-      mp_user_id: String(mpResult.user_id),
-      mp_public_key: mpResult.public_key || null,
-      status: 'ativo',
-      conectado_em: new Date().toISOString(),
-      expira_em: mpResult.expires_in 
-        ? new Date(Date.now() + mpResult.expires_in * 1000).toISOString() 
-        : null,
-      dados_extras: {
-        scope: mpResult.scope,
-        token_type: mpResult.token_type,
-        live_mode: mpResult.live_mode,
-      },
-    };
+      // Save tokens to database (encrypted)
+      const integrationData = {
+        user_id: user.id,
+        provedor: 'mercadopago',
+        access_token: await encryptToken(mpResult.access_token),
+        refresh_token: mpResult.refresh_token ? await encryptToken(mpResult.refresh_token) : null,
+        mp_user_id: String(mpResult.user_id),
+        mp_public_key: mpResult.public_key || null,
+        status: 'ativo',
+        conectado_em: new Date().toISOString(),
+        expira_em: mpResult.expires_in 
+          ? new Date(Date.now() + mpResult.expires_in * 1000).toISOString() 
+          : null,
+        dados_extras: {
+          scope: mpResult.scope,
+          token_type: mpResult.token_type,
+          live_mode: mpResult.live_mode,
+        },
+      };
 
     const { data: integration, error: insertError } = await supabase
       .from('usuarios_integracoes')

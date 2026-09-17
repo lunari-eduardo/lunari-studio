@@ -220,11 +220,17 @@ export const useClienteFormState = ({
     }
 
     try {
+      const payload = {
+        ...formData,
+        conjuge: formData.familia?.conjuge,
+        filhos: formData.familia?.filhos,
+      };
+      
       if (editingClient) {
-        await atualizarClienteCompletoSupabase(editingClient.id, formData);
+        await atualizarClienteCompletoSupabase(editingClient.id, payload);
         toast.success('Cliente atualizado com sucesso');
       } else {
-        await adicionarClienteCompletoSupabase(formData);
+        await adicionarClienteCompletoSupabase(payload);
         toast.success('Cliente adicionado com sucesso');
       }
       setShowClientForm(false);

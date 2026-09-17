@@ -39,6 +39,7 @@ import {
 } from "npm:ai@^5";
 import { createOpenAICompatible } from "npm:@ai-sdk/openai-compatible@^1";
 import { createGoogleGenerativeAI } from "npm:@ai-sdk/google@^2";
+import { decryptToken } from "../_shared/crypto.ts";
 import {
   createLovableAiGatewayProvider,
   getLovableAiGatewayResponseHeaders,
@@ -213,9 +214,9 @@ Deno.serve(async (req) => {
     .select("api_key")
     .eq("provider_name", providerName)
     .maybeSingle();
-  if (keyErr) console.log("[assistant-chat] ⚠ Erro ao buscar chave:", keyErr.message);
+  if (keyErr) console.log("[assistant-chat] ❌ Erro ao buscar chave:", keyErr.message);
 
-  const apiKey = keyRow?.api_key;
+  const apiKey = keyRow?.api_key ? await decryptToken(keyRow.api_key) : undefined;
   console.log(`[assistant-chat] ✓ Chave no cofre: ${apiKey ? `${apiKey.length} chars, prefixo='${apiKey.slice(0, 6)}...'` : 'NÃO ENCONTRADA'}`);
 
   // Validação mínima de API Key

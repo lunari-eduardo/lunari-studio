@@ -1,5 +1,6 @@
 // Shared helpers for Google Calendar sync edge functions
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encryptToken, decryptToken } from "./crypto.ts";
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,12 +103,13 @@ export async function ensureValidAccessToken(
   const expiresAt = integration.expira_em ? new Date(integration.expira_em) : new Date(0);
   // Refresh 60s antes para evitar borda
   if (expiresAt.getTime() - 60_000 > Date.now()) {
-    return { accessToken: integration.access_token, revoked: false };
+    return { accessToken: await decryptToken(integration.access_token), revoked: false };
   }
 
   const clientId = Deno.env.get('GOOGLE_CALENDAR_CLIENT_ID')!;
   const clientSecret = Deno.env.get('GOOGLE_CALENDAR_CLIENT_SECRET')!;
-  const result = await refreshAccessToken(integration.refresh_token, clientId, clientSecret);
+  const decryptedRefreshToken = integration.refresh_token ? await decryptToken(integration.refresh_token) : '';
+  const result = await refreshAccessToken(decryptedRefreshToken, clientId, clientSecret);
 
   if (!result.accessToken) {
     if (result.error === 'token_revoked') {
@@ -167,7 +169,7 @@ export async function ensureValidAccessToken(
   await supabase
     .from('usuarios_integracoes')
     .update({
-      access_token: result.accessToken,
+      access_token: await encryptToken(result.accessToken),
       expira_em: newExpiry,
       dados_extras: cleanedExtras,
       updated_at: new Date().toISOString(),

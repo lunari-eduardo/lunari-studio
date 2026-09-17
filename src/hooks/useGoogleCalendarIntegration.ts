@@ -63,7 +63,7 @@ export function useGoogleCalendarIntegration(): UseGoogleCalendarReturn {
       // Fetch integration status
       const { data, error } = await supabase
         .from('usuarios_integracoes')
-        .select('*')
+        .select('id, provedor, status, conectado_em, expira_em, dados_extras')
         .eq('user_id', user.id)
         .eq('provedor', 'google_calendar')
         .maybeSingle();

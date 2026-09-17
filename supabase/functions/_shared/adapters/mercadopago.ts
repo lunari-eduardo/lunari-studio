@@ -3,6 +3,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { AdapterCreatePaymentInput, AdapterCreatePaymentOutput } from "../payment-types.ts";
+import { decryptToken } from "../crypto.ts";
 
 function cleanEmail(v?: string | null): string | undefined {
   if (!v) return undefined;
@@ -42,7 +43,7 @@ export async function createMercadoPagoPayment(
       };
     }
 
-    accessToken = integ.access_token;
+    accessToken = await decryptToken(integ.access_token);
     dadosExtras = integ.dados_extras;
   }
 

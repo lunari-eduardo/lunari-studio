@@ -45,6 +45,109 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
+
+    // ─── ACTION: Definir chave do assistente (Cofre IA) ───
+    if (body.action === "set_assistant_key") {
+      const { provider_name, api_key, model_id } = body;
+      if (!provider_name) {
+        return new Response(JSON.stringify({ error: "provider_name required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let encryptedKey = "";
+      if (api_key) {
+        encryptedKey = await encryptToken(api_key.trim());
+      }
+
+      const { error: rpcError } = await supabase.rpc("set_assistant_provider_key", {
+        p_provider_name: provider_name,
+        p_api_key: encryptedKey,
+        p_model_id: model_id,
+      });
+
+      if (rpcError) throw rpcError;
+
+      return new Response(JSON.stringify({ ok: true, success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── ACTION: Executar Backfill de Criptografia ───
+    if (body.action === "run_backfill") {
+      // 1. Migrar tokens de usuários (usuarios_integracoes)
+      const { data: userIntegrations, error: uiErr } = await admin
+        .from("usuarios_integracoes")
+        .select("id, access_token, refresh_token");
+      if (uiErr) throw uiErr;
+
+      let uiCount = 0;
+      for (const row of (userIntegrations || [])) {
+        let changed = false;
+        const updates: any = {};
+        const at = row.access_token?.trim();
+        if (at && !at.startsWith("enc:v1:")) {
+          updates.access_token = await encryptToken(at);
+          changed = true;
+        }
+        const rt = row.refresh_token?.trim();
+        if (rt && !rt.startsWith("enc:v1:")) {
+          updates.refresh_token = await encryptToken(rt);
+          changed = true;
+        }
+        if (changed) {
+          const { error: upErr } = await admin.from("usuarios_integracoes").update(updates).eq("id", row.id);
+          if (!upErr) uiCount++;
+        }
+      }
+
+      // 2. Migrar platform_integrations
+      const { data: platformRows, error: pErr } = await admin
+        .from("platform_integrations")
+        .select("id, api_key")
+        .not("api_key", "is", null);
+      if (pErr) throw pErr;
+
+      let platformCount = 0;
+      for (const row of (platformRows || [])) {
+        const k = row.api_key?.trim();
+        if (k && !k.startsWith("enc:v1:")) {
+          const encrypted = await encryptToken(k);
+          const { error: upErr } = await admin.from("platform_integrations").update({ api_key: encrypted }).eq("id", row.id);
+          if (!upErr) platformCount++;
+        }
+      }
+
+      // 3. Migrar assistant_provider_keys
+      const { data: assistantRows, error: aErr } = await admin
+        .from("assistant_provider_keys")
+        .select("provider_name, api_key")
+        .not("api_key", "is", null);
+      if (aErr) throw aErr;
+
+      let assistantCount = 0;
+      for (const row of (assistantRows || [])) {
+        const k = row.api_key?.trim();
+        if (k && !k.startsWith("enc:v1:")) {
+          const encrypted = await encryptToken(k);
+          const { error: upErr } = await admin.from("assistant_provider_keys").update({ api_key: encrypted }).eq("provider_name", row.provider_name);
+          if (!upErr) assistantCount++;
+        }
+      }
+
+      return new Response(JSON.stringify({
+        ok: true,
+        message: "Backfill concluído com sucesso",
+        migrated: {
+          usuarios_integracoes: uiCount,
+          platform_integrations: platformCount,
+          assistant_provider_keys: assistantCount,
+        }
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const provider = String(body.provider || "asaas");
     const scope = String(body.scope || "subscriptions");
     const environment = body.environment === "production" ? "production" : "sandbox";

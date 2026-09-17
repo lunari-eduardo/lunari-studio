@@ -200,10 +200,13 @@ export default function AssistantRolloutPage() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.rpc("set_assistant_provider_key", {
-      p_provider_name: apiProvider,
-      p_api_key: apiKey.trim(),
-      p_model_id: apiModel,
+    const { error } = await supabase.functions.invoke("admin-platform-integration-upsert", {
+      body: {
+        action: "set_assistant_key",
+        provider_name: apiProvider,
+        api_key: apiKey.trim(),
+        model_id: apiModel,
+      },
     });
     setSaving(false);
     if (error) {
