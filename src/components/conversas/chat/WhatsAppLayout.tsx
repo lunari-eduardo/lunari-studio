@@ -4,11 +4,12 @@
  * Gerencia o estado de seleção de chat e visibilidade mobile.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversas } from '@/hooks/useConversasRealtime';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import type { EnrichedChat } from '@/modules/conversas/types';
 
 export interface WhatsAppLayoutProps {
@@ -34,6 +35,14 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     syncHistoricalChats,
     isPinLimitReached,
   } = useConversas();
+
+  const { profile } = useUserProfile();
+  // Nome amigável para a barra de instância conectado (perfil.empresa ?? perfil.nome).
+  // Evita exibir o nome técnico da Evolution API (ex.: "lunari-94f289c3").
+  const studioDisplayName = useMemo(
+    () => profile?.empresa?.trim() || profile?.nome?.trim() || null,
+    [profile?.empresa, profile?.nome],
+  );
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
@@ -89,6 +98,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
           }}
           isRefreshingQr={false}
           onNewChat={onNewChat}
+          studioDisplayName={studioDisplayName}
           onSyncChats={async () => {
             if (!connectedInstance) return;
             setIsSyncing(true);

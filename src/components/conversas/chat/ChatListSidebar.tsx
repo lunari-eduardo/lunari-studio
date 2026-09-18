@@ -43,6 +43,8 @@ export interface ChatListSidebarProps {
   onDisconnect?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
+  /** Nome amigável do estúdio (perfil.empresa ?? perfil.nome) usado na barra de instância. */
+  studioDisplayName?: string | null;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
   isPinLimitReached?: boolean;
   /** Contadores dinâmicos para os filtros primários. */
@@ -72,6 +74,7 @@ export function ChatListSidebar({
   onDisconnect,
   onSyncChats,
   isSyncingChats,
+  studioDisplayName,
   onTogglePin,
   isPinLimitReached = false,
   chatCounts,
@@ -133,6 +136,7 @@ export function ChatListSidebar({
           onDisconnect={onDisconnect}
           onSyncChats={onSyncChats}
           isSyncingChats={isSyncingChats}
+          displayName={studioDisplayName}
         />
       ) : null}
 

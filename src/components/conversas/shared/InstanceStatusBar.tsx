@@ -28,6 +28,12 @@ export interface InstanceStatusBarProps {
   onDisconnect?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
+  /**
+   * Nome amigável exibido quando o WhatsApp está conectado (sobrescreve o telefone).
+   * Tipicamente `profile.empresa ?? profile.nome`. Se ausente, cai no telefone
+   * formatado e, em último caso, no `instanceName` cru.
+   */
+  displayName?: string | null;
 }
 
 export function InstanceStatusBar({
@@ -39,6 +45,7 @@ export function InstanceStatusBar({
   onDisconnect,
   onSyncChats,
   isSyncingChats,
+  displayName,
 }: InstanceStatusBarProps) {
   const connected = status === 'connected';
   const connecting = status === 'connecting';
@@ -49,18 +56,16 @@ export function InstanceStatusBar({
       ? 'bg-amber-500'
       : 'bg-red-500';
 
-  const label = connected
-    ? 'Conectado'
-    : connecting
-      ? 'Conectando…'
-      : status === 'error'
-        ? 'Erro de conexão'
-        : 'Sem instância conectada';
+  // Conectado: prioriza displayName (estúdio) > telefone formatado > nome técnico da instância.
+  // Desconectado: prioriza displayName (estúdio) > nome técnico da instância.
+  const resolvedLabel = connected
+    ? (displayName?.trim() || (phone ? formatPhone(phone) : instanceName))
+    : (displayName?.trim() || instanceName);
 
   return (
-    <div className="px-3 py-1.5 border-b border-border/60 bg-background/80">
+    <div className="px-3 py-2 border-b border-border/60 bg-background/80">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div className="relative flex items-center justify-center h-2 w-2 flex-shrink-0">
             <span
               className={cn(
@@ -71,11 +76,12 @@ export function InstanceStatusBar({
             />
             <span className={cn('relative inline-flex h-2 w-2 rounded-full', dotColor)} />
           </div>
-          <span className="text-[11px] font-medium text-foreground/80 truncate">{label}</span>
           {connected ? (
-            <Wifi className="h-3 w-3 text-emerald-500 flex-shrink-0" />
+            <span className="text-[12px] font-medium text-foreground/85 truncate">
+              {resolvedLabel}
+            </span>
           ) : (
-            <WifiOff className="h-3 w-3 text-red-500/60 flex-shrink-0" />
+            <span className="text-[12px] font-medium text-foreground/85 truncate">{resolvedLabel}</span>
           )}
         </div>
 
@@ -136,15 +142,11 @@ export function InstanceStatusBar({
         </div>
       </div>
 
-      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground/70 truncate">
-        <span className="truncate font-medium">{instanceName}</span>
-        {connected && phone ? (
-          <>
-            <span>·</span>
-            <span className="truncate">{formatPhone(phone)}</span>
-          </>
-        ) : null}
-      </div>
+      {!connected && phone ? (
+        <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 truncate pl-3.5">
+          <span className="truncate">{formatPhone(phone)}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

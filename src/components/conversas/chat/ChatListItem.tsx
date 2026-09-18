@@ -81,24 +81,33 @@ export const ChatListItem = React.memo(function ChatListItem({
       onClick={onClick}
       className={cn(
         'group relative w-full max-w-full overflow-hidden',
-        'flex items-center gap-3 px-3 py-2.5',
-        'text-left transition-all',
+        // pl-5 reserva espaço à esquerda para o marcador lateral (não invade o avatar).
+        // Em ativo, a borda esquerda dourada vira o marcador de seleção.
+        'flex items-center gap-3.5 pr-3 py-3',
         isActive
-          ? 'bg-zinc-100/80 dark:bg-zinc-800/80 border-l-2 border-zinc-900 dark:border-zinc-100'
-          : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40',
+          ? 'pl-6 bg-amber-50/60 dark:bg-amber-900/15 border-l-2 border-amber-400/70 dark:border-amber-500/60'
+          : isUnread
+          ? 'pl-5 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
+          : 'pl-5 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60',
+        'text-left transition-all',
       )}
     >
-      {/* Indicador de não lida: barra vertical à esquerda */}
+      {/* Marcador lateral de não lida: barra vertical fina na borda esquerda,
+          separada do avatar, sempre visível. Não representa presença/online.
+          Coexiste com a borda dourada quando o item também está ativo. */}
       {isUnread && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-9 w-[3px] rounded-r-full bg-zinc-900 dark:bg-zinc-100" />
+        <span
+          aria-hidden
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-emerald-500/85 dark:bg-emerald-400/90"
+        />
       )}
 
-      {/* Avatar */}
+      {/* Avatar — permanece limpo, sem nenhum indicador sobreposto */}
       <ContactAvatar
         phone={chat.contato_phone_normalized}
         name={chat.contato_nome}
         src={avatar}
-        size="md"
+        size="lg"
       />
 
       {/* Conteúdo: nome + preview */}
@@ -111,7 +120,7 @@ export const ChatListItem = React.memo(function ChatListItem({
             )}
             <span
               className={cn(
-                'truncate text-[13px] block leading-tight',
+                'truncate text-sm block leading-tight',
                 isUnread ? 'font-semibold text-zinc-800 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-200',
               )}
             >
@@ -137,7 +146,7 @@ export const ChatListItem = React.memo(function ChatListItem({
         <div className="flex items-center justify-between gap-2 mt-0.5">
           <span
             className={cn(
-              'truncate text-[12px] leading-tight block',
+              'truncate text-[13px] leading-tight block',
               isUnread ? 'text-zinc-600 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-500',
             )}
           >
@@ -146,9 +155,9 @@ export const ChatListItem = React.memo(function ChatListItem({
               : chat.ultima_mensagem ?? 'Sem mensagens ainda'}
           </span>
 
-          {/* Ações: badge de unread + pin + menu */}
-          <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* Badge de não lida */}
+          {/* Ações: badge de unread + menu */}
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {/* Badge de não lida — sempre visível */}
             {isUnread && (
               <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[10px] font-semibold mr-0.5">
                 {unread > 99 ? '99+' : unread}
