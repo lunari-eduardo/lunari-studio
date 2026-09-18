@@ -7,6 +7,7 @@ export async function mediaDownloadRoute(c: Context<{ Bindings: Bindings }>) {
   try {
     const url = new URL(c.req.url);
     const storagePath = url.searchParams.get("path");
+    
     const expStr = url.searchParams.get("exp");
     const sig = url.searchParams.get("sig");
 

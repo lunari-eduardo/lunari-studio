@@ -45,7 +45,29 @@ export async function conversasMarkUnreadRoute(c: Context<{ Bindings: Bindings }
 
     const remoteJid = `${chat.contato_phone_normalized}@s.whatsapp.net`;
 
-    // 3. Send to Evolution API
+    // 3. Fetch the last message for this chat (required by Evolution v2.3.7 to mark unread)
+    const { data: lastMessage, error: msgError } = await supabase
+      .from('conversas_mensagens')
+      .select('evolution_msg_id, direction, timestamp')
+      .eq('chat_id', chat.id)
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .single();
+
+    let evolutionBody: any = { number: remoteJid };
+
+    if (lastMessage) {
+      evolutionBody.lastMessage = {
+        key: {
+          id: lastMessage.evolution_msg_id,
+          fromMe: lastMessage.direction === 'outbound',
+          remoteJid: remoteJid
+        },
+        messageTimestamp: Math.floor(new Date(lastMessage.timestamp).getTime() / 1000)
+      };
+    }
+
+    // 4. Send to Evolution API
     const evoUrl = c.env.EVOLUTION_API_URL;
     const evoKey = c.env.EVOLUTION_API_KEY;
 
@@ -56,7 +78,7 @@ export async function conversasMarkUnreadRoute(c: Context<{ Bindings: Bindings }
           'Content-Type': 'application/json',
           'apikey': evoKey,
         },
-        body: JSON.stringify({ number: remoteJid }),
+        body: JSON.stringify(evolutionBody),
       });
 
       if (!response.ok) {
@@ -64,7 +86,7 @@ export async function conversasMarkUnreadRoute(c: Context<{ Bindings: Bindings }
       }
     }
 
-    // 4. Update DB: Set chat unread_count to 1
+    // 5. Update DB: Set chat unread_count to 1
     await supabase.from('conversas_chats')
       .update({ unread_count: 1 })
       .eq('id', chat.id);
