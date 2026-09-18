@@ -112,13 +112,13 @@ export function MessageComposer({
   const canSend = text.trim().length > 0 && !sending && !disabled;
 
   return (
-    <div className="flex flex-col bg-[#f0f2f5] dark:bg-[#202c33] border-t border-zinc-200 dark:border-zinc-800">
+    <div className="flex flex-col bg-[#F5F5F5] dark:bg-[#181818] border-t border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)]">
       {/* Banner de Citação / Resposta (Fase P3) */}
       {replyingTo && (
-        <div className="flex items-center justify-between px-4 py-2 bg-white/80 dark:bg-[#1f2c33]/80 border-b border-zinc-200/60 dark:border-zinc-700/60 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="flex items-center gap-2 border-l-[3.5px] border-[#C9A87C] dark:border-[#056162] pl-2.5 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-[#181818] border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-2 border-l-[3.5px] border-[#C9A87C] pl-2.5 overflow-hidden">
             <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-semibold text-[#9A7F52] dark:text-[#7ba7a0] truncate">
+              <span className="text-[11px] font-semibold text-[#C9A87C] truncate">
                 Respondendo a {replyingTo.direction === 'outbound' ? 'Você' : 'Contato'}
               </span>
               <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate max-w-[400px]">
@@ -156,7 +156,7 @@ export function MessageComposer({
         </div>
       )}
 
-      <div className="flex-1 bg-white dark:bg-[#1f2c33] rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center min-h-[42px] overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-[#181818] rounded-2xl border border-[rgba(0,0,0,0.04)] dark:border-transparent shadow-sm flex items-center min-h-[42px] overflow-hidden">
         {isRecording ? (
           <div className="flex items-center gap-3 w-full px-4 text-red-500 dark:text-red-400 animate-in fade-in">
             <Mic className="h-5 w-5 animate-pulse" />
@@ -172,7 +172,7 @@ export function MessageComposer({
             placeholder="Mensagem"
             rows={1}
             disabled={disabled}
-            className="w-full resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50 focus:ring-1 focus:ring-[#C9A87C] rounded-2xl"
             style={{ maxHeight: MAX_HEIGHT }}
           />
         )}
@@ -191,7 +191,7 @@ export function MessageComposer({
             <button
               type="button"
               onClick={handleSaveOnly}
-              className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white dark:bg-[#1f2c33] border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-xs font-medium"
+              className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white dark:bg-[#181818] border border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs font-medium"
               title="Salvar na biblioteca sem enviar"
             >
               <Mic className="h-3.5 w-3.5" />

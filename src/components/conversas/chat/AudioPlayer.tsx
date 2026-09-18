@@ -188,7 +188,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       <div className="flex-1 flex flex-col justify-center min-w-0">
         <div className="relative flex items-center h-4 w-full">
           {/* Barra de fundo */}
-          <div className="h-1.5 w-full bg-zinc-200/90 rounded-full overflow-hidden">
+          <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#C9A87C] rounded-full transition-all duration-75"
               style={{ width: `${Math.min(progress, 100)}%` }}
@@ -226,7 +226,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       <button
         type="button"
         onClick={toggleSpeed}
-        className="shrink-0 px-2 py-0.5 rounded-full bg-black/5 hover:bg-black/10 text-[11px] font-semibold text-zinc-700 transition-colors select-none"
+        className="shrink-0 px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-colors select-none"
         title="Velocidade de reprodução"
       >
         {playbackRate}x

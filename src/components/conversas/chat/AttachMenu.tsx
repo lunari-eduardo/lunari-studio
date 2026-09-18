@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FileText, Image as ImageIcon, Paperclip, UserPlus, Video, Sticker, AudioLines } from 'lucide-react';
@@ -47,34 +48,86 @@ export function AttachMenu({ onAttach, onOpenAudiosSalvos }: AttachMenuProps) {
           <button
             type="button"
             aria-label="Anexar"
-            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-zinc-600"
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition-colors text-zinc-600 dark:text-zinc-400"
           >
             <Paperclip className="h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="mb-2">
-          <DropdownMenuItem onSelect={() => handleFile(imageRef, 'image')}>
-            <ImageIcon className="h-4 w-4 mr-2" /> Foto
+        <DropdownMenuContent
+          side="top"
+          align="start"
+          sideOffset={6}
+          className="dark:bg-[#1A1A1A] dark:border-[rgba(255,255,255,0.08)]"
+        >
+          <DropdownMenuItem
+            onSelect={() => handleFile(imageRef, 'image')}
+            className="gap-2.5 cursor-pointer dark:hover:bg-white/[0.07]"
+          >
+            <ImageIcon className="h-4 w-4 text-[#C9A87C] shrink-0" />
+            <div>
+              <div className="text-xs font-medium dark:text-zinc-200">Imagem</div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-500">da galeria</div>
+            </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => handleFile(videoRef, 'video')}>
-            <Video className="h-4 w-4 mr-2" /> Vídeo
+
+          <DropdownMenuItem
+            onSelect={() => handleFile(videoRef, 'video')}
+            className="gap-2.5 cursor-pointer dark:hover:bg-white/[0.07]"
+          >
+            <Video className="h-4 w-4 text-[#C9A87C] shrink-0" />
+            <div>
+              <div className="text-xs font-medium dark:text-zinc-200">Vídeo</div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-500">da galeria</div>
+            </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => handleFile(stickerRef, 'sticker')}>
-            <Sticker className="h-4 w-4 mr-2" /> Figurinha
+
+          <DropdownMenuItem
+            onSelect={() => handleFile(stickerRef, 'sticker')}
+            className="gap-2.5 cursor-pointer dark:hover:bg-white/[0.07]"
+          >
+            <Sticker className="h-4 w-4 text-[#C9A87C] shrink-0" />
+            <div>
+              <div className="text-xs font-medium dark:text-zinc-200">Figurinha</div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-500">WEBP ou PNG</div>
+            </div>
           </DropdownMenuItem>
+
           {onOpenAudiosSalvos && (
-            <DropdownMenuItem onSelect={onOpenAudiosSalvos}>
-              <AudioLines className="h-4 w-4 mr-2" /> Áudio salvo
+            <DropdownMenuItem
+              onSelect={onOpenAudiosSalvos}
+              className="gap-2.5 cursor-pointer dark:hover:bg-white/[0.07]"
+            >
+              <AudioLines className="h-4 w-4 text-zinc-500 dark:text-zinc-400 shrink-0" />
+              <div>
+                <div className="text-xs font-medium dark:text-zinc-200">Áudios salvos</div>
+                <div className="text-[10px] text-zinc-500 dark:text-zinc-500">minha biblioteca</div>
+              </div>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={() => handleFile(docRef, 'document')}>
-            <FileText className="h-4 w-4 mr-2" /> Documento
+
+          <DropdownMenuSeparator className="dark:bg-[rgba(255,255,255,0.06)]" />
+
+          <DropdownMenuItem
+            onSelect={() => handleFile(docRef, 'document')}
+            className="gap-2.5 cursor-pointer dark:hover:bg-white/[0.07]"
+          >
+            <FileText className="h-4 w-4 text-[#C9A87C] shrink-0" />
+            <div>
+              <div className="text-xs font-medium dark:text-zinc-200">Documento</div>
+              <div className="text-[10px] text-zinc-500 dark:text-zinc-500">PDF, Word, planilha...</div>
+            </div>
           </DropdownMenuItem>
+
           <DropdownMenuItem
             onSelect={() => onAttach(new File([], ''), 'contact')}
             disabled
+            className="gap-2.5 cursor-not-allowed opacity-50"
           >
-            <UserPlus className="h-4 w-4 mr-2" /> Contato (em breve)
+            <UserPlus className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
+            <div>
+              <div className="text-xs font-medium dark:text-zinc-400 dark:text-zinc-500">Contato</div>
+              <div className="text-[10px] text-zinc-400 dark:text-zinc-500">em breve</div>
+            </div>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

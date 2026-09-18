@@ -5,19 +5,136 @@
  */
 
 import { useState } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
 import { useConversasStickers } from '@/hooks/useConversasStickers';
 
+const MONTHS_PT_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+/** Data completa em pt-BR: "12 de set de 2024 • 14:32" */
+function formatFullDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const month = MONTHS_PT_SHORT[d.getMonth()];
+  const year = d.getFullYear();
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${day} de ${month} de ${year} • ${time}`;
+}
+
+/** 1234567 → "1.2 MB" */
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes < 0) return '';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let n = bytes;
+  let u = 0;
+  while (n >= 1024 && u < units.length - 1) {
+    n /= 1024;
+    u++;
+  }
+  return `${n.toFixed(n < 10 && u > 0 ? 1 : 0)} ${units[u]}`;
+}
+
+/** Detecta URLs no texto e divide em segmentos. */
+type Segment = { text: string; isUrl: boolean };
+const URL_REGEX = /((?:https?:\/\/|www\.)[^\s]+)/gi;
+
+function parseSegments(text: string): Segment[] {
+  const parts: Segment[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  URL_REGEX.lastIndex = 0;
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > last) parts.push({ text: text.slice(last, match.index), isUrl: false });
+    parts.push({ text: match[0], isUrl: true });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last), isUrl: false });
+  return parts;
+}
+
+/** Renderiza texto com URLs clicáveis. */
+function MessageText({ content, className }: { content: string; className?: string }) {
+  const segments = parseSegments(content);
+  if (segments.length === 0) return null;
+  return (
+    <span className={className}>
+      {segments.map((seg, i) =>
+        seg.isUrl ? (
+          <a
+            key={i}
+            href={seg.text}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="text-[#C9A87C] underline hover:text-[#b89567] break-all"
+          >
+            {seg.text}
+          </a>
+        ) : (
+          <span key={i}>{seg.text}</span>
+        )
+      )}
+    </span>
+  );
+}
+
+/** Player de vídeo com thumbnail + overlay de play; controls nativos no clique. */
+function VideoPlayer({ src, mime, isPending }: { src: string; mime?: string; isPending?: boolean }) {
+  const [playing, setPlaying] = useState(false);
+  if (playing) {
+    return (
+      <video
+        controls
+        autoPlay
+        className="rounded-lg max-w-full sm:max-w-[280px] max-h-[300px] bg-black block"
+        onEnded={() => setPlaying(false)}
+      >
+        <source src={src} type={mime || 'video/mp4'} />
+      </video>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setPlaying(true)}
+      className="relative group/video rounded-lg overflow-hidden max-w-full sm:max-w-[280px] block cursor-pointer"
+    >
+      <video
+        src={src}
+        className={cn(
+          'block w-full max-h-[300px] bg-black object-cover',
+          isPending && 'opacity-70'
+        )}
+        preload="metadata"
+        muted
+        playsInline
+      />
+      {/* Overlay com play */}
+      <div className="absolute inset-0 bg-black/25 flex items-center justify-center group-hover/video:bg-black/40 transition-colors">
+        <div className="h-12 w-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md group-hover/video:scale-110 transition-transform">
+          <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#1C1C1C] fill-current ml-0.5">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      </div>
+      {isPending && (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-white" />
+        </div>
+      )}
+    </button>
+  );
+}
+
 function FloatingPalette({ onReact, close }: { onReact: (emoji: string) => void, close: () => void }) {
   const emojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1 bg-white/95 dark:bg-zinc-800/95 backdrop-blur-md rounded-full shadow-lg border border-zinc-200/80 dark:border-zinc-700/80 z-50 animate-in fade-in zoom-in-95 duration-150 select-none">
+    <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1 bg-white dark:bg-[#242424] backdrop-blur-md rounded-full shadow-lg border border-[rgba(0,0,0,0.08)] dark:border-[rgba(255,255,255,0.08)] z-50 animate-in fade-in zoom-in-95 duration-150 select-none">
       {emojis.map((e) => (
         <button
           key={e}
@@ -56,15 +173,15 @@ export interface MessageBubbleProps {
 function StatusIcon({ status }: { status?: MessageStatus }) {
   switch (status) {
     case 'pending':
-      return <Clock className="h-3 w-3 text-zinc-500" />;
+      return <Clock className="h-3 w-3 text-zinc-400" />;
     case 'failed':
       return <AlertCircle className="h-3 w-3 text-red-500" />;
     case 'read':
-      return <CheckCheck className="h-3.5 w-3.5 text-[#53bdeb]" />;
+      return <CheckCheck className="h-3.5 w-3.5 text-[#C9A87C]" />;
     case 'delivered':
-      return <CheckCheck className="h-3.5 w-3.5 text-zinc-500" />;
+      return <CheckCheck className="h-3.5 w-3.5 text-[#C9A87C]" />;
     case 'sent':
-      return <Check className="h-3.5 w-3.5 text-zinc-500" />;
+      return <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-600" />;
     default:
       return null;
   }
@@ -112,7 +229,7 @@ export function MessageBubble({
     : 'rounded-br-2xl rounded-bl-md';
 
   const radiusClass = isLastInGroup
-    ? cn(cornerClass, isOwn ? lastCornerClass : lastCornerClass)
+    ? cn(cornerClass, lastCornerClass)
     : cn(cornerClass, 'rounded-b-md');
 
   // Ignora conteúdo gerado como fallback de mídia
@@ -204,15 +321,15 @@ export function MessageBubble({
 
       <div
         className={cn(
-          'relative w-fit min-w-[60px] text-sm break-words',
+          'relative w-fit min-w-[50px] text-sm break-words',
           hasReactions && 'mb-3',
           hasStickerMedia
             ? 'p-0 bg-transparent border-0 shadow-none'
             : cn(
-                'max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm',
+                'max-w-[85%] md:max-w-[65%] px-3 py-1.5 shadow-sm',
                 isOwn
-                  ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8] dark:bg-[#056162] dark:text-white dark:border-[#025a62]'
-                  : 'bg-white text-zinc-900 border border-zinc-100 dark:bg-[#1f2c33] dark:text-zinc-100 dark:border-zinc-700',
+                  ? 'bg-[#F0F0F0] dark:bg-white text-[#1C1C1C] dark:text-[#1C1C1C] border border-[rgba(0,0,0,0.04)] dark:border-transparent'
+                  : 'bg-white dark:bg-[#242424] text-[#1C1C1C] dark:text-[#EFEFEF] border border-[rgba(0,0,0,0.06)] dark:border-transparent',
                 radiusClass,
                 failed && 'border border-red-400',
               )
@@ -220,8 +337,8 @@ export function MessageBubble({
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
         {mensagem.quoted_content ? (
-          <div className="border-l-[3px] border-[#C9A87C] dark:border-[#056162] bg-black/5 dark:bg-white/5 rounded-r px-2 py-1 mb-1.5 text-xs select-none">
-            <span className="block font-semibold text-[11px] text-[#9A7F52] dark:text-[#7ba7a0] leading-tight mb-0.5">
+          <div className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.04] rounded-r px-2 py-1 mb-1.5 text-xs select-none">
+            <span className="block font-semibold text-[11px] text-[#C9A87C] dark:text-[#C9A87C] leading-tight mb-0.5">
               {mensagem.quoted_sender || 'Mensagem'}
             </span>
             <p className="text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed text-[12px]">
@@ -267,19 +384,19 @@ export function MessageBubble({
         ) : isMedia ? (
           <div className="space-y-1">
             {mensagem.type === 'image' && (
-              <div className="relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px]">
+              <div className="relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02]">
                 {mensagem.media_url ? (
                   <img
                     src={mensagem.media_url}
                     alt={mensagem.media_filename ?? 'imagem'}
                     className={cn(
-                      'rounded-lg max-w-full block object-cover',
+                      'rounded-lg max-w-full max-h-[320px] block object-contain',
                       isPending && 'opacity-70 blur-[1px]'
                     )}
                     loading="lazy"
                   />
                 ) : (
-                  <div className="w-[240px] h-[160px] bg-zinc-200 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
+                  <div className="w-[240px] h-[160px] bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
                     Carregando imagem...
                   </div>
                 )}
@@ -308,9 +425,7 @@ export function MessageBubble({
 
             {mensagem.type === 'video' && (
               mensagem.media_url ? (
-                <video controls className="rounded-lg max-w-full sm:max-w-[280px] max-h-[300px] bg-black block">
-                  <source src={mensagem.media_url} type={mensagem.media_mime_type || 'video/mp4'} />
-                </video>
+                <VideoPlayer src={mensagem.media_url} mime={mensagem.media_mime_type} isPending={isPending} />
               ) : (
                 <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
                   <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />
@@ -321,16 +436,26 @@ export function MessageBubble({
 
             {mensagem.type === 'document' && (
               mensagem.media_url ? (
-                <a 
-                  href={mensagem.media_url} 
-                  target="_blank" 
+                <a
+                  href={mensagem.media_url}
+                  target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 p-2 bg-black/5 rounded-md hover:bg-black/10 transition-colors"
+                  className="flex items-center gap-3 p-2.5 rounded-lg border border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors min-w-[240px] max-w-[320px]"
                 >
-                  <span className="text-2xl">📄</span>
-                  <span className="text-sm font-medium underline truncate max-w-[200px]">
-                    {mensagem.media_filename || 'Baixar documento'}
-                  </span>
+                  <div className="shrink-0 h-9 w-9 rounded-md bg-[#C9A87C]/15 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-[#C9A87C]" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[#1C1C1C] dark:text-[#EFEFEF] truncate">
+                      {mensagem.media_filename || 'Documento'}
+                    </p>
+                    {mensagem.media_size && (
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-500 mt-0.5">
+                        {formatBytes(mensagem.media_size)}
+                      </p>
+                    )}
+                  </div>
+                  <Download className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
                 </a>
               ) : (
                 <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
@@ -341,14 +466,13 @@ export function MessageBubble({
             )}
 
             {showContent && (
-              <p
+              <MessageText
+                content={mensagem.content}
                 className={cn(
                   'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200',
                   isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
                 )}
-              >
-                {mensagem.content}
-              </p>
+              />
             )}
 
             {/* Figurinha sem mídia / pendente de download */}
@@ -376,22 +500,27 @@ export function MessageBubble({
             )}
           </div>
         ) : (
-          <p
+          <MessageText
+            content={mensagem.content}
             className={cn(
               'whitespace-pre-wrap leading-relaxed transition-all duration-200',
-              isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+              isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
             )}
-          >
-            {mensagem.content}
-          </p>
+          />
         )}
 
         {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
         {!hasStickerMedia && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
-            <span className="text-[10px] text-zinc-500 leading-none">
-              {formatTime(mensagem.timestamp)}
-            </span>
+            <div className="relative group/tt">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-500 leading-none cursor-default">
+                {formatTime(mensagem.timestamp)}
+              </span>
+              {/* Tooltip: data completa */}
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/80 dark:bg-white/90 text-white dark:text-black text-[10px] px-1.5 py-0.5 rounded pointer-events-none opacity-0 group-hover/tt:opacity-100 transition-opacity duration-150 z-20">
+                {formatFullDate(mensagem.timestamp)}
+              </div>
+            </div>
             {isOwn ? <StatusIcon status={mensagem.status} /> : null}
             {failed && onRetry ? (
               <button
@@ -409,7 +538,7 @@ export function MessageBubble({
         {hasReactions && (
           <div
             className={cn(
-              'absolute -bottom-2.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs shadow-sm bg-white dark:bg-zinc-800 border border-zinc-200/80 dark:border-zinc-700/80 select-none z-10 animate-in zoom-in-75 duration-150 hover:scale-110 transition-transform cursor-pointer',
+              'absolute -bottom-2.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs shadow-sm bg-white dark:bg-[#242424] border border-[#C9A87C] select-none z-10 animate-in zoom-in-75 duration-150 hover:scale-110 transition-transform cursor-pointer',
               isOwn ? 'right-2' : 'left-2'
             )}
             onClick={(e) => {

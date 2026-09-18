@@ -69,9 +69,9 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
         sideOffset={10}
       >
         {/* Cabeçalho */}
-        <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-[#1f2c33]/80">
+        <div className="p-3 border-b border-[rgba(0,0,0,0.05)] dark:border-[rgba(255,255,255,0.05)] flex items-center justify-between bg-[#F8F8F8] dark:bg-[#181818]">
           <div className="flex items-center gap-2">
-            <Sticker className="w-4 h-4 text-[#C9A87C] dark:text-[#7ba7a0]" />
+            <Sticker className="w-4 h-4 text-[#C9A87C]" />
             <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Minhas Figurinhas</span>
             <span className="text-[11px] bg-zinc-200/80 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded-full font-medium">
               {stickers.length}
@@ -81,14 +81,14 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1.5 px-2.5 bg-white dark:bg-[#1f2c33] hover:bg-zinc-100 dark:hover:bg-zinc-700 border-zinc-300 dark:border-zinc-600"
+              className="h-7 text-xs gap-1.5 px-2.5 bg-white dark:bg-[#242424] hover:bg-zinc-100 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
               onClick={() => fileInputRef.current?.click()}
               disabled={saveSticker.isPending}
             >
               {saveSticker.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
-                <Upload className="w-3 h-3 text-zinc-600" />
+                <Upload className="w-3 h-3 text-[#C9A87C]" />
               )}
               <span>Upload</span>
             </Button>
@@ -125,14 +125,14 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
             </div>
           ) : stickers.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-12 px-4 space-y-2">
-              <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 mb-1">
+              <div className="w-10 h-10 rounded-full bg-[#C9A87C]/10 flex items-center justify-center text-[#C9A87C] mb-1">
                 <Sticker className="w-5 h-5" />
               </div>
               <p className="text-xs font-medium text-zinc-700">
                 Nenhuma figurinha salva ainda
               </p>
               <p className="text-[11px] text-zinc-400 leading-relaxed max-w-[220px]">
-                Favorite qualquer figurinha recebida no chat clicando no ícone <span className="text-amber-500 font-semibold">⭐</span>, ou clique em <b>Upload</b> acima para adicionar imagens do seu computador.
+                Favorite qualquer figurinha recebida no chat clicando no ícone <span className="text-[#C9A87C] font-semibold">⭐</span>, ou clique em <b>Upload</b> acima para adicionar imagens do seu computador.
               </p>
             </div>
           ) : filteredStickers.length === 0 ? (
@@ -144,7 +144,7 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
               {filteredStickers.map(sticker => (
                 <div
                   key={sticker.id}
-                  className="relative group aspect-square rounded-md border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-[#1f2c33] hover:border-[#C9A87C] dark:hover:border-[#7ba7a0] hover:shadow-xs transition-all flex items-center justify-center p-1 cursor-pointer"
+                  className="relative group aspect-square rounded-md border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-[#242424] hover:border-[#C9A87C] hover:shadow-xs transition-all flex items-center justify-center p-1 cursor-pointer"
                   onClick={() => handleStickerClick(sticker.media_url)}
                   title={sticker.title || 'Figurinha'}
                 >

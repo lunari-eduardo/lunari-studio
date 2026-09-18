@@ -82,7 +82,6 @@ export function ChatPanel({
     markAllRead,
     hasMore,
     loadMore,
-    presenceStatus,
   } = useConversasChat(chat.id, { autoMarkRead: true });
 
   const { save: saveAudio } = useAudiosSalvos();
@@ -177,9 +176,9 @@ export function ChatPanel({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-[#111b21]">
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#0F0F0F]">
         <ChatHeader
-          chat={chat}
+          chat={{} as Chat}
           onBack={onBack}
           onToggleNotes={() => setNotesOpen(v => !v)}
           onArchive={onArchive}
@@ -188,7 +187,6 @@ export function ChatPanel({
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
-          presenceStatus={presenceStatus}
         />
         <MessagesSkeleton />
       </div>
@@ -197,7 +195,7 @@ export function ChatPanel({
 
   return (
     <>
-      <div className="flex-1 flex flex-col min-w-0 bg-[#efeae2] dark:bg-[#111b21]">
+      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0F0F0F]">
         <ChatHeader
           chat={chat}
           onBack={onBack}
@@ -208,7 +206,6 @@ export function ChatPanel({
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
-          presenceStatus={presenceStatus}
         />
 
         <div
@@ -216,7 +213,7 @@ export function ChatPanel({
           className="flex-1 overflow-y-auto dark:[color-scheme:dark]"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4), transparent 70%)',
+              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.025), transparent 70%)',
           }}
         >
           <div ref={sentinelRef} className="h-px" />

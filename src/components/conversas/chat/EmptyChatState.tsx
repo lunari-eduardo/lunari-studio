@@ -17,7 +17,7 @@ export function NoChatSelectedIllustration() {
 
 export function EmptyChatState() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12 bg-[#f0f2f5] dark:bg-[#111b21]">
+    <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12 bg-white dark:bg-[#0F0F0F]">
       <NoChatSelectedIllustration />
       <h2 className="font-serif text-2xl text-zinc-700 dark:text-zinc-300 mb-2">Lunari Conversas</h2>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
