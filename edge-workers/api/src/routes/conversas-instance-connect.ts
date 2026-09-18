@@ -51,6 +51,14 @@ export async function conversasInstanceConnectRoute(c: Context<{ Bindings: Bindi
 
   if (!evolutionResp.ok) {
     const errText = await evolutionResp.text();
+
+    // Se a Evolution API retornar 404, significa que a instância foi deletada lá (ex: por indisponibilidade ou expiração).
+    // Então limpamos localmente para forçar o frontend a criar uma nova.
+    if (evolutionResp.status === 404) {
+      await supabaseAdmin.from('conversas_instancias').delete().eq('id', instanceId);
+      return c.json({ ok: false, error: 'Instância não existe mais no servidor. Por favor, atualize a página para criar uma nova.' }, 404);
+    }
+
     return c.json(
       { ok: false, error: `Evolution API retornou ${evolutionResp.status}`, detail: errText },
       502 as any,
