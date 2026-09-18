@@ -384,6 +384,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   const markAsRead = useCallback(
     async (chatId: string) => {
+      // Guarda o estado anterior
+      const previousChats = [...chats];
+
       // Reset local unread counter optimistically
       setChats(prev =>
         prev.map(c =>
@@ -391,34 +394,44 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         ),
       );
 
-      // Atualiza o banco de dados diretamente (fallback visual imediato)
-      const { error } = await supabase
-        .from('conversas_chats')
-        .update({ unread_count: 0, updated_at: new Date().toISOString() })
-        .eq('id', chatId);
-
-      if (error) console.error('[Conversas] markAsRead error:', error);
-
       // Call our worker to mark as read in Evolution API
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
           const workerUrl = import.meta.env.VITE_EDGE_API_URL;
           if (workerUrl) {
-            await fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
+            const res = await fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
               method: 'POST',
               headers: { Authorization: `Bearer ${session.access_token}` },
             });
+            
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.details || errData.error || 'Falha na Evolution API');
+            }
+            
+            // Consolidar no BD apenas se a Evolution aceitou
+            await supabase
+              .from('conversas_chats')
+              .update({ unread_count: 0, updated_at: new Date().toISOString() })
+              .eq('id', chatId);
+              
+            return;
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[Conversas] markAsRead worker error:', error);
+        toast.error(`Falha ao marcar como lido no WhatsApp: ${error.message}`);
+        setChats(previousChats);
       }
     },
-    [],
+    [chats],
   );
 
   const markAsUnread = useCallback(async (chatId: string) => {
+    // Guarda o estado anterior para reverter em caso de falha
+    const previousChats = [...chats];
+
     // Atualização otimista na interface
     setChats(prev =>
       prev.map(c =>
@@ -426,33 +439,38 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       ),
     );
 
-    // Atualiza o banco de dados diretamente (fallback visual imediato)
-    const { error } = await supabase
-      .from('conversas_chats')
-      .update({ unread_count: 1, updated_at: new Date().toISOString() })
-      .eq('id', chatId);
-
-    if (error) {
-      console.error('[Conversas] markAsUnread error:', error);
-      toast.error('Erro ao marcar como não lido');
-    }
-
-    // Call our worker to mark as unread in Evolution API
+    // Call our worker to mark as unread in Evolution API primeiro!
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
         const workerUrl = import.meta.env.VITE_EDGE_API_URL;
         if (workerUrl) {
-          await fetch(`${workerUrl}/api/conversas/mark-unread/${chatId}`, {
+          const res = await fetch(`${workerUrl}/api/conversas/mark-unread/${chatId}`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
+          
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.details || errData.error || 'Falha na Evolution API');
+          }
+          
+          // Se deu certo no Worker (Evolution aceitou), consolidamos no nosso DB
+          await supabase
+            .from('conversas_chats')
+            .update({ unread_count: 1, updated_at: new Date().toISOString() })
+            .eq('id', chatId);
+            
+          return;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Conversas] markAsUnread worker error:', error);
+      toast.error(`Falha ao marcar como não lido no WhatsApp: ${error.message}`);
+      // Reverte a UI otimista
+      setChats(previousChats);
     }
-  }, []);
+  }, [chats]);
 
   const deleteChat = useCallback(async (chatId: string) => {
     // Snapshot
