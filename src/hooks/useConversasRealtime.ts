@@ -68,7 +68,7 @@ export interface UseConversasReturn {
   totalUnread: number;
   activeChatsCount: number;
   connectedInstance: string | null;
-  instanceViewState: 'initial' | 'reconnect' | 'connecting' | 'ready';
+  instanceViewState: 'loading' | 'initial' | 'reconnect' | 'connecting' | 'ready';
   isPinLimitReached: boolean;
   /** Contadores para os filtros primários da sidebar. */
   chatCounts: {
@@ -79,20 +79,30 @@ export interface UseConversasReturn {
   };
 }
 
+let cachedInstancias: UseConversasReturn['instancias'] | null = null;
+let cachedChats: Chat[] | null = null;
+let cachedContatoTipoMap: Record<string, ContactType> | null = null;
+
 export function useConversas(options: UseConversasOptions = {}): UseConversasReturn {
   const { realtime = true } = options;
   const { user } = useAuth();
 
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [instancias, setInstancias] = useState<UseConversasReturn['instancias']>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [chats, setChats] = useState<Chat[]>(cachedChats ?? []);
+  const [instancias, setInstancias] = useState<UseConversasReturn['instancias']>(cachedInstancias ?? []);
+  const [isLoading, setIsLoading] = useState(!cachedInstancias);
   const [error, setError] = useState<string | null>(null);
 
   /** Mapa contato_id → tipo (cliente | lead | unknown). */
-  const [contatoTipoMap, setContatoTipoMap] = useState<Record<string, ContactType>>({});
+  const [contatoTipoMap, setContatoTipoMap] = useState<Record<string, ContactType>>(cachedContatoTipoMap ?? {});
 
   // Sufixo único por instância do hook — impede colisão de canais realtime.
   const hookId = useId();
+
+  useEffect(() => {
+    cachedChats = chats;
+    cachedInstancias = instancias;
+    cachedContatoTipoMap = contatoTipoMap;
+  }, [chats, instancias, contatoTipoMap]);
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -596,13 +606,14 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     [instancias],
   );
 
-  const instanceViewState = useMemo<'initial' | 'reconnect' | 'connecting' | 'ready'>(() => {
+  const instanceViewState = useMemo<'loading' | 'initial' | 'reconnect' | 'connecting' | 'ready'>(() => {
+    if (isLoading && instancias.length === 0 && !cachedInstancias) return 'loading';
     if (instancias.length === 0) return 'initial';
     const hasConnected = instancias.some(i => i.status === 'connected');
     if (hasConnected) return 'ready';
     if (instancias.some(i => i.status === 'connecting')) return 'connecting';
     return 'reconnect';
-  }, [instancias]);
+  }, [instancias, isLoading]);
 
   // Fase 9: Atualiza o título da aba com o contador de não lidas
   useEffect(() => {
@@ -712,8 +723,9 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
   // ─── Sync histórico ─────────────────────────────────────────────────────────
 
-  const syncHistoricalChats = useCallback(async (instanceId: string, options?: { showToast?: boolean }) => {
+  const syncHistoricalChats = useCallback(async (instanceId: string, options?: { showToast?: boolean, isCheckup?: boolean }) => {
     const showToast = options?.showToast ?? false;
+    const isCheckup = options?.isCheckup ?? false;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -727,14 +739,14 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
         return { synced: 0, total: 0 };
       }
 
-      // 1. Initial Sync (descobre chats e popula a fila)
+      // 1. Initial Sync (descobre chats e popula a fila) ou Checkup
       const initialResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ instanceId, mode: 'initial' }),
+        body: JSON.stringify({ instanceId, mode: isCheckup ? 'checkup' : 'initial' }),
       });
 
       if (!initialResponse.ok) {
@@ -760,34 +772,36 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
 
       // 3. Process Batch Queue Loop (apenas os primeiros lotes para mensagens recentes das conversas principais)
       // Histórico mais antigo é baixado sob demanda ao abrir ou rolar cada conversa específica
-      const MAX_INITIAL_BATCHES = 3;
-      let remaining = 1;
-      let iterations = 0;
-      while (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
-        iterations++;
-        const batchResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ instanceId, mode: 'batch' }),
-        });
+      if (!isCheckup) {
+        const MAX_INITIAL_BATCHES = 3;
+        let remaining = 1;
+        let iterations = 0;
+        while (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
+          iterations++;
+          const batchResponse = await fetch(`${workerUrl}/api/conversas/sync-chats`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ instanceId, mode: 'batch' }),
+          });
 
-        if (!batchResponse.ok) {
-          console.warn('[Sync] Batch failed, stopping queue processing.', await batchResponse.text());
-          break;
-        }
+          if (!batchResponse.ok) {
+            console.warn('[Sync] Batch failed, stopping queue processing.', await batchResponse.text());
+            break;
+          }
 
-        const batchPayload = await batchResponse.json();
-        remaining = batchPayload.remaining ?? 0;
-        
-        if (batchPayload.processed > 0) {
-          await refreshUi();
-        }
+          const batchPayload = await batchResponse.json();
+          remaining = batchPayload.remaining ?? 0;
+          
+          if (batchPayload.processed > 0) {
+            await refreshUi();
+          }
 
-        if (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
-          await new Promise(r => setTimeout(r, 600));
+          if (remaining > 0 && iterations < MAX_INITIAL_BATCHES) {
+            await new Promise(r => setTimeout(r, 600));
+          }
         }
       }
 
@@ -802,15 +816,17 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
     }
   }, [user?.id, loadUserId]);
 
-  const syncedInstancesRef = useRef<Set<string>>(new Set());
-
-  // Auto-sync historical chats assim que a instância estiver conectada
+  // Checkup Diário: disparar sync silenciosa na primeira vez que abre no dia
   useEffect(() => {
     if (!connectedInstance || isLoading) return;
 
-    if (!syncedInstancesRef.current.has(connectedInstance)) {
-      syncedInstancesRef.current.add(connectedInstance);
-      void syncHistoricalChats(connectedInstance);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const checkupKey = `conversas_lastCheckup_${connectedInstance}`;
+    const lastCheckup = sessionStorage.getItem(checkupKey);
+
+    if (lastCheckup !== todayStr) {
+      sessionStorage.setItem(checkupKey, todayStr);
+      void syncHistoricalChats(connectedInstance, { isCheckup: true });
     }
   }, [connectedInstance, isLoading, syncHistoricalChats]);
 

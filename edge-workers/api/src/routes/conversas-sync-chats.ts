@@ -53,6 +53,7 @@ export async function performSyncChats(
   userId: string,
   instanceId: string,
   instanceName: string,
+  isCheckup: boolean = false
 ): Promise<{ ok: boolean; synced: number; syncedMessages: number; total: number; error?: string }> {
   if (!env.EVOLUTION_API_URL || !env.EVOLUTION_API_KEY) {
     return { ok: false, synced: 0, syncedMessages: 0, total: 0, error: 'Configuração da Evolution API incompleta' };
@@ -191,9 +192,9 @@ export async function performSyncChats(
     };
     if (item.realName) chatEntry.contato_nome = item.realName;
     if (item.realAvatar) chatEntry.contato_avatar = item.realAvatar;
-    // Só atualiza unread_count se a Evolution API trouxer um contador positivo real
-    // Se vier nulo ou 0, não sobrescreve o contador do banco
-    if (typeof item.chat?.unreadCount === 'number' && item.chat.unreadCount > 0) {
+    // Sempre atualiza o unread_count se ele vier da Evolution API (incluindo 0),
+    // garantindo coerência com conversas lidas no celular.
+    if (typeof item.chat?.unreadCount === 'number') {
       chatEntry.unread_count = item.chat.unreadCount;
     }
 
@@ -277,31 +278,33 @@ export async function performSyncChats(
   }
 
   // 6. Popular a fila de sincronização (conversas_sync_queue) para processamento em background
-  const queuePayload = validItems
-    .map(item => {
-      const contatoId = contactIdByPhone.get(item.phoneNormalized);
-      const chatId = contatoId ? chatIdByContatoId.get(contatoId) : null;
-      if (!chatId) return null;
-      const rawJid = item.chat.remoteJid || item.chat.id || '';
-      if (!rawJid) return null;
+  if (!isCheckup) {
+    const queuePayload = validItems
+      .map(item => {
+        const contatoId = contactIdByPhone.get(item.phoneNormalized);
+        const chatId = contatoId ? chatIdByContatoId.get(contatoId) : null;
+        if (!chatId) return null;
+        const rawJid = item.chat.remoteJid || item.chat.id || '';
+        if (!rawJid) return null;
 
-      return {
-        user_id: userId,
-        instance_id: instanceId,
-        chat_id: chatId,
-        remote_jid: rawJid,
-        current_page: 1,
-        status: 'pending'
-      };
-    })
-    .filter(Boolean);
+        return {
+          user_id: userId,
+          instance_id: instanceId,
+          chat_id: chatId,
+          remote_jid: rawJid,
+          current_page: 1,
+          status: 'pending'
+        };
+      })
+      .filter(Boolean);
 
-  for (const chunk of chunkArray(queuePayload, 100)) {
-    const { error } = await supabaseAdmin
-      .from('conversas_sync_queue')
-      .upsert(chunk, { onConflict: 'instance_id,remote_jid' });
-    if (error) {
-      console.error('[performSyncChats] Erro batch upsert sync_queue:', error.message);
+    for (const chunk of chunkArray(queuePayload, 100)) {
+      const { error } = await supabaseAdmin
+        .from('conversas_sync_queue')
+        .upsert(chunk, { onConflict: 'instance_id,remote_jid' });
+      if (error) {
+        console.error('[performSyncChats] Erro batch upsert sync_queue:', error.message);
+      }
     }
   }
 
@@ -476,7 +479,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
   const userId = userData.user.id;
 
   // 2. Parsear body
-  let body: { instanceId: string; chatId?: string; remoteJid?: string; mode?: 'initial' | 'batch' | 'single' };
+  let body: { instanceId: string; chatId?: string; remoteJid?: string; mode?: 'initial' | 'batch' | 'single' | 'checkup' };
   try {
     body = await c.req.json();
   } catch {
@@ -507,7 +510,7 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
   }
 
   // 4. Se for sincronização sob demanda de um chat específico (single mode antigo ou explícito)
-  if (chatId && remoteJid && mode !== 'initial') {
+  if (chatId && remoteJid && mode === 'single') {
     const targetPage = Number((body as any).page) > 0 ? Number((body as any).page) : 1;
     try {
       const res = await fetch(
@@ -574,8 +577,9 @@ export async function conversasSyncChatsRoute(c: Context<{ Bindings: Bindings }>
     }
   }
 
-  // 5. Sincronização completa de histórico (initial)
-  const result = await performSyncChats(c.env, supabaseAdmin, userId, instance.id, instance.instance_name);
+  // 5. Sincronização completa de histórico (initial) ou checkup
+  const isCheckup = mode === 'checkup';
+  const result = await performSyncChats(c.env, supabaseAdmin, userId, instance.id, instance.instance_name, isCheckup);
   if (!result.ok) {
     return c.json({ error: 'Falha na sincronização', detail: result.error }, 500);
   }

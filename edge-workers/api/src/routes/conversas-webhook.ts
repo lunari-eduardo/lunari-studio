@@ -672,8 +672,12 @@ async function handleConnectionUpdate(
       instance.user_id,
       instance.id,
       instance.instance_name,
-    ).then(res => {
+    ).then(async (res) => {
       console.log("%s", `[conversas-webhook] Auto-sync concluído para ${instance.instance_name}:`, res);
+      // Processar 2 batches iniciais logo na sequência
+      const { processSyncQueueBatch } = await import('./conversas-sync-chats.js');
+      await processSyncQueueBatch(env, supabase, instance.user_id, instance.id, instance.instance_name);
+      await processSyncQueueBatch(env, supabase, instance.user_id, instance.id, instance.instance_name);
     }).catch(err => {
       console.error("%s", `[conversas-webhook] Erro no auto-sync para ${instance.instance_name}:`, err);
     });

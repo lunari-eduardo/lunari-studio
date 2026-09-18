@@ -15,9 +15,29 @@ import { ConnectLandingScreen } from '@/components/conversas/ConnectLandingScree
 import { WhatsAppLayout } from '@/components/conversas/chat/WhatsAppLayout';
 import { NewChatModal } from '@/components/conversas/chat/NewChatModal';
 
+import { ChatListSkeleton } from '@/components/conversas/chat/skeletons';
+
 export default function ConversasPage() {
   const { instanceViewState, connectedInstance } = useConversas();
   const [newChatOpen, setNewChatOpen] = useState(false);
+
+  if (instanceViewState === 'loading') {
+    return (
+      <div className="flex h-full w-full bg-white dark:bg-lunari-gray-900 overflow-hidden">
+        <div className="w-full md:w-[380px] lg:w-[420px] flex-shrink-0 border-r border-lunari-gray-200 dark:border-lunari-gray-800 flex flex-col h-full bg-white dark:bg-lunari-gray-900">
+          <div className="p-4 border-b border-lunari-gray-200 dark:border-lunari-gray-800 h-[126px]">
+             <div className="animate-pulse bg-lunari-gray-100 dark:bg-lunari-gray-800 h-full w-full rounded" />
+          </div>
+          <div className="flex-1 overflow-hidden mt-2">
+            <ChatListSkeleton />
+          </div>
+        </div>
+        <div className="flex-1 hidden md:flex items-center justify-center bg-lunari-gray-50/50 dark:bg-lunari-gray-900/50">
+          <div className="w-8 h-8 rounded-full border-2 border-lunari-gray-300 border-t-lunari-brand/80 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   if (instanceViewState !== 'ready') {
     return <ConnectLandingScreen />;
