@@ -8,7 +8,7 @@
  */
 
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Wifi, WifiOff, MoreVertical, LogOut, Trash2 } from 'lucide-react';
+import { Loader2, RefreshCw, Wifi, WifiOff, MoreVertical, LogOut } from 'lucide-react';
 import type { InstanciaStatus } from '@/modules/conversas/types';
 import { cn } from '@/lib/utils';
 import { formatPhone } from './format';
@@ -26,7 +26,6 @@ export interface InstanceStatusBarProps {
   onRefreshQr?: () => void;
   isRefreshing?: boolean;
   onDisconnect?: () => void;
-  onDelete?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
 }
@@ -38,7 +37,6 @@ export function InstanceStatusBar({
   onRefreshQr,
   isRefreshing,
   onDisconnect,
-  onDelete,
   onSyncChats,
   isSyncingChats,
 }: InstanceStatusBarProps) {
@@ -112,7 +110,7 @@ export function InstanceStatusBar({
             </Button>
           ) : null}
 
-          {(onDisconnect || onDelete || (connected && onSyncChats)) && (
+          {(onDisconnect || (connected && onSyncChats)) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground">
@@ -130,15 +128,6 @@ export function InstanceStatusBar({
                   <DropdownMenuItem onClick={onDisconnect}>
                     <LogOut className="h-4 w-4 mr-2" />
                     Desconectar WhatsApp
-                  </DropdownMenuItem>
-                )}
-                {onDelete && (
-                  <DropdownMenuItem
-                    onClick={onDelete}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir instância
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

@@ -82,7 +82,9 @@ export async function conversasMarkUnreadRoute(c: Context<{ Bindings: Bindings }
       });
 
       if (!response.ok) {
-        console.warn("%s", `[conversas-mark-unread] Failed to mark unread in Evolution: ${response.status}`, await response.text());
+        const errText = await response.text();
+        console.warn("%s", `[conversas-mark-unread] Failed to mark unread in Evolution: ${response.status}`, errText);
+        return c.json({ ok: false, error: 'Falha ao sincronizar Não Lido com WhatsApp', details: errText }, response.status as any);
       }
     }
 

@@ -41,7 +41,6 @@ export interface ChatListSidebarProps {
   isRefreshingQr: boolean;
   onNewChat: () => void;
   onDisconnect?: () => void;
-  onDelete?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
@@ -71,7 +70,6 @@ export function ChatListSidebar({
   isRefreshingQr,
   onNewChat,
   onDisconnect,
-  onDelete,
   onSyncChats,
   isSyncingChats,
   onTogglePin,
@@ -133,7 +131,6 @@ export function ChatListSidebar({
           onRefreshQr={onRefreshQr}
           isRefreshing={isRefreshingQr}
           onDisconnect={onDisconnect}
-          onDelete={onDelete}
           onSyncChats={onSyncChats}
           isSyncingChats={isSyncingChats}
         />
