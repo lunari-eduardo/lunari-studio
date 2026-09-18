@@ -16,6 +16,7 @@ import { SaveTemplateModal } from './components/editor/modals/SaveTemplateModal'
 import { CustomizeSlugModal } from './components/editor/modals/CustomizeSlugModal';
 import { FullscreenPreviewModal } from './components/editor/modals/FullscreenPreviewModal';
 import { EditorHeader } from './components/editor/modals/EditorHeader';
+import { NativePdfViewer } from './components/editor/NativePdfViewer';
 
 export default function EditorMaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -267,31 +268,44 @@ export default function EditorMaterialPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 w-full h-full flex flex-col items-center justify-center p-8 bg-muted/20">
-              <div className="bg-background border border-border rounded-xl p-8 max-w-md text-center shadow-sm">
-                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
-                  <FileText className="w-8 h-8 text-red-600" />
+            <div className="flex-1 w-full h-full flex flex-col bg-muted/20">
+              {editorState.pdfUrl ? (
+                <div key={editorState.pdfUrl} className="flex-1 overflow-auto">
+                  <NativePdfViewer url={editorState.pdfUrl} backgroundClass="bg-muted/30" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Proposta em PDF</h3>
-                <p className="text-muted-foreground mb-6">
-                  Este material é um arquivo PDF estático. Você não pode editá-lo pelo construtor de blocos.
-                </p>
-                <div className="flex gap-4 justify-center">
-                  <Button variant="outline" onClick={() => window.open(editorState.pdfUrl, '_blank')}>
-                    Ver Arquivo Atual
-                  </Button>
-                  <Button className="relative" disabled={isUploadingPdf}>
-                    {isUploadingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Substituir Arquivo
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handlePdfUpload}
-                      disabled={isUploadingPdf}
-                    />
-                  </Button>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8">
+                  <div className="bg-background border border-border rounded-xl p-8 max-w-md text-center shadow-sm">
+                    <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                      <FileText className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Proposta em PDF</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Este material ainda não tem um arquivo PDF anexado.
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              <div className="shrink-0 border-t bg-background p-3 flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => editorState.pdfUrl && window.open(editorState.pdfUrl, '_blank')}
+                  disabled={!editorState.pdfUrl}
+                >
+                  Abrir em nova aba
+                </Button>
+                <Button className="relative" disabled={isUploadingPdf}>
+                  {isUploadingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Substituir Arquivo
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={handlePdfUpload}
+                    disabled={isUploadingPdf}
+                  />
+                </Button>
               </div>
             </div>
           )}

@@ -3,6 +3,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Configure the worker to use the same version as installed via CDN to avoid Vite build issues
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -10,9 +11,11 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface NativePdfViewerProps {
   url: string;
   logoUrl?: string;
+  /** Cor de fundo da moldura externa que envolve as páginas do PDF. */
+  backgroundClass?: string;
 }
 
-export function NativePdfViewer({ url, logoUrl }: NativePdfViewerProps) {
+export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]' }: NativePdfViewerProps) {
   const [numPages, setNumPages] = useState<number>();
   const [renderedUpToPage, setRenderedUpToPage] = useState<number>(1);
   const [containerWidth, setContainerWidth] = useState<number>(0);
@@ -42,8 +45,11 @@ export function NativePdfViewer({ url, logoUrl }: NativePdfViewerProps) {
   }
 
   return (
-    <div 
-      className="w-full h-full min-h-screen bg-[#F3F4F6] flex flex-col items-center pt-8 pb-32"
+    <div
+      className={cn(
+        'w-full h-full min-h-screen flex flex-col items-center pt-8 pb-32',
+        backgroundClass
+      )}
       ref={containerRef}
     >
       <div className="w-full max-w-4xl px-4 md:px-8 mx-auto flex flex-col gap-6 items-center">

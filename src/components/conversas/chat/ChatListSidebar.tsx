@@ -137,14 +137,14 @@ export function ChatListSidebar({
       ) : null}
 
       {/* ── Header: busca + novo chat ── */}
-      <div className="px-3 pt-2 pb-1.5 flex items-center gap-2">
+      <div className="px-3 pt-2.5 pb-2 flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar conversa…"
-            className="pl-9 pr-7 h-9 text-sm rounded-full bg-muted border-0 focus-visible:ring-1"
+            className="pl-9 pr-7 h-9 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-transparent focus:border-border focus:bg-background transition-all"
           />
           {search && (
             <button
@@ -183,8 +183,8 @@ export function ChatListSidebar({
                   inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
                   whitespace-nowrap transition-all flex-shrink-0
                   ${isActive
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                    : 'bg-muted text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-foreground'
+                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border border-zinc-900 dark:border-zinc-100'
+                    : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
                   }
                 `}
               >

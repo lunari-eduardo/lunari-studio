@@ -3,6 +3,7 @@ import { Eye, X, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { VisualRenderer } from '../VisualRenderer';
+import { NativePdfViewer } from '../NativePdfViewer';
 import { ProposalDesignTokens } from '../../../blocks/design';
 import { BlockData } from '@/hooks/useMaterialEditor';
 
@@ -70,7 +71,7 @@ export function FullscreenPreviewModal({
         </Button>
       </div>
 
-      {/* Renderiza VisualRenderer ou Iframe para Preview */}
+      {/* Renderiza VisualRenderer ou PDF inline para Preview */}
       <div className="flex-1 overflow-y-auto bg-muted/30 flex justify-center py-8">
         {format === 'blocks' ? (
           <VisualRenderer
@@ -82,13 +83,13 @@ export function FullscreenPreviewModal({
             designTokens={designTokens}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-background">
-            <iframe
-              className="w-full h-full max-w-[1200px] border-none bg-white shadow-xl"
-              title="PDF Preview"
-              src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-            />
-          </div>
+          pdfUrl ? (
+            <div className="w-full max-w-5xl px-4 md:px-8">
+              <NativePdfViewer url={pdfUrl} backgroundClass="bg-muted/40" />
+            </div>
+          ) : (
+            <div className="text-muted-foreground">PDF não disponível.</div>
+          )
         )}
       </div>
     </div>

@@ -81,16 +81,16 @@ export const ChatListItem = React.memo(function ChatListItem({
       onClick={onClick}
       className={cn(
         'group relative w-full max-w-full overflow-hidden',
-        'flex items-center gap-2.5 px-3 py-2.5',
+        'flex items-center gap-3 px-3 py-2.5',
         'text-left transition-all',
         isActive
-          ? 'bg-zinc-100 dark:bg-zinc-800'
-          : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50',
+          ? 'bg-zinc-100/80 dark:bg-zinc-800/80 border-l-2 border-zinc-900 dark:border-zinc-100'
+          : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40',
       )}
     >
-      {/* Indicador de não lida: barra vertical à esquerda (estilo outlined) */}
+      {/* Indicador de não lida: barra vertical à esquerda */}
       {isUnread && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-7 w-[3px] rounded-r-full bg-zinc-900 dark:bg-zinc-100" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-9 w-[3px] rounded-r-full bg-zinc-900 dark:bg-zinc-100" />
       )}
 
       {/* Avatar */}
@@ -107,12 +107,12 @@ export const ChatListItem = React.memo(function ChatListItem({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
             {isPinned && (
-              <Pin className="h-3 w-3 text-amber-500 fill-amber-500 flex-shrink-0" />
+              <Pin className="h-3 w-3 text-amber-500 fill-amber-400/80 flex-shrink-0" />
             )}
             <span
               className={cn(
-                'truncate text-sm block',
-                isUnread ? 'font-semibold text-zinc-900 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-300',
+                'truncate text-[13px] block leading-tight',
+                isUnread ? 'font-semibold text-zinc-800 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-200',
               )}
             >
               {chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
@@ -128,7 +128,7 @@ export const ChatListItem = React.memo(function ChatListItem({
               </span>
             )}
           </div>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap">
+          <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
             {formatChatTimestamp(chat.ultima_mensagem_data)}
           </span>
         </div>
@@ -137,7 +137,7 @@ export const ChatListItem = React.memo(function ChatListItem({
         <div className="flex items-center justify-between gap-2 mt-0.5">
           <span
             className={cn(
-              'truncate text-xs block',
+              'truncate text-[12px] leading-tight block',
               isUnread ? 'text-zinc-600 dark:text-zinc-400' : 'text-zinc-400 dark:text-zinc-500',
             )}
           >
@@ -150,7 +150,7 @@ export const ChatListItem = React.memo(function ChatListItem({
           <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             {/* Badge de não lida */}
             {isUnread && (
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold mr-0.5">
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[10px] font-semibold mr-0.5">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}
