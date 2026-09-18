@@ -142,7 +142,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
-              className="p-1.5 rounded-full hover:bg-yellow-50 text-zinc-400 hover:text-yellow-500"
+              className="p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-500/20 text-zinc-400 hover:text-yellow-500 dark:dark:text-zinc-500 dark:hover:text-yellow-400"
               title="Salvar Figurinha"
             >
               <Star className="h-3.5 w-3.5" />
@@ -153,7 +153,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={() => setShowReactions(!showReactions)}
-                className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+                className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                 title="Reagir"
               >
                 <SmilePlus className="h-3.5 w-3.5" />
@@ -170,7 +170,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={handleCopy}
-              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700 transition-colors"
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
               title="Copiar mensagem"
               aria-label="Copiar"
             >
@@ -181,7 +181,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onDelete(mensagem.id)}
-              className="p-1.5 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-500"
+              className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
               title="Apagar mensagem"
               aria-label="Apagar"
             >
@@ -192,7 +192,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onReply(mensagem)}
-              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
               title="Responder mensagem"
               aria-label="Responder"
             >
@@ -210,7 +210,9 @@ export function MessageBubble({
             ? 'p-0 bg-transparent border-0 shadow-none'
             : cn(
                 'max-w-[85%] md:max-w-[70%] px-3 py-1.5 shadow-sm',
-                isOwn ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8]' : 'bg-white text-zinc-900 border border-zinc-100',
+                isOwn
+                  ? 'bg-[#F4F1EA] text-zinc-900 border border-[#E8E2D8] dark:bg-[#056162] dark:text-white dark:border-[#025a62]'
+                  : 'bg-white text-zinc-900 border border-zinc-100 dark:bg-[#1f2c33] dark:text-zinc-100 dark:border-zinc-700',
                 radiusClass,
                 failed && 'border border-red-400',
               )
@@ -218,11 +220,11 @@ export function MessageBubble({
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
         {mensagem.quoted_content ? (
-          <div className="border-l-[3px] border-[#C9A87C] bg-black/5 dark:bg-white/5 rounded-r px-2 py-1 mb-1.5 text-xs select-none">
-            <span className="block font-semibold text-[11px] text-[#9A7F52] leading-tight mb-0.5">
+          <div className="border-l-[3px] border-[#C9A87C] dark:border-[#056162] bg-black/5 dark:bg-white/5 rounded-r px-2 py-1 mb-1.5 text-xs select-none">
+            <span className="block font-semibold text-[11px] text-[#9A7F52] dark:text-[#7ba7a0] leading-tight mb-0.5">
               {mensagem.quoted_sender || 'Mensagem'}
             </span>
-            <p className="text-zinc-600 line-clamp-2 leading-relaxed text-[12px]">
+            <p className="text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed text-[12px]">
               {mensagem.quoted_content}
             </p>
           </div>
@@ -248,7 +250,7 @@ export function MessageBubble({
               </div>
             )}
             {/* Timestamp flutuante no canto inferior da figurinha */}
-            <div className="absolute bottom-1 right-1 flex items-center gap-1 bg-black/45 backdrop-blur-[2px] text-white px-1.5 py-0.5 rounded-full text-[10px] leading-none shadow-sm select-none pointer-events-none">
+            <div className="absolute bottom-1 right-1 flex items-center gap-1 bg-black/45 backdrop-blur-[2px] text-white px-1.5 py-0.5 rounded-full text-[10px] leading-none shadow-sm select-none pointer-events-none dark:bg-black/60">
               <span className="text-[10px]">{formatTime(mensagem.timestamp)}</span>
               {isOwn ? <StatusIcon status={mensagem.status} /> : null}
               {failed && onRetry ? (
@@ -433,7 +435,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
-              className="p-1.5 rounded-full hover:bg-yellow-50 text-zinc-400 hover:text-yellow-500"
+              className="p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-500/20 text-zinc-400 hover:text-yellow-500 dark:text-zinc-500 dark:hover:text-yellow-400"
               title="Salvar Figurinha"
             >
               <Star className="h-3.5 w-3.5" />
@@ -444,7 +446,7 @@ export function MessageBubble({
               <button
                 type="button"
                 onClick={() => setShowReactions(!showReactions)}
-                className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+                className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
                 title="Reagir"
               >
                 <SmilePlus className="h-3.5 w-3.5" />
@@ -461,7 +463,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={handleCopy}
-              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700 transition-colors"
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
               title="Copiar mensagem"
               aria-label="Copiar"
             >
@@ -472,7 +474,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onReply(mensagem)}
-              className="p-1.5 rounded-full hover:bg-black/10 text-zinc-400 hover:text-zinc-700"
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300"
               title="Responder mensagem"
               aria-label="Responder"
             >
@@ -483,7 +485,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onDelete(mensagem.id)}
-              className="p-1.5 rounded-full hover:bg-red-50 text-zinc-400 hover:text-red-500"
+              className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
               title="Apagar mensagem (apenas para mim)"
               aria-label="Apagar"
             >

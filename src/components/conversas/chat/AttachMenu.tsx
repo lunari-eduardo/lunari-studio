@@ -11,13 +11,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FileText, Image as ImageIcon, Paperclip, UserPlus, Video, Sticker } from 'lucide-react';
+import { FileText, Image as ImageIcon, Paperclip, UserPlus, Video, Sticker, AudioLines } from 'lucide-react';
 
 export interface AttachMenuProps {
   onAttach: (file: File, kind: 'image' | 'video' | 'document' | 'contact' | 'sticker') => void;
+  onOpenAudiosSalvos?: () => void;
 }
 
-export function AttachMenu({ onAttach }: AttachMenuProps) {
+export function AttachMenu({ onAttach, onOpenAudiosSalvos }: AttachMenuProps) {
   const imageRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -61,6 +62,11 @@ export function AttachMenu({ onAttach }: AttachMenuProps) {
           <DropdownMenuItem onSelect={() => handleFile(stickerRef, 'sticker')}>
             <Sticker className="h-4 w-4 mr-2" /> Figurinha
           </DropdownMenuItem>
+          {onOpenAudiosSalvos && (
+            <DropdownMenuItem onSelect={onOpenAudiosSalvos}>
+              <AudioLines className="h-4 w-4 mr-2" /> Áudio salvo
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={() => handleFile(docRef, 'document')}>
             <FileText className="h-4 w-4 mr-2" /> Documento
           </DropdownMenuItem>

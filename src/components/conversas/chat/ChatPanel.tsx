@@ -10,9 +10,11 @@ import { MessageComposer } from './MessageComposer';
 import { MessageGroup } from './MessageGroup';
 import { DateDivider } from './DateDivider';
 import { NotesPanel } from './NotesPanel';
+import { AudiosSalvosLibrary } from './AudiosSalvosLibrary';
 import { MessagesSkeleton } from './skeletons';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversasChat } from '@/hooks/useConversasChat';
+import { useAudiosSalvos } from '@/hooks/useAudiosSalvos';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +73,7 @@ export function ChatPanel({
     sendMessage,
     sendMediaMessage,
     sendSticker,
+    sendSavedAudio,
     retryMessage,
     deleteMessage,
     reactMessage,
@@ -82,7 +85,10 @@ export function ChatPanel({
     presenceStatus,
   } = useConversasChat(chat.id, { autoMarkRead: true });
 
+  const { save: saveAudio } = useAudiosSalvos();
+
   const [notesOpen, setNotesOpen] = useState(false);
+  const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
 
@@ -171,7 +177,7 @@ export function ChatPanel({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col bg-[#efeae2]">
+      <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-[#111b21]">
         <ChatHeader
           chat={chat}
           onBack={onBack}
@@ -191,7 +197,7 @@ export function ChatPanel({
 
   return (
     <>
-      <div className="flex-1 flex flex-col min-w-0 bg-[#efeae2]">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#efeae2] dark:bg-[#111b21]">
         <ChatHeader
           chat={chat}
           onBack={onBack}
@@ -202,11 +208,12 @@ export function ChatPanel({
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
           notesOpen={notesOpen}
+          presenceStatus={presenceStatus}
         />
 
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto dark:[color-scheme:dark]"
           style={{
             backgroundImage:
               'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4), transparent 70%)',
@@ -281,6 +288,14 @@ export function ChatPanel({
               setIsUploadingMedia(false);
             }
           }}
+          onOpenAudiosSalvos={() => setAudiosSalvosOpen(true)}
+          onSaveAudio={async (file, duration) => {
+            try {
+              await saveAudio.mutateAsync({ file, duration });
+            } catch {
+              // toast já tratado no hook
+            }
+          }}
         />
       </div>
 
@@ -289,6 +304,16 @@ export function ChatPanel({
           notes={notas as Nota[]}
           onAdd={addNota}
           onDelete={deleteNota}
+        />
+      ) : null}
+
+      {audiosSalvosOpen ? (
+        <AudiosSalvosLibrary
+          onSendAudio={async (audio) => {
+            setAudiosSalvosOpen(false);
+            await sendSavedAudio(audio.id, audio);
+          }}
+          onClose={() => setAudiosSalvosOpen(false)}
         />
       ) : null}
     </>

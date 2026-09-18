@@ -36,15 +36,15 @@ export function NotesPanel({ notes, onAdd, onDelete }: NotesPanelProps) {
   };
 
   return (
-    <div className="w-full md:w-80 flex-shrink-0 flex flex-col border-l border-zinc-200 bg-amber-50/40 h-full">
-      <div className="px-3 py-2.5 border-b border-amber-200/60 flex items-center gap-2">
-        <StickyNote className="h-4 w-4 text-amber-700" />
-        <span className="text-sm font-medium text-amber-900">Notas internas</span>
+    <div className="w-full md:w-80 flex-shrink-0 flex flex-col border-l border-zinc-200 dark:border-zinc-800 bg-amber-50/40 dark:bg-[#131d21] h-full">
+      <div className="px-3 py-2.5 border-b border-amber-200/60 dark:border-amber-800/40 flex items-center gap-2">
+        <StickyNote className="h-4 w-4 text-amber-700 dark:text-amber-500" />
+        <span className="text-sm font-medium text-amber-900 dark:text-amber-400">Notas internas</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {notes.length === 0 ? (
-          <p className="text-xs text-amber-800/60 text-center py-8">
+          <p className="text-xs text-amber-800/60 dark:text-amber-500/60 text-center py-8">
             Sem notas. Use para registrar contexto importante sobre o cliente.
           </p>
         ) : (
@@ -52,13 +52,13 @@ export function NotesPanel({ notes, onAdd, onDelete }: NotesPanelProps) {
             <div
               key={n.id}
               className={cn(
-                'group rounded-lg bg-white border border-amber-200/60 px-3 py-2 text-sm shadow-sm',
+                'group rounded-lg bg-white dark:bg-[#1f2c33] border border-amber-200/60 dark:border-amber-800/40 px-3 py-2 text-sm shadow-sm',
               )}
             >
-              <p className="whitespace-pre-wrap break-words text-zinc-800">{n.content}</p>
+              <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-200">{n.content}</p>
               <div className="flex items-center justify-between mt-2">
                 {n.created_at ? (
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-600">
                     {new Date(n.created_at).toLocaleString('pt-BR')}
                   </span>
                 ) : <span />}
@@ -66,7 +66,7 @@ export function NotesPanel({ notes, onAdd, onDelete }: NotesPanelProps) {
                   type="button"
                   onClick={() => onDelete(n.id)}
                   aria-label="Excluir nota"
-                  className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -76,13 +76,13 @@ export function NotesPanel({ notes, onAdd, onDelete }: NotesPanelProps) {
         )}
       </div>
 
-      <div className="p-3 border-t border-amber-200/60 space-y-2 bg-white/40">
+      <div className="p-3 border-t border-amber-200/60 dark:border-amber-800/40 space-y-2 bg-white/40 dark:bg-[#1f2c33]/40">
         <Textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
           placeholder="Adicionar nota interna…"
           rows={3}
-          className="resize-none text-sm bg-white"
+          className="resize-none text-sm bg-white dark:bg-[#1f2c33] text-zinc-900 dark:text-zinc-200"
         />
         <Button
           onClick={submit}

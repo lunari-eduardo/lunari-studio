@@ -21,6 +21,9 @@ export interface MessageComposerProps {
   disabled?: boolean;
   replyingTo?: Mensagem | null;
   onCancelReply?: () => void;
+  onOpenAudiosSalvos?: () => void;
+  /** Called when user clicks "Salvar apenas" during recording — save to library without sending. */
+  onSaveAudio?: (file: File, duration: number) => void;
 }
 
 const MAX_HEIGHT = 120;
@@ -37,6 +40,8 @@ export function MessageComposer({
   disabled,
   replyingTo,
   onCancelReply,
+  onOpenAudiosSalvos,
+  onSaveAudio,
 }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -96,19 +101,27 @@ export function MessageComposer({
     }
   };
 
+  const handleSaveOnly = async () => {
+    if (!onSaveAudio) return;
+    const file = await stopRecording();
+    if (file) {
+      onSaveAudio(file, recordingTime);
+    }
+  };
+
   const canSend = text.trim().length > 0 && !sending && !disabled;
 
   return (
-    <div className="flex flex-col bg-[#f0f2f5] border-t border-zinc-200">
+    <div className="flex flex-col bg-[#f0f2f5] dark:bg-[#202c33] border-t border-zinc-200 dark:border-zinc-800">
       {/* Banner de Citação / Resposta (Fase P3) */}
       {replyingTo && (
-        <div className="flex items-center justify-between px-4 py-2 bg-white/80 border-b border-zinc-200/60 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="flex items-center gap-2 border-l-[3.5px] border-[#C9A87C] pl-2.5 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 bg-white/80 dark:bg-[#1f2c33]/80 border-b border-zinc-200/60 dark:border-zinc-700/60 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="flex items-center gap-2 border-l-[3.5px] border-[#C9A87C] dark:border-[#056162] pl-2.5 overflow-hidden">
             <div className="flex flex-col min-w-0">
-              <span className="text-[11px] font-semibold text-[#9A7F52] truncate">
+              <span className="text-[11px] font-semibold text-[#9A7F52] dark:text-[#7ba7a0] truncate">
                 Respondendo a {replyingTo.direction === 'outbound' ? 'Você' : 'Contato'}
               </span>
-              <span className="text-xs text-zinc-600 truncate max-w-[400px]">
+              <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate max-w-[400px]">
                 {replyingTo.content || (replyingTo.type === 'image' ? '📷 Foto' : replyingTo.type === 'audio' ? '🎤 Áudio' : 'Anexo')}
               </span>
             </div>
@@ -117,7 +130,7 @@ export function MessageComposer({
             <button
               type="button"
               onClick={onCancelReply}
-              className="p-1 rounded-full hover:bg-zinc-200/80 text-zinc-400 hover:text-zinc-700 transition-colors ml-2 shrink-0"
+              className="p-1 rounded-full hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors ml-2 shrink-0"
               title="Cancelar resposta (Esc)"
               aria-label="Cancelar resposta"
             >
@@ -133,22 +146,22 @@ export function MessageComposer({
           <StickerPickerPopover onSendSticker={(url) => onAttach(url as any, 'sticker')}>
             <button
               type="button"
-              className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 transition-colors text-zinc-500"
+              className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400"
               title="Figurinhas"
             >
               <StickerIcon className="w-5 h-5" />
             </button>
           </StickerPickerPopover>
-          <AttachMenu onAttach={onAttach} />
+          <AttachMenu onAttach={onAttach} onOpenAudiosSalvos={onOpenAudiosSalvos} />
         </div>
       )}
 
-      <div className="flex-1 bg-white rounded-2xl border border-zinc-200 shadow-sm flex items-center min-h-[42px] overflow-hidden">
+      <div className="flex-1 bg-white dark:bg-[#1f2c33] rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center min-h-[42px] overflow-hidden">
         {isRecording ? (
-          <div className="flex items-center gap-3 w-full px-4 text-red-500 animate-in fade-in">
+          <div className="flex items-center gap-3 w-full px-4 text-red-500 dark:text-red-400 animate-in fade-in">
             <Mic className="h-5 w-5 animate-pulse" />
             <span className="font-mono text-sm font-medium">{formatTime(recordingTime)}</span>
-            <span className="text-xs text-zinc-400 ml-auto mr-2">Gravando...</span>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 ml-auto mr-2">Gravando...</span>
           </div>
         ) : (
           <textarea
@@ -159,7 +172,7 @@ export function MessageComposer({
             placeholder="Mensagem"
             rows={1}
             disabled={disabled}
-            className="w-full resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-zinc-400 disabled:opacity-50"
+            className="w-full resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50"
             style={{ maxHeight: MAX_HEIGHT }}
           />
         )}
@@ -170,10 +183,21 @@ export function MessageComposer({
           <button
             type="button"
             onClick={cancelRecording}
-            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-red-100 text-red-500 transition-colors"
+            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 transition-colors"
           >
             <Trash2 className="h-4 w-4" />
           </button>
+          {onSaveAudio && (
+            <button
+              type="button"
+              onClick={handleSaveOnly}
+              className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white dark:bg-[#1f2c33] border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors text-xs font-medium"
+              title="Salvar na biblioteca sem enviar"
+            >
+              <Mic className="h-3.5 w-3.5" />
+              <span>Salvar</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={handleStopAndSendAudio}

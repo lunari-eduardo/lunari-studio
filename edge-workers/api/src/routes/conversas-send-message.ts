@@ -60,6 +60,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     mediaSizeBytes?: number;
     replyToId?: string;
     isPtt?: boolean;
+    audioSavedId?: string;  // Quando tipo=audio, buscar media_url na tabela de audios_salvos
   };
 
   try {
@@ -68,7 +69,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Invalid JSON' }, 400);
   }
 
-  const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename, isPtt } = body;
+  const { id: clientProvidedId, chatId, instanceId, content, type = 'text', mediaUrl, mediaFilename, isPtt, audioSavedId } = body;
 
   const VALID_TYPES = ['text', 'image', 'audio', 'video', 'document', 'sticker'];
   if (!VALID_TYPES.includes(type)) {
@@ -122,6 +123,24 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
     return c.json({ error: 'Instância não encontrada' }, 404);
   }
 
+  // 3.5 Se audioSavedId, buscar media_url do áudio salvo (e incrementar uso_count após sucesso)
+  let savedAudioMediaUrl: string | null = null;
+  if (type === 'audio' && audioSavedId) {
+    const { data: savedAudio, error: savedAudioError } = await supabaseAdmin
+      .from('conversas_audios_salvos')
+      .select('media_url, user_id')
+      .eq('id', audioSavedId)
+      .maybeSingle();
+
+    if (savedAudioError || !savedAudio) {
+      return c.json({ error: 'Áudio salvo não encontrado' }, 404);
+    }
+    if (savedAudio.user_id !== userId) {
+      return c.json({ error: 'Acesso negado ao áudio salvo' }, 403);
+    }
+    savedAudioMediaUrl = savedAudio.media_url;
+  }
+
   // 4. Inserir mensagem com status 'pending'
   const timestamp = new Date().toISOString();
   const msgId = clientProvidedId || crypto.randomUUID();
@@ -149,7 +168,7 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
       direction: 'outbound',
       type: type as any,
       content: type === 'sticker' ? (content || '🎨 Figurinha') : content,
-      media_url: mediaUrl ?? null,
+      media_url: (savedAudioMediaUrl || mediaUrl) ?? null,
       media_mime_type: body.mediaMimeType ?? null,
       media_filename: mediaFilename ?? null,
       media_size_bytes: body.mediaSizeBytes ?? null,
@@ -182,11 +201,11 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
         number: recipientNumber,
         sticker: mediaUrl,
       };
-    } else if (type === 'audio' && mediaUrl) {
+    } else if (type === 'audio' && (mediaUrl || savedAudioMediaUrl)) {
       evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendWhatsAppAudio/${instance.instance_name}`;
       evolutionBody = {
         number: recipientNumber,
-        audio: mediaUrl,
+        audio: savedAudioMediaUrl || mediaUrl,
         delay: isPtt ? 1200 : 0,
         encoding: !!isPtt,
       };
@@ -244,6 +263,21 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
         status: 'sent',
       })
       .eq('id', msgId);
+
+    // Incrementar uso_count do áudio salvo (não-bloqueante — melhor-effort)
+    if (audioSavedId) {
+      const { data: current } = await supabaseAdmin
+        .from('conversas_audios_salvos')
+        .select('uso_count')
+        .eq('id', audioSavedId)
+        .single();
+      if (current) {
+        await supabaseAdmin
+          .from('conversas_audios_salvos')
+          .update({ uso_count: current.uso_count + 1 })
+          .eq('id', audioSavedId);
+      }
+    }
 
     return c.json({
       success: true,

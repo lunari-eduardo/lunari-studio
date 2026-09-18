@@ -702,6 +702,85 @@ export function useConversasChat(
     [chatId],
   );
 
+  // ─── Send saved audio ─────────────────────────────────────────────────────────
+
+  const sendSavedAudio = useCallback(
+    async (audioSavedId: string, audio: { media_url: string; nome: string; duration: number }) => {
+      const userId = userIdRef.current;
+      const instanceId = instanceIdRef.current;
+      if (!chatId || !userId || !instanceId) {
+        throw new Error('Chat não carregado');
+      }
+
+      const msgId = crypto.randomUUID();
+
+      const optimisticMsg: Mensagem = {
+        id: msgId,
+        user_id: userId,
+        chat_id: chatId,
+        instance_id: instanceId,
+        evolution_msg_id: null,
+        direction: 'outbound',
+        type: 'audio',
+        content: '',
+        media_url: audio.media_url,
+        media_mime_type: 'audio/webm',
+        media_filename: audio.nome,
+        media_size_bytes: null,
+        status: 'pending',
+        is_forwarded: null,
+        timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
+
+      setMensagens(prev => [...prev, optimisticMsg]);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error('Sessão expirada');
+
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+        const res = await fetch(`${workerUrl}/api/conversas/send-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            id: msgId,
+            chatId,
+            instanceId,
+            content: '',
+            type: 'audio',
+            audioSavedId,
+            isPtt: true,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Erro ao enviar áudio salvo');
+        }
+
+        const result = await res.json();
+        setMensagens(prev =>
+          prev.map(m =>
+            m.id === msgId
+              ? { ...m, status: 'sent' as const, evolution_msg_id: result.evolutionMsgId || m.evolution_msg_id }
+              : m,
+          ),
+        );
+      } catch (err: any) {
+        console.error('[sendSavedAudio] Erro:', err);
+        setMensagens(prev =>
+          prev.map(m => (m.id === msgId ? { ...m, status: 'failed' as const } : m)),
+        );
+        toast.error('Erro ao enviar áudio: ' + (err.message || 'Erro de conexão'));
+      }
+    },
+    [chatId],
+  );
+
   const retryMessage = useCallback(
     async (mensagemId: string) => {
       const msg = mensagens.find(m => m.id === mensagemId);
@@ -912,6 +991,7 @@ export function useConversasChat(
     sendMessage,
     sendMediaMessage,
     sendSticker,
+    sendSavedAudio,
     retryMessage,
     deleteMessage,
     reactMessage,

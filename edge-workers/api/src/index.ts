@@ -32,6 +32,7 @@ import { conversasMarkUnreadRoute } from './routes/conversas-mark-unread.js';
 import { conversasMessageDeleteRoute } from './routes/conversas-message-delete.js';
 import { conversasMessageReactRoute } from './routes/conversas-message-react.js';
 import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
+import { getAudiosSalvosRoute, saveAudiosSalvosRoute, patchAudiosSalvosRoute, deleteAudiosSalvosRoute } from './routes/conversas-audios-savos.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -105,6 +106,12 @@ app.get('/api/conversas/stickers', getConversasStickersRoute);
 app.post('/api/conversas/stickers', saveConversasStickersRoute);
 app.delete('/api/conversas/stickers/:id', deleteConversasStickersRoute);
 app.post('/api/conversas/stickers/proxy-send', proxyConversasStickersRoute);
+
+// Áudios salvos
+app.get('/api/conversas/audios_salvos', getAudiosSalvosRoute);
+app.post('/api/conversas/audios_salvos', saveAudiosSalvosRoute);
+app.patch('/api/conversas/audios_salvos/:id', patchAudiosSalvosRoute);
+app.delete('/api/conversas/audios_salvos/:id', deleteAudiosSalvosRoute);
 app.post('/api/conversas/message/retry/:id', conversasMessageRetryRoute);
 app.post('/api/conversas/media-upload', conversasMediaUploadRoute);
 

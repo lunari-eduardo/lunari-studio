@@ -69,11 +69,11 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
         sideOffset={10}
       >
         {/* Cabeçalho */}
-        <div className="p-3 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/80">
+        <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/80 dark:bg-[#1f2c33]/80">
           <div className="flex items-center gap-2">
-            <Sticker className="w-4 h-4 text-[#C9A87C]" />
-            <span className="text-xs font-semibold text-zinc-800">Minhas Figurinhas</span>
-            <span className="text-[11px] bg-zinc-200/80 text-zinc-600 px-1.5 py-0.2 rounded-full font-medium">
+            <Sticker className="w-4 h-4 text-[#C9A87C] dark:text-[#7ba7a0]" />
+            <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">Minhas Figurinhas</span>
+            <span className="text-[11px] bg-zinc-200/80 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 px-1.5 py-0.2 rounded-full font-medium">
               {stickers.length}
             </span>
           </div>
@@ -81,7 +81,7 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1.5 px-2.5 bg-white hover:bg-zinc-100 border-zinc-300"
+              className="h-7 text-xs gap-1.5 px-2.5 bg-white dark:bg-[#1f2c33] hover:bg-zinc-100 dark:hover:bg-zinc-700 border-zinc-300 dark:border-zinc-600"
               onClick={() => fileInputRef.current?.click()}
               disabled={saveSticker.isPending}
             >
@@ -144,7 +144,7 @@ export function StickerPickerPopover({ onSendSticker, children }: StickerPickerP
               {filteredStickers.map(sticker => (
                 <div
                   key={sticker.id}
-                  className="relative group aspect-square rounded-md border border-zinc-200/80 bg-white hover:border-[#C9A87C] hover:shadow-xs transition-all flex items-center justify-center p-1 cursor-pointer"
+                  className="relative group aspect-square rounded-md border border-zinc-200/80 dark:border-zinc-700 bg-white dark:bg-[#1f2c33] hover:border-[#C9A87C] dark:hover:border-[#7ba7a0] hover:shadow-xs transition-all flex items-center justify-center p-1 cursor-pointer"
                   onClick={() => handleStickerClick(sticker.media_url)}
                   title={sticker.title || 'Figurinha'}
                 >
