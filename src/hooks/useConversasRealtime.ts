@@ -439,7 +439,7 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
       ),
     );
 
-    // Call our worker to mark as unread in Evolution API primeiro!
+    // Call our worker to mark as unread in Evolution API
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
@@ -452,22 +452,24 @@ export function useConversas(options: UseConversasOptions = {}): UseConversasRet
           
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.details || errData.error || 'Falha na Evolution API');
+            throw new Error(errData.details || errData.error || 'Falha no Worker');
+          }
+
+          const responseData = await res.json();
+          
+          if (responseData.warning) {
+            // Aconteceu o bug da Evolution API, a alteração foi salva no banco local
+            // mas falhou no WhatsApp. Mostramos um aviso.
+            toast.warning(responseData.warning);
           }
           
-          // Se deu certo no Worker (Evolution aceitou), consolidamos no nosso DB
-          await supabase
-            .from('conversas_chats')
-            .update({ unread_count: 1, updated_at: new Date().toISOString() })
-            .eq('id', chatId);
-            
           return;
         }
       }
     } catch (error: any) {
       console.error('[Conversas] markAsUnread worker error:', error);
-      toast.error(`Falha ao marcar como não lido no WhatsApp: ${error.message}`);
-      // Reverte a UI otimista
+      toast.error(`Falha ao marcar como não lido: ${error.message}`);
+      // Reverte a UI otimista APENAS se o worker falhar de verdade (erro 500/rede)
       setChats(previousChats);
     }
   }, [chats]);
