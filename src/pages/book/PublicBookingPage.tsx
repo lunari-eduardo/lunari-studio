@@ -1,683 +1,468 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { usePublicTheme } from '@/hooks/usePublicTheme';
+import { PublicThemeWrapper } from '@/components/shared/PublicThemeWrapper';
+import { AgendaCoverImage } from '@/components/agenda/agenda-online-panel/AgendaCoverImage';
+import {
+  Loader2, AlertCircle, Calendar as CalendarIcon, Clock, Sparkles,
+  User, Phone, Mail, MessageSquare, Check, ArrowLeft, ArrowRight,
+} from 'lucide-react';
+import { formatCurrency } from '@/utils/financialUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Calendar, Clock, Check, AlertCircle, ArrowLeft, ArrowRight, Package, UserCheck, CheckCircle2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { BookingCalendar } from './components/BookingCalendar';
-import { BookingSuccess } from './components/BookingSuccess';
-import { maskPhoneBR } from '@/lib/phoneBR';
-import { maskCpfCnpj } from '@/lib/validateCpfCnpj';
-import { formatCurrency } from '@/utils/financialUtils';
-import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { PublicThemeWrapper } from '@/components/shared/PublicThemeWrapper';
-import { usePublicTheme } from '@/hooks/usePublicTheme';
 
-const API_BASE = import.meta.env.VITE_EDGE_API_URL || 'https://lunari-edge-api.eduardo22diehl.workers.dev';
+const SCHEDULE_API_URL = import.meta.env.VITE_SCHEDULE_API_URL || 'http://localhost:8787';
+const SCHEDULE_API_TOKEN = import.meta.env.VITE_SCHEDULE_API_TOKEN || '';
+
+interface SlotsResponse {
+  success: boolean;
+  data?: {
+    link: {
+      id: string;
+      userId: string;
+      title: string;
+      description?: string;
+      requireDeposit: boolean;
+      depositType?: 'fixed' | 'percentage';
+      depositValue?: number;
+      showPackagePrice?: boolean;
+      coverImageUrl?: string | null;
+      coverImagePosition?: string;
+      coverImageLqip?: string | null;
+    };
+    photographer: {
+      empresa?: string;
+      avatar_url?: string;
+      logo_url?: string;
+    };
+    packages: Array<{ id: string; nome: string; valor_base: number; duracao_minutos?: number; fotos_incluidas?: number }>;
+    slotsByDate: Record<string, Array<{ start_time: string; end_time: string }>>;
+  };
+  error?: string;
+}
 
 export default function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [data, setData] = useState<any>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  // Carrega dados do link via worker
+  const { data, isLoading, error } = useQuery<SlotsResponse>({
+    queryKey: ['public-booking-slots', slug],
+    queryFn: async () => {
+      const res = await fetch(`${SCHEDULE_API_URL}/agenda-online/slots/${slug}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(SCHEDULE_API_TOKEN ? { 'x-api-token': SCHEDULE_API_TOKEN } : {}),
+        },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Não foi possível carregar esta página.');
+      }
+      return json;
+    },
+    enabled: !!slug,
+    staleTime: 30_000,
+  });
 
-  // Form State
-  const [selectedPackageId, setSelectedPackageId] = useState<string>('');
+  const photographerId = data?.data?.link?.userId;
+  const { data: theme } = usePublicTheme(photographerId);
+  const primaryColor = theme?.primaryColor || undefined;
+
+  // Estados do fluxo
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<'selection' | 'contact' | 'success'>('selection');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerNotes, setCustomerNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  // Client Details
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [clientCpf, setClientCpf] = useState('');
+  const packages = data?.data?.packages || [];
+  const selectedPackage = packages.find(p => p.id === selectedPackageId) || null;
 
-  // CRM Match State
-  const [matchedClient, setMatchedClient] = useState<{
-    id: string;
-    nome: string;
-    email: string;
-    telefone: string;
-    cpf_cnpj?: string | null;
-  } | null>(null);
-  const [clientConfirmed, setClientConfirmed] = useState<boolean | null>(null);
-  const [isSearchingClient, setIsSearchingClient] = useState(false);
-
-  // Result
-  const [reservationResult, setReservationResult] = useState<{ cobrancaId?: string } | null>(null);
-
-  // Photographer custom public theme
-  const { data: primaryColor } = usePublicTheme(data?.link?.userId);
-
-  useEffect(() => {
-    async function fetchSlots() {
-      if (!slug) return;
-      try {
-        setLoading(true);
-        setFetchError(null);
-        const res = await fetch(`${API_BASE}/api/agenda/online/${slug}/slots`);
-        const json = await res.json();
-
-        if (!res.ok || !json.success) {
-          throw new Error(json.error || 'Página de agendamento indisponível');
-        }
-
-        setData(json.data);
-
-        // Auto-select package if only 1 available
-        if (json.data.packages?.length === 1) {
-          setSelectedPackageId(json.data.packages[0].id);
-        }
-      } catch (err: any) {
-        console.error('Erro carregando agenda online:', err);
-        setFetchError(err.message || 'Não foi possível carregar os horários disponíveis.');
-      } finally {
-        setLoading(false);
-      }
+  const calculateDeposit = (): number => {
+    if (!selectedPackage || !data?.data?.link.requireDeposit) return 0;
+    const { depositType, depositValue } = data.data.link;
+    const value = Number(depositValue) || 0;
+    if (depositType === 'percentage') {
+      return (Number(selectedPackage.valor_base) * value) / 100;
     }
-
-    fetchSlots();
-  }, [slug]);
-
-  const availableDates = useMemo(() => {
-    if (!data?.slotsByDate) return [];
-    return Object.keys(data.slotsByDate).sort();
-  }, [data?.slotsByDate]);
-
-  const slotsForSelectedDate = useMemo(() => {
-    if (!selectedDate || !data?.slotsByDate) return [];
-    return data.slotsByDate[selectedDate] || [];
-  }, [selectedDate, data?.slotsByDate]);
-
-  const selectedPackage = useMemo(() => {
-    if (!data?.packages) return null;
-    return data.packages.find((p: any) => p.id === selectedPackageId) || null;
-  }, [data?.packages, selectedPackageId]);
-
-  const depositCalculation = useMemo(() => {
-    if (!data?.link?.requireDeposit || !selectedPackage) return null;
-    const total = Number(selectedPackage.valor_base) || 0;
-    const val = Number(data.link.depositValue) || 0;
-    if (data.link.depositType === 'percentage') {
-      return (total * val) / 100;
-    }
-    return val;
-  }, [data?.link, selectedPackage]);
-
-  const handleNextToContact = () => {
-    if (!selectedPackageId) {
-      toast.error('Selecione um pacote.');
-      return;
-    }
-    if (!selectedDate || !selectedTime) {
-      toast.error('Selecione a data e o horário desejado.');
-      return;
-    }
-    setCurrentStep('contact');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return value;
   };
 
-  // Efeito de busca do cliente no CRM a partir do telefone ou e-mail digitado
-  useEffect(() => {
-    if (!slug || currentStep !== 'contact') return;
-    const cleanPhone = clientPhone.replace(/\D/g, '');
-    const validEmail = clientEmail.trim().toLowerCase();
-    const hasValidPhone = cleanPhone.length >= 10;
-    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(validEmail);
-
-    if (!hasValidPhone && !hasValidEmail) {
-      if (clientConfirmed === null) setMatchedClient(null);
+  const handleSubmit = async () => {
+    if (!selectedPackage || !selectedDate || !selectedTime) return;
+    if (!customerName.trim() || !customerPhone.trim()) {
+      toast.error('Preencha seu nome e telefone.');
       return;
     }
-
-    // Se o cliente já rejeitou este contato, não reabre
-    if (clientConfirmed === false) return;
-
-    const timer = setTimeout(async () => {
-      try {
-        setIsSearchingClient(true);
-        const params = new URLSearchParams();
-        if (hasValidPhone) params.append('phone', cleanPhone);
-        if (hasValidEmail) params.append('email', validEmail);
-
-        const res = await fetch(`${API_BASE}/api/agenda/online/${slug}/lookup-client?${params.toString()}`);
-        const json = await res.json();
-        if (json.success && json.found && json.client) {
-          setMatchedClient(json.client);
-        } else if (clientConfirmed === null) {
-          setMatchedClient(null);
-        }
-      } catch (err) {
-        console.warn('Erro ao consultar CRM:', err);
-      } finally {
-        setIsSearchingClient(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [slug, clientPhone, clientEmail, currentStep, clientConfirmed]);
-
-  const handleConfirmIdentity = () => {
-    if (!matchedClient) return;
-    setClientConfirmed(true);
-    if (matchedClient.nome) setClientName(matchedClient.nome);
-    if (matchedClient.email && !clientEmail) setClientEmail(matchedClient.email);
-    if (matchedClient.telefone && !clientPhone) setClientPhone(maskPhoneBR(matchedClient.telefone));
-    if (matchedClient.cpf_cnpj) setClientCpf(maskCpfCnpj(matchedClient.cpf_cnpj));
-    toast.success('Cadastro identificado! Seus dados foram vinculados.');
-  };
-
-  const handleRejectIdentity = () => {
-    setClientConfirmed(false);
-    setMatchedClient(null);
-  };
-
-  const handleSubmitReservation = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!clientName.trim() || clientName.trim().length < 3) {
-      toast.error('Informe seu nome completo.');
-      return;
-    }
-    const cleanPhone = clientPhone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      toast.error('Informe um telefone/WhatsApp válido.');
-      return;
-    }
-    if (!clientEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail.trim())) {
-      toast.error('Informe um e-mail válido.');
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const cleanCpf = clientCpf.replace(/\D/g, '');
-      const payload = {
-        date: selectedDate,
-        startTime: selectedTime,
-        pacoteId: selectedPackageId,
-        clienteData: {
-          nome: clientName.trim(),
-          telefone: cleanPhone,
-          email: clientEmail.trim().toLowerCase(),
-          cpfCnpj: cleanCpf || undefined,
-          cliente_id_matched: clientConfirmed ? matchedClient?.id : undefined,
-        },
-      };
-
-      const res = await fetch(`${API_BASE}/api/agenda/online/${slug}/reserve`, {
+      const res = await fetch(`${SCHEDULE_API_URL}/agenda-online/reserve`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(SCHEDULE_API_TOKEN ? { 'x-api-token': SCHEDULE_API_TOKEN } : {}),
+        },
+        body: JSON.stringify({
+          slug,
+          packageId: selectedPackage.id,
+          date: selectedDate,
+          startTime: selectedTime,
+          customer: {
+            name: customerName,
+            phone: customerPhone,
+            email: customerEmail || undefined,
+            notes: customerNotes || undefined,
+          },
+        }),
       });
-
       const json = await res.json();
-
       if (!res.ok || !json.success) {
-        throw new Error(json.error || 'Não foi possível reservar este horário.');
+        throw new Error(json.error || 'Não foi possível confirmar.');
       }
-
-      setReservationResult(json);
-
-      // Se exigir sinal: NÃO exibe tela de "Horário Reservado!" prematuramente.
-      // Redireciona diretamente para o checkout do gateway!
-      if (data.link.requireDeposit) {
-        const targetUrl = json.checkoutUrl || `/checkout/${json.cobrancaId}`;
-        toast.success('Horário pré-selecionado! Redirecionando para o pagamento seguro...');
-        window.location.href = targetUrl;
-        return;
-      }
-
-      // Se não exigir sinal, confirma imediatamente e exibe a tela de sucesso
-      setCurrentStep('success');
+      setStep(4);
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao confirmar agendamento.');
+      toast.error(err?.message || 'Erro ao confirmar agendamento.');
+    } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <PublicThemeWrapper>
-        <div className="min-h-screen flex flex-col items-center justify-center p-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
-          <p className="text-sm text-neutral-600 animate-pulse">Carregando horários disponíveis...</p>
+      <PublicThemeWrapper primaryColor={primaryColor}>
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </PublicThemeWrapper>
     );
   }
 
-  if (fetchError || !data) {
+  if (error || !data?.data) {
     return (
-      <PublicThemeWrapper>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="max-w-md w-full border border-neutral-200 text-center p-6 shadow-sm bg-white rounded-2xl">
-            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-3" />
-            <h2 className="text-xl font-bold mb-1 text-neutral-900">Página Indisponível</h2>
-            <p className="text-sm text-neutral-600 mb-6">
-              {fetchError || 'Este link de agendamento não está mais ativo ou não possui horários livres no momento.'}
+      <PublicThemeWrapper primaryColor={primaryColor}>
+        <div className="min-h-screen flex items-center justify-center px-6">
+          <div className="max-w-md text-center space-y-3">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto" />
+            <h1 className="text-2xl font-bold">Página não disponível</h1>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : 'Este link pode estar inativo ou expirado.'}
             </p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Tentar Novamente
-            </Button>
-          </Card>
+          </div>
         </div>
       </PublicThemeWrapper>
     );
   }
 
-  if (currentStep === 'success') {
-    return (
-      <PublicThemeWrapper primaryColor={primaryColor || undefined}>
-        <div className="min-h-screen py-8 px-4 flex items-center justify-center">
-          <BookingSuccess
-            photographerName={data.photographer?.empresa?.trim() || undefined}
-            linkTitle={data.link.title}
-            selectedPackage={selectedPackage}
-            selectedDate={selectedDate!}
-            selectedTime={selectedTime!}
-            clientName={clientName}
-            cobrancaId={reservationResult?.cobrancaId}
-            requireDeposit={Boolean(data.link.requireDeposit)}
-            showPackagePrice={data.link.showPackagePrice !== false}
-          />
-        </div>
-      </PublicThemeWrapper>
-    );
-  }
+  const { link, photographer, slotsByDate } = data.data;
+  const hasCover = !!link.coverImageUrl;
+  const studioName = photographer?.empresa || theme?.studioName || 'Estúdio';
+  const logoUrl = photographer?.logo_url || photographer?.avatar_url || theme?.studioLogoUrl;
+  const showPackagePrice = link.showPackagePrice !== false;
 
-  const studioName = data.photographer?.empresa?.trim() || '';
-  const avatarUrl = data.photographer?.avatar_url || data.photographer?.logo_url;
+  // Datas disponíveis ordenadas
+  const dates = Object.keys(slotsByDate).sort();
+
+  // Formatar data para exibição
+  const formatDateLabel = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const weekday = date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+    const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    return { weekday, day };
+  };
 
   return (
-    <PublicThemeWrapper primaryColor={primaryColor || undefined}>
-      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Cabeçalho do Fotógrafo e Link */}
-          <div className="bg-white rounded-2xl border border-neutral-200/80 p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-              <Avatar className="w-16 h-16 border shadow-sm shrink-0">
-                <AvatarImage src={avatarUrl} alt={studioName || 'Estúdio'} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
-                  {(studioName || 'LS').slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-
-              <div className="space-y-1 flex-1">
-                {studioName ? (
-                  <div className="text-xs uppercase tracking-wider font-semibold text-neutral-500">
-                    {studioName}
-                  </div>
-                ) : null}
-                <h1 className="text-2xl font-bold tracking-tight text-neutral-900">{data.link.title}</h1>
-                {data.link.description && (
-                  <p className="text-sm text-neutral-600 max-w-2xl whitespace-pre-line">
-                    {data.link.description}
-                  </p>
-                )}
-              </div>
+    <PublicThemeWrapper primaryColor={primaryColor}>
+      {/* Layout editorial: split-screen em desktop, coluna em mobile */}
+      <div className="min-h-screen flex flex-col md:flex-row">
+        {/* COLUNA ESQUERDA — CAPA EDITORIAL */}
+        <aside className="relative md:w-[48%] md:min-h-screen md:sticky md:top-0 md:h-screen shrink-0">
+          {hasCover ? (
+            <AgendaCoverImage
+              src={link.coverImageUrl}
+              position={link.coverImagePosition}
+              lqip={link.coverImageLqip}
+              alt={link.title}
+              fill
+              priority
+              className="h-[55vh] md:h-full"
+            />
+          ) : (
+            <div className="relative h-[55vh] md:h-full bg-gradient-to-br from-neutral-300 via-neutral-200 to-neutral-300">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.6),transparent_50%)]" />
             </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/40 pointer-events-none" />
+
+          <div className="absolute inset-x-0 top-0 p-5 md:p-8 flex items-center gap-3 z-10">
+            {logoUrl ? (
+              <img src={logoUrl} alt={studioName} className="w-9 h-9 rounded-full border border-white/40 object-cover bg-white/10 backdrop-blur-sm" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold">
+                {studioName.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+            <span className="text-white text-xs uppercase tracking-[0.2em] font-semibold drop-shadow">
+              {studioName}
+            </span>
           </div>
 
-          {currentStep === 'selection' ? (
-            <div className="space-y-6">
-              {/* Escolha de Pacote */}
-              {data.packages?.length > 0 && (
-                <div className="bg-white rounded-2xl border border-neutral-200/80 p-5 sm:p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-neutral-900">
-                      <Package className="w-4 h-4 text-primary" />
-                      <span>{data.packages.length > 1 ? '1. Escolha o Pacote' : '1. Pacote Incluso'}</span>
-                    </div>
-                    {data.packages.length > 1 && (
-                      <span className="text-xs text-neutral-400 font-normal">
-                        {data.packages.length} opções disponíveis
-                      </span>
-                    )}
-                  </div>
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-8 z-10">
+            <h1 className="text-white text-2xl md:text-4xl font-bold leading-tight drop-shadow-lg">
+              {link.title}
+            </h1>
+            {link.description && (
+              <p className="text-white/85 text-sm md:text-base mt-3 max-w-prose drop-shadow leading-relaxed">
+                {link.description}
+              </p>
+            )}
+          </div>
+        </aside>
 
-                  {/* Grid compacto e elegante (suporta até 8 pacotes sem poluição visual) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[360px] overflow-y-auto pr-0.5">
-                    {data.packages.map((pkg: any) => {
-                      const isSelected = selectedPackageId === pkg.id;
+        {/* COLUNA DIREITA — FLUXO */}
+        <main className="flex-1 bg-background min-h-screen">
+          <div className="max-w-2xl mx-auto px-5 py-8 md:py-12 md:px-10 space-y-8">
+            <div className="md:hidden">
+              <h1 className="text-2xl font-bold leading-tight">{link.title}</h1>
+              {link.description && (
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{link.description}</p>
+              )}
+            </div>
+
+            {/* Stepper */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {[
+                { n: 1 as const, label: 'Pacote' },
+                { n: 2 as const, label: 'Horário' },
+                { n: 3 as const, label: 'Você' },
+                { n: 4 as const, label: 'Pronto' },
+              ].map((s, idx, arr) => (
+                <div key={s.n} className="flex items-center gap-2 flex-1">
+                  <div className={step >= s.n ? 'text-foreground font-medium' : ''}>{idx + 1}. {s.label}</div>
+                  {idx < arr.length - 1 && <div className="flex-1 h-px bg-border" />}
+                </div>
+              ))}
+            </div>
+
+            {/* STEP 1 — PACOTE */}
+            {step === 1 && (
+              <section className="space-y-4">
+                <header className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <h2 className="text-base font-semibold">Escolha sua experiência</h2>
+                </header>
+                {packages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">Nenhum pacote disponível no momento.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {packages.map(pkg => {
+                      const selected = selectedPackageId === pkg.id;
                       return (
-                        <div
+                        <button
                           key={pkg.id}
+                          type="button"
                           onClick={() => setSelectedPackageId(pkg.id)}
-                          className={cn(
-                            'group relative flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border transition-all cursor-pointer select-none text-left',
-                            isSelected
-                              ? 'border-primary bg-primary/[0.04] shadow-xs ring-1 ring-primary/30'
-                              : 'border-neutral-200/90 bg-neutral-50/40 hover:bg-neutral-50 hover:border-neutral-300'
-                          )}
+                          className={`w-full text-left p-4 rounded-xl border transition-all ${
+                            selected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-border bg-card hover:border-primary/40'
+                          }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div
-                              className={cn(
-                                'w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors',
-                                isSelected
-                                  ? 'border-primary bg-primary text-primary-foreground'
-                                  : 'border-neutral-300 group-hover:border-neutral-400 bg-white'
-                              )}
-                            >
-                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                            </div>
-
+                          <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm text-neutral-900 truncate leading-tight">
-                                {pkg.nome}
-                              </p>
-                              {pkg.fotos_incluidas ? (
-                                <p className="text-[11px] text-neutral-500 mt-0.5 leading-tight">
-                                  {pkg.fotos_incluidas} {pkg.fotos_incluidas === 1 ? 'foto' : 'fotos'}
+                              <p className="font-semibold text-sm">{pkg.nome}</p>
+                              {pkg.duracao_minutos ? (
+                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {pkg.duracao_minutos} minutos
                                 </p>
                               ) : null}
+                              {pkg.fotos_incluidas ? (
+                                <p className="text-xs text-muted-foreground mt-0.5">{pkg.fotos_incluidas} fotos inclusas</p>
+                              ) : null}
                             </div>
-                          </div>
-
-                          {data.link.showPackagePrice !== false && (
-                            <div className="text-right shrink-0">
-                              <span className="font-bold text-sm text-neutral-900">
+                            {showPackagePrice && (
+                              <span className="font-bold text-base shrink-0">
                                 {formatCurrency(Number(pkg.valor_base) || 0)}
                               </span>
-                            </div>
-                          )}
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="flex justify-end pt-2">
+                  <Button disabled={!selectedPackage} onClick={() => setStep(2)}>
+                    Continuar
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {/* STEP 2 — HORÁRIO */}
+            {step === 2 && (
+              <section className="space-y-5">
+                <header className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-semibold">Escolha um horário</h2>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                    Voltar
+                  </Button>
+                </header>
+
+                {dates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">Nenhum horário disponível no momento.</p>
+                ) : (
+                  <div className="space-y-5">
+                    {dates.map(dateStr => {
+                      const slots = slotsByDate[dateStr] || [];
+                      const { weekday, day } = formatDateLabel(dateStr);
+                      return (
+                        <div key={dateStr} className="space-y-2">
+                          <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+                            {weekday} • {day}
+                          </p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {slots.map(slot => {
+                              const isSelected = selectedDate === dateStr && selectedTime === slot.start_time;
+                              return (
+                                <button
+                                  key={slot.start_time}
+                                  type="button"
+                                  onClick={() => { setSelectedDate(dateStr); setSelectedTime(slot.start_time); }}
+                                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                    isSelected
+                                      ? 'border-primary bg-primary text-primary-foreground'
+                                      : 'border-border bg-card hover:border-primary/40'
+                                  }`}
+                                >
+                                  {slot.start_time.slice(0, 5)}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  {/* Informação de valor de sinal a pagar abaixo dos pacotes */}
-                  {data.link.requireDeposit && depositCalculation && (
-                    <div className="mt-3 flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-950 text-xs sm:text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/20 text-amber-900 text-xs font-bold shrink-0">
-                          R$
-                        </span>
-                        <span>
-                          Sinal de Reserva: <strong className="font-bold">{formatCurrency(depositCalculation)}</strong>
-                          {data.link.depositType === 'percentage' && data.link.showPackagePrice !== false && (
-                            <span className="text-amber-800/80 text-xs font-normal ml-1.5">
-                              ({data.link.depositValue}% do pacote)
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <span className="text-xs text-amber-800/80 font-normal hidden sm:inline">
-                        10 min para pagamento após confirmar
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Calendário e Seleção de Horário */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold px-1 text-neutral-900">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  <span>{data.packages?.length > 0 ? '2. Escolha o Dia e Horário' : 'Escolha o Dia e Horário'}</span>
-                </div>
-
-                <BookingCalendar
-                  availableDates={availableDates}
-                  selectedDate={selectedDate}
-                  onSelectDate={(d) => {
-                    setSelectedDate(d);
-                    setSelectedTime(null);
-                  }}
-                  slotsForSelectedDate={slotsForSelectedDate}
-                  selectedTime={selectedTime}
-                  onSelectTime={setSelectedTime}
-                />
-              </div>
-
-              {/* Barra de Ação Inferior */}
-              <div className="bg-white rounded-2xl border border-neutral-200/80 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-center sm:text-left">
-                  {selectedDate && selectedTime ? (
-                    <div>
-                      <span className="text-neutral-500">Horário selecionado: </span>
-                      <span className="font-semibold text-neutral-900">
-                        {format(parseISO(selectedDate), "dd/MM/yyyy", { locale: ptBR })} às {selectedTime}
-                      </span>
-                      {selectedPackage && (
-                        <span className="text-neutral-500 ml-1">
-                          ({selectedPackage.nome}
-                          {data.link.showPackagePrice !== false && (
-                            <> • {formatCurrency(Number(selectedPackage.valor_base) || 0)}</>
-                          )})
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-neutral-500 text-xs sm:text-sm">
-                      Selecione uma data e um horário para avançar.
-                    </span>
-                  )}
-                </div>
-
-                <Button
-                  size="lg"
-                  onClick={handleNextToContact}
-                  disabled={!selectedDate || !selectedTime || !selectedPackageId}
-                  className="w-full sm:w-auto h-11 px-8 shadow-sm font-medium"
-                >
-                  Continuar
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            /* Passo 2: Dados do Cliente */
-            <Card className="border border-neutral-200/80 shadow-sm bg-white rounded-2xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <Button variant="ghost" size="sm" onClick={() => setCurrentStep('selection')} className="-ml-2 text-xs text-neutral-600 hover:text-neutral-900">
-                    <ArrowLeft className="w-4 h-4 mr-1" />
-                    Alterar data/horário
+                )}
+                <div className="flex justify-end pt-2">
+                  <Button disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>
+                    Continuar
+                    <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
-                  <div className="text-xs text-neutral-500">Passo 2 de 2</div>
                 </div>
-                <CardTitle className="text-xl text-neutral-900">Seus Dados de Contato</CardTitle>
-                <CardDescription className="text-neutral-600">
-                  Informe seus dados para vincularmos ao seu agendamento de{' '}
-                  <strong className="text-neutral-900">
-                    {format(parseISO(selectedDate!), "dd 'de' MMMM", { locale: ptBR })} às {selectedTime}
-                  </strong>.
-                </CardDescription>
-              </CardHeader>
+              </section>
+            )}
 
-              <CardContent>
-                <form onSubmit={handleSubmitReservation} className="space-y-4">
-                  {/* Reconhecimento Inteligente de Cliente no CRM */}
-                  {matchedClient && clientConfirmed === null && (
-                    <div className="p-3.5 rounded-xl bg-primary/[0.07] border border-primary/20 space-y-2.5 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="flex items-start gap-2.5">
-                        <UserCheck className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                        <div className="text-xs text-neutral-700 flex-1">
-                          <p className="font-semibold text-neutral-900 text-sm">Já existe um cadastro no sistema com seus dados!</p>
-                          <p className="mt-0.5 text-neutral-600">
-                            Encontramos um cadastro no estúdio em nome de <strong className="text-neutral-900">{matchedClient.nome}</strong>. É você?
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 pl-7">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleConfirmIdentity}
-                          className="h-8 text-xs font-medium px-3.5 shadow-xs"
-                        >
-                          <Check className="w-3.5 h-3.5 mr-1.5" />
-                          Sim, sou eu
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRejectIdentity}
-                          className="h-8 text-xs text-neutral-600 hover:text-neutral-900"
-                        >
-                          Não, sou outra pessoa
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {clientConfirmed === true && matchedClient && (
-                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Cadastro vinculado ao estúdio: <strong>{matchedClient.nome}</strong></span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRejectIdentity}
-                        className="text-xs text-neutral-500 hover:text-neutral-800 underline ml-2"
-                      >
-                        Trocar
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="nome" className="text-neutral-700">Nome Completo <span className="text-destructive">*</span></Label>
-                    <Input
-                      id="nome"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="Ex: Maria Silva"
-                      required
-                      disabled={submitting}
-                      className="h-10 bg-neutral-50 border-neutral-200"
-                    />
+            {/* STEP 3 — DADOS DO CLIENTE */}
+            {step === 3 && (
+              <section className="space-y-5">
+                <header className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-semibold">Seus dados</h2>
                   </div>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                    Voltar
+                  </Button>
+                </header>
 
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pb-name">Nome completo <span className="text-destructive">*</span></Label>
+                    <Input id="pb-name" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Maria Silva" />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="phone" className="text-neutral-700">WhatsApp / Telefone <span className="text-destructive">*</span></Label>
-                        {isSearchingClient && (
-                          <span className="text-[11px] text-neutral-400 flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                            Buscando...
-                          </span>
-                        )}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pb-phone">WhatsApp <span className="text-destructive">*</span></Label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="pb-phone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="pl-9" placeholder="(11) 98765-4321" />
                       </div>
-                      <Input
-                        id="phone"
-                        value={clientPhone}
-                        onChange={(e) => setClientPhone(maskPhoneBR(e.target.value))}
-                        placeholder="(00) 00000-0000"
-                        required
-                        disabled={submitting}
-                        className="h-10 bg-neutral-50 border-neutral-200"
-                      />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-neutral-700">E-mail <span className="text-destructive">*</span></Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={clientEmail}
-                        onChange={(e) => setClientEmail(e.target.value)}
-                        placeholder="seu@email.com"
-                        required
-                        disabled={submitting}
-                        className="h-10 bg-neutral-50 border-neutral-200"
-                      />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pb-email">E-mail (opcional)</Label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="pb-email" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="pl-9" placeholder="maria@email.com" />
+                      </div>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="cpfCnpj" className="text-neutral-700">CPF ou CNPJ</Label>
-                      <span className="text-[11px] text-neutral-400">Opcional para emissão fiscal</span>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pb-notes">Observações (opcional)</Label>
+                    <div className="relative">
+                      <MessageSquare className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                      <Textarea id="pb-notes" rows={3} value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} className="pl-9 resize-none" placeholder="Algo que eu deva saber? Pet na sessão, data preferida para entrega..." />
                     </div>
-                    <Input
-                      id="cpfCnpj"
-                      value={clientCpf}
-                      onChange={(e) => setClientCpf(maskCpfCnpj(e.target.value))}
-                      placeholder="000.000.000-00"
-                      disabled={submitting}
-                      className="h-10 bg-neutral-50 border-neutral-200"
-                    />
                   </div>
+                </div>
 
-                  {/* Resumo Financeiro */}
-                  <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-200 space-y-2 text-sm mt-4">
-                    <div className="flex justify-between text-neutral-600">
-                      <span>Pacote escolhido:</span>
-                      <span className="font-medium text-neutral-900">{selectedPackage?.nome}</span>
-                    </div>
-                    {data.link.showPackagePrice !== false && (
-                      <div className="flex justify-between text-neutral-600">
-                        <span>Valor total:</span>
-                        <span className="font-semibold text-neutral-900">
-                          {formatCurrency(Number(selectedPackage?.valor_base) || 0)}
-                        </span>
-                      </div>
+                {link.requireDeposit && selectedPackage && (
+                  <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Sinal para confirmar</p>
+                    <p className="text-2xl font-bold">{formatCurrency(calculateDeposit())}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {link.depositType === 'percentage'
+                        ? `${link.depositValue}% do valor total`
+                        : 'Valor fixo'}
+                      {' '}— você recebe o link de pagamento após confirmar.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    disabled={!customerName.trim() || !customerPhone.trim() || submitting}
+                    onClick={handleSubmit}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Confirmando…</>
+                    ) : (
+                      <>Confirmar agendamento</>
                     )}
+                  </Button>
+                </div>
+              </section>
+            )}
 
-                    {data.link.requireDeposit && depositCalculation && (
-                      <div className="flex justify-between text-amber-700 font-medium border-t border-neutral-200 pt-2 mt-2">
-                        <span>Sinal para reserva:</span>
-                        <span>{formatCurrency(depositCalculation)}</span>
-                      </div>
-                    )}
+            {/* STEP 4 — CONFIRMAÇÃO */}
+            {step === 4 && (
+              <section className="space-y-5 py-8 text-center">
+                <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-primary" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold">Solicitação enviada!</h2>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Você receberá um retorno de <strong>{studioName}</strong> em breve pelo WhatsApp informado.
+                    {link.requireDeposit && ' Lembre-se de pagar o sinal para garantir o horário.'}
+                  </p>
+                </div>
+                {selectedPackage && selectedDate && selectedTime && (
+                  <div className="inline-flex flex-col gap-1 px-5 py-3 rounded-xl bg-muted/40 border text-left text-sm">
+                    <p><strong>{selectedPackage.nome}</strong></p>
+                    <p className="text-muted-foreground">{formatDateLabel(selectedDate).day} às {selectedTime.slice(0, 5)}</p>
                   </div>
-
-                  {/* Aviso de Reserva Temporária de 10 Minutos */}
-                  {data.link.requireDeposit && (
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/[0.08] border border-amber-500/20 text-amber-950 text-xs mt-3">
-                      <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="font-semibold text-amber-900">Reserva temporária de 10 minutos</p>
-                        <p className="text-amber-800/90 leading-relaxed text-[11px]">
-                          Ao avançar para o pagamento, este horário fica reservado exclusivamente para você por <strong>10 minutos</strong>. Conclua o pagamento do sinal para confirmar definitivamente o seu agendamento antes que o horário seja liberado.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-2 flex justify-end gap-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setCurrentStep('selection')}
-                      disabled={submitting}
-                    >
-                      Voltar
-                    </Button>
-
-                    <Button type="submit" size="lg" disabled={submitting} className="min-w-[180px]">
-                      {submitting ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          {data.link.requireDeposit ? 'Gerando pagamento seguro...' : 'Confirmando...'}
-                        </>
-                      ) : data.link.requireDeposit ? (
-                        'Ir para Pagamento do Sinal'
-                      ) : (
-                        'Confirmar Agendamento'
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+                )}
+              </section>
+            )}
+          </div>
+        </main>
       </div>
     </PublicThemeWrapper>
   );

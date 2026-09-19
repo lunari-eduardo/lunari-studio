@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { isSameDay, parseISO, getMonth, getYear, getDate } from 'date-fns';
+import { isSameDay, parseISO, getMonth, getYear, getDate, startOfWeek, endOfWeek, format } from 'date-fns';
 import { Calendar, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseTaskStatuses } from '@/hooks/useSupabaseTaskStatuses';
@@ -13,17 +13,17 @@ interface AgendaTasksSectionProps {
   onDayClick?: (date: Date) => void;
 }
 
-export default function AgendaTasksSection({ 
-  selectedDate, 
-  tasks, 
+export default function AgendaTasksSection({
+  selectedDate,
+  tasks,
   viewMode,
   onCreateTask,
   onDayClick
 }: AgendaTasksSectionProps) {
   const navigate = useNavigate();
   const { isTerminalKey } = useSupabaseTaskStatuses();
-  
-  // Filter tasks for the selected date that are not completed (for day/week views)
+
+  // Filter tasks for the selected date that are not completed (for day view)
   const dayTasks = useMemo(() => {
     return tasks.filter(task => {
       if (!task.dueDate) return false;
@@ -33,6 +33,21 @@ export default function AgendaTasksSection({
       return true;
     });
   }, [tasks, selectedDate, isTerminalKey]);
+
+  // Filter tasks for the selected week that are not completed (week view)
+  const weekTasks = useMemo(() => {
+    if (viewMode !== 'week') return [];
+    const weekStart = startOfWeek(selectedDate);
+    const weekEnd = endOfWeek(selectedDate);
+    return tasks
+      .filter(task => {
+        if (!task.dueDate) return false;
+        if (isTerminalKey(task.status) || task.completedAt) return false;
+        const taskDate = parseISO(task.dueDate);
+        return taskDate >= weekStart && taskDate <= weekEnd;
+      })
+      .sort((a, b) => (a.dueDate! < b.dueDate! ? -1 : 1));
+  }, [tasks, selectedDate, viewMode, isTerminalKey]);
   
   // Group tasks by day for monthly view
   const monthlyTasksSummary = useMemo(() => {
@@ -63,8 +78,8 @@ export default function AgendaTasksSection({
       .map(([day, count]) => ({ day, count }));
   }, [tasks, selectedDate, viewMode, isTerminalKey]);
   
-  // Limit to 5 tasks for daily view
-  const visibleTasks = dayTasks.slice(0, 5);
+  // Limit to 5 tasks for daily/weekly view
+  const visibleTasks = viewMode === 'week' ? weekTasks.slice(0, 6) : dayTasks.slice(0, 5);
 
   const handleTaskClick = (taskId: string) => {
     navigate(`/app/tarefas?taskId=${taskId}`);
@@ -92,7 +107,11 @@ export default function AgendaTasksSection({
   };
   
   // Dynamic title based on view mode
-  const sectionTitle = viewMode === 'month' ? 'Tarefas do mês' : 'Tarefas do dia';
+  const sectionTitle = viewMode === 'month'
+    ? 'Tarefas do mês'
+    : viewMode === 'week'
+      ? 'Tarefas pendentes'
+      : 'Tarefas do dia';
   
   // Hide in year view
   if (viewMode === 'year') {
@@ -141,7 +160,7 @@ export default function AgendaTasksSection({
         <>
           {visibleTasks.length === 0 ? (
             <p className="py-2 text-center text-[11px] text-muted-foreground">
-              Nenhuma tarefa
+              {viewMode === 'week' ? 'Nenhuma tarefa na semana' : 'Nenhuma tarefa'}
             </p>
           ) : (
             <ul className="space-y-1">
@@ -152,6 +171,11 @@ export default function AgendaTasksSection({
                   onClick={() => handleTaskClick(task.id)}
                 >
                   {getPriorityIndicator(task.priority)}
+                  {viewMode === 'week' && task.dueDate && (
+                    <span className="text-[10px] tabular-nums text-muted-foreground/60 shrink-0">
+                      {format(parseISO(task.dueDate), 'dd/MM')}
+                    </span>
+                  )}
                   <span className="flex-1 truncate text-[11px] text-muted-foreground">
                     {task.title}
                   </span>

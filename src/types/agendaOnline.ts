@@ -13,6 +13,9 @@ export interface AgendaOnlineLink {
   deposit_gateway?: string | null;
   show_package_price?: boolean;
   is_active: boolean;
+  cover_image_url?: string | null;
+  cover_image_position?: string | null;
+  cover_image_lqip?: string | null;
   created_at?: string;
   updated_at?: string;
 }

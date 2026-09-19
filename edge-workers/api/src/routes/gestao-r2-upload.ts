@@ -17,7 +17,8 @@ export type GestaoContext =
   | "proposals"
   | "proposals-pdf"
   | "gallery-cover-video"
-  | "gallery-cover-poster";
+  | "gallery-cover-poster"
+  | "agenda-cover";
 
 interface ContextRule {
   prefix: (userId: string, entityId?: string) => string;
@@ -112,6 +113,12 @@ export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
     maxBytes: 2 * 1024 * 1024,
     allowedTypes: ["image/jpeg", "image/png", "image/webp"],
   },
+  "agenda-cover": {
+    prefix: (u, e) => `gestao/agenda-covers/${u}${e ? "/" + e : ""}`,
+    isPublic: true,
+    maxBytes: 10 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
+  },
 };
 
 export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
@@ -189,10 +196,11 @@ export async function gestaoR2UploadRoute(c: Context<{ Bindings: Bindings }>) {
 
     const isPdf = context === "proposals-pdf";
     const isCover = context === "gallery-cover-video" || context === "gallery-cover-poster";
+    const isAgendaCover = context === "agenda-cover";
     await bucket.put(storagePath, fileData, {
       httpMetadata: {
         contentType: effectiveMime || file.type || "application/octet-stream",
-        cacheControl: (isPdf || isCover) ? "public, max-age=31536000, immutable" : undefined,
+        cacheControl: (isPdf || isCover || isAgendaCover) ? "public, max-age=31536000, immutable" : undefined,
         contentDisposition: isPdf ? "inline" : undefined,
       },
     });

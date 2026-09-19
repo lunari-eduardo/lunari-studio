@@ -446,8 +446,8 @@ export function FormPublicRenderer({
       forceHeight={forceHeight}
     >
       <div className="min-h-screen flex">
-        {/* ── Painel da Capa (desktop) ──────────────────────── */}
-        <div className="hidden lg:flex lg:w-2/5 xl:w-2/5 flex-col relative overflow-hidden">
+        {/* ── Painel da Capa (desktop) — full-bleed, sem overlay ── */}
+        <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-neutral-100">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -457,45 +457,13 @@ export function FormPublicRenderer({
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-950" />
           )}
-
-          {/* Véu de contraste leve */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 60%, rgba(0,0,0,0.10) 100%)',
-            }}
-          />
-
-          {/* Conteúdo da capa */}
-          <div className="relative z-10 flex flex-col justify-end h-full p-8 pb-12">
-            <div className="space-y-3 max-w-sm">
-              <p className="text-[0.6rem] uppercase tracking-[0.25em] text-white/50 font-semibold">
-                {studioName}
-              </p>
-              <h1 className="text-[clamp(1.6rem,4vw,2.8rem)] leading-[1.1] font-normal text-white tracking-tight">
-                {tituloExibicao}
-              </h1>
-              {formulario.descricao && (
-                <p className="text-sm text-white/65 leading-relaxed">
-                  {formulario.descricao}
-                </p>
-              )}
-              {formattedDate && (
-                <div className="flex items-center gap-1.5 text-white/45 text-xs">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{formattedDate}</span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* ── Painel de Conteúdo ──────────────────────────── */}
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header sticky */}
           <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-neutral-100">
-            <div className="flex items-center justify-between px-5 py-3">
+            <div className="flex items-center justify-between px-6 py-3.5">
               {/* Brand */}
               <div className="flex items-center gap-2 min-w-0">
                 {studioLogoUrl ? (
@@ -511,16 +479,16 @@ export function FormPublicRenderer({
                 )}
               </div>
               {/* Progresso */}
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
-                  {currentStep + 1}/{totalSteps}
-                </span>
-                <div className="w-20 h-1 bg-neutral-100 rounded-full overflow-hidden">
+              <div className="flex items-center gap-2.5">
+                <div className="w-24 h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-300"
                     style={{ width: `${progresso}%` }}
                   />
                 </div>
+                <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
+                  {currentStep + 1} de {totalSteps}
+                </span>
               </div>
             </div>
           </header>
@@ -553,11 +521,33 @@ export function FormPublicRenderer({
           {/* Área de scroll */}
           <main className="flex-1 overflow-y-auto">
             <form onSubmit={handleSubmit} noValidate>
+              {/* Cabeçalho do formulário (título + descrição) — desktop */}
+              {!readOnly && (
+                <div className="hidden lg:block max-w-lg mx-auto px-6 pt-10 pb-2">
+                  <div className="space-y-3">
+                    <h1 className="text-3xl font-normal text-foreground tracking-tight leading-[1.1]">
+                      {tituloExibicao}
+                    </h1>
+                    {formulario.descricao && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {formulario.descricao}
+                      </p>
+                    )}
+                    {formattedDate && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground text-xs pt-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{formattedDate}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Info do respondente (apenas no primeiro passo) */}
               {currentStep === 0 && (
-                <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
-                  <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 space-y-3">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="max-w-lg mx-auto px-6 pt-6 pb-4">
+                  <div className="bg-white rounded-xl border border-neutral-200 px-5 py-4 space-y-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                    <p className="text-[11px] font-medium text-muted-foreground tracking-wide">
                       Suas informações (opcional)
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -596,7 +586,7 @@ export function FormPublicRenderer({
               )}
 
               {/* Pergunta atual */}
-              <div className="max-w-lg mx-auto px-4 py-6">
+              <div className="max-w-lg mx-auto px-6 py-6">
                 {currentCampo && (
                   <CampoRendererPublico
                     key={currentCampo.id}
@@ -616,7 +606,7 @@ export function FormPublicRenderer({
               </div>
 
               {/* Navegação */}
-              <div className="max-w-lg mx-auto px-4 pb-8">
+              <div className="max-w-lg mx-auto px-6 pb-8">
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"
@@ -732,18 +722,18 @@ function CampoRendererPublico({
   });
 
   return (
-    <div className="space-y-5">
+    <div className="bg-white rounded-xl border border-neutral-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] px-6 py-5 space-y-5">
       {/* Cabeçalho da pergunta */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-[11px] text-muted-foreground font-medium">
+          <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
             {stepLabel}
           </span>
         </div>
-        <h2 className="text-xl font-semibold leading-snug text-foreground">
+        <h2 className="text-lg font-medium leading-snug text-foreground">
           {campo.label}
           {campo.obrigatorio && (
-            <span className="text-destructive ml-1.5">*</span>
+            <span className="text-destructive ml-1">*</span>
           )}
         </h2>
         {campo.descricao && (

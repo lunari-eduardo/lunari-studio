@@ -101,7 +101,7 @@ export default defineConfig(({ mode }) => ({
           '**/wolfram-*.js',
           '**/highlighted-body-*.js',
         ],
-        navigateFallbackDenylist: [/^\/formulario\//, /^\/checkout\//, /^\/pay\//, /^\/l\//],
+        navigateFallbackDenylist: [/^\/formulario\//, /^\/checkout\//, /^\/pay\//, /^\/l\//, /^\/book\//],
       },
       devOptions: {
         enabled: false,

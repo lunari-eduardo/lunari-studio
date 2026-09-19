@@ -225,6 +225,8 @@
     --event-blocked-fg: 0 35% 30%;
     --event-blocked-bg: 0 35% 93%;
     --event-available: 152 30% 48%;
+    --event-available-fg: 152 25% 22%;
+    --event-available-bg: 152 25% 90%;
 
     --brand-gradient-start: var(--brand-h) var(--brand-s) var(--brand-l);
     --brand-gradient-end:   var(--brand-h) var(--brand-s) var(--brand-hover-l);
@@ -354,6 +356,8 @@
     --event-blocked-fg: 0 35% 90%;
     --event-blocked-bg: 0 30% 18%;
     --event-available: 152 30% 52%;
+    --event-available-fg: 152 25% 88%;
+    --event-available-bg: 152 30% 15%;
 
     /* sidebar dark — grafite profundo, item ativo com ícone dourado */
     --sidebar-bg: 0 0% 9%;              /* #171717 */

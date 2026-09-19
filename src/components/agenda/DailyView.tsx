@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import TimeSlotOptionsMenu from './TimeSlotOptionsMenu';
 import { isSlotCoveredByEvent, getEventEndTime, timeToMinutes, minutesToTime } from '@/modules/agenda/domain/conflict';
 import { cn } from '@/lib/utils';
+import DayRevenueHeader from './DayRevenueHeader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -355,6 +356,8 @@ export default function DailyView({
         )}
       </div>
 
+      <DayRevenueHeader date={date} unifiedEvents={unifiedEvents} range="day" />
+
       {/* Banner de Dia Todo */}
       {fullDaySlot && (
         <div 
@@ -481,15 +484,15 @@ export default function DailyView({
 
                       const getSpanningStyle = () => {
                         if (agendaType === 'personal') {
-                          return 'border-l-[3px] border-purple-500 bg-purple-500/10 text-purple-800 dark:text-purple-200';
+                          return 'border-l-[3px] border-[hsl(var(--event-personal))] bg-[hsl(var(--event-personal-bg))] text-[hsl(var(--event-personal-fg))] dark:text-[hsl(var(--event-personal-fg))]';
                         }
                         if (agendaType === 'meeting') {
-                          return 'border-l-[3px] border-cyan-500 bg-cyan-500/10 text-cyan-800 dark:text-cyan-200';
+                          return 'border-l-[3px] border-[hsl(var(--event-meeting))] bg-[hsl(var(--event-meeting-bg))] text-[hsl(var(--event-meeting-fg))] dark:text-[hsl(var(--event-meeting-fg))]';
                         }
                         if (spanningEvent.type === 'task') {
-                          return 'border-l-[3px] border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-200';
+                          return 'border-l-[3px] border-[hsl(var(--event-task))] bg-[hsl(var(--event-task-bg))] text-[hsl(var(--event-task-fg))] dark:text-[hsl(var(--event-task-fg))]';
                         }
-                        return 'border-l-[3px] border-blue-500 bg-blue-500/10 text-blue-800 dark:text-blue-200';
+                        return 'border-l-[3px] border-[hsl(var(--event-confirmed))] bg-[hsl(var(--event-confirmed-bg))] text-[hsl(var(--event-confirmed-fg))] dark:text-[hsl(var(--event-confirmed-fg))]';
                       };
 
                       return (
@@ -673,7 +676,7 @@ export default function DailyView({
                   setConflictState(null);
                 }
               }}
-              className="group flex items-start gap-3 rounded-lg border border-border/50 bg-card/60 p-3.5 text-left transition-all hover:border-border hover:bg-accent/40 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="group flex items-start gap-3 rounded-lg border border-border/50 bg-card/60 p-3.5 text-left transition-all hover:border-border hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <div className="mt-0.5 rounded-md bg-muted p-1.5 text-muted-foreground group-hover:text-foreground shrink-0">
                 <Layers className="h-4 w-4" />

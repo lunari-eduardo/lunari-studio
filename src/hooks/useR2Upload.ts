@@ -13,7 +13,8 @@ export type R2Context =
   | 'proposals-pdf'
   | 'general'
   | 'gallery-cover-video'
-  | 'gallery-cover-poster';
+  | 'gallery-cover-poster'
+  | 'agenda-cover';
 
 export interface R2UploadResult {
   url: string;          // CDN URL se público; vazio se privado

@@ -45,6 +45,9 @@ export function useAgendaOnlinePanel(onClose: () => void) {
   const [depositGateway, setDepositGateway] = useState<SelectedProvider | null>(null);
   const [showPackagePrice, setShowPackagePrice] = useState(true);
   const [isActive, setIsActive] = useState(true);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [coverImagePosition, setCoverImagePosition] = useState<string>('50% 50%');
+  const [coverImageLqip, setCoverImageLqip] = useState<string | null>(null);
 
   const availablePackages = useMemo(() => {
     if (!categoriaId) return [];
@@ -76,6 +79,9 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     setDepositGateway(null);
     setShowPackagePrice(true);
     setIsActive(true);
+    setCoverImageUrl(null);
+    setCoverImagePosition('50% 50%');
+    setCoverImageLqip(null);
     setEditingLink(null);
   };
 
@@ -94,6 +100,9 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       setDepositGateway(toSelectorProvider(linkToEdit.deposit_gateway));
       setShowPackagePrice(linkToEdit.show_package_price !== false);
       setIsActive(linkToEdit.is_active);
+      setCoverImageUrl(linkToEdit.cover_image_url || null);
+      setCoverImagePosition(linkToEdit.cover_image_position || '50% 50%');
+      setCoverImageLqip(linkToEdit.cover_image_lqip || null);
     } else {
       resetForm();
     }
@@ -129,6 +138,11 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       return;
     }
 
+    if (slug.length < 3) {
+      toast.error('A URL precisa ter pelo menos 3 caracteres.');
+      return;
+    }
+
     const payload: NewAgendaOnlineLink = {
       title,
       slug,
@@ -142,6 +156,9 @@ export function useAgendaOnlinePanel(onClose: () => void) {
       deposit_gateway: toDatabaseProvider(depositGateway),
       show_package_price: showPackagePrice,
       is_active: isActive,
+      cover_image_url: coverImageUrl,
+      cover_image_position: coverImagePosition,
+      cover_image_lqip: coverImageLqip,
     };
 
     try {
@@ -210,6 +227,9 @@ export function useAgendaOnlinePanel(onClose: () => void) {
     depositGateway, setDepositGateway,
     showPackagePrice, setShowPackagePrice,
     isActive, setIsActive,
+    coverImageUrl, setCoverImageUrl,
+    coverImagePosition, setCoverImagePosition,
+    coverImageLqip, setCoverImageLqip,
     handleOpenForm, handleCloseForm, handleSubmit, handleDelete,
     copyToClipboard, getFullUrl
   };

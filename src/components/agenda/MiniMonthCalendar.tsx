@@ -75,6 +75,9 @@ export default function MiniMonthCalendar({
         } else {
           setIfHigher(key, 'hsl(var(--event-pending))', 2);
         }
+      } else {
+        // session ou outro tipo padrão → usa cor de sessão confirmada
+        setIfHigher(key, 'hsl(var(--event-confirmed))', 3);
       }
     }
 

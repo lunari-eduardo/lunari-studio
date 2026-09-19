@@ -1,5 +1,4 @@
 import MiniMonthCalendar from './MiniMonthCalendar';
-import DayRevenueKPI from './DayRevenueKPI';
 import AgendaTasksSection from './AgendaTasksSection';
 import { useAvailability } from '@/hooks/useAvailability';
 import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
@@ -24,8 +23,7 @@ export default function AgendaSidebar({
   const { availability } = useAvailability();
   const { tasks } = useSupabaseTasks();
 
-  const showKPI = view === 'day' || view === 'week';
-  const kpiRange = view === 'week' ? 'week' : 'day';
+  const showTasks = view === 'day' || view === 'week';
 
   return (
     <aside className="space-y-3">
@@ -41,17 +39,14 @@ export default function AgendaSidebar({
         />
       </div>
 
-      {showKPI && (
-        <>
-          <DayRevenueKPI date={date} unifiedEvents={unifiedEvents} range={kpiRange} />
-          <AgendaTasksSection
-            selectedDate={date}
-            tasks={tasks}
-            viewMode={view}
-            onCreateTask={() => {}}
-            onDayClick={onNavigateToDate}
-          />
-        </>
+      {showTasks && (
+        <AgendaTasksSection
+          selectedDate={date}
+          tasks={tasks}
+          viewMode={view}
+          onCreateTask={() => {}}
+          onDayClick={onNavigateToDate}
+        />
       )}
     </aside>
   );
