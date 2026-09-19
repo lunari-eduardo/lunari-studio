@@ -7,6 +7,7 @@ import { AgendaCoverImage } from '@/components/agenda/agenda-online-panel/Agenda
 import {
   Loader2, AlertCircle, Calendar as CalendarIcon, Clock, Sparkles,
   User, Phone, Mail, MessageSquare, Check, ArrowLeft, ArrowRight,
+  IdCard
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/financialUtils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const SCHEDULE_API_URL = import.meta.env.VITE_SCHEDULE_API_URL || import.meta.env.VITE_EDGE_API_URL || 'https://lunari-edge-api.eduardo22diehl.workers.dev';
 const SCHEDULE_API_TOKEN = import.meta.env.VITE_SCHEDULE_API_TOKEN || '';
@@ -45,6 +56,18 @@ interface SlotsResponse {
   error?: string;
 }
 
+// Helper para formatar CPF
+const formatCPF = (value: string) => {
+  const v = value.replace(/\D/g, '');
+  if (v.length <= 11) {
+    return v
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  return value; // se for CNPJ deixa livre
+};
+
 export default function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>();
 
@@ -73,15 +96,22 @@ export default function PublicBookingPage() {
   const primaryColor = theme?.primaryColor || undefined;
 
   // Estados do fluxo
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  
+  // Dados do cliente
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [customerCpf, setCustomerCpf] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
+  const [matchedClientId, setMatchedClientId] = useState<string | null>(null);
+  
   const [submitting, setSubmitting] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupResult, setLookupResult] = useState<{ id: string, nome: string } | null>(null);
 
   const packages = data?.data?.packages || [];
   const selectedPackage = packages.find(p => p.id === selectedPackageId) || null;
@@ -96,12 +126,57 @@ export default function PublicBookingPage() {
     return value;
   };
 
-  const handleSubmit = async () => {
-    if (!selectedPackage || !selectedDate || !selectedTime) return;
-    if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error('Preencha seu nome e telefone.');
+  const handleLookupAndAdvance = async () => {
+    if (!customerName.trim() || !customerPhone.trim() || !customerCpf.trim()) {
+      toast.error('Preencha seu nome, WhatsApp e CPF.');
       return;
     }
+    
+    setLookingUp(true);
+    try {
+      const params = new URLSearchParams();
+      if (customerPhone) params.set('phone', customerPhone);
+      if (customerEmail) params.set('email', customerEmail);
+      if (customerCpf) params.set('cpf', customerCpf);
+      
+      const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/lookup?${params.toString()}`, {
+        headers: {
+          ...(SCHEDULE_API_TOKEN ? { 'x-api-token': SCHEDULE_API_TOKEN } : {}),
+        }
+      });
+      const json = await res.json();
+      
+      if (json.success && json.found && json.client) {
+        setLookupResult({ id: json.client.id, nome: json.client.nome });
+      } else {
+        setMatchedClientId(null);
+        setStep(2);
+      }
+    } catch (err) {
+      console.error("Erro no lookup:", err);
+      // Se falhar, avança mesmo assim
+      setStep(2);
+    } finally {
+      setLookingUp(false);
+    }
+  };
+
+  const acceptLookup = () => {
+    if (lookupResult) {
+      setMatchedClientId(lookupResult.id);
+    }
+    setLookupResult(null);
+    setStep(2);
+  };
+
+  const rejectLookup = () => {
+    setMatchedClientId(null);
+    setLookupResult(null);
+    setStep(2);
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedPackage || !selectedDate || !selectedTime) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/reserve`, {
@@ -112,13 +187,15 @@ export default function PublicBookingPage() {
         },
         body: JSON.stringify({
           slug,
-          packageId: selectedPackage.id,
           date: selectedDate,
           startTime: selectedTime,
-          customer: {
-            name: customerName,
-            phone: customerPhone,
+          pacoteId: selectedPackage.id,
+          clienteData: {
+            nome: customerName,
+            telefone: customerPhone,
             email: customerEmail || undefined,
+            cpf_cnpj: customerCpf || undefined,
+            cliente_id_matched: matchedClientId || undefined,
             notes: customerNotes || undefined,
           },
         }),
@@ -127,7 +204,7 @@ export default function PublicBookingPage() {
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Não foi possível confirmar.');
       }
-      setStep(4);
+      setStep(5);
     } catch (err: any) {
       toast.error(err?.message || 'Erro ao confirmar agendamento.');
     } finally {
@@ -181,7 +258,22 @@ export default function PublicBookingPage() {
 
   return (
     <PublicThemeWrapper primaryColor={primaryColor}>
-      {/* Layout editorial: split-screen em desktop, coluna em mobile */}
+      {/* Modal de Lookup */}
+      <AlertDialog open={!!lookupResult} onOpenChange={(open) => !open && rejectLookup()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cadastro Encontrado</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos um cadastro seu como <strong>{lookupResult?.nome}</strong> em nosso sistema. Deseja utilizar este cadastro para agilizar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={rejectLookup}>Não, criar novo</AlertDialogCancel>
+            <AlertDialogAction onClick={acceptLookup}>Sim, usar este</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="min-h-screen flex flex-col md:flex-row">
         {/* COLUNA ESQUERDA — CAPA EDITORIAL */}
         <aside className="relative md:w-[48%] md:min-h-screen md:sticky md:top-0 md:h-screen shrink-0">
@@ -238,26 +330,96 @@ export default function PublicBookingPage() {
             </div>
 
             {/* Stepper */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {[
-                { n: 1 as const, label: 'Pacote' },
-                { n: 2 as const, label: 'Horário' },
-                { n: 3 as const, label: 'Você' },
-                { n: 4 as const, label: 'Pronto' },
-              ].map((s, idx, arr) => (
-                <div key={s.n} className="flex items-center gap-2 flex-1">
-                  <div className={step >= s.n ? 'text-foreground font-medium' : ''}>{idx + 1}. {s.label}</div>
-                  {idx < arr.length - 1 && <div className="flex-1 h-px bg-border" />}
-                </div>
-              ))}
-            </div>
+            {step < 5 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {[
+                  { n: 1 as const, label: 'Você' },
+                  { n: 2 as const, label: 'Pacote' },
+                  { n: 3 as const, label: 'Horário' },
+                  { n: 4 as const, label: 'Resumo' },
+                ].map((s, idx, arr) => (
+                  <div key={s.n} className="flex items-center gap-2 flex-1">
+                    <div className={step >= s.n ? 'text-foreground font-medium' : ''}>{idx + 1}. {s.label}</div>
+                    {idx < arr.length - 1 && <div className="flex-1 h-px bg-border" />}
+                  </div>
+                ))}
+              </div>
+            )}
 
-            {/* STEP 1 — PACOTE */}
+            {/* STEP 1 — DADOS DO CLIENTE */}
             {step === 1 && (
-              <section className="space-y-4">
-                <header className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <h2 className="text-base font-semibold">Escolha sua experiência</h2>
+              <section className="space-y-5">
+                <header className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-semibold">Seus dados</h2>
+                  </div>
+                </header>
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pb-name">Nome completo <span className="text-destructive">*</span></Label>
+                    <Input id="pb-name" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Maria Silva" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pb-phone">WhatsApp <span className="text-destructive">*</span></Label>
+                      <div className="relative">
+                        <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="pb-phone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="pl-9" placeholder="(11) 98765-4321" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pb-cpf">CPF <span className="text-destructive">*</span></Label>
+                      <div className="relative">
+                        <IdCard className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input id="pb-cpf" value={customerCpf} onChange={e => setCustomerCpf(formatCPF(e.target.value))} className="pl-9" placeholder="000.000.000-00" maxLength={14} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pb-email">E-mail (opcional)</Label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input id="pb-email" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="pl-9" placeholder="maria@email.com" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pb-notes">Observações (opcional)</Label>
+                    <div className="relative">
+                      <MessageSquare className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
+                      <Textarea id="pb-notes" rows={3} value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} className="pl-9 resize-none" placeholder="Algo que eu deva saber? Pet na sessão, data preferida para entrega..." />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    disabled={!customerName.trim() || !customerPhone.trim() || !customerCpf.trim() || lookingUp}
+                    onClick={handleLookupAndAdvance}
+                  >
+                    {lookingUp ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verificando…</>
+                    ) : (
+                      <>Continuar <ArrowRight className="w-4 h-4 ml-1" /></>
+                    )}
+                  </Button>
+                </div>
+              </section>
+            )}
+
+            {/* STEP 2 — PACOTE */}
+            {step === 2 && (
+              <section className="space-y-5">
+                <header className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-semibold">Escolha sua experiência</h2>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                    <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+                    Voltar
+                  </Button>
                 </header>
                 {packages.length === 0 ? (
                   <p className="text-sm text-muted-foreground italic">Nenhum pacote disponível no momento.</p>
@@ -301,7 +463,7 @@ export default function PublicBookingPage() {
                   </div>
                 )}
                 <div className="flex justify-end pt-2">
-                  <Button disabled={!selectedPackage} onClick={() => setStep(2)}>
+                  <Button disabled={!selectedPackage} onClick={() => setStep(3)}>
                     Continuar
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
@@ -309,15 +471,15 @@ export default function PublicBookingPage() {
               </section>
             )}
 
-            {/* STEP 2 — HORÁRIO */}
-            {step === 2 && (
+            {/* STEP 3 — HORÁRIO */}
+            {step === 3 && (
               <section className="space-y-5">
                 <header className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4 text-primary" />
                     <h2 className="text-base font-semibold">Escolha um horário</h2>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
                     <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                     Voltar
                   </Button>
@@ -360,7 +522,7 @@ export default function PublicBookingPage() {
                   </div>
                 )}
                 <div className="flex justify-end pt-2">
-                  <Button disabled={!selectedDate || !selectedTime} onClick={() => setStep(3)}>
+                  <Button disabled={!selectedDate || !selectedTime} onClick={() => setStep(4)}>
                     Continuar
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
@@ -368,49 +530,37 @@ export default function PublicBookingPage() {
               </section>
             )}
 
-            {/* STEP 3 — DADOS DO CLIENTE */}
-            {step === 3 && (
+            {/* STEP 4 — RESUMO E SINAL */}
+            {step === 4 && (
               <section className="space-y-5">
                 <header className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-primary" />
-                    <h2 className="text-base font-semibold">Seus dados</h2>
+                    <Check className="w-4 h-4 text-primary" />
+                    <h2 className="text-base font-semibold">Confirmar reserva</h2>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(3)}>
                     <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                     Voltar
                   </Button>
                 </header>
 
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pb-name">Nome completo <span className="text-destructive">*</span></Label>
-                    <Input id="pb-name" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Maria Silva" />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="pb-phone">WhatsApp <span className="text-destructive">*</span></Label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="pb-phone" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="pl-9" placeholder="(11) 98765-4321" />
-                      </div>
+                {selectedPackage && selectedDate && selectedTime && (
+                  <div className="p-4 rounded-xl border space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pacote</p>
+                      <p className="font-semibold">{selectedPackage.nome}</p>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="pb-email">E-mail (opcional)</Label>
-                      <div className="relative">
-                        <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="pb-email" type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} className="pl-9" placeholder="maria@email.com" />
-                      </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Data e Hora</p>
+                      <p className="font-semibold">{formatDateLabel(selectedDate).day} às {selectedTime.slice(0, 5)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Seus Dados</p>
+                      <p className="font-semibold">{customerName}</p>
+                      <p className="text-sm text-muted-foreground">{customerPhone} • {customerCpf}</p>
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pb-notes">Observações (opcional)</Label>
-                    <div className="relative">
-                      <MessageSquare className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-                      <Textarea id="pb-notes" rows={3} value={customerNotes} onChange={e => setCustomerNotes(e.target.value)} className="pl-9 resize-none" placeholder="Algo que eu deva saber? Pet na sessão, data preferida para entrega..." />
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {link.requireDeposit && selectedPackage && (
                   <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
@@ -427,7 +577,7 @@ export default function PublicBookingPage() {
 
                 <div className="flex justify-end pt-2">
                   <Button
-                    disabled={!customerName.trim() || !customerPhone.trim() || submitting}
+                    disabled={submitting}
                     onClick={handleSubmit}
                   >
                     {submitting ? (
@@ -440,8 +590,8 @@ export default function PublicBookingPage() {
               </section>
             )}
 
-            {/* STEP 4 — CONFIRMAÇÃO */}
-            {step === 4 && (
+            {/* STEP 5 — CONFIRMAÇÃO */}
+            {step === 5 && (
               <section className="space-y-5 py-8 text-center">
                 <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
                   <Check className="w-8 h-8 text-primary" />
@@ -453,12 +603,6 @@ export default function PublicBookingPage() {
                     {link.requireDeposit && ' Lembre-se de pagar o sinal para garantir o horário.'}
                   </p>
                 </div>
-                {selectedPackage && selectedDate && selectedTime && (
-                  <div className="inline-flex flex-col gap-1 px-5 py-3 rounded-xl bg-muted/40 border text-left text-sm">
-                    <p><strong>{selectedPackage.nome}</strong></p>
-                    <p className="text-muted-foreground">{formatDateLabel(selectedDate).day} às {selectedTime.slice(0, 5)}</p>
-                  </div>
-                )}
               </section>
             )}
           </div>

@@ -7,6 +7,7 @@ export async function lookupAgendaOnlineClientRoute(c: Context<{ Bindings: Bindi
     const slug = c.req.param('slug');
     const phone = c.req.query('phone');
     const email = c.req.query('email');
+    const cpf = c.req.query('cpf');
 
     if (!slug) {
       return c.json({ success: false, error: 'Slug é obrigatório' }, 400);
@@ -14,12 +15,14 @@ export async function lookupAgendaOnlineClientRoute(c: Context<{ Bindings: Bindi
 
     const cleanPhone = (phone || '').replace(/\D/g, '');
     const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanCpf = (cpf || '').replace(/\D/g, '');
 
     // Se nenhum contato com tamanho mínimo foi informado, retorna found: false
     const hasValidPhone = cleanPhone.length >= 10;
     const hasValidEmail = cleanEmail.length >= 5 && cleanEmail.includes('@');
+    const hasValidCpf = cleanCpf.length === 11 || cleanCpf.length === 14;
 
-    if (!hasValidPhone && !hasValidEmail) {
+    if (!hasValidPhone && !hasValidEmail && !hasValidCpf) {
       return c.json({ success: true, found: false });
     }
 
@@ -45,6 +48,9 @@ export async function lookupAgendaOnlineClientRoute(c: Context<{ Bindings: Bindi
     }
     if (hasValidEmail) {
       conditions.push(`email.ilike.${cleanEmail}`);
+    }
+    if (hasValidCpf) {
+      conditions.push(`cpf_cnpj.eq.${cleanCpf}`);
     }
 
     const { data: client, error: clientError } = await supabase
