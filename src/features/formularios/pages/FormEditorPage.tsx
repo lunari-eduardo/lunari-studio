@@ -238,6 +238,7 @@ export default function FormEditorPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar (desktop) ou tabs horizontais (mobile/tablet estreito) */}
+        {!isMobile ? (
           <FormEditorSidebar
             active={section}
             onChange={setSection}

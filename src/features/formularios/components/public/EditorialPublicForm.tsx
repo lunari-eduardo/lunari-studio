@@ -1,29 +1,13 @@
 /**
- * EditorialPublicForm — thin wrapper que delega ao FormPublicRenderer.
+ * EditorialPublicForm — layout editorial para formulário público.
  *
- * Rota pública (/formulario/:token) usa este componente para manter
- * compatibilidade com o nome semântico "EditorialPublicForm".
- * Toda a lógica de renderização vive em FormPublicRenderer.
+ * Rota pública (/formulario/:token) usa este componente.
+ * Layout:
+ * - Desktop (≥lg): Cover à ESQUERDA + conteúdo à DIREITA (split 40/60)
+ * - Mobile (<lg): Vertical full-screen mobile-first
  */
 import { FormPublicRenderer } from '@/components/formularios/shared/FormPublicRenderer';
 
-export function EditorialPublicForm({ token }: { token: string }) {
-  return <FormPublicRenderer token={token} wrapInPublicTheme />;
-}
-
- *
- * Layout editorial:
- * - Desktop (≥lg): Cover à ESQUERDA + conteúdo/pregunta à DIREITA (split 40/60)
- * - Mobile (<lg): Vertical full-screen mobile-first
- *
- * Funcionalidades:
- * - Navegação passo a passo com Anterior/Próximo
- * - Estado das respostas em memória durante a sessão
- * - Branding do estúdio (logo + nome)
- * - Renderização de todos os tipos de campo
- * - Validação de campos obrigatórios
- * - Seleção de cores com swatches interativos
- */
 import { useState, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
