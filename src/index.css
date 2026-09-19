@@ -202,28 +202,29 @@
     --availability: 210 60% 70%;
 
     /* ── AGENDA EVENT TOKENS ──────────────────────────────── */
-    --event-confirmed: 217 91% 60%;
-    --event-confirmed-fg: 217 60% 22%;
-    --event-confirmed-bg: 217 91% 94%;
-    --event-pending: 32 95% 50%;
-    --event-pending-fg: 32 70% 25%;
-    --event-pending-bg: 32 95% 94%;
-    --event-meeting: 190 85% 42%;
-    --event-meeting-fg: 190 70% 18%;
-    --event-meeting-bg: 190 85% 93%;
-    --event-personal: 270 80% 60%;
-    --event-personal-fg: 270 60% 20%;
-    --event-personal-bg: 270 80% 95%;
-    --event-task: 42 95% 48%;
-    --event-task-fg: 42 75% 20%;
-    --event-task-bg: 42 95% 93%;
-    --event-budget: 142 60% 40%;
-    --event-budget-fg: 142 60% 18%;
-    --event-budget-bg: 142 60% 92%;
-    --event-blocked: 0 75% 55%;
-    --event-blocked-fg: 0 60% 28%;
-    --event-blocked-bg: 0 75% 95%;
-    --event-available: 152 60% 45%;
+    /* Desaturated soft colors for neutral-first interface */
+    --event-confirmed: 217 40% 65%;
+    --event-confirmed-fg: 217 35% 25%;
+    --event-confirmed-bg: 217 35% 93%;
+    --event-pending: 32 40% 55%;
+    --event-pending-fg: 32 35% 30%;
+    --event-pending-bg: 32 35% 93%;
+    --event-meeting: 200 30% 50%;
+    --event-meeting-fg: 200 25% 25%;
+    --event-meeting-bg: 200 25% 92%;
+    --event-personal: 270 30% 55%;
+    --event-personal-fg: 270 25% 25%;
+    --event-personal-bg: 270 25% 93%;
+    --event-task: 42 40% 52%;
+    --event-task-fg: 42 35% 25%;
+    --event-task-bg: 42 35% 92%;
+    --event-budget: 142 30% 45%;
+    --event-budget-fg: 142 25% 22%;
+    --event-budget-bg: 142 25% 91%;
+    --event-blocked: 0 40% 55%;
+    --event-blocked-fg: 0 35% 30%;
+    --event-blocked-bg: 0 35% 93%;
+    --event-available: 152 30% 48%;
 
     --brand-gradient-start: var(--brand-h) var(--brand-s) var(--brand-l);
     --brand-gradient-end:   var(--brand-h) var(--brand-s) var(--brand-hover-l);
@@ -330,29 +331,29 @@
     --chart-9:  0 0% 18%;
     --chart-10: var(--accent-gold);
 
-    /* Event tokens — dark variants with elevated lightness */
-    --event-confirmed: 217 91% 65%;
-    --event-confirmed-fg: 217 95% 92%;
-    --event-confirmed-bg: 217 70% 22%;
-    --event-pending: 32 95% 60%;
-    --event-pending-fg: 32 95% 92%;
-    --event-pending-bg: 32 70% 22%;
-    --event-meeting: 190 85% 55%;
-    --event-meeting-fg: 190 95% 95%;
-    --event-meeting-bg: 190 60% 20%;
-    --event-personal: 270 80% 65%;
-    --event-personal-fg: 270 95% 95%;
-    --event-personal-bg: 270 50% 22%;
-    --event-task: 42 95% 58%;
-    --event-task-fg: 42 95% 95%;
-    --event-task-bg: 42 60% 20%;
-    --event-budget: 142 65% 50%;
-    --event-budget-fg: 142 80% 92%;
-    --event-budget-bg: 142 55% 20%;
-    --event-blocked: 0 80% 65%;
-    --event-blocked-fg: 0 85% 92%;
-    --event-blocked-bg: 0 60% 25%;
-    --event-available: 152 60% 55%;
+    /* Event tokens — desaturated soft colors for dark mode */
+    --event-confirmed: 217 40% 60%;
+    --event-confirmed-fg: 217 35% 88%;
+    --event-confirmed-bg: 217 30% 18%;
+    --event-pending: 32 40% 55%;
+    --event-pending-fg: 32 35% 88%;
+    --event-pending-bg: 32 30% 18%;
+    --event-meeting: 200 30% 55%;
+    --event-meeting-fg: 200 35% 90%;
+    --event-meeting-bg: 200 25% 18%;
+    --event-personal: 270 30% 60%;
+    --event-personal-fg: 270 35% 90%;
+    --event-personal-bg: 270 25% 18%;
+    --event-task: 42 40% 55%;
+    --event-task-fg: 42 35% 90%;
+    --event-task-bg: 42 25% 18%;
+    --event-budget: 142 30% 50%;
+    --event-budget-fg: 142 35% 88%;
+    --event-budget-bg: 142 25% 18%;
+    --event-blocked: 0 40% 60%;
+    --event-blocked-fg: 0 35% 90%;
+    --event-blocked-bg: 0 30% 18%;
+    --event-available: 152 30% 52%;
 
     /* sidebar dark — grafite profundo, item ativo com ícone dourado */
     --sidebar-bg: 0 0% 9%;              /* #171717 */

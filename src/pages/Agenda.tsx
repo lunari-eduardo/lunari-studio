@@ -17,7 +17,6 @@ import DailyView from "@/components/agenda/DailyView";
 import AnnualView from "@/components/agenda/AnnualView";
 import AgendaHeader from "@/components/agenda/AgendaHeader";
 import AgendaModals from "@/components/agenda/AgendaModals";
-import AgendaTasksSection from "@/components/agenda/AgendaTasksSection";
 import TaskFormModal from "@/modules/tasks/presentation/components/TaskFormModal";
 import {
   useUnifiedEventsRangeQuery,
@@ -64,7 +63,7 @@ export default function Agenda() {
   const { availability } = useAvailability();
   const { isFromBudget, getBudgetId } = useIntegration();
   const { orcamentos } = useOrcamentos();
-  const { tasks, addTask } = useSupabaseTasks();
+  const { addTask } = useSupabaseTasks();
   const { isMobile, isTablet } = useResponsiveLayout();
   
   // Task modal state
@@ -504,26 +503,15 @@ export default function Agenda() {
             </div>
 
             <ProGate entitlement="tasks" opacity>
-              <AgendaTasksSection
-                selectedDate={date}
-                tasks={tasks}
-                viewMode={view}
-                onCreateTask={() => {
-                  setTaskInitialDate(format(date, 'yyyy-MM-dd'));
-                  setIsTaskModalOpen(true);
-                }}
-                onDayClick={handleDayClick}
-              />
+              <details className="group rounded-xl border border-border/20 bg-card/40">
+                <summary className="cursor-pointer list-none px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
+                  Diagnóstico
+                </summary>
+                <div className="px-4 pb-4">
+                  <DataIntegrityPanel />
+                </div>
+              </details>
             </ProGate>
-
-            <details className="group rounded-xl border border-border/20 bg-card/40">
-              <summary className="cursor-pointer list-none px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
-                Diagnóstico
-              </summary>
-              <div className="px-4 pb-4">
-                <DataIntegrityPanel />
-              </div>
-            </details>
           </div>
         </div>
       </AgendaShell>

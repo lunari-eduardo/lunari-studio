@@ -1,5 +1,16 @@
 /**
- * EditorialPublicForm — experiência pública do formulário Lunari.
+ * EditorialPublicForm — thin wrapper que delega ao FormPublicRenderer.
+ *
+ * Rota pública (/formulario/:token) usa este componente para manter
+ * compatibilidade com o nome semântico "EditorialPublicForm".
+ * Toda a lógica de renderização vive em FormPublicRenderer.
+ */
+import { FormPublicRenderer } from '@/components/formularios/shared/FormPublicRenderer';
+
+export function EditorialPublicForm({ token }: { token: string }) {
+  return <FormPublicRenderer token={token} wrapInPublicTheme />;
+}
+
  *
  * Layout editorial:
  * - Desktop (≥lg): Cover à ESQUERDA + conteúdo/pregunta à DIREITA (split 40/60)

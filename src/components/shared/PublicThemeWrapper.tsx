@@ -31,6 +31,16 @@ interface PublicThemeWrapperProps {
   children: React.ReactNode;
   primaryColor?: string;
   className?: string;
+  /**
+   * Altura fixa para o container raiz (substitui `min-h-screen`).
+   * Usado pelo FormEditorPreview para forçar altura da moldura mobile/desktop.
+   */
+  forceHeight?: number;
+  /**
+   * Se true, não remove a classe 'dark' do <html>.
+   * Usado pelo editor para preservar a preferência de dark mode do usuário.
+   */
+  preserveDarkMode?: boolean;
 }
 
 /**
@@ -44,18 +54,21 @@ export function PublicThemeWrapper({
   primaryColor,
   className = '',
   forceHeight,
+  preserveDarkMode = false,
 }: PublicThemeWrapperProps) {
   useEffect(() => {
+    if (preserveDarkMode) return;
+
     const html = document.documentElement;
     const hadDark = html.classList.contains('dark');
     html.classList.remove('dark');
     html.classList.add('light');
-    
+
     return () => {
       html.classList.remove('light');
       if (hadDark) html.classList.add('dark');
     };
-  }, []);
+  }, [preserveDarkMode]);
 
   const themeStyles = useMemo(() => {
     const effectiveColor = primaryColor || '#C6A36A';

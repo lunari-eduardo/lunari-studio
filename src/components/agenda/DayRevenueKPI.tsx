@@ -1,7 +1,4 @@
 import { useMemo } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { summarizeRevenue, getWeekRange } from '@/utils/agendaRevenueCalc';
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
@@ -24,30 +21,19 @@ export default function DayRevenueKPI({ date, unifiedEvents, range }: DayRevenue
   }, [unifiedEvents, pacotes, date, range]);
 
   const title = range === 'week' ? 'Faturamento da semana' : 'Faturamento do dia';
-  const subtitle =
-    range === 'week'
-      ? `Semana de ${format(date, "d 'de' MMM", { locale: ptBR })}`
-      : format(date, "EEEE, d 'de' MMMM", { locale: ptBR });
 
   return (
-    <div className="rounded-xl border border-border/20 bg-card/60 shadow-sm p-3 space-y-2">
-      <div>
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-          <TrendingUp className="h-3 w-3" />
+    <div className="rounded-lg border border-border/20 bg-card/40 px-3 py-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wide">
           {title}
         </div>
-        <div className="text-[10px] text-muted-foreground/80 capitalize mt-0.5">{subtitle}</div>
-      </div>
-
-      <div>
-        <div className="text-xl font-semibold tabular-nums leading-tight">
+        <div className="text-lg font-semibold tabular-nums">
           {formatCurrency(summary.total)}
         </div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          {summary.count === 0
-            ? 'Nenhuma sessão'
-            : `${summary.count} ${summary.count === 1 ? 'sessão' : 'sessões'}`}
-        </div>
+      </div>
+      <div className="text-[10px] text-muted-foreground/60 capitalize mt-0.5">
+        {summary.count === 0 ? 'Nenhuma sessão' : `${summary.count} ${summary.count === 1 ? 'sessão' : 'sessões'}`}
       </div>
     </div>
   );

@@ -78,7 +78,7 @@ export function FormEditorPreview({ draft }: Props) {
       <div className="flex-1 overflow-auto bg-muted/30 p-4">
         {mode === 'desktop' ? (
           <DesktopFrame>
-            <PreviewContent draft={draft} />
+            <PreviewContent draft={draft} forceHeight={700} />
           </DesktopFrame>
         ) : (
           <MobileFrame>
@@ -91,14 +91,14 @@ export function FormEditorPreview({ draft }: Props) {
 }
 
 function PreviewContent({ draft, forceHeight }: { draft: Formulario; forceHeight?: number }) {
-  return <FormPublicRenderer token={draft.public_token} readOnly overrideForm={draft} wrapInPublicTheme forceHeight={forceHeight} />;
+  return <FormPublicRenderer token={draft.public_token} readOnly overrideForm={draft} wrapInPublicTheme forceHeight={forceHeight} preserveDarkMode />;
 }
 
 function DesktopFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'mx-auto max-w-3xl rounded-xl border bg-background shadow-sm overflow-hidden',
+        'h-full flex flex-col overflow-hidden rounded-none',
       )}
     >
       {children}

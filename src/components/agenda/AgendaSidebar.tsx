@@ -1,6 +1,8 @@
 import MiniMonthCalendar from './MiniMonthCalendar';
 import DayRevenueKPI from './DayRevenueKPI';
+import AgendaTasksSection from './AgendaTasksSection';
 import { useAvailability } from '@/hooks/useAvailability';
+import { useSupabaseTasks } from '@/hooks/useSupabaseTasks';
 import type { UnifiedEvent } from '@/modules/agenda/presentation';
 import type { ViewType } from '@/utils/dateFormatters';
 
@@ -20,6 +22,7 @@ export default function AgendaSidebar({
   onSwitchToDay,
 }: AgendaSidebarProps) {
   const { availability } = useAvailability();
+  const { tasks } = useSupabaseTasks();
 
   const showKPI = view === 'day' || view === 'week';
   const kpiRange = view === 'week' ? 'week' : 'day';
@@ -39,7 +42,16 @@ export default function AgendaSidebar({
       </div>
 
       {showKPI && (
-        <DayRevenueKPI date={date} unifiedEvents={unifiedEvents} range={kpiRange} />
+        <>
+          <DayRevenueKPI date={date} unifiedEvents={unifiedEvents} range={kpiRange} />
+          <AgendaTasksSection
+            selectedDate={date}
+            tasks={tasks}
+            viewMode={view}
+            onCreateTask={() => {}}
+            onDayClick={onNavigateToDate}
+          />
+        </>
       )}
     </aside>
   );

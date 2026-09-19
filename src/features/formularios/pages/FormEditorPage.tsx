@@ -238,7 +238,6 @@ export default function FormEditorPage() {
 
       <div className="flex flex-1 min-h-0">
         {/* Sidebar (desktop) ou tabs horizontais (mobile/tablet estreito) */}
-        {!isMobile && !isTablet ? (
           <FormEditorSidebar
             active={section}
             onChange={setSection}
@@ -261,9 +260,9 @@ export default function FormEditorPage() {
           </PageContainer>
         </main>
 
-        {/* Preview (apenas desktop) */}
+        {/* Preview (apenas desktop): 50% da largura disponível */}
         {!isMobile && !isTablet && (
-          <aside className="w-[480px] shrink-0 border-l bg-background hidden lg:flex">
+          <aside className="w-1/2 shrink-0 border-l bg-background hidden lg:flex flex-col min-h-0 overflow-hidden">
             <FormEditorPreview draft={draft} />
           </aside>
         )}

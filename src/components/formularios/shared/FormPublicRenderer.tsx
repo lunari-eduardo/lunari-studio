@@ -64,9 +64,14 @@ export interface FormPublicRendererProps {
   overrideForm?: Formulario;
   /**
    * Altura fixa para o container raiz (substitui `min-h-screen`).
-   * Usado pelo FormEditorPreview para forçar altura da moldura mobile.
+   * Usado pelo FormEditorPreview para forçar altura da moldura mobile/desktop.
    */
   forceHeight?: number;
+  /**
+   * Se true, não remove a classe 'dark' do <html>.
+   * Usado pelo editor para preservar a preferência de dark mode do usuário.
+   */
+  preserveDarkMode?: boolean;
 }
 
 // ─── Helpers de tipo ─────────────────────────────────────────
@@ -100,6 +105,7 @@ export function FormPublicRenderer({
   wrapInPublicTheme = true,
   overrideForm,
   forceHeight,
+  preserveDarkMode = false,
 }: FormPublicRendererProps) {
   const fetched = useFormularioPublico(token);
   const formulario = overrideForm ?? fetched.data;
@@ -292,6 +298,7 @@ export function FormPublicRenderer({
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
+        preserveDarkMode={preserveDarkMode}
       >
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-3">
@@ -312,6 +319,7 @@ export function FormPublicRenderer({
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
+        preserveDarkMode={preserveDarkMode}
       >
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
@@ -336,6 +344,7 @@ export function FormPublicRenderer({
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
+        preserveDarkMode={preserveDarkMode}
       >
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
@@ -360,6 +369,7 @@ export function FormPublicRenderer({
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
+        preserveDarkMode={preserveDarkMode}
       >
         <div className="min-h-screen">
           {formulario.cover_url && (
@@ -405,6 +415,7 @@ export function FormPublicRenderer({
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
+        preserveDarkMode={preserveDarkMode}
       >
         <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
@@ -447,39 +458,31 @@ export function FormPublicRenderer({
             <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-950" />
           )}
 
-          {/* Duplo véu de contraste */}
+          {/* Véu de contraste leve */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.50) 60%, rgba(0,0,0,0.20) 100%)',
-            }}
-          />
-          <div
-            className="absolute inset-0 pointer-events-none backdrop-blur-[2px]"
-            style={{
-              maskImage: 'linear-gradient(to top, black 50%, transparent 100%)',
-              WebkitMaskImage:
-                'linear-gradient(to top, black 50%, transparent 100%)',
+                'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.30) 60%, rgba(0,0,0,0.10) 100%)',
             }}
           />
 
           {/* Conteúdo da capa */}
-          <div className="relative z-10 flex flex-col justify-end h-full p-10 pb-14">
-            <div className="space-y-4 max-w-sm">
-              <p className="text-[0.65rem] uppercase tracking-[0.3em] text-white/60 font-medium">
+          <div className="relative z-10 flex flex-col justify-end h-full p-8 pb-12">
+            <div className="space-y-3 max-w-sm">
+              <p className="text-[0.6rem] uppercase tracking-[0.25em] text-white/50 font-semibold">
                 {studioName}
               </p>
-              <h1 className="text-[clamp(1.8rem,4vw,3rem)] leading-[1.05] font-semibold text-white tracking-tight">
+              <h1 className="text-[clamp(1.6rem,4vw,2.8rem)] leading-[1.1] font-normal text-white tracking-tight">
                 {tituloExibicao}
               </h1>
               {formulario.descricao && (
-                <p className="text-sm text-white/70 leading-relaxed">
+                <p className="text-sm text-white/65 leading-relaxed">
                   {formulario.descricao}
                 </p>
               )}
               {formattedDate && (
-                <div className="flex items-center gap-1.5 text-white/50 text-xs">
+                <div className="flex items-center gap-1.5 text-white/45 text-xs">
                   <Clock className="w-3.5 h-3.5" />
                   <span>{formattedDate}</span>
                 </div>
@@ -491,8 +494,8 @@ export function FormPublicRenderer({
         {/* ── Painel de Conteúdo ──────────────────────────── */}
         <div className="flex-1 flex flex-col min-h-screen">
           {/* Header sticky */}
-          <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-neutral-200">
-            <div className="flex items-center justify-between px-4 py-3">
+          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-neutral-100">
+            <div className="flex items-center justify-between px-5 py-3">
               {/* Brand */}
               <div className="flex items-center gap-2 min-w-0">
                 {studioLogoUrl ? (
@@ -509,10 +512,10 @@ export function FormPublicRenderer({
               </div>
               {/* Progresso */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium tabular-nums">
+                <span className="text-[11px] text-muted-foreground font-medium tabular-nums">
                   {currentStep + 1}/{totalSteps}
                 </span>
-                <div className="w-24 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                <div className="w-20 h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-300"
                     style={{ width: `${progresso}%` }}
@@ -553,8 +556,8 @@ export function FormPublicRenderer({
               {/* Info do respondente (apenas no primeiro passo) */}
               {currentStep === 0 && (
                 <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
-                  <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4 space-y-3">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
                       Suas informações (opcional)
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -567,7 +570,7 @@ export function FormPublicRenderer({
                           value={respondenteName}
                           onChange={(e) => setRespondenteName(e.target.value)}
                           placeholder="Ex: Maria Silva"
-                          className="h-9"
+                          className="h-10"
                           disabled={readOnly}
                         />
                       </div>
@@ -583,7 +586,7 @@ export function FormPublicRenderer({
                             setRespondenteEmail(e.target.value)
                           }
                           placeholder="Ex: maria@email.com"
-                          className="h-9"
+                          className="h-10"
                           disabled={readOnly}
                         />
                       </div>
@@ -630,7 +633,7 @@ export function FormPublicRenderer({
 
                   {currentStep < totalSteps - 1 ? (
                     <Button type="button" onClick={handleProximo} className="gap-1.5">
-                      Próximo
+                      Continuar
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   ) : (
@@ -668,6 +671,7 @@ interface ContentWrapperProps {
   primaryColor?: string;
   wrapInPublicTheme: boolean;
   forceHeight?: number;
+  preserveDarkMode?: boolean;
   children: React.ReactNode;
 }
 
@@ -675,11 +679,12 @@ function ContentWrapper({
   primaryColor,
   wrapInPublicTheme,
   forceHeight,
+  preserveDarkMode,
   children,
 }: ContentWrapperProps) {
   if (!wrapInPublicTheme) return <>{children}</>;
   return (
-    <PublicThemeWrapper primaryColor={primaryColor} forceHeight={forceHeight}>
+    <PublicThemeWrapper primaryColor={primaryColor} forceHeight={forceHeight} preserveDarkMode={preserveDarkMode}>
       {children}
     </PublicThemeWrapper>
   );

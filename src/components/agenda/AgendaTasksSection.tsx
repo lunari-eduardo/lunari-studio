@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { isSameDay, parseISO, getMonth, getYear, getDate } from 'date-fns';
-import { Plus, User, Calendar, Circle, ExternalLink } from 'lucide-react';
+import { Calendar, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { useSupabaseTaskStatuses } from '@/hooks/useSupabaseTaskStatuses';
 import type { Task } from '@/types/tasks';
 
@@ -66,16 +65,11 @@ export default function AgendaTasksSection({
   
   // Limit to 5 tasks for daily view
   const visibleTasks = dayTasks.slice(0, 5);
-  const hasMoreTasks = dayTasks.length > 5;
-  
+
   const handleTaskClick = (taskId: string) => {
     navigate(`/app/tarefas?taskId=${taskId}`);
   };
-  
-  const handleViewAllTasks = () => {
-    navigate('/app/tarefas');
-  };
-  
+
   const handleDayItemClick = (day: number) => {
     if (onDayClick) {
       const year = getYear(selectedDate);
@@ -83,40 +77,18 @@ export default function AgendaTasksSection({
       onDayClick(new Date(year, month, day));
     }
   };
-  
+
   const getPriorityIndicator = (priority: Task['priority']) => {
     switch (priority) {
       case 'high':
-        return <Circle className="h-2.5 w-2.5 fill-destructive text-destructive" />;
+        return <Circle className="h-2 w-2 fill-destructive text-destructive shrink-0" />;
       case 'medium':
-        return <Circle className="h-2.5 w-2.5 fill-warning text-warning" />;
+        return <Circle className="h-2 w-2 fill-warning text-warning shrink-0" />;
       case 'low':
-        return <Circle className="h-2.5 w-2.5 fill-success text-success" />;
+        return <Circle className="h-2 w-2 fill-success text-success shrink-0" />;
       default:
-        return <Circle className="h-2.5 w-2.5 fill-lunar-muted text-lunar-muted" />;
+        return <Circle className="h-2 w-2 fill-muted text-muted shrink-0" />;
     }
-  };
-  
-  const getLinkIndicator = (task: Task) => {
-    if (task.relatedClienteId) {
-      return (
-        <span className="flex items-center gap-1 text-xs text-lunar-muted">
-          <User className="h-3 w-3" />
-          <span className="hidden sm:inline">Cliente</span>
-        </span>
-      );
-    }
-    if (task.relatedSessionId) {
-      return (
-        <span className="flex items-center gap-1 text-xs text-lunar-muted">
-          <Calendar className="h-3 w-3" />
-          <span className="hidden sm:inline">Agendamento</span>
-        </span>
-      );
-    }
-    return (
-      <span className="text-xs text-lunar-muted/60">•</span>
-    );
   };
   
   // Dynamic title based on view mode
@@ -128,44 +100,37 @@ export default function AgendaTasksSection({
   }
 
   return (
-    <div className="rounded-xl border border-border/20 bg-card/60 shadow-sm p-4">
+    <div className="rounded-lg border border-border/20 bg-card/40 p-3">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-[13px] font-semibold tracking-tight text-foreground">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
           {sectionTitle}
         </h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-lunar-muted hover:text-lunar-accent hover:bg-lunar-accent/10"
-          onClick={onCreateTask}
-          title="Criar nova tarefa"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
       </div>
       
       {/* Content based on view mode */}
       {viewMode === 'month' ? (
         // Monthly summary view
-        <div className="space-y-2">
+        <div className="space-y-1">
           {monthlyTasksSummary.length === 0 ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              Nenhuma tarefa pendente neste mês
+            <p className="py-2 text-center text-[11px] text-muted-foreground">
+              Nenhuma tarefa pendente
             </p>
           ) : (
-            <ul className="space-y-1.5">
+            <ul className="space-y-1">
               {monthlyTasksSummary.map(({ day, count }) => (
-                <li 
+                <li
                   key={day}
-                  className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-muted/40 cursor-pointer transition-colors group"
+                  className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/40 cursor-pointer transition-colors group"
                   onClick={() => handleDayItemClick(day)}
                 >
-                  <Calendar className="h-3.5 w-3.5 text-lunar-accent" />
-                  <span className="flex-1 text-xs text-foreground">
-                    Dia {day} - {count === 1 ? 'existe 1 tarefa' : `existem ${count} tarefas`}
+                  <Calendar className="h-3 w-3 text-muted-foreground/60" />
+                  <span className="flex-1 text-[11px] text-muted-foreground">
+                    Dia {day}
                   </span>
-                  <ExternalLink className="h-3 w-3 text-lunar-muted/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-[10px] text-muted-foreground/60">
+                    {count}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -175,46 +140,26 @@ export default function AgendaTasksSection({
         // Daily/Weekly task list
         <>
           {visibleTasks.length === 0 ? (
-            <p className="py-3 text-center text-xs text-muted-foreground">
-              Nenhuma tarefa para este dia
+            <p className="py-2 text-center text-[11px] text-muted-foreground">
+              Nenhuma tarefa
             </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {visibleTasks.map(task => (
-                <li 
+                <li
                   key={task.id}
-                  className="flex items-center justify-between gap-2 py-2 px-3 rounded-md hover:bg-muted/40 cursor-pointer transition-colors group"
+                  className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/40 cursor-pointer transition-colors"
                   onClick={() => handleTaskClick(task.id)}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {getPriorityIndicator(task.priority)}
-                    <span className="truncate text-xs text-foreground">
-                      {task.title}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {getLinkIndicator(task)}
-                    <ExternalLink className="h-3 w-3 text-lunar-muted/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
+                  {getPriorityIndicator(task.priority)}
+                  <span className="flex-1 truncate text-[11px] text-muted-foreground">
+                    {task.title}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
         </>
-      )}
-      
-      {/* View all link - show when there are more tasks or in monthly view */}
-      {(hasMoreTasks || (viewMode === 'month' && monthlyTasksSummary.length > 0)) && (
-        <div className="mt-3 pt-2 border-t border-lunar-border/20">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-xs text-lunar-muted hover:text-lunar-accent"
-            onClick={handleViewAllTasks}
-          >
-            Ver todas as tarefas →
-          </Button>
-        </div>
       )}
     </div>
   );
