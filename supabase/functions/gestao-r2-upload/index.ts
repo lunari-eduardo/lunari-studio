@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
     try {
       const isPdf = context === "proposals-pdf";
       const isGalleryCover = context === "gallery-cover-video" || context === "gallery-cover-poster";
+      const isAgendaCover = context === "agenda-cover";
       await r2Put(
         creds,
         storagePath,
@@ -142,7 +143,7 @@ Deno.serve(async (req) => {
               cacheControl: "public, max-age=31536000, immutable",
               contentDisposition: "inline",
             }
-          : isGalleryCover
+          : isGalleryCover || isAgendaCover
           ? {
               cacheControl: "public, max-age=31536000, immutable",
             }

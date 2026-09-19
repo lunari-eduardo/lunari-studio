@@ -225,7 +225,8 @@ export type GestaoContext =
   | "proposals"
   | "proposals-pdf"
   | "gallery-cover-video"
-  | "gallery-cover-poster";
+  | "gallery-cover-poster"
+  | "agenda-cover";
 
 interface ContextRule {
   prefix: (userId: string, entityId?: string) => string;
@@ -236,6 +237,13 @@ interface ContextRule {
 }
 
 export const GESTAO_RULES: Record<GestaoContext, ContextRule> = {
+  "agenda-cover": {
+    prefix: (u, e) => `gestao/agenda-covers/${u}${e ? "/" + e : ""}`,
+    isPublic: true,
+    bucket: R2_PUBLIC_BUCKET,
+    maxBytes: 10 * 1024 * 1024,
+    allowedTypes: ["image/jpeg", "image/png", "image/webp"],
+  },
   avatar: {
     prefix: (u) => `gestao/avatars/${u}`,
     isPublic: true,

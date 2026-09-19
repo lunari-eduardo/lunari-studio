@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-const SCHEDULE_API_URL = import.meta.env.VITE_SCHEDULE_API_URL || 'http://localhost:8787';
+const SCHEDULE_API_URL = import.meta.env.VITE_SCHEDULE_API_URL || import.meta.env.VITE_EDGE_API_URL || 'https://lunari-edge-api.eduardo22diehl.workers.dev';
 const SCHEDULE_API_TOKEN = import.meta.env.VITE_SCHEDULE_API_TOKEN || '';
 
 interface SlotsResponse {
@@ -52,7 +52,7 @@ export default function PublicBookingPage() {
   const { data, isLoading, error } = useQuery<SlotsResponse>({
     queryKey: ['public-booking-slots', slug],
     queryFn: async () => {
-      const res = await fetch(`${SCHEDULE_API_URL}/agenda-online/slots/${slug}`, {
+      const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/slots`, {
         headers: {
           'Content-Type': 'application/json',
           ...(SCHEDULE_API_TOKEN ? { 'x-api-token': SCHEDULE_API_TOKEN } : {}),
@@ -104,7 +104,7 @@ export default function PublicBookingPage() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`${SCHEDULE_API_URL}/agenda-online/reserve`, {
+      const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/reserve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
