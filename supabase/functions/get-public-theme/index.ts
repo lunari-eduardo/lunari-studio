@@ -30,7 +30,7 @@ serve(async (req) => {
 
     const { data: accountTheme } = await supabase
       .from('gallery_settings')
-      .select('active_theme_id, default_theme_id, theme_type')
+      .select('active_theme_id, default_theme_id, theme_type, studio_name, studio_logo_url')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -57,7 +57,12 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, primaryColor: customPrimaryColor }),
+      JSON.stringify({
+        success: true,
+        primaryColor: customPrimaryColor,
+        studioName: accountTheme?.studio_name ?? null,
+        studioLogoUrl: accountTheme?.studio_logo_url ?? null,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

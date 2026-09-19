@@ -10,6 +10,17 @@ export type FormularioCampoTipo =
   | 'upload_referencia'
   | 'selecao_cores';
 
+// Opção simples (selecao_unica, multipla_escolha)
+export type FormularioCampoOpcaoString = string;
+
+// Opção com cor (selecao_cores): label + hex opcional
+export type FormularioCampoOpcaoCor = { label: string; hex: string };
+
+// Union type — o renderer identifica o tipo pela forma do primeiro item
+export type FormularioCampoOpcao =
+  | FormularioCampoOpcaoString
+  | FormularioCampoOpcaoCor;
+
 export interface FormularioCampo {
   id: string;
   tipo: FormularioCampoTipo;
@@ -17,7 +28,7 @@ export interface FormularioCampo {
   placeholder?: string;
   ordem: number;
   obrigatorio: boolean;
-  opcoes?: string[];
+  opcoes?: FormularioCampoOpcao[];
   descricao?: string;
 }
 

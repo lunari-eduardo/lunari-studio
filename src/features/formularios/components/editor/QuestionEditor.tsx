@@ -57,6 +57,7 @@ import {
   CAMPOS_SEM_PLACEHOLDER,
   type FormularioCampo,
   type FormularioCampoTipo,
+  type FormularioCampoOpcaoCor,
 } from '@/types/formulario';
 import { cn } from '@/lib/utils';
 
@@ -115,10 +116,9 @@ const CONTEXTO_POR_TIPO: Record<FormularioCampoTipo, TipoContexto> = {
     dica: 'Ideal para o cliente compartilhar inspirações visuais.',
   },
   selecao_cores: {
-    labelPlaceholder: 'Ex: Quais tons ou paleta você prefere para o figurino?',
+    labelPlaceholder: 'Ex: Quais tons você prefere para o figurino?',
     descricaoPlaceholder: 'Ex: Indique as cores predominantes que gostaria de usar no dia.',
-    campoPlaceholder: 'Ex: Tons terrosos, bege, verde oliva, off-white',
-    dica: 'O cliente responderá descrevendo as cores e tons de sua preferência.',
+    dica: 'O cliente escolherá entre as cores que você configurar.',
   },
 };
 
@@ -140,12 +140,32 @@ export function QuestionEditor({
   const isMobile = useIsMobile();
 
   // Estado local para opções de seleção (single/multipla). Sincroniza com o campo.
-  const [opcoes, setOpcoes] = useState<string[]>(campo?.opcoes ?? []);
+  const [opcoes, setOpcoes] = useState<string[]>([]);
+  // Estado local para opções de cor (selecao_cores)
+  const [opcoesCor, setOpcoesCor] = useState<FormularioCampoOpcaoCor[]>([]);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
+  // Parse opcoes do campo conforme o tipo
+  const parseOpcoesFromCampo = (c: FormularioCampo | null) => {
+    if (!c?.opcoes) return;
+    if (c.tipo === 'selecao_cores') {
+      const cores = c.opcoes.map((o): FormularioCampoOpcaoCor => {
+        if (typeof o === 'string') return { label: o, hex: '#888888' };
+        return o as FormularioCampoOpcaoCor;
+      });
+      setOpcoesCor(cores);
+    } else {
+      const strs = c.opcoes.map((o) => (typeof o === 'string' ? o : o.label));
+      setOpcoes(strs);
+    }
+  };
+
   useEffect(() => {
-    setOpcoes(campo?.opcoes ?? []);
-  }, [campo?.id, campo?.opcoes]);
+    setOpcoes([]);
+    setOpcoesCor([]);
+    parseOpcoesFromCampo(campo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campo?.id]);
 
   if (!campo) return null;
 
@@ -153,10 +173,17 @@ export function QuestionEditor({
   const showPlaceholder = !CAMPOS_SEM_PLACEHOLDER.includes(campo.tipo);
   const showOpcoes =
     campo.tipo === 'selecao_unica' || campo.tipo === 'multipla_escolha';
+  const showOpcoesCor = campo.tipo === 'selecao_cores';
   const opcoesValidas = opcoes.filter((o) => o.trim()).length;
+  const opcoesCorValidas = opcoesCor.filter((o) => o.label.trim()).length;
 
   const handleOpcoesChange = (next: string[]) => {
     setOpcoes(next);
+    onChange({ opcoes: next });
+  };
+
+  const handleOpcoesCorChange = (next: FormularioCampoOpcaoCor[]) => {
+    setOpcoesCor(next);
     onChange({ opcoes: next });
   };
 
@@ -164,12 +191,29 @@ export function QuestionEditor({
     handleOpcoesChange([...opcoes, `Opção ${opcoes.length + 1}`]);
   };
 
+  const handleAddOpcaoCor = () => {
+    handleOpcoesCorChange([
+      ...opcoesCor,
+      { label: `Cor ${opcoesCor.length + 1}`, hex: '#888888' },
+    ]);
+  };
+
   const handleRemoveOpcao = (idx: number) => {
     handleOpcoesChange(opcoes.filter((_, i) => i !== idx));
   };
 
+  const handleRemoveOpcaoCor = (idx: number) => {
+    handleOpcoesCorChange(opcoesCor.filter((_, i) => i !== idx));
+  };
+
   const handleOpcaoChange = (idx: number, value: string) => {
     handleOpcoesChange(opcoes.map((o, i) => (i === idx ? value : o)));
+  };
+
+  const handleOpcaoCorChange = (idx: number, field: keyof FormularioCampoOpcaoCor, value: string) => {
+    handleOpcoesCorChange(
+      opcoesCor.map((o, i) => (i === idx ? { ...o, [field]: value } : o)),
+    );
   };
 
   const handleMoveOpcao = (idx: number, direction: -1 | 1) => {
@@ -180,19 +224,41 @@ export function QuestionEditor({
     handleOpcoesChange(next);
   };
 
+  const handleMoveOpcaoCor = (idx: number, direction: -1 | 1) => {
+    const target = idx + direction;
+    if (target < 0 || target >= opcoesCor.length) return;
+    const next = [...opcoesCor];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    handleOpcoesCorChange(next);
+  };
+
   const handleTipoChange = (next: FormularioCampoTipo) => {
     if (next === campo.tipo) return;
-    const updates: Partial<FormularioCampo> = {
-      tipo: next,
-      // Limpar opções se o novo tipo não as usa (mantém se já usa)
-      opcoes: ['selecao_unica', 'multipla_escolha'].includes(next)
-        ? opcoes.length > 0
-          ? opcoes
-          : ['Opção 1', 'Opção 2']
-        : undefined,
-      placeholder: CAMPOS_SEM_PLACEHOLDER.includes(next) ? undefined : campo.placeholder,
-    };
-    onChange(updates);
+    // Resetar ambos estados ao trocar tipo
+    setOpcoes([]);
+    setOpcoesCor([]);
+    if (next === 'selecao_cores') {
+      onChange({
+        tipo: next,
+        opcoes: [
+          { label: 'Azul', hex: '#4A90D9' },
+          { label: 'Verde', hex: '#6AB04C' },
+        ],
+        placeholder: undefined,
+      });
+    } else if (['selecao_unica', 'multipla_escolha'].includes(next)) {
+      onChange({
+        tipo: next,
+        opcoes: ['Opção 1', 'Opção 2'],
+        placeholder: undefined,
+      });
+    } else {
+      onChange({
+        tipo: next,
+        opcoes: undefined,
+        placeholder: CAMPOS_SEM_PLACEHOLDER.includes(next) ? undefined : campo.placeholder,
+      });
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -341,6 +407,96 @@ export function QuestionEditor({
         </div>
       )}
 
+      {/* Opções de cor (selecao_cores) */}
+      {showOpcoesCor && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>Paleta de cores</Label>
+            <span className="text-[11px] text-muted-foreground">
+              {opcoesCor.length} {opcoesCor.length === 1 ? 'cor' : 'cores'}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {opcoesCor.map((op, idx) => (
+              <div
+                key={`${campo.id}-cor-${idx}`}
+                className="flex items-center gap-1.5"
+              >
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => handleMoveOpcaoCor(idx, -1)}
+                    disabled={idx === 0}
+                    aria-label="Mover para cima"
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronUp size={12} aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleMoveOpcaoCor(idx, 1)}
+                    disabled={idx === opcoesCor.length - 1}
+                    aria-label="Mover para baixo"
+                    className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronDown size={12} aria-hidden />
+                  </button>
+                </div>
+                {/* Swatch de preview */}
+                <div
+                  className="w-9 h-9 rounded border shrink-0"
+                  style={{ backgroundColor: op.hex }}
+                  aria-hidden
+                />
+                {/* Hex input */}
+                <Input
+                  type="color"
+                  value={op.hex}
+                  onChange={(e) => handleOpcaoCorChange(idx, 'hex', e.target.value)}
+                  className="w-9 h-9 p-0 border-0 cursor-pointer"
+                  title="Cor"
+                />
+                {/* Label input */}
+                <Input
+                  value={op.label}
+                  onChange={(e) => handleOpcaoCorChange(idx, 'label', e.target.value)}
+                  placeholder={`Cor ${idx + 1}`}
+                  className="h-9 flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveOpcaoCor(idx)}
+                  disabled={opcoesCor.length <= 1}
+                  aria-label="Remover cor"
+                  className="h-9 w-9 text-muted-foreground hover:text-destructive disabled:opacity-30"
+                >
+                  <Trash size={14} aria-hidden />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {opcoesCorValidas < 2 && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+              Adicione pelo menos 2 cores para que o cliente possa escolher.
+            </p>
+          )}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddOpcaoCor}
+            className="gap-1.5 mt-1"
+          >
+            <Plus size={14} aria-hidden /> Adicionar cor
+          </Button>
+        </div>
+      )}
+
       {/* Obrigatório */}
       <div className="flex items-center justify-between rounded-lg border bg-card/40 px-4 py-3">
         <div className="space-y-0.5">
@@ -383,7 +539,11 @@ export function QuestionEditor({
       <Button
         onClick={handleClose}
         className="bg-foreground text-background hover:bg-foreground/90"
-        disabled={!campo.label.trim() || (showOpcoes && opcoesValidas < 2)}
+        disabled={
+          !campo.label.trim() ||
+          (showOpcoes && opcoesValidas < 2) ||
+          (showOpcoesCor && opcoesCorValidas < 2)
+        }
       >
         Salvar
       </Button>
