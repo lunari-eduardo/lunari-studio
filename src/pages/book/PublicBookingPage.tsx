@@ -139,7 +139,7 @@ export default function PublicBookingPage() {
       if (customerEmail) params.set('email', customerEmail);
       if (customerCpf) params.set('cpf', customerCpf);
       
-      const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/lookup?${params.toString()}`, {
+      const res = await fetch(`${SCHEDULE_API_URL}/api/agenda/online/${slug}/lookup-client?${params.toString()}`, {
         headers: {
           ...(SCHEDULE_API_TOKEN ? { 'x-api-token': SCHEDULE_API_TOKEN } : {}),
         }

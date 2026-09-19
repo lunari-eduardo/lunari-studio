@@ -12,7 +12,7 @@ export async function reserveAgendaOnlineSlotRoute(c: Context<{ Bindings: Bindin
       return c.json({ success: false, error: 'Dados incompletos' }, 400);
     }
 
-    if (!clienteData.nome || !clienteData.telefone || !clienteData.email) {
+    if (!clienteData.nome || !clienteData.telefone) {
       return c.json({ success: false, error: 'Dados do cliente incompletos' }, 400);
     }
 
