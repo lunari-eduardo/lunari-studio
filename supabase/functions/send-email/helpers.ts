@@ -65,10 +65,17 @@ export async function getPhotographerReplyTo(supabase: any, userId: string) {
 
   if (error) {
     console.error('profiles reply-to lookup error:', error.message);
-    return null;
   }
 
-  const email = typeof data?.email === 'string' ? data.email.trim() : '';
+  let email = typeof data?.email === 'string' ? data?.email.trim() : '';
+  
+  if (!isValidEmail(email)) {
+    const { data: userData, error: authError } = await supabase.auth.admin.getUserById(userId);
+    if (!authError && userData?.user?.email) {
+      email = userData.user.email.trim();
+    }
+  }
+
   return isValidEmail(email) ? email : null;
 }
 

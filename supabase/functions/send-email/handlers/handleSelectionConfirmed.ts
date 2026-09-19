@@ -220,7 +220,7 @@ export async function handleSelectionConfirmed(ctx: EventHandlerContext): Promis
   }
 
   // 8. ENVIO PARA O FOTÓGRAFO (Resumo Operacional Lunari - Sem Previews, Sem PDF)
-  if (settings?.email_summary_to_photographer !== false) {
+  if (canSendAutomated && settings?.email_summary_to_photographer !== false) {
     const photogEmail = ownerProfile?.email || replyTo;
     if (photogEmail) {
       try {
