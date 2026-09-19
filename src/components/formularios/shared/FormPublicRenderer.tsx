@@ -1,29 +1,20 @@
 /**
  * FormPublicRenderer — markup e lógica do formulário público Lunari.
  *
- * ORIGEM: extraído de `src/pages/FormularioPublico.tsx` preservando integralmente
- * toda a lógica (upload, submit, validação, dropzone, mensagens, acessibilidade,
- * idioma). A refatoração apenas separa a parte reutilizável: este componente
- * pode ser usado pelo formulário público (rota `/formulario/:token`) e pelo
- * preview do editor (modo readOnly).
+ * Layout editorial:
+ * - Desktop (≥lg): Cover à ESQUERDA + conteúdo/pregunta à DIREITA (split 40/60)
+ * - Mobile (<lg): Vertical full-screen mobile-first
  *
- * Props:
- *  - `token`: token público do formulário (obrigatório).
- *  - `readOnly`: se true, suprime submit e upload (preview no editor).
- *  - `wrapInPublicTheme`: se true, envolve o conteúdo no PublicThemeWrapper
- *    (padrão true). No editor, definimos false porque o tema é aplicado
- *    externamente pelo frame do preview.
- *
- * Comportamento preservado:
- *  - Estados de loading, erro, expirado, não publicado e respondido.
- *  - Submit real com handleSubmit chamando useSubmitFormularioResposta.
- *  - Upload real com edge-worker `gestao-r2-public-upload`.
- *  - Dropzone react-dropzone com JPG/PNG/WEBP/GIF/PDF.
- *  - Locale pt-BR, ícones lucide, componentes shadcn.
- *  - Modo "visualização" (quando isRespondido) com render de imagens e respostas.
- *  - Barra de progresso baseada em campos obrigatórios.
+ * Funcionalidades:
+ * - Navegação passo a passo com Anterior/Próximo
+ * - Estado das respostas em memória durante a sessão
+ * - Branding do estúdio (logo + nome)
+ * - Renderização de todos os tipos de campo
+ * - Validação de campos obrigatórios
+ * - Seleção de cores com swatches interativos
+ * - Upload de imagens com dropzone
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useDropzone } from 'react-dropzone';
@@ -33,6 +24,8 @@ import {
   Upload,
   X,
   Loader2,
+  ArrowLeft,
+  ChevronRight,
   FileCheck,
 } from 'lucide-react';
 
@@ -54,6 +47,7 @@ import { PublicThemeWrapper } from '@/components/shared/PublicThemeWrapper';
 import { invokeEdgeWorker } from '@/integrations/edge-client';
 
 import type { Formulario, FormularioCampo } from '@/types/formulario';
+import type { FormularioCampoOpcaoCor } from '@/types/formulario';
 
 export interface FormPublicRendererProps {
   token: string;
@@ -75,6 +69,31 @@ export interface FormPublicRendererProps {
   forceHeight?: number;
 }
 
+// ─── Helpers de tipo ─────────────────────────────────────────
+
+function isOpcaoCor(op: unknown): op is FormularioCampoOpcaoCor {
+  return (
+    typeof op === 'object' &&
+    op !== null &&
+    'label' in op &&
+    typeof (op as any).label === 'string' &&
+    'hex' in op &&
+    typeof (op as any).hex === 'string'
+  );
+}
+
+function getOpcoesCores(opcoes: unknown[]): FormularioCampoOpcaoCor[] {
+  return opcoes
+    .map((o): FormularioCampoOpcaoCor => {
+      if (typeof o === 'string') return { label: o, hex: '#888888' };
+      if (isOpcaoCor(o)) return o;
+      return { label: String(o), hex: '#888888' };
+    })
+    .filter(Boolean);
+}
+
+// ─── Componente principal ─────────────────────────────────────
+
 export function FormPublicRenderer({
   token,
   readOnly = false,
@@ -88,7 +107,11 @@ export function FormPublicRenderer({
   const error = overrideForm ? null : fetched.error;
   const submitMutation = useSubmitFormularioResposta();
 
-  const { data: primaryColor } = usePublicTheme(formulario?.user_id);
+  const { data: themeData } = usePublicTheme(formulario?.user_id);
+
+  const primaryColor = themeData?.primaryColor ?? undefined;
+  const studioName = themeData?.studioName ?? 'Meu Estúdio';
+  const studioLogoUrl = themeData?.studioLogoUrl ?? undefined;
 
   const isRespondido = !overrideForm && formulario?.status_envio === 'respondido';
   const isExpirado =
@@ -96,14 +119,26 @@ export function FormPublicRenderer({
     formulario?.expires_at &&
     new Date(formulario.expires_at) < new Date();
   const isDisponivel =
-    (overrideForm ? true : formulario?.status === 'publicado') && !isRespondido && !isExpirado;
+    (overrideForm ? true : formulario?.status === 'publicado') &&
+    !isRespondido &&
+    !isExpirado;
 
-  // Buscar resposta existente se já respondido. Inibido em override (preview).
   const { data: respostaExistente } = useFormularioRespostaPublica(
     token,
     !overrideForm && isRespondido === true,
   );
 
+  const camposOrdenados = useMemo(
+    () => [...(formulario?.campos ?? [])].sort((a, b) => a.ordem - b.ordem),
+    [formulario?.campos],
+  );
+
+  const formattedDate = useMemo(() => {
+    if (!formulario?.tempo_estimado) return null;
+    return `${formulario.tempo_estimado} min`;
+  }, [formulario?.tempo_estimado]);
+
+  const [currentStep, setCurrentStep] = useState(0);
   const [respostas, setRespostas] = useState<Record<string, any>>({});
   const [respondenteName, setRespondenteName] = useState('');
   const [respondenteEmail, setRespondenteEmail] = useState('');
@@ -135,12 +170,12 @@ export function FormPublicRenderer({
         formData.append('token', token || '');
         formData.append('campoId', campoId);
 
-        const { data, error } = await invokeEdgeWorker(
+        const { data, error: uploadError } = await invokeEdgeWorker(
           'api',
           'gestao-r2-public-upload',
           { body: formData },
         );
-        if (error) throw error;
+        if (uploadError) throw uploadError;
         if (!data?.success || !data?.url)
           throw new Error(data?.error || 'Falha no upload');
         uploadedUrls.push(data.url as string);
@@ -160,44 +195,75 @@ export function FormPublicRenderer({
     handleChange(campoId, urls);
   };
 
+  const totalSteps = camposOrdenados.length;
+  const currentCampo = camposOrdenados[currentStep];
+  const progresso =
+    totalSteps > 0 ? Math.round(((currentStep + 1) / totalSteps) * 100) : 0;
+
+  const validarPasso = (step: number): string | null => {
+    const campo = camposOrdenados[step];
+    if (!campo?.obrigatorio) return null;
+    const val = respostas[campo.id];
+    if (campo.tipo === 'upload_imagem' || campo.tipo === 'upload_referencia') {
+      if (!Array.isArray(val) || val.length === 0)
+        return 'Esta pergunta é obrigatória.';
+    } else if (campo.tipo === 'multipla_escolha') {
+      if (!Array.isArray(val) || val.length === 0)
+        return 'Esta pergunta é obrigatória.';
+    } else if (campo.tipo === 'selecao_unica') {
+      if (!val || (typeof val === 'string' && !val.trim()))
+        return 'Esta pergunta é obrigatória.';
+    } else {
+      if (val === undefined || val === null || String(val).trim() === '') {
+        return 'Esta pergunta é obrigatória.';
+      }
+    }
+    return null;
+  };
+
+  const handleProximo = () => {
+    if (readOnly) return;
+    const err = validarPasso(currentStep);
+    if (err) {
+      setErrors((prev) => ({
+        ...prev,
+        [camposOrdenados[currentStep].id]: err,
+      }));
+      return;
+    }
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep((s) => s + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleVoltar = () => {
+    if (readOnly) return;
+    if (currentStep > 0) {
+      setCurrentStep((s) => s - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (readOnly) return;
     if (!formulario || !isDisponivel) return;
 
-    // Validação estrita de todos os campos obrigatórios (incluindo rádio, checkbox, upload e texto)
-    const camposObrigatoriosList = (formulario.campos || []).filter((c) => c.obrigatorio);
     const validationErrors: Record<string, string> = {};
-    let firstErrorCampoId: string | null = null;
+    let firstErrorStep: number | null = null;
 
-    camposObrigatoriosList.forEach((campo) => {
-      const val = respostas[campo.id];
-      let preenchido = false;
-
-      if (campo.tipo === 'upload_imagem' || campo.tipo === 'upload_referencia') {
-        preenchido = Array.isArray(val) && val.length > 0;
-      } else if (campo.tipo === 'multipla_escolha') {
-        preenchido = Array.isArray(val) && val.length > 0;
-      } else if (campo.tipo === 'selecao_unica') {
-        preenchido = typeof val === 'string' && val.trim().length > 0;
-      } else {
-        preenchido = val !== undefined && val !== null && String(val).trim().length > 0;
+    for (let i = 0; i < totalSteps; i++) {
+      const err = validarPasso(i);
+      if (err) {
+        validationErrors[camposOrdenados[i].id] = err;
+        if (firstErrorStep === null) firstErrorStep = i;
       }
+    }
 
-      if (!preenchido) {
-        validationErrors[campo.id] = 'Esta pergunta é obrigatória.';
-        if (!firstErrorCampoId) {
-          firstErrorCampoId = campo.id;
-        }
-      }
-    });
-
-    if (firstErrorCampoId) {
+    if (firstErrorStep !== null) {
       setErrors(validationErrors);
-      const el = document.getElementById(`campo-${firstErrorCampoId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      setCurrentStep(firstErrorStep);
       return;
     }
 
@@ -211,25 +277,23 @@ export function FormPublicRenderer({
       setSubmitted(true);
     } catch (err: any) {
       console.error('Erro ao enviar formulário:', err);
-      // Unique constraint = já foi respondido anteriormente
       if (err?.code === '23505') {
         setSubmitted(true);
         return;
       }
-      // Mostrar erro visível ao usuário
       alert('Erro ao enviar formulário. Por favor, tente novamente.');
     }
   };
 
-  // Loading
+  // ─── Loading ───────────────────────────────────────────
   if (isLoading) {
     return (
       <ContentWrapper
-        primaryColor={primaryColor || undefined}
+        primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
       >
-        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center' : 'min-h-screen bg-background flex items-center justify-center'}>
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-sm text-muted-foreground">
@@ -241,15 +305,15 @@ export function FormPublicRenderer({
     );
   }
 
-  // Not found
+  // ─── Erro / Não encontrado ────────────────────────────
   if (error || !formulario) {
     return (
       <ContentWrapper
-        primaryColor={primaryColor || undefined}
+        primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
       >
-        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
+        <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-destructive" />
@@ -265,15 +329,15 @@ export function FormPublicRenderer({
     );
   }
 
-  // Expirado
+  // ─── Expirado ─────────────────────────────────────────
   if (isExpirado) {
     return (
       <ContentWrapper
-        primaryColor={primaryColor || undefined}
+        primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
       >
-        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
+        <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <Clock className="h-8 w-8 text-muted-foreground" />
@@ -281,7 +345,7 @@ export function FormPublicRenderer({
             <h1 className="text-xl font-semibold">Formulário expirado</h1>
             <p className="text-sm text-muted-foreground">
               O prazo para responder este formulário já passou. Entre em contato
-              com o fotógrafo.
+              com o estúdio.
             </p>
           </div>
         </div>
@@ -289,128 +353,60 @@ export function FormPublicRenderer({
     );
   }
 
-  // Já respondido — modo visualização
+  // ─── Respondido ───────────────────────────────────────
   if (isRespondido || submitted) {
-    const respostasData = respostaExistente?.respostas;
-    const camposData = respostaExistente?.campos || formulario.campos;
-    const submittedAt = respostaExistente?.submitted_at;
-
     return (
       <ContentWrapper
-        primaryColor={primaryColor || undefined}
+        primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
       >
-        <div className={forceHeight ? 'h-full bg-background' : 'min-h-screen bg-background'}>
+        <div className="min-h-screen">
           {formulario.cover_url && (
-            <div className="w-full max-h-[300px] overflow-hidden bg-muted/20 border-b relative">
+            <div className="w-full h-56 overflow-hidden bg-neutral-200">
               <img
                 src={formulario.cover_url}
-                alt="Capa do formulário"
-                className="w-full h-40 sm:h-56 object-cover"
+                alt="Capa"
+                className="w-full h-full object-cover"
               />
             </div>
           )}
-          <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
-            <div className="max-w-2xl mx-auto px-4 py-4">
-              <h1 className="text-lg font-semibold">
-                {respostaExistente?.titulo ||
-                  formulario.titulo_cliente ||
-                  formulario.titulo}
-              </h1>
+          <div className="max-w-xl mx-auto px-4 py-12 text-center">
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Check className="h-10 w-10 text-primary" />
             </div>
-          </header>
-          <main className="max-w-2xl mx-auto px-4 py-8">
-            <div className="text-center space-y-4 mb-8">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <FileCheck className="h-10 w-10 text-primary" />
-              </div>
-              <h2 className="text-2xl font-semibold">
-                Formulário já respondido
-              </h2>
-              <p className="text-muted-foreground">
-                {respostaExistente?.mensagem_conclusao ||
-                  formulario.mensagem_conclusao}
+            <h2 className="text-2xl font-semibold mb-2">
+              {formulario.titulo_cliente || formulario.titulo}
+            </h2>
+            <p className="text-muted-foreground mb-2">
+              {respostaExistente?.mensagem_conclusao ||
+                formulario.mensagem_conclusao}
+            </p>
+            {respostaExistente?.submitted_at && (
+              <p className="text-xs text-muted-foreground">
+                Enviado em{' '}
+                {format(
+                  new Date(respostaExistente.submitted_at),
+                  "dd/MM/yyyy 'às' HH:mm",
+                  { locale: ptBR },
+                )}
               </p>
-              {submittedAt && (
-                <p className="text-xs text-muted-foreground">
-                  Enviado em{' '}
-                  {format(
-                    new Date(submittedAt),
-                    "dd/MM/yyyy 'às' HH:mm",
-                    { locale: ptBR },
-                  )}
-                </p>
-              )}
-            </div>
-
-            {/* Respostas em modo leitura */}
-            {respostasData && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  Suas respostas:
-                </h3>
-                {(camposData as FormularioCampo[])
-                  .sort((a, b) => a.ordem - b.ordem)
-                  .map((campo) => {
-                    const valor = (respostasData as Record<string, any>)[
-                      campo.id
-                    ];
-                    if (
-                      valor === undefined ||
-                      valor === '' ||
-                      (Array.isArray(valor) && valor.length === 0)
-                    )
-                      return null;
-                    return (
-                      <div
-                        key={campo.id}
-                        className="border rounded-lg p-3 space-y-1"
-                      >
-                        <p className="text-sm font-medium">{campo.label}</p>
-                        {Array.isArray(valor) ? (
-                          campo.tipo === 'upload_imagem' ||
-                          campo.tipo === 'upload_referencia' ? (
-                            <div className="flex flex-wrap gap-2">
-                              {valor.map((url: string, i: number) => (
-                                <img
-                                  key={i}
-                                  src={url}
-                                  alt=""
-                                  className="w-16 h-16 rounded object-cover border"
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">
-                              {valor.join(', ')}
-                            </p>
-                          )
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {String(valor)}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
             )}
-          </main>
+          </div>
         </div>
       </ContentWrapper>
     );
   }
 
-  // Formulário não publicado
+  // ─── Não publicado ────────────────────────────────────
   if (!overrideForm && formulario.status !== 'publicado') {
     return (
       <ContentWrapper
-        primaryColor={primaryColor || undefined}
+        primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
         forceHeight={forceHeight}
       >
-        <div className={forceHeight ? 'h-full bg-background flex items-center justify-center p-4' : 'min-h-screen bg-background flex items-center justify-center p-4'}>
+        <div className="min-h-screen flex items-center justify-center p-4">
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-muted-foreground" />
@@ -425,146 +421,262 @@ export function FormPublicRenderer({
     );
   }
 
-  // Formulário disponível para resposta
-  const camposOrdenados = [...formulario.campos].sort(
-    (a, b) => a.ordem - b.ordem,
-  );
-  const camposObrigatorios = camposOrdenados.filter((c) => c.obrigatorio);
-  const camposRespondidos = camposObrigatorios.filter((c) => {
-    const r = respostas[c.id];
-    return (
-      r !== undefined && r !== '' && (Array.isArray(r) ? r.length > 0 : true)
-    );
-  });
-  const progresso =
-    camposObrigatorios.length > 0
-      ? Math.round((camposRespondidos.length / camposObrigatorios.length) * 100)
-      : 0;
+  // ─── Formulário disponível ────────────────────────────
+  const coverUrl =
+    formulario.cover_url && formulario.cover_url !== '/placeholder.svg'
+      ? formulario.cover_url
+      : null;
+  const tituloExibicao = formulario.titulo_cliente || formulario.titulo;
 
   return (
     <ContentWrapper
-      primaryColor={primaryColor || undefined}
+      primaryColor={primaryColor}
       wrapInPublicTheme={wrapInPublicTheme}
+      forceHeight={forceHeight}
     >
-      <div className={forceHeight ? 'h-full bg-background' : 'min-h-screen bg-background'}>
-        {formulario.cover_url && (
-          <div className="w-full max-h-[340px] overflow-hidden bg-muted/20 border-b relative">
+      <div className="min-h-screen flex">
+        {/* ── Painel da Capa (desktop) ──────────────────────── */}
+        <div className="hidden lg:flex lg:w-2/5 xl:w-2/5 flex-col relative overflow-hidden">
+          {coverUrl ? (
             <img
-              src={formulario.cover_url}
+              src={coverUrl}
               alt="Capa do formulário"
-              className="w-full h-44 sm:h-64 object-cover"
+              className="absolute inset-0 w-full h-full object-cover"
             />
-          </div>
-        )}
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-950" />
+          )}
 
-        <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-10">
-          <div className="max-w-2xl mx-auto px-4 py-4">
-            <h1 className="text-lg font-semibold">
-              {formulario.titulo_cliente || formulario.titulo}
-            </h1>
-            {formulario.descricao && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {formulario.descricao}
+          {/* Duplo véu de contraste */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.50) 60%, rgba(0,0,0,0.20) 100%)',
+            }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none backdrop-blur-[2px]"
+            style={{
+              maskImage: 'linear-gradient(to top, black 50%, transparent 100%)',
+              WebkitMaskImage:
+                'linear-gradient(to top, black 50%, transparent 100%)',
+            }}
+          />
+
+          {/* Conteúdo da capa */}
+          <div className="relative z-10 flex flex-col justify-end h-full p-10 pb-14">
+            <div className="space-y-4 max-w-sm">
+              <p className="text-[0.65rem] uppercase tracking-[0.3em] text-white/60 font-medium">
+                {studioName}
               </p>
-            )}
-            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />~{formulario.tempo_estimado}{' '}
-                minutos
-              </span>
+              <h1 className="text-[clamp(1.8rem,4vw,3rem)] leading-[1.05] font-semibold text-white tracking-tight">
+                {tituloExibicao}
+              </h1>
+              {formulario.descricao && (
+                <p className="text-sm text-white/70 leading-relaxed">
+                  {formulario.descricao}
+                </p>
+              )}
+              {formattedDate && (
+                <div className="flex items-center gap-1.5 text-white/50 text-xs">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{formattedDate}</span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="h-1 bg-muted">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progresso}%` }}
-            />
-          </div>
-        </header>
+        </div>
 
-        <main className="max-w-2xl mx-auto px-4 py-8">
-          <form onSubmit={handleSubmit} className="space-y-8" aria-disabled={readOnly}>
-            <div className="space-y-4 p-4 rounded-lg border bg-card">
-              <p className="text-sm font-medium">
-                Suas informações (opcional)
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Seu nome</Label>
-                  <Input
-                    id="nome"
-                    value={respondenteName}
-                    onChange={(e) => setRespondenteName(e.target.value)}
-                    placeholder="Ex: Maria Silva"
-                    disabled={readOnly}
+        {/* ── Painel de Conteúdo ──────────────────────────── */}
+        <div className="flex-1 flex flex-col min-h-screen">
+          {/* Header sticky */}
+          <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-neutral-200">
+            <div className="flex items-center justify-between px-4 py-3">
+              {/* Brand */}
+              <div className="flex items-center gap-2 min-w-0">
+                {studioLogoUrl ? (
+                  <img
+                    src={studioLogoUrl}
+                    alt={studioName}
+                    className="h-6 w-auto object-contain"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Seu email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={respondenteEmail}
-                    onChange={(e) => setRespondenteEmail(e.target.value)}
-                    placeholder="Ex: maria@email.com"
-                    disabled={readOnly}
+                ) : (
+                  <span className="text-sm font-medium text-foreground truncate">
+                    {studioName}
+                  </span>
+                )}
+              </div>
+              {/* Progresso */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground font-medium tabular-nums">
+                  {currentStep + 1}/{totalSteps}
+                </span>
+                <div className="w-24 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${progresso}%` }}
                   />
                 </div>
               </div>
             </div>
+          </header>
 
-            {camposOrdenados.map((campo, idx) => (
-              <CampoRenderer
-                key={campo.id}
-                campo={campo}
-                index={idx + 1}
-                total={camposOrdenados.length}
-                value={respostas[campo.id]}
-                onChange={(value) => handleChange(campo.id, value)}
-                onFileUpload={(files) => handleFileUpload(campo.id, files)}
-                onRemoveFile={(index) => removeFile(campo.id, index)}
-                isUploading={uploading[campo.id]}
-                disabled={readOnly}
-                error={errors[campo.id]}
+          {/* Mobile cover */}
+          {coverUrl && (
+            <div className="lg:hidden w-full h-40 overflow-hidden bg-neutral-200">
+              <img
+                src={coverUrl}
+                alt="Capa do formulário"
+                className="w-full h-full object-cover"
               />
-            ))}
-
-            <div className="pt-4">
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={readOnly || submitMutation.isPending}
-              >
-                {submitMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  'Enviar formulário'
-                )}
-              </Button>
             </div>
-          </form>
-        </main>
+          )}
+
+          {/* Mobile título */}
+          {coverUrl && (
+            <div className="lg:hidden px-4 pt-4 pb-2">
+              <h1 className="text-lg font-semibold leading-snug">
+                {tituloExibicao}
+              </h1>
+              {formulario.descricao && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formulario.descricao}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Área de scroll */}
+          <main className="flex-1 overflow-y-auto">
+            <form onSubmit={handleSubmit} noValidate>
+              {/* Info do respondente (apenas no primeiro passo) */}
+              {currentStep === 0 && (
+                <div className="max-w-lg mx-auto px-4 pt-6 pb-4">
+                  <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Suas informações (opcional)
+                    </p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="pub-nome" className="text-xs">
+                          Nome
+                        </Label>
+                        <Input
+                          id="pub-nome"
+                          value={respondenteName}
+                          onChange={(e) => setRespondenteName(e.target.value)}
+                          placeholder="Ex: Maria Silva"
+                          className="h-9"
+                          disabled={readOnly}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="pub-email" className="text-xs">
+                          Email
+                        </Label>
+                        <Input
+                          id="pub-email"
+                          type="email"
+                          value={respondenteEmail}
+                          onChange={(e) =>
+                            setRespondenteEmail(e.target.value)
+                          }
+                          placeholder="Ex: maria@email.com"
+                          className="h-9"
+                          disabled={readOnly}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pergunta atual */}
+              <div className="max-w-lg mx-auto px-4 py-6">
+                {currentCampo && (
+                  <CampoRendererPublico
+                    key={currentCampo.id}
+                    campo={currentCampo}
+                    stepLabel={`${currentStep + 1} de ${totalSteps}`}
+                    value={respostas[currentCampo.id]}
+                    onChange={(v) => handleChange(currentCampo.id, v)}
+                    onFileUpload={(files) =>
+                      handleFileUpload(currentCampo.id, files)
+                    }
+                    onRemoveFile={(idx) => removeFile(currentCampo.id, idx)}
+                    isUploading={uploading[currentCampo.id]}
+                    error={errors[currentCampo.id]}
+                    disabled={readOnly}
+                  />
+                )}
+              </div>
+
+              {/* Navegação */}
+              <div className="max-w-lg mx-auto px-4 pb-8">
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleVoltar}
+                    disabled={readOnly || currentStep === 0}
+                    className="gap-1.5"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Anterior
+                  </Button>
+
+                  <div className="flex-1" />
+
+                  {currentStep < totalSteps - 1 ? (
+                    <Button type="button" onClick={handleProximo} className="gap-1.5">
+                      Próximo
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="submit"
+                      disabled={readOnly || submitMutation.isPending}
+                      className="gap-1.5"
+                    >
+                      {submitMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          Enviar
+                          <Check className="w-4 h-4" />
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </main>
+        </div>
       </div>
     </ContentWrapper>
   );
 }
 
+// ─── ContentWrapper ────────────────────────────────────────────
+
 interface ContentWrapperProps {
   primaryColor?: string;
   wrapInPublicTheme: boolean;
+  forceHeight?: number;
   children: React.ReactNode;
 }
 
 function ContentWrapper({
   primaryColor,
   wrapInPublicTheme,
-  children,
   forceHeight,
-}: ContentWrapperProps & { forceHeight?: number }) {
+  children,
+}: ContentWrapperProps) {
   if (!wrapInPublicTheme) return <>{children}</>;
   return (
     <PublicThemeWrapper primaryColor={primaryColor} forceHeight={forceHeight}>
@@ -573,12 +685,11 @@ function ContentWrapper({
   );
 }
 
-// ---- CampoRenderer (helper interno — preservado do FormularioPublico) ----
+// ─── CampoRendererPublico ────────────────────────────────────
 
-interface CampoRendererProps {
+interface CampoRendererPublicoProps {
   campo: FormularioCampo;
-  index: number;
-  total: number;
+  stepLabel: string;
   value: any;
   onChange: (value: any) => void;
   onFileUpload: (files: File[]) => void;
@@ -588,10 +699,9 @@ interface CampoRendererProps {
   error?: string;
 }
 
-function CampoRenderer({
+function CampoRendererPublico({
   campo,
-  index,
-  total,
+  stepLabel,
   value,
   onChange,
   onFileUpload,
@@ -599,7 +709,7 @@ function CampoRenderer({
   isUploading,
   disabled,
   error,
-}: CampoRendererProps) {
+}: CampoRendererPublicoProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       onFileUpload(acceptedFiles);
@@ -617,168 +727,237 @@ function CampoRenderer({
   });
 
   return (
-    <div id={`campo-${campo.id}`} className="space-y-3 scroll-mt-24">
-      <div className="flex items-baseline gap-2">
-        <span className="text-xs text-muted-foreground">
-          {index}/{total}
-        </span>
-        <Label className="text-base">
+    <div className="space-y-5">
+      {/* Cabeçalho da pergunta */}
+      <div className="space-y-1">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[11px] text-muted-foreground font-medium">
+            {stepLabel}
+          </span>
+        </div>
+        <h2 className="text-xl font-semibold leading-snug text-foreground">
           {campo.label}
           {campo.obrigatorio && (
-            <span className="text-destructive ml-1">*</span>
+            <span className="text-destructive ml-1.5">*</span>
           )}
-        </Label>
+        </h2>
+        {campo.descricao && (
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {campo.descricao}
+          </p>
+        )}
       </div>
-      {campo.descricao && (
-        <p className="text-sm text-muted-foreground">{campo.descricao}</p>
-      )}
 
-      {campo.tipo === 'texto_curto' && (
-        <Input
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={campo.placeholder}
-          disabled={disabled}
-          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
-        />
-      )}
-      {campo.tipo === 'texto_longo' && (
-        <Textarea
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={campo.placeholder}
-          rows={4}
-          disabled={disabled}
-          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
-        />
-      )}
-      {campo.tipo === 'data' && (
-        <Input
-          type="date"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
-        />
-      )}
-      {campo.tipo === 'selecao_unica' && (
-        <RadioGroup
-          value={value || ''}
-          onValueChange={onChange}
-          disabled={disabled}
-          className={cn(error && 'p-3 rounded-lg border border-destructive/40 bg-destructive/5')}
-        >
-          {(campo.opcoes || []).map((opcao, idx) => (
-            <div key={idx} className="flex items-center space-x-2">
-              <RadioGroupItem
-                value={opcao}
-                id={`${campo.id}-${idx}`}
-                disabled={disabled}
-              />
-              <Label htmlFor={`${campo.id}-${idx}`} className="font-normal cursor-pointer">
-                {opcao}
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-      )}
-      {campo.tipo === 'multipla_escolha' && (
-        <div className={cn('space-y-2', error && 'p-3 rounded-lg border border-destructive/40 bg-destructive/5')}>
-          {(campo.opcoes || []).map((opcao, idx) => {
-            const checked = (value || []).includes(opcao);
-            return (
-              <div key={idx} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`${campo.id}-${idx}`}
-                  checked={checked}
-                  disabled={disabled}
-                  onCheckedChange={(c) => {
-                    const current = value || [];
-                    onChange(
-                      c
-                        ? [...current, opcao]
-                        : current.filter((v: string) => v !== opcao),
-                    );
-                  }}
-                />
-                <Label htmlFor={`${campo.id}-${idx}`} className="font-normal cursor-pointer">
-                  {opcao}
-                </Label>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {(campo.tipo === 'upload_imagem' ||
-        campo.tipo === 'upload_referencia') && (
-        <div className="space-y-3">
-          <div
-            {...getRootProps()}
+      {/* Campo de resposta */}
+      <div>
+        {/* Texto curto */}
+        {campo.tipo === 'texto_curto' && (
+          <Input
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={campo.placeholder || 'Digite aqui...'}
+            disabled={disabled}
             className={cn(
-              'border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors',
-              isDragActive
-                ? 'border-primary bg-primary/5'
-                : error
-                ? 'border-destructive bg-destructive/5'
-                : 'border-muted-foreground/25 hover:border-primary/50',
-              disabled && 'pointer-events-none opacity-60',
+              'text-base h-12',
+              error && 'border-destructive focus-visible:ring-destructive',
             )}
+          />
+        )}
+
+        {/* Texto longo */}
+        {campo.tipo === 'texto_longo' && (
+          <Textarea
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={campo.placeholder || 'Digite aqui...'}
+            rows={4}
+            disabled={disabled}
+            className={cn(
+              'text-base',
+              error && 'border-destructive focus-visible:ring-destructive',
+            )}
+          />
+        )}
+
+        {/* Data */}
+        {campo.tipo === 'data' && (
+          <Input
+            type="date"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            disabled={disabled}
+            className={cn(
+              'text-base h-12',
+              error && 'border-destructive focus-visible:ring-destructive',
+            )}
+          />
+        )}
+
+        {/* Seleção única (radio) */}
+        {campo.tipo === 'selecao_unica' && (
+          <RadioGroup
+            value={value || ''}
+            onValueChange={onChange}
+            disabled={disabled}
+            className="space-y-2"
           >
-            <input {...getInputProps()} />
-            {isUploading ? (
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            ) : (
-              <>
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {isDragActive
-                    ? 'Solte os arquivos aqui...'
-                    : 'Arraste arquivos ou clique para selecionar'}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Imagens (JPG, PNG) ou PDF
-                </p>
-              </>
+            {(campo.opcoes || []).map((opcao, idx) => {
+              const label = typeof opcao === 'string' ? opcao : opcao.label;
+              return (
+                <label
+                  key={idx}
+                  className={cn(
+                    'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all',
+                    value === label
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-neutral-200 bg-white hover:border-primary/50',
+                  )}
+                >
+                  <RadioGroupItem value={label} className="mt-0.5" />
+                  <span className="text-sm font-medium">{label}</span>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        )}
+
+        {/* Múltipla escolha (checkbox) */}
+        {campo.tipo === 'multipla_escolha' && (
+          <div className="space-y-2">
+            {(campo.opcoes || []).map((opcao, idx) => {
+              const label = typeof opcao === 'string' ? opcao : opcao.label;
+              const checked = (value || []).includes(label);
+              return (
+                <label
+                  key={idx}
+                  className={cn(
+                    'flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all',
+                    checked
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-neutral-200 bg-white hover:border-primary/50',
+                  )}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(c) => {
+                      const current = value || [];
+                      onChange(
+                        c
+                          ? [...current, label]
+                          : current.filter((v: string) => v !== label),
+                      );
+                    }}
+                    disabled={disabled}
+                    className="mt-0.5"
+                  />
+                  <span className="text-sm font-medium">{label}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Seleção de cores */}
+        {campo.tipo === 'selecao_cores' && (
+          <div className="space-y-2">
+            {getOpcoesCores(campo.opcoes || []).map((opcao, idx) => {
+              const selected = value === opcao.label;
+              return (
+                <label
+                  key={idx}
+                  className={cn(
+                    'flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all',
+                    selected
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-neutral-200 bg-white hover:border-primary/50',
+                  )}
+                >
+                  {/* Swatch */}
+                  <div
+                    className="w-9 h-9 rounded-full border-2 border-white shadow-sm shrink-0"
+                    style={{ backgroundColor: opcao.hex }}
+                    aria-hidden
+                  />
+                  <RadioGroupItem value={opcao.label} className="sr-only" />
+                  <div className="flex-1">
+                    <span className="text-sm font-medium block">{opcao.label}</span>
+                    <span className="text-[11px] text-muted-foreground font-mono">
+                      {opcao.hex}
+                    </span>
+                  </div>
+                  {selected && (
+                    <Check className="w-4 h-4 text-primary shrink-0" />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Upload */}
+        {(campo.tipo === 'upload_imagem' ||
+          campo.tipo === 'upload_referencia') && (
+          <div className="space-y-3">
+            <div
+              {...getRootProps()}
+              className={cn(
+                'border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors',
+                isDragActive
+                  ? 'border-primary bg-primary/5'
+                  : error
+                  ? 'border-destructive bg-destructive/5'
+                  : 'border-neutral-300 hover:border-primary/50 bg-white',
+                (disabled || isUploading) && 'pointer-events-none opacity-60',
+              )}
+            >
+              <input {...getInputProps()} />
+              {isUploading ? (
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              ) : (
+                <>
+                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragActive
+                      ? 'Solte os arquivos aqui...'
+                      : 'Arraste arquivos ou clique para selecionar'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Imagens (JPG, PNG) ou PDF
+                  </p>
+                </>
+              )}
+            </div>
+            {(value || []).length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {(value as string[]).map((url, idx) => (
+                  <div
+                    key={idx}
+                    className="relative group w-20 h-20 rounded-lg overflow-hidden border"
+                  >
+                    <img
+                      src={url}
+                      alt={`Upload ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onRemoveFile(idx)}
+                      disabled={disabled}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-          {(value || []).length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {(value as string[]).map((url, idx) => (
-                <div
-                  key={idx}
-                  className="relative group w-20 h-20 rounded-lg overflow-hidden border"
-                >
-                  <img
-                    src={url}
-                    alt={`Upload ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onRemoveFile(idx)}
-                    disabled={disabled}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      {campo.tipo === 'selecao_cores' && (
-        <Input
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={campo.placeholder || 'Ex: azul, verde, tons terrosos'}
-          disabled={disabled}
-          className={cn(error && 'border-destructive focus-visible:ring-destructive')}
-        />
-      )}
+        )}
+      </div>
 
+      {/* Erro */}
       {error && (
-        <p className="text-xs text-destructive font-medium mt-1">{error}</p>
+        <p className="text-xs text-destructive font-medium">{error}</p>
       )}
     </div>
   );
