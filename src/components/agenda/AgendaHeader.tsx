@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Settings, Share2, Crown, Globe } from "lucide-react";
-import { formatDateTitle, formatDayTitle, ViewType } from '@/utils/dateFormatters';
+import { formatDateTitle, ViewType } from '@/utils/dateFormatters';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { useAccessControl } from '@/hooks/useAccessControl';
 import { toast } from 'sonner';
@@ -178,12 +178,8 @@ export default function AgendaHeader({
           <ManageButton />
         </div>
 
-        {/* Day Title for Daily View */}
-        {view === 'day' && (
-          <div className="text-[13px] font-medium text-muted-foreground">
-            {formatDayTitle(date)}
-          </div>
-        )}
+        {/* Divisor elegante */}
+        <div className="w-full border-t border-border/30 mt-1" />
       </div>
     );
   }
@@ -206,12 +202,8 @@ export default function AgendaHeader({
           </div>
         </div>
 
-        {/* Day Title for Daily View */}
-        {view === 'day' && (
-          <div className="text-[13px] font-medium text-muted-foreground">
-            {formatDayTitle(date)}
-          </div>
-        )}
+        {/* Divisor elegante */}
+        <div className="w-full border-t border-border/30 mt-1" />
       </div>
     );
   }
@@ -233,11 +225,8 @@ export default function AgendaHeader({
         </div>
       </div>
 
-      {view === 'day' && (
-        <div className="text-[13px] font-medium text-muted-foreground">
-          {formatDayTitle(date)}
-        </div>
-      )}
+      {/* Divisor elegante */}
+      <div className="w-full border-t border-border/30 mt-1" />
     </div>
   );
 }
