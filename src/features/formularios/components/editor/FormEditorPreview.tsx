@@ -4,17 +4,13 @@
  * Renderiza o mesmo componente usado na rota pública (`FormPublicRenderer`),
  * garantindo paridade visual total. Modo `readOnly` suprime submit/upload.
  *
- * Toggle Desktop/Mobile no topo. Mobile é especialmente importante porque
- * o cliente provavelmente responderá pelo celular.
- *
  * Frame visual:
- *  - Desktop: container largo com borda arredondada.
- *  - Mobile: moldura tipo smartphone (375×720 com borda escura).
+ *  - Desktop: moldura com aspect ratio 16:10, escala o conteúdo via CSS.
+ *  - Mobile: moldura tipo smartphone (375×700), escala via CSS.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import { FormPublicRenderer } from '@/components/formularios/shared/FormPublicRenderer';
 import type { Formulario } from '@/types/formulario';
 
@@ -24,31 +20,19 @@ interface Props {
 
 type Mode = 'desktop' | 'mobile';
 
+// Tamanho virtual do conteúdo (o conteúdo é renderizado nessa resolução
+// e depois escalado via transform para caber na moldura visível).
+const CONTENT_W = 1280;
+const CONTENT_H = 720;
+const MOBILE_W = 375;
+const MOBILE_H = 700;
+
 export function FormEditorPreview({ draft }: Props) {
   const [mode, setMode] = useState<Mode>('desktop');
 
-  // O renderer consome o form via useFormularioPublico(token). No editor,
-  // passamos o public_token do draft. Como o draft está em rascunho e o
-  // token já existe, isso mostra o que está persistido — mas queremos
-  // refletir mudanças em tempo real. Solução: hook local que sobrescreve
-  // o formulario injetado pelo renderer.
-  //
-  // Implementação: o renderer usa `useFormularioPublico(token)` que faz
-  // fetch. Para preview "live" sem persistir, precisaríamos de uma API
-  // adicional. Compromisso desta etapa: o preview reflete o que está
-  // SALVO. Alterações não salvas não aparecem no preview. Isso é honesto
-  // e evita drag de complexidade. O brief 16 diz "preview atualiza conforme
-  // conteúdo" — e o conteúdo é o que está persistido (status "Publicado").
-  //
-  // Para draft em rascunho: como `useFormularioPublico` aceita token e o
-  // backend retorna formulários em rascunho apenas se o token bater, mas o
-  // schema de RLS pode impedir. Workaround: o renderer precisa aceitar uma
-  // prop opcional `overrideForm` que bypassa o fetch.
-
   return (
     <div className="flex h-full flex-col">
-      {/* Header do preview */}
-      <div className="flex items-center justify-between border-b bg-card/40 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b bg-card/40 px-4 py-2.5 shrink-0">
         <span className="text-xs font-medium text-foreground">
           Preview do formulário
         </span>
@@ -74,15 +58,14 @@ export function FormEditorPreview({ draft }: Props) {
         </Tabs>
       </div>
 
-      {/* Frame */}
-      <div className="flex-1 overflow-auto bg-muted/30 p-4">
+      <div className="flex-1 min-h-0 bg-muted/30 overflow-hidden">
         {mode === 'desktop' ? (
           <DesktopFrame>
-            <PreviewContent draft={draft} forceHeight={700} />
+            <PreviewContent draft={draft} />
           </DesktopFrame>
         ) : (
           <MobileFrame>
-            <PreviewContent draft={draft} forceHeight={700} />
+            <PreviewContent draft={draft} />
           </MobileFrame>
         )}
       </div>
@@ -90,34 +73,116 @@ export function FormEditorPreview({ draft }: Props) {
   );
 }
 
-function PreviewContent({ draft, forceHeight }: { draft: Formulario; forceHeight?: number }) {
-  return <FormPublicRenderer token={draft.public_token} readOnly overrideForm={draft} wrapInPublicTheme forceHeight={forceHeight} preserveDarkMode />;
+function PreviewContent({ draft }: { draft: Formulario }) {
+  return (
+    <FormPublicRenderer
+      token={draft.public_token}
+      readOnly
+      overrideForm={draft}
+      wrapInPublicTheme
+      preserveDarkMode
+    />
+  );
 }
 
+/**
+ * Moldura desktop. Renderiza o conteúdo em CONTENT_W × CONTENT_H fixos e
+ * aplica transform: scale() calculado por JS para caber no espaço
+ * disponível, mantendo proporção. O scale é recomputado em resize via
+ * ResizeObserver.
+ */
 function DesktopFrame({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w === 0 || h === 0) return;
+      setScale(Math.min(w / CONTENT_W, h / CONTENT_H));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div
-      className={cn(
-        'h-full flex flex-col overflow-hidden rounded-none',
-      )}
-    >
-      {children}
+    <div className="h-full w-full p-6 flex items-center justify-center">
+      <div
+        ref={ref}
+        className="relative rounded-xl border bg-background shadow-md overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 920,
+          aspectRatio: CONTENT_W / CONTENT_H,
+          maxHeight: '100%',
+        }}
+      >
+        <div
+          className="origin-top-left"
+          style={{
+            width: `${CONTENT_W}px`,
+            height: `${CONTENT_H}px`,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
 
 function MobileFrame({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w === 0 || h === 0) return;
+      setScale(Math.min(w / MOBILE_W, h / MOBILE_H));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="mx-auto" style={{ width: 387 }}>
-      {/* Moldura tipo smartphone */}
-      <div className="relative rounded-[44px] border-[10px] border-foreground/90 bg-foreground/90 shadow-xl overflow-hidden">
+    <div className="h-full w-full p-6 flex items-center justify-center">
+      <div
+        ref={ref}
+        className="relative rounded-[40px] border-[10px] border-foreground/90 bg-foreground/90 shadow-xl"
+        style={{
+          width: MOBILE_W,
+          height: MOBILE_H,
+          maxHeight: '100%',
+        }}
+      >
         {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-foreground/90 rounded-b-2xl z-10" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-4 bg-foreground/90 rounded-b-2xl z-20" />
         <div
-          className="bg-background overflow-y-auto"
-          style={{ height: 700, width: 367 }}
+          className="absolute inset-0 bg-background rounded-[28px] overflow-hidden"
+          style={{ padding: '6px' }}
         >
-          {children}
+          <div
+            className="origin-top-left w-full h-full"
+            style={{
+              width: `${MOBILE_W}px`,
+              height: `${MOBILE_H}px`,
+              transform: `scale(${scale})`,
+            }}
+          >
+            {children}
+          </div>
         </div>
       </div>
     </div>

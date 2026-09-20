@@ -254,9 +254,10 @@ export default function FormEditorPage() {
           />
         )}
 
-        {/* Conteúdo principal */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          <PageContainer className="py-6 pb-12 max-w-[79rem]">
+        {/* Conteúdo principal: nunca rola a página. Cada seção tem
+            seu próprio container com scroll interno quando preciso. */}
+        <main className="flex-1 min-w-0 min-h-0 overflow-hidden">
+          <PageContainer className="h-full py-6 pb-6 max-w-[79rem] flex flex-col">
             {sectionContent}
           </PageContainer>
         </main>

@@ -26,7 +26,7 @@ interface Props {
 
 export function FormEditorSectionInfo({ draft, onChange }: Props) {
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="h-full min-h-0 overflow-y-auto pr-1 space-y-6 max-w-2xl">
       <div>
         <h2 className="text-base font-semibold text-foreground">Informações</h2>
         <p className="text-sm text-muted-foreground mt-1">

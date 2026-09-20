@@ -100,8 +100,8 @@ export function FormEditorSectionQuestions({ draft, onChange }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="flex flex-col h-full min-h-0 gap-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap shrink-0">
         <div>
           <h2 className="text-base font-semibold text-foreground">Perguntas</h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -116,34 +116,36 @@ export function FormEditorSectionQuestions({ draft, onChange }: Props) {
         </Button>
       </div>
 
-      {campos.length === 0 ? (
-        <EmptyQuestions onAdd={() => setAddOpen(true)} />
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {campos.map((campo) => (
-                <QuestionCard
-                  key={campo.id}
-                  campo={campo}
-                  onClick={() => setEditingId(campo.id)}
-                  onDuplicate={() => handleDuplicate(campo)}
-                  onDelete={() => {
-                    // Confirmação vem do DeleteQuestionDialog dentro do QuestionEditor.
-                    // Se o usuário excluir pelo menu ⋮ sem abrir o editor, abrimos
-                    // o editor para ele confirmar.
-                    setEditingId(campo.id);
-                  }}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        {campos.length === 0 ? (
+          <EmptyQuestions onAdd={() => setAddOpen(true)} />
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {campos.map((campo) => (
+                  <QuestionCard
+                    key={campo.id}
+                    campo={campo}
+                    onClick={() => setEditingId(campo.id)}
+                    onDuplicate={() => handleDuplicate(campo)}
+                    onDelete={() => {
+                      // Confirmação vem do DeleteQuestionDialog dentro do QuestionEditor.
+                      // Se o usuário excluir pelo menu ⋮ sem abrir o editor, abrimos
+                      // o editor para ele confirmar.
+                      setEditingId(campo.id);
+                    }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
 
       <QuestionEditor
         open={editingId !== null}
