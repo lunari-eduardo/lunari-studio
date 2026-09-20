@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { formatTimeBr, formatDayName } from '@/utils/agendaUtils';
 import { cn } from '@/lib/utils';
 import { isSlotCoveredByEvent } from '@/modules/agenda/domain/conflict';
-import DayRevenueHeader from './DayRevenueHeader';
 
 interface WeeklyViewProps {
   date: Date;
@@ -106,7 +105,6 @@ export default function WeeklyView({
   return (
     <div className={`pb-4 scrollbar-elegant ${isMobile ? 'overflow-x-auto' : ''}`}>
       <div className={`${isMobile ? 'min-w-[960px]' : 'w-full'} space-y-2`}>
-        <DayRevenueHeader date={date} unifiedEvents={unifiedEvents} range="week" />
         <div className="grid grid-cols-8 rounded-md border border-border/40 overflow-hidden">
           {/* First cell empty - for time labels column header */}
           <div className={cn("bg-muted/30 dark:bg-white/[0.03]", cellBorder)}></div>

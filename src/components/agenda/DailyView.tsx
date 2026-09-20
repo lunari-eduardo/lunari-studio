@@ -15,7 +15,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import TimeSlotOptionsMenu from './TimeSlotOptionsMenu';
 import { isSlotCoveredByEvent, getEventEndTime, timeToMinutes, minutesToTime } from '@/modules/agenda/domain/conflict';
 import { cn } from '@/lib/utils';
-import DayRevenueHeader from './DayRevenueHeader';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -315,37 +314,36 @@ export default function DailyView({
 
   return (
     <div className="pb-16 md:pb-4">
-      {/* Header com botão de adicionar horário */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-sm font-bold text-foreground capitalize">
-          {format(date, "EEEE, d 'de' MMMM", { locale: ptBR })}
-        </div>
-        <div className="flex items-center gap-2">
-          <Popover open={showAddTimeSlot} onOpenChange={setShowAddTimeSlot}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="h-7 w-7 rounded-full">
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="start">
-              <div className="flex items-center gap-2">
-                <div className="w-24">
-                  <TimeInput 
-                    value={newTimeInput} 
-                    onChange={setNewTimeInput}
-                    placeholder="HH:mm"
-                  />
-                </div>
-                <Button size="sm" onClick={handleAddNewTimeSlot}>
-                  Adicionar
-                </Button>
+      {/* Header: botão + à esquerda, dia da semana centralizado, restaurar padrão à direita */}
+      <div className="flex items-center justify-between mb-2 border-b border-border/40 pb-2">
+        <Popover open={showAddTimeSlot} onOpenChange={setShowAddTimeSlot}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="h-7 w-7 rounded-full">
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <div className="flex items-center gap-2">
+              <div className="w-24">
+                <TimeInput
+                  value={newTimeInput}
+                  onChange={setNewTimeInput}
+                  placeholder="HH:mm"
+                />
               </div>
-            </PopoverContent>
-          </Popover>
+              <Button size="sm" onClick={handleAddNewTimeSlot}>
+                Adicionar
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <div className="text-sm font-bold text-foreground capitalize">
+          {format(date, "EEEE", { locale: ptBR })}
         </div>
-        
-        {hasCustomSlots && (
-          <button 
+
+        {hasCustomSlots ? (
+          <button
             onClick={resetToDefault}
             className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
             title="Restaurar horários padrão"
@@ -353,10 +351,10 @@ export default function DailyView({
             <RotateCcw className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Restaurar padrão</span>
           </button>
+        ) : (
+          <div className="w-7 h-7" />
         )}
       </div>
-
-      <DayRevenueHeader date={date} unifiedEvents={unifiedEvents} range="day" />
 
       {/* Banner de Dia Todo */}
       {fullDaySlot && (
