@@ -220,18 +220,7 @@ export default function EditorMaterialPage() {
     e.target.value = '';
   };
 
-  if (editor.isLoading || !editorState) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  const activeBlock = editorState.blocks[activeIndex];
-  const designTokens = editorState.globalSettings?.design_tokens;
-
-  // Referências para scroll do canvas, auto-escala e guards de interação
+  // Referências para scroll do canvas, auto-escala e guards de interação (Hooks chamados no topo)
   const canvasScrollRef = useRef<HTMLDivElement>(null);
   const isInteractingWithInspectorRef = useRef(false);
   const isProgrammaticScrollRef = useRef(false);
@@ -359,6 +348,18 @@ export default function EditorMaterialPage() {
       cancelAnimationFrame(rafId);
     };
   }, [handleCanvasScroll]);
+
+  // Loading state (renderizado SOMENTE após todos os hooks serem chamados)
+  if (editor.isLoading || !editorState) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const activeBlock = editorState.blocks[activeIndex];
+  const designTokens = editorState.globalSettings?.design_tokens;
 
   const handleAddBlock = (type: string) => {
     editor.addBlock(type);
