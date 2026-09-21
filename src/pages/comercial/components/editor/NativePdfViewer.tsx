@@ -5,11 +5,9 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-
-// Configura o worker do pdf.js a partir do bundle já instalado em node_modules.
-// Usa ?url do Vite para garantir a correta resolução do caminho.
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+// Configura o worker do pdf.js via unpkg para garantir estabilidade máxima
+// independentemente de como o empacotador (Vite/Webpack) resolve assets.
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface NativePdfViewerProps {
   url: string;
@@ -145,7 +143,7 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
                       // Aguarda o próximo frame para garantir que o canvas já está visível
                       requestAnimationFrame(() => {
                         const root = containerRef.current?.querySelector(
-                          '[data-page-1] canvas.react-pdf__Page__canvas'
+                          '[data-page="1"] canvas.react-pdf__Page__canvas'
                         ) as HTMLCanvasElement | null;
                         if (!root) return;
                         try {
