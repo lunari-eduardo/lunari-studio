@@ -52,6 +52,7 @@ interface DetailHeaderProps {
   calculatedExtraTotal: number;
   canReactivate: boolean;
   deadline: Date;
+  sessionDate: Date | null;
   onReactivateClick: () => void;
   onShareClick: () => void;
   onDeleteGallery: () => Promise<void>;
@@ -69,6 +70,7 @@ export function DetailHeader({
   calculatedExtraTotal,
   canReactivate,
   deadline,
+  sessionDate,
   onReactivateClick,
   onShareClick,
   onDeleteGallery,
@@ -271,7 +273,7 @@ export function DetailHeader({
       </div>
 
       {/* Área 2 — Cards informativos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <InfoCard 
           icon={User} 
           label="Cliente" 
@@ -290,7 +292,10 @@ export function DetailHeader({
             )
           } 
         />
-        <InfoCard icon={Calendar} label="Data da sessão" value={format(deadline, "dd MMM yyyy", { locale: ptBR })} />
+        <InfoCard icon={Calendar} label="Data de expiração" value={format(deadline, "dd MMM yyyy", { locale: ptBR })} />
+        {sessionDate && (
+          <InfoCard icon={Calendar} label="Data da sessão" value={format(sessionDate, "dd MMM yyyy", { locale: ptBR })} />
+        )}
         <InfoCard icon={Image} label="Total de fotos" value={`${supabaseGallery.totalFotos} fotos`} />
       </div>
 

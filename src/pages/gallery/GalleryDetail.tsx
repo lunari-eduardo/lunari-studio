@@ -99,6 +99,7 @@ export default function GalleryDetail() {
         calculatedExtraTotal={data.calculatedExtraTotal}
         canReactivate={data.canReactivate}
         deadline={data.deadline}
+        sessionDate={data.sessionDate}
         onReactivateClick={() => actions.setReactivateOpen(true)}
         onShareClick={() => actions.setIsSendModalOpen(true)}
         onDeleteGallery={actions.handleDeleteGallery}

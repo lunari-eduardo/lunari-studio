@@ -30,37 +30,43 @@ export function useGalleryDetailData({
 
   const { data: supabaseGallery, isLoading: isGalleryLoading } = useGalleryById(id);
 
-  // Resolve client ID (from gallery directly, or fallback to session/name search)
-  const { data: resolvedClienteId } = useQuery({
-    queryKey: ['gallery-resolved-client', supabaseGallery?.clienteId, supabaseGallery?.sessionId, supabaseGallery?.clienteNome],
+  // Resolve client ID and session date (from gallery directly, or fallback to session/name search)
+  const { data: resolvedSessionData } = useQuery({
+    queryKey: ['gallery-resolved-session-data', supabaseGallery?.clienteId, supabaseGallery?.sessionId, supabaseGallery?.clienteNome],
     queryFn: async () => {
-      if (supabaseGallery?.clienteId) return supabaseGallery.clienteId;
+      let clienteId = supabaseGallery?.clienteId || null;
+      let dataSessao = null;
 
       if (supabaseGallery?.sessionId) {
         const { data: sess } = await supabase
           .from('clientes_sessoes')
-          .select('cliente_id')
+          .select('cliente_id, data_sessao')
           .eq('session_id', supabaseGallery.sessionId)
           .maybeSingle();
-        if (sess?.cliente_id) return sess.cliente_id;
+          
+        if (sess) {
+          if (!clienteId) clienteId = sess.cliente_id;
+          dataSessao = sess.data_sessao;
+        }
       }
 
-      if (supabaseGallery?.clienteNome) {
+      if (!clienteId && supabaseGallery?.clienteNome) {
         const { data: client } = await supabase
           .from('clientes')
           .select('id')
           .ilike('nome', supabaseGallery.clienteNome.trim())
           .limit(1)
           .maybeSingle();
-        if (client?.id) return client.id;
+        if (client?.id) clienteId = client.id;
       }
 
-      return null;
+      return { clienteId, dataSessao };
     },
     enabled: !!supabaseGallery,
   });
 
-  const effectiveClienteId = supabaseGallery?.clienteId || resolvedClienteId;
+  const effectiveClienteId = resolvedSessionData?.clienteId || supabaseGallery?.clienteId;
+  const sessionDate = resolvedSessionData?.dataSessao ? new Date(resolvedSessionData.dataSessao + 'T12:00:00') : null;
 
   // Fetch photos (em paralelo com ID direto, fim do waterfall)
   const { data: supabasePhotos = [], isLoading: isLoadingPhotos } = useQuery({
@@ -345,6 +351,7 @@ export function useGalleryDetailData({
     effectiveStatus,
     canReactivate,
     deadline,
+    sessionDate,
     clientLink,
     regrasCongeladas,
     extrasNecessarias,
