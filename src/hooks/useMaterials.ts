@@ -156,6 +156,24 @@ export function useMaterials() {
     },
   });
 
+  /**
+   * Atualiza somente o `cover_image_url` da capa do material sem invalidar
+   * toda a lista (evita refetch excessivo durante geração automática de capa).
+   */
+  const updateCover = useMutation({
+    mutationFn: async ({ id, coverImageUrl }: { id: string; coverImageUrl: string }) => {
+      const { error } = await (supabase as any)
+        .from('commercial_materials')
+        .update({ cover_image_url: coverImageUrl })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidação única: a lista de cards precisa saber da nova capa.
+      queryClient.invalidateQueries({ queryKey: ['commercial-materials'] });
+    },
+  });
+
   const deleteMaterial = useMutation({
     mutationFn: async (id: string) => {
       // 1. Excluir compartilhamentos explicitamente para contornar o ON DELETE RESTRICT durante testes
@@ -247,5 +265,6 @@ export function useMaterials() {
     archiveMaterial,
     deleteMaterial,
     duplicateMaterial,
+    updateCover,
   };
 }

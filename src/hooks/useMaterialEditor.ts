@@ -23,6 +23,8 @@ export interface MaterialEditorState {
   blocks: BlockData[];
   pdfUrl?: string;
   globalSettings: Record<string, any>;
+  /** URL da capa persistida em `commercial_materials.cover_image_url`. */
+  coverImageUrl?: string | null;
   /** Contador de mutações locais desde a carga (usado para conciliar saves) */
   revision: number;
 }
@@ -220,6 +222,7 @@ export function useMaterialEditor(materialId: string | undefined) {
         blocks,
         pdfUrl,
         globalSettings,
+        coverImageUrl: material.cover_image_url ?? null,
         revision: 0,
       };
 

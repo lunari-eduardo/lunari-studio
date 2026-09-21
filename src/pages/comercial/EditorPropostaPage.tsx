@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMaterialEditor } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { PropertiesSidebar } from './components/editor/PropertiesSidebar';
 import { VisualRenderer } from './components/editor/VisualRenderer';
 import { useMaterialPublicLink } from '@/hooks/useMaterialPublicLink';
 import { useR2Upload } from '@/hooks/useR2Upload';
+import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
 import { supabase } from '@/integrations/supabase/client';
 import { SaveTemplateModal } from './components/editor/modals/SaveTemplateModal';
 import { CustomizeSlugModal } from './components/editor/modals/CustomizeSlugModal';
@@ -18,11 +19,22 @@ import { FullscreenPreviewModal } from './components/editor/modals/FullscreenPre
 import { EditorHeader } from './components/editor/modals/EditorHeader';
 import { NativePdfViewer } from './components/editor/NativePdfViewer';
 
+/** Converte um data URL (geralmente `image/jpeg`) em `File` pronto para upload. */
+function dataUrlToFile(dataUrl: string, fileName: string): File {
+  const [meta, base64] = dataUrl.split(',');
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+  const mime = mimeMatch?.[1] ?? 'image/jpeg';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], fileName, { type: mime });
+}
+
 export default function EditorMaterialPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const editor = useMaterialEditor(id || '');
-  const { duplicateMaterial } = useMaterials();
+  const { duplicateMaterial, updateCover } = useMaterials();
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -46,6 +58,30 @@ export default function EditorMaterialPage() {
   const editorUndo = editor.undo;
   const editorRedo = editor.redo;
   const inlineEditing = viewMode === 'desktop' && editorState?.format === 'blocks';
+
+  // Geração/atualização da capa do material.
+  // - PDF: ao abrir uma proposta PDF, captura a primeira página e sobe como
+  //   `cover_image_url` (somente se ainda não houver uma).
+  // - Nativa: se a capa já existe no banco e o `CoverBlock` tem `image_url`,
+  //   sincroniza; senão, mantém como está.
+  const coverSyncAttemptedRef = useRef<string | null>(null);
+  const handleCoverDataUrl = useCallback(
+    async (dataUrl: string, materialId: string) => {
+      try {
+        const file = dataUrlToFile(dataUrl, `${materialId}-cover.jpg`);
+        const response = await gestaoR2Upload({
+          file,
+          context: 'general',
+        });
+        const url = response.url || `https://media.lunarihub.com/${response.storagePath}`;
+        await updateCover.mutateAsync({ id: materialId, coverImageUrl: url });
+      } catch (err) {
+        // Falha de capa não deve bloquear a visualização do PDF.
+        console.warn('[EditorPropostaPage] falha ao gerar capa:', err);
+      }
+    },
+    [updateCover]
+  );
 
   // Atalhos de teclado: undo/redo
   useEffect(() => {
@@ -73,6 +109,23 @@ export default function EditorMaterialPage() {
     }, 2500);
     return () => clearTimeout(timer);
   }, [editorHasChanges, editorState, editorSaveStatus, editorSaveDraft]);
+
+  // Sincronização inicial da capa para proposta nativa:
+  // se o material ainda não tem capa mas o primeiro CoverBlock tem image_url,
+  // grava a URL do bloco como capa do material.
+  useEffect(() => {
+    if (!editorState || !id) return;
+    if (coverSyncAttemptedRef.current === id) return;
+    if (editorState.format !== 'blocks') return;
+    if (editorState.coverImageUrl) return;
+    const cover = editorState.blocks.find((b) => b?.type === 'CoverBlock') as
+      | { content?: { image_url?: string } }
+      | undefined;
+    const coverImageUrl = cover?.content?.image_url;
+    if (!coverImageUrl) return;
+    coverSyncAttemptedRef.current = id;
+    updateCover.mutate({ id, coverImageUrl });
+  }, [editorState, id, updateCover]);
 
   const handleSaveAsTemplate = async () => {
     if (!editorState || !templateName.trim()) return;
@@ -271,7 +324,17 @@ export default function EditorMaterialPage() {
             <div className="flex-1 w-full h-full flex flex-col bg-muted/20">
               {editorState.pdfUrl ? (
                 <div key={editorState.pdfUrl} className="flex-1 overflow-auto">
-                  <NativePdfViewer url={editorState.pdfUrl} backgroundClass="bg-muted/30" />
+                  <NativePdfViewer
+                    url={editorState.pdfUrl}
+                    backgroundClass="bg-muted/30"
+                    onFirstPageRendered={(dataUrl) => {
+                      if (!id) return;
+                      if (coverSyncAttemptedRef.current === id) return;
+                      coverSyncAttemptedRef.current = id;
+                      if (editorState.coverImageUrl) return; // já tem capa
+                      void handleCoverDataUrl(dataUrl, id);
+                    }}
+                  />
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center p-8">
