@@ -14,11 +14,13 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useClienteCredito,
   useGrantClientCredit,
+  useDeductClientCredit,
 } from "@/hooks/useClienteCredito";
 import { usePendingSessions } from "@/hooks/usePendingSessions";
 import { ClientCreditApplyModal } from "@/components/finance/ClientCreditApplyModal";
+import { ClientCreditHistoryModal } from "@/components/finance/ClientCreditHistoryModal";
 import { formatCurrency } from "@/utils/currencyUtils";
-import { Wallet, Plus, ChevronDown, ArrowRight } from "lucide-react";
+import { Wallet, Plus, Minus, History, ChevronDown, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,7 +37,10 @@ interface ClientCreditPanelProps {
 export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
   const { data, isLoading } = useClienteCredito(clienteId, false);
   const grant = useGrantClientCredit();
+  const deduct = useDeductClientCredit();
   const [grantOpen, setGrantOpen] = useState(false);
+  const [deductOpen, setDeductOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [applyTarget, setApplyTarget] = useState<{
     session_id: string;
@@ -43,6 +48,8 @@ export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
   } | null>(null);
   const [valorStr, setValorStr] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [deductValorStr, setDeductValorStr] = useState("");
+  const [deductMotivo, setDeductMotivo] = useState("");
 
   const saldo = data?.saldo ?? 0;
   const pendings = usePendingSessions(clienteId, saldo > 0);
@@ -74,6 +81,31 @@ export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
     }
   };
 
+  const handleDeduct = async () => {
+    const v = Number(deductValorStr.replace(",", ".")) || 0;
+    if (v <= 0) {
+      toast.error("Informe um valor positivo");
+      return;
+    }
+    if (v > saldo) {
+      toast.error(`O valor não pode ser maior que o saldo disponível (${formatCurrency(saldo)})`);
+      return;
+    }
+    try {
+      await deduct.mutateAsync({
+        clienteId,
+        valor: v,
+        motivo: deductMotivo.trim() || undefined,
+      });
+      toast.success("Crédito removido com sucesso!");
+      setDeductOpen(false);
+      setDeductValorStr("");
+      setDeductMotivo("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao remover crédito");
+    }
+  };
+
   const canApply = saldo > 0 && pendingList.length > 0;
 
   return (
@@ -81,9 +113,14 @@ export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
       <div className="flex items-center gap-2 min-w-0">
         <Wallet className="h-4 w-4 text-emerald-500 shrink-0" />
         <span className="text-xs text-muted-foreground">Crédito do cliente</span>
-        <span className="text-sm font-semibold tabular-nums">
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          className="text-sm font-semibold tabular-nums hover:underline hover:text-primary transition-colors cursor-pointer"
+          title="Clique para ver o extrato de crédito"
+        >
           {isLoading ? "..." : formatCurrency(saldo)}
-        </span>
+        </button>
         {data?.proximaExpiracao && (
           <span className="text-[11px] text-amber-600">
             expira em {format(parseISO(data.proximaExpiracao), "dd/MM/yyyy")}
@@ -137,6 +174,25 @@ export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
             </PopoverContent>
           </Popover>
         )}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          onClick={() => setHistoryOpen(true)}
+          title="Ver extrato completo de créditos"
+        >
+          <History className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-muted-foreground hover:text-destructive"
+          onClick={() => setDeductOpen(true)}
+          disabled={saldo <= 0}
+          title={saldo > 0 ? "Remover / Estornar crédito" : "Sem saldo para remover"}
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
         <Button
           size="sm"
           variant="ghost"
@@ -195,6 +251,79 @@ export function ClientCreditPanel({ clienteId }: ClientCreditPanelProps) {
             </Button>
             <Button onClick={handleGrant} disabled={grant.isPending}>
               {grant.isPending ? "Salvando..." : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Extrato e Auditoria de Crédito */}
+      <ClientCreditHistoryModal
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        clienteId={clienteId}
+      />
+
+      {/* Diálogo rápido de Dedução / Remoção de Crédito */}
+      <Dialog open={deductOpen} onOpenChange={setDeductOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Minus className="h-5 w-5" />
+              Remover crédito do cliente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="flex items-center justify-between text-xs bg-muted/40 p-2.5 rounded-lg border">
+              <span className="text-muted-foreground">Saldo disponível atual:</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                {formatCurrency(saldo)}
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="deduct-valor">Valor a remover</Label>
+                <button
+                  type="button"
+                  onClick={() => setDeductValorStr(String(saldo))}
+                  className="text-[11px] text-primary hover:underline cursor-pointer"
+                >
+                  Remover saldo total ({formatCurrency(saldo)})
+                </button>
+              </div>
+              <Input
+                id="deduct-valor"
+                type="number"
+                step="0.01"
+                min={0}
+                max={saldo}
+                value={deductValorStr}
+                onChange={(e) => setDeductValorStr(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="deduct-motivo">Motivo (opcional)</Label>
+              <Textarea
+                id="deduct-motivo"
+                value={deductMotivo}
+                onChange={(e) => setDeductMotivo(e.target.value)}
+                rows={2}
+                placeholder="Ex.: Devolução via Pix ao cliente"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeductOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeduct}
+              disabled={deduct.isPending}
+            >
+              {deduct.isPending ? "Removendo..." : "Confirmar remoção"}
             </Button>
           </DialogFooter>
         </DialogContent>

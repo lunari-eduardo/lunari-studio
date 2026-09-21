@@ -9,6 +9,7 @@ import {
   applyClientCredit,
   grantClientCredit,
   revokeClientCredit,
+  deductClientCredit,
 } from "@/modules/finance";
 
 export interface ClienteCreditoLedgerRow {
@@ -160,6 +161,31 @@ export function useRevokeClientCredit() {
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ["cliente-credito", vars.clienteId] });
+      qc.invalidateQueries({ queryKey: ["workflow"] });
+      qc.invalidateQueries({ queryKey: ["extrato"] });
+    },
+  });
+}
+
+interface DeductInput {
+  clienteId: string;
+  valor: number;
+  motivo?: string;
+}
+
+export function useDeductClientCredit() {
+  const qc = useQueryClient();
+  const run = useRunCapability();
+  return useMutation({
+    mutationFn: async ({ clienteId, valor, motivo }: DeductInput) => {
+      const res = await run(deductClientCredit, { clienteId, valor, motivo });
+      if (!isOk(res)) throw new CapabilityError(res.error);
+      return res.value;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["cliente-credito", vars.clienteId] });
+      qc.invalidateQueries({ queryKey: ["workflow"] });
+      qc.invalidateQueries({ queryKey: ["extrato"] });
     },
   });
 }
