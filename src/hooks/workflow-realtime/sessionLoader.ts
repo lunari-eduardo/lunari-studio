@@ -18,7 +18,7 @@ export const fetchWorkflowSessionsWithPayments = async (userId: string): Promise
       )
     `)
     .eq('user_id', userId)
-    .or('status.is.null,status.not.in.(historico,stub)')
+    .or('status.is.null,status.not.in.(historico,stub,cancelada)')
     .gte('data_sessao', dateFilter)
     .order('data_sessao', { ascending: true })
     .order('hora_sessao', { ascending: true });

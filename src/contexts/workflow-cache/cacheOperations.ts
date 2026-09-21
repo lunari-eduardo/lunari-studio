@@ -13,9 +13,12 @@ export const executeMergeUpdate = (
   // (evita que fetches parciais zerem valor_base_pacote, regras_congeladas, etc.)
   const normalized = normalizeWorkflowSessionPartial(session) as WorkflowSession;
 
-  // Soft-delete (status='historico') deve REMOVER do cache do funil — não dá merge.
-  if ((normalized as any).status === 'historico' && (normalized as any).id) {
-    console.log('🗑️ [WorkflowCache] mergeUpdate detectou status=historico → removendo', (normalized as any).id);
+  // Soft-delete (status='historico' ou 'cancelada') deve REMOVER do cache do funil — não dá merge.
+  if (
+    ((normalized as any).status === 'historico' || (normalized as any).status === 'cancelada') &&
+    (normalized as any).id
+  ) {
+    console.log('🗑️ [WorkflowCache] mergeUpdate detectou status=historico/cancelada → removendo', (normalized as any).id);
     removeSessionFn?.((normalized as any).id);
     return;
   }

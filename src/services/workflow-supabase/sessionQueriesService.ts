@@ -62,7 +62,7 @@ export async function getSessionsForMonth(month: number, year: number) {
       .eq("user_id", user.user.id)
       .gte("data_sessao", startDate)
       .lt("data_sessao", endDate)
-      .or("status.is.null,status.not.in.(historico,stub)")
+      .or("status.is.null,status.not.in.(historico,stub,cancelada)")
       .order("data_sessao", { ascending: true })
       .order("hora_sessao", { ascending: true });
 

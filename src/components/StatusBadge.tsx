@@ -57,7 +57,7 @@ const galleryStatusConfig: Record<GalleryStatus, { label: string; className: str
   selection_started: { label: 'Em seleção', className: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 hover:bg-orange-500/10', icon: MousePointer },
   selection_completed: { label: 'Concluída', className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10', icon: CheckCircle },
   expired: { label: 'Expirada', className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10', icon: Clock },
-  cancelled: { label: 'Cancelada', className: 'bg-muted text-muted-foreground border-border hover:bg-muted', icon: XCircle },
+  cancelled: { label: 'Cancelada', className: 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/10', icon: XCircle },
 };
 
 const selectionStatusConfig: Record<SelectionStatus, { label: string; className: string; icon: React.ElementType }> = {

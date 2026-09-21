@@ -110,7 +110,7 @@ export function useWorkflowRealtimeV2(): { enabled: boolean; stats: Stats } {
           emitLegacyEvent(null, "delete", id);
           return;
         }
-        if ((fresh as any).status === "historico") {
+        if ((fresh as any).status === "historico" || (fresh as any).status === "cancelada") {
           workflowStore.remove(id);
           statsRef.current.removes++;
           emitLegacyEvent(null, "delete", id);
@@ -128,7 +128,7 @@ export function useWorkflowRealtimeV2(): { enabled: boolean; stats: Stats } {
       try {
         const fresh = await sessionsRepo.getBySessionId(userId!, sessionIdText);
         if (cancelled || !fresh) return;
-        if ((fresh as any).status === "historico") {
+        if ((fresh as any).status === "historico" || (fresh as any).status === "cancelada") {
           workflowStore.remove(fresh.id);
           statsRef.current.removes++;
           emitLegacyEvent(null, "delete", fresh.id);

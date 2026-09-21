@@ -14,19 +14,22 @@ interface WorkflowHistoryTableProps {
   cliente: ClienteCompleto;
 }
 
-/** Badge de status neutro (Silent Luxury) — sem cores cruas. */
+/** Badge de status neutro (Silent Luxury) — com destaque vermelho para cancelada. */
 function StatusChip({ status }: { status: string }) {
   const isHistorico = status === 'historico';
+  const isCancelada = status === 'cancelada' || status === 'cancelado';
   return (
     <span
       className={cn(
         'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium capitalize',
-        isHistorico
+        isCancelada
+          ? 'border-destructive/30 bg-destructive/10 text-destructive font-semibold'
+          : isHistorico
           ? 'border-border/20 bg-transparent text-muted-foreground'
           : 'border-border/20 bg-muted/40 text-foreground'
       )}
     >
-      {isHistorico ? 'Apenas histórico' : status.replace('_', ' ')}
+      {isCancelada ? 'Cancelada' : isHistorico ? 'Apenas histórico' : status.replace('_', ' ')}
     </span>
   );
 }

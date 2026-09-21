@@ -5,6 +5,7 @@ import { useWorkflowRealtime } from "@/features/workflow";
 import type { WorkflowSession } from "@/features/workflow";
 import { workflowStore } from "@/features/workflow/store/workflowStore";
 import { sessionsRepo } from "@/features/workflow/data/sessionsRepo";
+import { invalidateMonthMetricsTTL } from "@/features/workflow/data/metricsRepo";
 import { isOk } from "@/shared/result";
 import { useRunCapability } from "@/shared/capability";
 import {
@@ -544,6 +545,18 @@ export function useWorkflowSessionActions({
           description += ` ${cobrancasPreservadas} pagamento(s) recebido(s) via gateway foram mantidos no extrato fiscal.`;
           durationMs = 8000;
         }
+      }
+
+      if (user?.id) {
+        invalidateMonthMetricsTTL(user.id, currentMonth.year, currentMonth.month);
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("workflow-session-deleted", {
+            detail: { sessionId, source: "handleDeleteSession" },
+          }),
+        );
+        window.dispatchEvent(new CustomEvent("workflow.metrics_stale"));
       }
 
       toast({ title, description, duration: durationMs });

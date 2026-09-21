@@ -79,8 +79,8 @@ export const useRealtimeSubscription = ({
               console.log('✏️ [WorkflowRealtime] Updating session via realtime:', (payload.new as any).id);
 
               const newStatus = (payload.new as any).status;
-              if (newStatus === 'historico') {
-                console.log('🗃️ [WorkflowRealtime] Session marked as historical, removing from workflow:', (payload.new as any).id);
+              if (newStatus === 'historico' || newStatus === 'cancelada') {
+                console.log('🗃️ [WorkflowRealtime] Session marked as historical/canceled, removing from workflow:', (payload.new as any).id);
                 setSessions((prev) => prev.filter((session) => session.id !== (payload.new as any).id));
                 return;
               }
