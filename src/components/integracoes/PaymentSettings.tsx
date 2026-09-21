@@ -33,6 +33,7 @@ import {
 } from '@/hooks/usePaymentIntegration';
 import { pixLogo, infinitepayLogo, mercadopagoLogo, asaasLogo } from '@/assets/payment-logos';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccessControl } from '@/hooks/useAccessControl';
 import { PaymentConfigDrawer } from './PaymentConfigDrawer';
 
 const providerLogos: Record<PaymentProvider, string> = {
@@ -300,14 +301,26 @@ export function PaymentSettings() {
   };
 
   // Derived data
-  const activeIntegrations = data?.allActiveIntegrations || [];
+  const { accessState } = useAccessControl();
+  const isAdmin = accessState?.isAdmin;
+
+  let allIntegrations = data?.allIntegrations || [];
+  let activeIntegrations = data?.allActiveIntegrations || [];
+
+  if (!isAdmin) {
+    allIntegrations = allIntegrations.filter(i => i.provedor !== 'asaas');
+    activeIntegrations = activeIntegrations.filter(i => i.provedor !== 'asaas');
+  }
+
+  const allowedProviders = isAdmin ? allProviders : allProviders.filter(p => p !== 'asaas');
+
   const activeProviders = new Set(activeIntegrations.map(i => i.provedor));
-  const inactiveProviders = allProviders.filter(p => !activeProviders.has(p));
+  const inactiveProviders = allowedProviders.filter(p => !activeProviders.has(p));
 
-  const mpIntegration = data?.allIntegrations?.find(i => i.provedor === 'mercadopago');
-  const asaasIntegration = data?.allIntegrations?.find(i => i.provedor === 'asaas');
+  const mpIntegration = allIntegrations.find(i => i.provedor === 'mercadopago');
+  const asaasIntegration = allIntegrations.find(i => i.provedor === 'asaas');
 
-  const errorProviders = (data?.allIntegrations || []).filter(i => i.status === 'erro_autenticacao').map(i => i.provedor);
+  const errorProviders = allIntegrations.filter(i => i.status === 'erro_autenticacao').map(i => i.provedor);
   const otherProviders = [...new Set([...inactiveProviders, ...errorProviders])];
 
   if (isLoading || connectMercadoPago.isPending) {

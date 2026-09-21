@@ -7,6 +7,7 @@ import pixLogo from '@/assets/pix-logo.png';
 import infinitepayLogo from '@/assets/infinitepay-logo.png';
 import mercadopagoLogo from '@/assets/mercadopago-logo.png';
 import asaasLogo from '@/assets/asaas-logo.png';
+import { useAccessControl } from '@/hooks/useAccessControl';
 
 interface ProviderSelectorProps {
   selectedProvider: SelectedProvider | null;
@@ -23,6 +24,8 @@ interface IntegrationData {
 export function ProviderSelector({ selectedProvider, onSelect }: ProviderSelectorProps) {
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const { accessState } = useAccessControl();
+  const isAdmin = accessState?.isAdmin;
 
   const loadProviders = useCallback(async () => {
     try {
@@ -103,7 +106,7 @@ export function ProviderSelector({ selectedProvider, onSelect }: ProviderSelecto
 
       // Check for Asaas
       const asaas = integrationData.find(i => i.provedor === 'asaas');
-      if (asaas) {
+      if (asaas && isAdmin) {
         const settings = asaas.dados_extras || {};
         const isDefault = asaas.is_default === true;
         const methods: string[] = [];
@@ -134,7 +137,7 @@ export function ProviderSelector({ selectedProvider, onSelect }: ProviderSelecto
     } finally {
       setLoading(false);
     }
-  }, [selectedProvider, onSelect]);
+  }, [selectedProvider, onSelect, isAdmin]);
 
   useEffect(() => {
     loadProviders();
