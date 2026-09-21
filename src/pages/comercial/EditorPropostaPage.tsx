@@ -18,6 +18,7 @@ import { CustomizeSlugModal } from './components/editor/modals/CustomizeSlugModa
 import { FullscreenPreviewModal } from './components/editor/modals/FullscreenPreviewModal';
 import { EditorHeader } from './components/editor/modals/EditorHeader';
 import { NativePdfViewer } from './components/editor/NativePdfViewer';
+import { SendProposalModal } from './biblioteca/components/SendProposalModal';
 
 /** Converte um data URL (geralmente `image/jpeg`) em `File` pronto para upload. */
 function dataUrlToFile(dataUrl: string, fileName: string): File {
@@ -38,6 +39,7 @@ export default function EditorMaterialPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'structure' | 'properties'>('none');
 
@@ -308,6 +310,8 @@ export default function EditorMaterialPage() {
           onOpenMobileStructure={() => setMobilePanel('structure')}
           onOpenMobileProperties={() => setMobilePanel('properties')}
           hasActiveBlock={!!activeBlock}
+          onShare={() => setIsSendModalOpen(true)}
+          onViewShares={() => navigate(`/app/comercial/compartilhamentos?material=${encodeURIComponent(editorState.title)}`)}
         />
 
         {/* WORKSPACE */}
@@ -456,6 +460,14 @@ export default function EditorMaterialPage() {
         }}
         isPending={publicLink.updateSlug.isPending}
       />
+
+      {/* MODAL ENVIAR PROPOSTA (SHARE) */}
+      {id && (
+        <SendProposalModal
+          materialId={isSendModalOpen ? id : null}
+          onClose={() => setIsSendModalOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -21,6 +21,7 @@ import {
   Link as LinkIcon,
   LayoutTemplate,
   MessageCircle,
+  Share2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -57,6 +58,8 @@ interface EditorHeaderProps {
   onOpenMobileStructure: () => void;
   onOpenMobileProperties: () => void;
   hasActiveBlock: boolean;
+  onShare?: () => void;
+  onViewShares?: () => void;
 }
 
 export function EditorHeader({
@@ -83,6 +86,8 @@ export function EditorHeader({
   onOpenMobileStructure,
   onOpenMobileProperties,
   hasActiveBlock,
+  onShare,
+  onViewShares,
 }: EditorHeaderProps) {
   const navigate = useNavigate();
 
@@ -131,61 +136,63 @@ export function EditorHeader({
         </div>
       </div>
 
-      {/* Centro: Toggles de Visualização + Zoom */}
-      <div className="absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-2">
-        <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setViewMode('desktop')}
-            className={cn(
-              'h-8 px-3 rounded-md',
-              viewMode === 'desktop' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Monitor className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setViewMode('mobile')}
-            className={cn(
-              'h-8 px-3 rounded-md',
-              viewMode === 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            <Smartphone className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {state.format === 'blocks' && viewMode === 'desktop' && (
-          <div className="hidden md:flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
+      {/* Centro: Toggles de Visualização + Zoom (apenas para construtor de blocos nativo) */}
+      {state.format === 'blocks' && (
+        <div className="absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-2">
+          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
-              disabled={zoom <= 0.5}
-              onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
-              title="Reduzir zoom"
+              onClick={() => setViewMode('desktop')}
+              className={cn(
+                'h-8 px-3 rounded-md',
+                viewMode === 'desktop' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <ZoomOut className="h-4 w-4" />
+              <Monitor className="h-4 w-4" />
             </Button>
-            <span className="text-[11px] font-medium text-muted-foreground w-10 text-center select-none">
-              {Math.round(zoom * 100)}%
-            </span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
-              disabled={zoom >= 1}
-              onClick={() => setZoom((z) => Math.min(1, +(z + 0.25).toFixed(2)))}
-              title="Ampliar zoom"
+              onClick={() => setViewMode('mobile')}
+              className={cn(
+                'h-8 px-3 rounded-md',
+                viewMode === 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <ZoomIn className="h-4 w-4" />
+              <Smartphone className="h-4 w-4" />
             </Button>
           </div>
-        )}
-      </div>
+
+          {viewMode === 'desktop' && (
+            <div className="hidden md:flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
+                disabled={zoom <= 0.5}
+                onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+                title="Reduzir zoom"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-[11px] font-medium text-muted-foreground w-10 text-center select-none">
+                {Math.round(zoom * 100)}%
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
+                disabled={zoom >= 1}
+                onClick={() => setZoom((z) => Math.min(1, +(z + 0.25).toFixed(2)))}
+                title="Ampliar zoom"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Esquerda (mobile/tablet): botões dos painéis em drawer */}
       <div className="flex lg:hidden items-center gap-1">
@@ -228,10 +235,12 @@ export function EditorHeader({
           </div>
         )}
 
-        <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
-          <span className="hidden sm:inline">Pré-visualizar</span>
-          <Maximize className="h-3.5 w-3.5" />
-        </Button>
+        {state.format === 'blocks' && (
+          <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
+            <span className="hidden sm:inline">Pré-visualizar</span>
+            <Maximize className="h-3.5 w-3.5" />
+          </Button>
+        )}
 
         {hasChanges ? (
           <>
@@ -264,7 +273,18 @@ export function EditorHeader({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-52">
+            {onShare && (
+              <DropdownMenuItem onClick={onShare} className="gap-2 font-medium text-primary focus:text-primary">
+                <Share2 className="h-4 w-4" /> Compartilhar Proposta
+              </DropdownMenuItem>
+            )}
+            {onViewShares && (
+              <DropdownMenuItem onClick={onViewShares} className="gap-2">
+                <Share2 className="h-4 w-4 opacity-70" /> Ver Compartilhamentos
+              </DropdownMenuItem>
+            )}
+            {(onShare || onViewShares) && <DropdownMenuSeparator />}
             <DropdownMenuItem onClick={onSaveDraft} disabled={!hasChanges} className="gap-2">
               <Save className="h-4 w-4" /> Salvar Rascunho
             </DropdownMenuItem>

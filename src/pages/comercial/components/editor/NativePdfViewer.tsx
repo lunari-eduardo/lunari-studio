@@ -18,19 +18,123 @@ interface NativePdfViewerProps {
   onFirstPageRendered?: (dataUrl: string) => void;
 }
 
-export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]', onFirstPageRendered }: NativePdfViewerProps) {
+interface PdfPageItemProps {
+  pageNumber: number;
+  width: number | undefined;
+  onFirstPageRendered?: (dataUrl: string) => void;
+  firstPageCaptureRef: React.MutableRefObject<{ attempted: boolean }>;
+}
+
+/**
+ * Componente individual de página com suporte a Lazy Loading nativo (IntersectionObserver).
+ * A página 1 carrega imediatamente; páginas subsequentes são renderizadas sob demanda conforme o scroll.
+ */
+function PdfPageItem({
+  pageNumber,
+  width,
+  onFirstPageRendered,
+  firstPageCaptureRef,
+}: PdfPageItemProps) {
+  // A primeira página sempre inicia visível para renderização instantânea
+  const [isVisible, setIsVisible] = useState(pageNumber === 1);
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pageNumber === 1) return;
+    const el = pageContainerRef.current;
+    if (!el) return;
+
+    // Observa quando a página se aproxima do viewport (com 300px de margem para antecipar o scroll)
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pageNumber]);
+
+  return (
+    <div
+      ref={pageContainerRef}
+      data-page={pageNumber}
+      className="mb-6 shadow-xl rounded-md overflow-hidden bg-white mx-auto transition-transform hover:shadow-2xl flex flex-col"
+      style={{ width: width ? `${width}px` : 'fit-content' }}
+    >
+      {isVisible ? (
+        <Page
+          pageNumber={pageNumber}
+          width={width}
+          renderTextLayer={true}
+          renderAnnotationLayer={true}
+          loading={
+            <div
+              className="flex flex-col justify-center items-center bg-white aspect-[1/1.414] w-full"
+              style={{ minHeight: width ? Math.round(width * 1.414) : 400 }}
+            >
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/40 mb-2" />
+              <span className="text-[11px] text-muted-foreground/60 uppercase tracking-wider">
+                Página {pageNumber}
+              </span>
+            </div>
+          }
+          onRenderSuccess={() => {
+            // Captura a primeira página como data URL para uso de capa
+            if (pageNumber === 1 && onFirstPageRendered && !firstPageCaptureRef.current.attempted) {
+              firstPageCaptureRef.current.attempted = true;
+              requestAnimationFrame(() => {
+                const canvas = pageContainerRef.current?.querySelector(
+                  'canvas.react-pdf__Page__canvas'
+                ) as HTMLCanvasElement | null;
+                if (!canvas) return;
+                try {
+                  const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                  onFirstPageRendered(dataUrl);
+                } catch {
+                  // Silent fallback em caso de restrição de canvas
+                }
+              });
+            }
+          }}
+        />
+      ) : (
+        /* Placeholder esqueleto enquanto a página não entra no viewport */
+        <div
+          className="flex flex-col justify-center items-center bg-white/70 aspect-[1/1.414] w-full"
+          style={{ minHeight: width ? Math.round(width * 1.414) : 400 }}
+        >
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/30 mb-2" />
+          <span className="text-[11px] text-muted-foreground/50 font-medium">
+            Página {pageNumber}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function NativePdfViewer({
+  url,
+  logoUrl,
+  backgroundClass = 'bg-[#F3F4F6]',
+  onFirstPageRendered,
+}: NativePdfViewerProps) {
   const [numPages, setNumPages] = useState<number>();
-  const [renderedUpToPage, setRenderedUpToPage] = useState<number>(1);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const firstPageCaptureRef = useRef<{ attempted: boolean }>({ attempted: false });
-  // Resize observer to ensure the PDF fits the container perfectly
+
+  // ResizeObserver para manter o layout proporcional
   useEffect(() => {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (entry.contentRect.width > 0) {
-          // Adjust width, minus a small padding if desired
           setContainerWidth(entry.contentRect.width);
         }
       }
@@ -44,11 +148,10 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
     return () => observer.disconnect();
   }, []);
 
-  // Limpa o erro sempre que a URL muda (substituição de PDF)
+  // Limpa o estado e erros sempre que a URL muda
   useEffect(() => {
     setLoadError(null);
     setNumPages(undefined);
-    setRenderedUpToPage(1);
     firstPageCaptureRef.current.attempted = false;
   }, [url]);
 
@@ -58,7 +161,6 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
   }
 
   function onDocumentLoadError(err: Error): void {
-    // Mantém uma mensagem útil para diagnóstico sem expor detalhes internos.
     const message = (err?.message || '').toLowerCase();
     let friendly = 'Não foi possível carregar o arquivo. Verifique sua conexão ou tente novamente.';
     if (message.includes('cors') || message.includes('cross-origin')) {
@@ -74,6 +176,13 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
     console.error('[NativePdfViewer] failed to load PDF', err);
   }
 
+  // Largura 50% menor no desktop para visualização compacta, confortável e elegante
+  const effectiveWidth = containerWidth
+    ? containerWidth > 640
+      ? Math.min(Math.round(containerWidth * 0.5), 540)
+      : Math.min(containerWidth - 32, 480)
+    : undefined;
+
   return (
     <div
       className={cn(
@@ -82,7 +191,7 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
       )}
       ref={containerRef}
     >
-      <div className="w-full max-w-4xl px-4 md:px-8 mx-auto flex flex-col gap-6 items-center">
+      <div className="w-full max-w-2xl px-4 mx-auto flex flex-col gap-6 items-center">
         <Document
           file={url}
           onLoadSuccess={onDocumentLoadSuccess}
@@ -98,7 +207,7 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
             </div>
           }
           error={
-            <div className="bg-destructive/10 text-destructive p-6 rounded-xl border border-destructive/20 text-center w-full max-w-2xl">
+            <div className="bg-destructive/10 text-destructive p-6 rounded-xl border border-destructive/20 text-center w-full max-w-lg">
               <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-80" />
               <p className="font-semibold mb-2">Erro ao carregar o PDF</p>
               <p className="text-sm opacity-90">{loadError ?? 'Não foi possível carregar o arquivo. O arquivo pode estar corrompido ou o link expirou.'}</p>
@@ -106,6 +215,7 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
                 href={url}
                 target="_blank"
                 rel="noreferrer"
+                download
                 className="mt-4 inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors"
               >
                 <Download className="h-4 w-4" />
@@ -114,61 +224,16 @@ export function NativePdfViewer({ url, logoUrl, backgroundClass = 'bg-[#F3F4F6]'
             </div>
           }
         >
-          {numPages && Array.from(new Array(numPages), (el, index) => (
-            <div
-              key={`page_${index + 1}`}
-              data-page={index + 1}
-              className="mb-6 shadow-xl rounded-md overflow-hidden bg-white mx-auto transition-transform hover:shadow-2xl flex flex-col"
-              style={{ width: 'fit-content' }}
-            >
-              {index + 1 <= renderedUpToPage ? (
-                <Page
-                  pageNumber={index + 1}
-                  width={containerWidth ? Math.min(containerWidth - 32, 1024) : undefined}
-                  renderTextLayer={true}
-                  renderAnnotationLayer={true}
-                  onRenderSuccess={(page) => {
-                    if (index + 1 === renderedUpToPage && index + 1 < numPages) {
-                      setRenderedUpToPage(prev => prev + 1);
-                    }
-                    // Captura a primeira página como data URL para uso de capa.
-                    // O `Page` do react-pdf não expõe o canvas na page callback;
-                    // capturamos pelo DOM que acabou de ser renderizado.
-                    if (
-                      onFirstPageRendered &&
-                      index === 0 &&
-                      !firstPageCaptureRef.current.attempted
-                    ) {
-                      firstPageCaptureRef.current.attempted = true;
-                      // Aguarda o próximo frame para garantir que o canvas já está visível
-                      requestAnimationFrame(() => {
-                        const root = containerRef.current?.querySelector(
-                          '[data-page="1"] canvas.react-pdf__Page__canvas'
-                        ) as HTMLCanvasElement | null;
-                        if (!root) return;
-                        try {
-                          const dataUrl = root.toDataURL('image/jpeg', 0.7);
-                          onFirstPageRendered(dataUrl);
-                        } catch {
-                          // Canvas tainted (cross-origin) ou outro motivo: silencioso.
-                          // A capa fica com o placeholder já existente.
-                        }
-                      });
-                    }
-                  }}
-                  loading={
-                    <div className="flex justify-center items-center min-h-[400px] bg-white w-full max-w-3xl aspect-[1/1.414]">
-                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" />
-                    </div>
-                  }
-                />
-              ) : (
-                <div className="flex justify-center items-center min-h-[400px] bg-white w-full max-w-3xl aspect-[1/1.414]">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/30" />
-                </div>
-              )}
-            </div>
-          ))}
+          {numPages &&
+            Array.from(new Array(numPages), (_, index) => (
+              <PdfPageItem
+                key={`page_${index + 1}`}
+                pageNumber={index + 1}
+                width={effectiveWidth}
+                onFirstPageRendered={onFirstPageRendered}
+                firstPageCaptureRef={firstPageCaptureRef}
+              />
+            ))}
         </Document>
       </div>
     </div>
