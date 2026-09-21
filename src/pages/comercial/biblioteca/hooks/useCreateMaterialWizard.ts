@@ -11,6 +11,7 @@ import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { toast } from 'sonner';
 import { Step, Categoria, DbTemplate, AiRef } from '../types';
+import { pdfjs } from 'react-pdf';
 
 interface UseCreateMaterialWizardProps {
   isOpen: boolean;
@@ -101,7 +102,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
     setIsUploadingRef(true);
     try {
       const result = await gestaoR2Upload({ file: f, context: 'proposals-pdf' });
-      const url = result.url || `https://documents.lunarihub.com/${result.storagePath}`;
+      const url = result.url || `https://media.lunarihub.com/${result.storagePath}`;
       setAiRefs((prev) => [
         ...prev,
         { id: crypto.randomUUID(), name: f.name, kind: 'pdf', url, mime: 'application/pdf' },
@@ -251,10 +252,36 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
       );
       return;
     } else if (creationMethod === 'pdf' && selectedPdf) {
+      let initialCoverUrl: string | undefined = undefined;
       try {
         setIsUploadingPdf(true);
+
+        // 1. Extração instantânea da capa (primeira página) no próprio navegador
+        try {
+          const arrayBuffer = await selectedPdf.arrayBuffer();
+          const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+          const page = await pdfDoc.getPage(1);
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const coverBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            if (coverBlob) {
+              const coverFile = new File([coverBlob], `${Date.now()}-cover.jpg`, { type: 'image/jpeg' });
+              const coverRes = await gestaoR2Upload({ file: coverFile, context: 'general' });
+              initialCoverUrl = coverRes.url || `https://media.lunarihub.com/${coverRes.storagePath}`;
+            }
+          }
+        } catch (coverErr) {
+          console.warn('[useCreateMaterialWizard] Falha ao extrair capa do PDF:', coverErr);
+        }
+
+        // 2. Upload do arquivo PDF para o R2 (lunari-previews / media.lunarihub.com)
         const result = await gestaoR2Upload({ file: selectedPdf, context: 'proposals-pdf' });
-        const pdfUrl = result.url || `https://documents.lunarihub.com/${result.storagePath}`;
+        const pdfUrl = result.url || `https://media.lunarihub.com/${result.storagePath}`;
         initialContent = { type: 'pdf', url: pdfUrl };
       } catch (err) {
         console.error(err);
@@ -264,6 +291,22 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
       } finally {
         setIsUploadingPdf(false);
       }
+
+      createMaterial.mutate(
+        {
+          title: resolvedTitle,
+          categoria_id: selectedCategoria?.id,
+          initialContent,
+          cover_image_url: initialCoverUrl,
+        },
+        {
+          onSuccess: (data) => {
+            handleCloseModal();
+            navigate(`/app/comercial/construtor/${data.id}`);
+          },
+        }
+      );
+      return;
     }
 
     createMaterial.mutate(

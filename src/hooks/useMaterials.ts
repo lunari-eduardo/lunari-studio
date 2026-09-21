@@ -82,7 +82,7 @@ export function useMaterials() {
   });
 
   const createMaterial = useMutation({
-    mutationFn: async ({ title, categoria_id, initialContent, template_id }: { title: string; categoria_id?: string, initialContent?: any[], template_id?: string }) => {
+    mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
@@ -93,6 +93,7 @@ export function useMaterials() {
           user_id: user.id,
           title,
           categoria_id: categoria_id || null,
+          cover_image_url: cover_image_url || null,
         })
         .select()
         .single();

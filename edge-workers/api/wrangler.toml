@@ -5,7 +5,7 @@ compatibility_date = "2024-04-05"
 [vars]
 VITE_SITE_URL = "https://app.lunarihub.com"
 R2_CDN_BASE = "https://media.lunarihub.com"
-R2_COMMERCIAL_CDN_BASE = "https://documents.lunarihub.com"
+R2_COMMERCIAL_CDN_BASE = "https://media.lunarihub.com"
 R2_CONVERSAS_CDN_BASE = "https://conversas.lunarihub.com"
 ANALYTICS_SALT = "lunari-salt"
 EVOLUTION_API_URL = "https://wpp.lunarihub.com"

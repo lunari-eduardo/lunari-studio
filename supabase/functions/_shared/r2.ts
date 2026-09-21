@@ -10,7 +10,7 @@ export const R2_PUBLIC_BUCKET = "lunari-previews";
 export const R2_PRIVATE_BUCKET = "lunari-private";
 export const R2_BUCKET = R2_PUBLIC_BUCKET; // compat
 export const R2_CDN_BASE = "https://media.lunarihub.com";
-export const R2_COMMERCIAL_CDN_BASE = "https://documents.lunarihub.com"; // Assumindo este domínio para o bucket comercial
+export const R2_COMMERCIAL_CDN_BASE = "https://media.lunarihub.com"; // Unificado com media.lunarihub.com
 
 export interface R2Creds {
   accountId: string;

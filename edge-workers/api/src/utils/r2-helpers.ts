@@ -24,7 +24,8 @@ export function getBucketBinding(env: Bindings, storagePath: string): { bucket: 
   }
 
   if (storagePath.startsWith("propostas/")) {
-    return { bucket: env.LUNARI_COMMERCIAL_DOCUMENTS, bucketName: R2_COMMERCIAL_BUCKET };
+    // Propostas comerciais públicas utilizam o CDN unificado media.lunarihub.com
+    return { bucket: env.LUNARI_PREVIEWS, bucketName: R2_PUBLIC_BUCKET };
   }
 
   if (storagePath.startsWith("gallery/") || storagePath.startsWith("galerias/")) {
