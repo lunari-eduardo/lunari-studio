@@ -32,6 +32,7 @@ export function WorkflowCard({
   // e o botão "Gerenciar" do bloco Produtos do expandido abram a MESMA
   // instância hospedada em `CardCollapsedModals`.
   const [modalAberto, setModalAberto] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   return (
     <div
@@ -69,6 +70,8 @@ export function WorkflowCard({
         onDeleteSession={onDeleteSession}
         modalAberto={modalAberto}
         setModalAberto={setModalAberto}
+        deleteModalOpen={deleteModalOpen}
+        setDeleteModalOpen={setDeleteModalOpen}
       />
 
       {isExpanded && (
@@ -84,6 +87,7 @@ export function WorkflowCard({
           onFieldUpdate={onFieldUpdate}
           onStatusChange={onStatusChange}
           onOpenProdutos={() => setModalAberto(true)}
+          onCancelSession={() => setDeleteModalOpen(true)}
         />
       )}
     </div>

@@ -7,6 +7,7 @@ interface Props {
   pendente: number;
   formatCurrency: (v: any) => string;
   creditSlot?: React.ReactNode;
+  actionsSlot?: React.ReactNode;
 }
 
 /**
@@ -19,6 +20,7 @@ export function ExpandedFinancialFooter({
   pendente,
   formatCurrency,
   creditSlot,
+  actionsSlot,
 }: Props) {
   const isPendentePositivo = pendente > 0.001;
 
@@ -78,9 +80,10 @@ export function ExpandedFinancialFooter({
           </div>
         </div>
 
-        {creditSlot && (
-          <div className="shrink-0">
+        {(creditSlot || actionsSlot) && (
+          <div className="flex items-center gap-4 shrink-0">
             {creditSlot}
+            {actionsSlot}
           </div>
         )}
       </div>

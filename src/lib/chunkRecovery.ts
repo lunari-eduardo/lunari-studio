@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Utilitário centralizado para detecção e auto-recuperação de ChunkLoadError pós-deploy.
  * Garante que a aplicação se recupere de forma limpa quando arquivos JS antigos
  * deixam de existir no servidor, sem deslogar o fotógrafo.
@@ -20,7 +20,9 @@ export function isChunkLoadError(error: unknown): boolean {
     msg.includes('unable to preload') ||
     msg.includes("unexpected token '<'") ||
     msg.includes('mime type') ||
-    msg.includes('network error when attempting to fetch resource')
+    msg.includes('network error when attempting to fetch resource') ||
+    msg.includes("reading 'default'") ||
+    msg.includes("cannot read properties of undefined")
   );
 }
 

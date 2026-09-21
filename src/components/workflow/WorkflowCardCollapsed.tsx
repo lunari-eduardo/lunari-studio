@@ -39,6 +39,8 @@ interface WorkflowCardCollapsedProps {
   /** Estado de "Gerenciar Produtos" hoisted em WorkflowCard, compartilhado com o expandido. */
   modalAberto: boolean;
   setModalAberto: (v: boolean) => void;
+  deleteModalOpen: boolean;
+  setDeleteModalOpen: (v: boolean) => void;
 }
 
 export function WorkflowCardCollapsed({
@@ -53,6 +55,8 @@ export function WorkflowCardCollapsed({
   onDeleteSession,
   modalAberto,
   setModalAberto,
+  deleteModalOpen,
+  setDeleteModalOpen,
 }: WorkflowCardCollapsedProps) {
   const { addPayment, pacotes } = useAppContext();
   const { hasGaleryAccess, accessState } = useMonthAccessControl();
@@ -61,7 +65,6 @@ export function WorkflowCardCollapsed({
   
   const [workflowPaymentsOpen, setWorkflowPaymentsOpen] = useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState(session.descricao || "");
 
   useEffect(() => {

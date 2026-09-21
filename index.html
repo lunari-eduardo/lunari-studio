@@ -88,6 +88,26 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Fallback global para falha de carregamento do chunk principal (ex: PWA cache obsoleto)
+      window.addEventListener('error', function(e) {
+        if (e.target && e.target.nodeName === 'SCRIPT' && (e.target.type === 'module' || e.target.src)) {
+          if (!sessionStorage.getItem('reload_pwa_fail')) {
+            sessionStorage.setItem('reload_pwa_fail', '1');
+            console.warn('Script failed to load, cleaning Service Workers and reloading...');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+              }).then(function() {
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
+            }
+          }
+        }
+      }, true);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -10,7 +10,7 @@ import { CombinedChargeModal } from "@/components/cobranca/CombinedChargeModal";
 import { ManualPaymentModal } from "./ManualPaymentModal";
 
 import { useGalleryExtraCalc } from "@/hooks/useGalleryExtraCalc";
-import { Lock, Camera, Plus, Package, Zap, Calculator } from "lucide-react";
+import { Lock, Camera, Plus, Package, Zap, Calculator, Ban } from "lucide-react";
 import type { SessionData } from "@/types/workflow";
 import { useAppContext } from "@/contexts/AppContext";
 import { ExpandedFinancialFooter } from "./details/ExpandedFinancialFooter";
@@ -34,12 +34,14 @@ interface WorkflowCardExpandedProps {
   onStatusChange?: (id: string, newStatus: string) => void;
   /** Abre o modal "Gerenciar Produtos" (instância única no CardCollapsedModals). */
   onOpenProdutos?: () => void;
+  onCancelSession?: () => void;
 }
 
 export function WorkflowCardExpanded({
   session,
   onFieldUpdate,
   onOpenProdutos,
+  onCancelSession,
 }: WorkflowCardExpandedProps) {
   const { addPayment: addPaymentContext } = useAppContext();
   const [workflowPaymentsOpen, setWorkflowPaymentsOpen] = useState(false);
@@ -573,6 +575,16 @@ export function WorkflowCardExpanded({
               sessionPendente={pendenteVisual}
             />
           ) : null
+        }
+        actionsSlot={
+          <button
+            onClick={onCancelSession}
+            className="flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors border border-transparent hover:border-destructive/20"
+            title="Cancelar sessão"
+          >
+            <Ban className="h-4 w-4" />
+            Cancelar
+          </button>
         }
       />
 
