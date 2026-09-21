@@ -40,7 +40,7 @@ export interface EditorSidebarProps {
   materialTitle?: string;
 }
 
-// Item sortable extraído para o dnd-kit
+// Item sortable extraído para o dnd-kit (Índice visual numerado)
 function SortableSidebarItem({ block, index, isActive, onSelect }: { block: BlockData, index: number, isActive: boolean, onSelect: () => void }) {
   const {
     attributes,
@@ -49,7 +49,7 @@ function SortableSidebarItem({ block, index, isActive, onSelect }: { block: Bloc
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: block.id || `${block.type}-${index}` }); // IMPORTANTE: blocos agora precisam de ID único. O hook já gera `id`.
+  } = useSortable({ id: block.id || `${block.type}-${index}` });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -59,39 +59,55 @@ function SortableSidebarItem({ block, index, isActive, onSelect }: { block: Bloc
   };
 
   const Icon = getBlockDef(block.type)?.icon ?? DEFAULT_BLOCK_ICON;
+  const displayNumber = String(index + 1).padStart(2, '0');
+  const sectionTitle = block.content?.title || block.content?.cta_text || block.content?.eyebrow || block.data?.title || getBlockName(block.type);
 
   return (
     <div 
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all bg-background",
+        "group relative flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-all text-left",
         isActive 
-          ? "border-primary/20 bg-primary/5 shadow-sm ring-1 ring-primary/20" 
-          : "border-transparent hover:bg-muted/50"
+          ? "border-primary/40 bg-primary/10 shadow-xs ring-1 ring-primary/30" 
+          : "border-transparent bg-background/50 hover:bg-muted/60 hover:border-border/60"
       )}
       onClick={onSelect}
     >
-      <div className="mt-0.5 shrink-0">
-        <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
+      {/* Numeração de índice (01, 02, etc.) */}
+      <span className={cn(
+        "text-xs font-mono font-semibold tracking-wider shrink-0 w-5",
+        isActive ? "text-primary" : "text-muted-foreground/60"
+      )}>
+        {displayNumber}
+      </span>
+
+      {/* Ícone sutil do tipo de bloco */}
+      <div className="shrink-0">
+        <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground/70")} />
       </div>
       
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <span className={cn("text-sm font-semibold leading-tight", isActive ? "text-foreground" : "text-foreground/80")}>
-          {block.content?.title || block.content?.cta_text || block.content?.eyebrow || block.data?.title || getBlockName(block.type)}
+      {/* Título e descrição */}
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0 pr-4">
+        <span className={cn(
+          "text-xs font-semibold leading-tight truncate", 
+          isActive ? "text-primary" : "text-foreground"
+        )}>
+          {sectionTitle}
         </span>
-        <span className="text-[11px] text-muted-foreground truncate mt-0.5">
-          {getBlockDef(block.type)?.description ?? ''}
+        <span className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+          {getBlockDef(block.type)?.description ?? getBlockName(block.type)}
         </span>
       </div>
       
       {/* Botão de Grip para Drag and Drop */}
       <div 
-        className="absolute right-2 top-2 flex flex-col opacity-0 transition-opacity group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 hover:bg-muted/80 rounded"
+        title="Arrastar para reordenar"
         {...attributes} 
         {...listeners}
       >
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
+        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
       </div>
     </div>
   );

@@ -53,9 +53,9 @@ export function VisualRenderer({
     <div className="w-full h-full p-4 md:p-8 flex items-start justify-center transition-all duration-300">
       <div
         className={cn(
-          '@container bg-white shadow-2xl overflow-y-auto overflow-x-hidden relative transition-all duration-500 origin-top flex flex-col w-full',
+          '@container bg-white shadow-2xl overflow-hidden relative transition-all duration-500 origin-top flex flex-col w-full',
           viewMode === 'desktop'
-            ? 'max-w-5xl rounded-sm min-h-full'
+            ? 'max-w-5xl rounded-sm'
             : 'max-w-[375px] h-[812px] rounded-[3rem] border-[12px] border-zinc-900'
         )}
         style={tokensToCssVars(designTokens)}
@@ -107,12 +107,22 @@ export function VisualRenderer({
 
           if (!isEditing) {
             // Modo público/preview: sem chrome de edição, conteúdo interativo (CTAs funcionam)
-            return <div key={block.id || `block-${index}`}>{content}</div>;
+            return (
+              <div 
+                key={block.id || `block-${index}`}
+                id={`section-block-${index}`}
+                data-section-index={index}
+              >
+                {content}
+              </div>
+            );
           }
 
           return (
             <div
               key={block.id || `block-${index}`}
+              id={`section-block-${index}`}
+              data-section-index={index}
               onClick={() => onSelectBlock(index)}
               className={cn(
                 'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px]',

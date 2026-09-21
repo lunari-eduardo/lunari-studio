@@ -19,6 +19,7 @@ export default function Layout() {
 
   // Bottom nav is shown on mobile and tablet-portrait
   const hasBottomNav = isMobile || responsiveMode === 'tablet-portrait';
+  const isEditor = location.pathname.startsWith('/app/comercial/construtor');
 
   return <div className="flex bg-background" style={{ height: '100dvh' }}>
       <Sidebar />
@@ -31,12 +32,15 @@ export default function Layout() {
 
         <main
           className={cn(
-            "flex-1 overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0 relative z-10",
+            "flex-1 relative z-10",
+            isEditor
+              ? "flex flex-col min-h-0 overflow-hidden p-0 m-0"
+              : "overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0",
             hasBottomNav && "pb-14"
           )}
           style={hasBottomNav ? { paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' } : undefined}
         >
-          <div className="animate-lunar">
+          <div className={cn("animate-lunar", isEditor && "flex-1 min-h-0 flex flex-col h-full")}>
             <Outlet />
           </div>
         </main>

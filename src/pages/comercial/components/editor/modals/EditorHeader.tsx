@@ -22,6 +22,8 @@ import {
   LayoutTemplate,
   MessageCircle,
   Share2,
+  ExternalLink,
+  Upload,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -60,6 +62,8 @@ interface EditorHeaderProps {
   hasActiveBlock: boolean;
   onShare?: () => void;
   onViewShares?: () => void;
+  onUploadPdf?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isUploadingPdf?: boolean;
 }
 
 export function EditorHeader({
@@ -88,11 +92,13 @@ export function EditorHeader({
   hasActiveBlock,
   onShare,
   onViewShares,
+  onUploadPdf,
+  isUploadingPdf,
 }: EditorHeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <header className="relative flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
       {/* Esquerda: Navegação e Status */}
       <div className="flex items-center gap-4">
         <Button
@@ -165,81 +171,102 @@ export function EditorHeader({
           </div>
 
           {viewMode === 'desktop' && (
-            <div className="hidden md:flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
-                disabled={zoom <= 0.5}
-                onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.25).toFixed(2)))}
-                title="Reduzir zoom"
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span className="text-[11px] font-medium text-muted-foreground w-10 text-center select-none">
+            <div className="hidden md:flex items-center bg-muted/40 rounded-lg px-2.5 py-1 border border-border/60">
+              <span className="text-[11px] font-medium text-muted-foreground select-none" title="Escala automática proporcional">
                 {Math.round(zoom * 100)}%
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 rounded-md text-muted-foreground hover:text-foreground"
-                disabled={zoom >= 1}
-                onClick={() => setZoom((z) => Math.min(1, +(z + 0.25).toFixed(2)))}
-                title="Ampliar zoom"
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Esquerda (mobile/tablet): botões dos painéis em drawer */}
-      <div className="flex lg:hidden items-center gap-1">
-        <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileStructure}>
-          <Layers className="h-4 w-4" />
-          Estrutura
-        </Button>
-        {hasActiveBlock && (
-          <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileProperties}>
-            <PanelRight className="h-4 w-4" />
-            Editar
+      {/* Esquerda (mobile/tablet): botões dos painéis em drawer (apenas para blocos) */}
+      {state.format === 'blocks' && (
+        <div className="flex lg:hidden items-center gap-1">
+          <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileStructure}>
+            <Layers className="h-4 w-4" />
+            Estrutura
           </Button>
-        )}
-      </div>
+          {hasActiveBlock && (
+            <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileProperties}>
+              <PanelRight className="h-4 w-4" />
+              Editar
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Direita: Ações */}
       <div className="flex items-center gap-2">
-        {state.format === 'blocks' && (
-          <div className="hidden sm:flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onUndo}
-              disabled={!canUndo}
-              title="Desfazer (Ctrl+Z)"
-            >
-              <Undo2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={onRedo}
-              disabled={!canRedo}
-              title="Refazer (Ctrl+Shift+Z)"
-            >
-              <Redo2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        {state.format === 'blocks' ? (
+          <>
+            <div className="hidden sm:flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onUndo}
+                disabled={!canUndo}
+                title="Desfazer (Ctrl+Z)"
+              >
+                <Undo2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={onRedo}
+                disabled={!canRedo}
+                title="Refazer (Ctrl+Shift+Z)"
+              >
+                <Redo2 className="h-4 w-4" />
+              </Button>
+            </div>
 
-        {state.format === 'blocks' && (
-          <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
-            <span className="hidden sm:inline">Pré-visualizar</span>
-            <Maximize className="h-3.5 w-3.5" />
-          </Button>
+            <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
+              <span className="hidden sm:inline">Pré-visualizar</span>
+              <Maximize className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        ) : (
+          <>
+            {state.pdfUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => window.open(state.pdfUrl, '_blank')}
+                title="Abrir PDF em nova aba"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Abrir em nova aba</span>
+              </Button>
+            )}
+
+            {onUploadPdf && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="relative gap-2"
+                disabled={isUploadingPdf}
+                title="Substituir arquivo PDF"
+              >
+                {isUploadingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+                <span className="hidden sm:inline">Substituir Arquivo</span>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  onChange={onUploadPdf}
+                  disabled={isUploadingPdf}
+                />
+              </Button>
+            )}
+          </>
         )}
 
         {hasChanges ? (

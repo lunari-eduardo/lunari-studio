@@ -231,7 +231,135 @@ export default function EditorMaterialPage() {
   const activeBlock = editorState.blocks[activeIndex];
   const designTokens = editorState.globalSettings?.design_tokens;
 
-  const handleSelectBlock = (index: number) => setActiveIndex(index);
+  // Referências para scroll do canvas, auto-escala e guards de interação
+  const canvasScrollRef = useRef<HTMLDivElement>(null);
+  const isInteractingWithInspectorRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
+
+  // ResizeObserver para medir dinamicamente o espaço do canvas entre as colunas
+  useEffect(() => {
+    const el = canvasScrollRef.current;
+    if (!el) return;
+
+    const updateDimensions = () => {
+      if (el) {
+        setCanvasDimensions({ width: el.clientWidth, height: el.clientHeight });
+      }
+    };
+
+    updateDimensions();
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setCanvasDimensions({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          });
+        }
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [editorState?.format]);
+
+  // Escala automática proporcional para visualização confortável em desktop
+  const autoScale = React.useMemo(() => {
+    if (viewMode !== 'desktop') return 1;
+    const { width, height } = canvasDimensions;
+    if (!width || !height) return 1;
+
+    // Dimensões nominais de referência da proposta
+    const DOC_NOMINAL_WIDTH = 1024;
+    const PAGE_TARGET_HEIGHT = 820;
+
+    // Padding de respiro confortável ao redor da página
+    const PADDING_X = 64;
+    const PADDING_Y = 48;
+
+    const availableW = Math.max(320, width - PADDING_X);
+    const availableH = Math.max(320, height - PADDING_Y);
+
+    const scaleW = availableW / DOC_NOMINAL_WIDTH;
+    const scaleH = availableH / PAGE_TARGET_HEIGHT;
+
+    // Escala ideal ajustada entre 0.55 e 1.0
+    const idealScale = Math.min(scaleW, scaleH);
+    return Number(Math.min(1.0, Math.max(0.55, idealScale)).toFixed(2));
+  }, [viewMode, canvasDimensions]);
+
+  // Seleção de bloco com scroll suave até a seção
+  const handleSelectBlock = useCallback((index: number) => {
+    setActiveIndex(index);
+    isProgrammaticScrollRef.current = true;
+
+    const el = document.getElementById(`section-block-${index}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 600);
+  }, []);
+
+  // Scroll Spy: Detecta qual seção está predominantemente visível no canvas
+  const handleCanvasScroll = useCallback(() => {
+    if (isInteractingWithInspectorRef.current || isProgrammaticScrollRef.current) return;
+    const container = canvasScrollRef.current;
+    if (!container || !editorState?.blocks?.length) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const focalPoint = containerRect.top + containerRect.height * 0.35;
+
+    let bestIndex = -1;
+    let maxVisibleArea = -1;
+
+    editorState.blocks.forEach((_, index) => {
+      const el = document.getElementById(`section-block-${index}`);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+
+      // Bloco que cruza a linha focal da viewport
+      if (rect.top <= focalPoint && rect.bottom >= focalPoint) {
+        bestIndex = index;
+      }
+
+      // Área visível como critério de desempate
+      const visibleTop = Math.max(containerRect.top, rect.top);
+      const visibleBottom = Math.min(containerRect.bottom, rect.bottom);
+      const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+
+      if (visibleHeight > maxVisibleArea) {
+        maxVisibleArea = visibleHeight;
+        if (bestIndex === -1) bestIndex = index;
+      }
+    });
+
+    if (bestIndex !== -1 && bestIndex !== activeIndex) {
+      setActiveIndex(bestIndex);
+    }
+  }, [editorState?.blocks, activeIndex]);
+
+  useEffect(() => {
+    const container = canvasScrollRef.current;
+    if (!container) return;
+
+    let rafId: number;
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(handleCanvasScroll);
+    };
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, [handleCanvasScroll]);
+
   const handleAddBlock = (type: string) => {
     editor.addBlock(type);
     setActiveIndex(editorState.blocks.length);
@@ -265,6 +393,12 @@ export default function EditorMaterialPage() {
         editor.removeBlock(index);
         setActiveIndex((prev) => (prev > index ? prev - 1 : Math.min(prev, Math.max(0, nextCount - 1))));
       }}
+      onInteractionStart={() => {
+        isInteractingWithInspectorRef.current = true;
+      }}
+      onInteractionEnd={() => {
+        isInteractingWithInspectorRef.current = false;
+      }}
     />
   ) : (
     <div className="flex-1 flex items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -274,7 +408,7 @@ export default function EditorMaterialPage() {
 
   return (
     <>
-      <div className="flex h-screen w-full flex-col bg-muted/30 overflow-hidden">
+      <div className="flex h-full min-h-0 flex-1 w-full flex-col bg-muted/30 overflow-hidden">
         {/* TOPBAR */}
         <EditorHeader
           state={editorState}
@@ -282,7 +416,7 @@ export default function EditorMaterialPage() {
           saveStatus={editorSaveStatus}
           viewMode={viewMode}
           setViewMode={setViewMode}
-          zoom={zoom}
+          zoom={autoScale}
           setZoom={setZoom}
           canUndo={editor.canUndo}
           canRedo={editor.canRedo}
@@ -312,6 +446,8 @@ export default function EditorMaterialPage() {
           hasActiveBlock={!!activeBlock}
           onShare={() => setIsSendModalOpen(true)}
           onViewShares={() => navigate(`/app/comercial/compartilhamentos?material=${encodeURIComponent(editorState.title)}`)}
+          onUploadPdf={handlePdfUpload}
+          isUploadingPdf={isUploadingPdf}
         />
 
         {/* WORKSPACE */}
@@ -324,14 +460,26 @@ export default function EditorMaterialPage() {
               </div>
 
               {/* COLUNA CENTRAL: RENDERIZADOR VISUAL */}
-              <div className="flex-1 overflow-y-auto bg-muted/30 relative flex justify-center custom-scrollbar">
+              <div 
+                ref={canvasScrollRef}
+                className="flex-1 overflow-y-auto bg-muted/30 relative flex justify-center custom-scrollbar p-4 md:p-8"
+                onPointerEnter={() => {
+                  isInteractingWithInspectorRef.current = false;
+                }}
+                onWheel={() => {
+                  isInteractingWithInspectorRef.current = false;
+                }}
+              >
                 {inlineEditing && (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/90 border border-border shadow-sm text-[11px] text-muted-foreground pointer-events-none">
                     <MousePointerClick className="h-3 w-3" />
                     Clique para selecionar · Duplo clique para editar o texto
                   </div>
                 )}
-                <div className="w-full h-full" style={viewMode === 'desktop' && zoom !== 1 ? { zoom } : undefined}>
+                <div 
+                  className="w-full flex justify-center origin-top transition-transform duration-200" 
+                  style={viewMode === 'desktop' ? { zoom: autoScale } : undefined}
+                >
                   <VisualRenderer
                     blocks={editorState.blocks}
                     activeIndex={activeIndex}
@@ -378,27 +526,6 @@ export default function EditorMaterialPage() {
                   </div>
                 </div>
               )}
-
-              <div className="shrink-0 border-t bg-background p-3 flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => editorState.pdfUrl && window.open(editorState.pdfUrl, '_blank')}
-                  disabled={!editorState.pdfUrl}
-                >
-                  Abrir em nova aba
-                </Button>
-                <Button className="relative" disabled={isUploadingPdf}>
-                  {isUploadingPdf ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Substituir Arquivo
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={handlePdfUpload}
-                    disabled={isUploadingPdf}
-                  />
-                </Button>
-              </div>
             </div>
           )}
         </main>

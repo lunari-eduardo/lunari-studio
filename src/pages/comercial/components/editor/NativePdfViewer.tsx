@@ -186,7 +186,7 @@ export function NativePdfViewer({
   return (
     <div
       className={cn(
-        'w-full h-full min-h-screen flex flex-col items-center pt-8 pb-32',
+        'w-full min-h-full flex flex-col items-center py-8',
         backgroundClass
       )}
       ref={containerRef}
