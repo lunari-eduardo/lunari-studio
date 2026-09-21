@@ -118,10 +118,35 @@ export default function EditorMaterialPage() {
     if (coverSyncAttemptedRef.current === id) return;
     if (editorState.format !== 'blocks') return;
     if (editorState.coverImageUrl) return;
-    const cover = editorState.blocks.find((b) => b?.type === 'CoverBlock') as
-      | { content?: { image_url?: string } }
-      | undefined;
-    const coverImageUrl = cover?.content?.image_url;
+    
+    // Procura a primeira imagem disponível nos blocos para usar como capa
+    let coverImageUrl = '';
+    
+    for (const b of editorState.blocks) {
+      if (!b) continue;
+      // 1. Tenta pegar do CoverBlock
+      if (b.type === 'CoverBlock' && b.content?.image_url) {
+        coverImageUrl = b.content.image_url;
+        break;
+      }
+      // 2. Tenta pegar de qualquer outro bloco que tenha image_url no content
+      if (b.content?.image_url) {
+        coverImageUrl = b.content.image_url;
+        break;
+      }
+      // 3. Tenta pegar do EditorialBlock (photo_a ou photo_b)
+      if (b.type === 'EditorialBlock' && b.props) {
+        if (b.props.photo_a?.image_ref?.url) {
+          coverImageUrl = b.props.photo_a.image_ref.url;
+          break;
+        }
+        if (b.props.photo_b?.image_ref?.url) {
+          coverImageUrl = b.props.photo_b.image_ref.url;
+          break;
+        }
+      }
+    }
+
     if (!coverImageUrl) return;
     coverSyncAttemptedRef.current = id;
     updateCover.mutate({ id, coverImageUrl });

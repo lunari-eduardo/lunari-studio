@@ -5,14 +5,11 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+
 // Configura o worker do pdf.js a partir do bundle já instalado em node_modules.
-// Evita a dependência do unpkg em runtime (que pode estar bloqueada em
-// produção por CSP ou indisponibilidade de rede) e usa exatamente a mesma
-// versão do `pdfjs-dist` empacotada no build Vite.
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// Usa ?url do Vite para garantir a correta resolução do caminho.
+pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 interface NativePdfViewerProps {
   url: string;
