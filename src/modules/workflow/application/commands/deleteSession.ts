@@ -20,18 +20,18 @@ import { workflowRpc } from "@/features/workflow/data";
 
 const Input = z.object({
   sessionId: z.string().uuid(),
-  action: z.enum(["preserve", "refund", "remove"]),
+  action: z.enum(["preserve", "refund", "remove", "cancel_credit", "cancel_refund", "cancel_preserve"]),
 });
 
 const Output = z.object({
   sessionId: z.string(),
-  action: z.enum(["preserve", "refund", "remove"]),
-  deletedTransactions: z.number().int().nonnegative(),
-  unlinkedCobrancas: z.number().int().nonnegative(),
-  deletedSession: z.number().int().nonnegative(),
-  deletedAppointment: z.number().int().nonnegative(),
-  estornosCriados: z.number().int().nonnegative(),
-  softDeleted: z.boolean(),
+  action: z.enum(["preserve", "refund", "remove", "cancel_credit", "cancel_refund", "cancel_preserve"]),
+  deletedTransactions: z.number().int().nonnegative().optional(),
+  unlinkedCobrancas: z.number().int().nonnegative().optional(),
+  deletedSession: z.number().int().nonnegative().optional(),
+  deletedAppointment: z.number().int().nonnegative().optional(),
+  estornosCriados: z.number().int().nonnegative().optional(),
+  softDeleted: z.boolean().optional(),
 });
 
 export const deleteSession = defineCommand({
@@ -94,7 +94,8 @@ export const deleteSession = defineCommand({
     }
 
     const deletedSession = result.deleted_session ?? 0;
-    if (action !== "preserve" && deletedSession === 0) {
+    const isCancel = action.startsWith("cancel_");
+    if (action !== "preserve" && !isCancel && deletedSession === 0) {
       return err(
         domainError("CONFLICT", "Nada foi excluído. A sessão pode já ter sido removida."),
       );

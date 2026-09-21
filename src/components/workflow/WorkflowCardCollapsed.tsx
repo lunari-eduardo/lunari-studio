@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { WorkflowPackageCombobox } from "./WorkflowPackageCombobox";
 import { ColoredStatusBadge } from "./ColoredStatusBadge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, ChevronDown, ChevronUp, Package, Trash2 } from "lucide-react";
+import { MessageCircle, ChevronDown, ChevronUp, Package, Ban } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatToDayMonth } from "@/utils/dateUtils";
 import { buildGalleryNewUrl, buildGalleryDeliverUrl } from "@/utils/galleryRedirect";
@@ -406,14 +406,14 @@ export function WorkflowCardCollapsed({
               </div>
             </div>
 
-            {/* 11: Excluir */}
+            {/* 11: Cancelar */}
             <div className="flex items-center justify-center min-h-8" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setDeleteModalOpen(true)}
                 className="h-7 w-7 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-destructive/10 transition-all"
-                title="Excluir sessão"
+                title="Cancelar sessão"
               >
-                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                <Ban className="h-3.5 w-3.5 text-destructive" />
               </button>
             </div>
           </div>

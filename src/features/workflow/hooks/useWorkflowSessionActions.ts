@@ -473,7 +473,7 @@ export function useWorkflowSessionActions({
       _paymentCount: number,
       action?: string,
     ) => {
-      const deleteAction = (action || "remove") as "preserve" | "refund" | "remove";
+      const deleteAction = (action || "remove") as any;
 
       const previousSessions = workflowSessions;
       setWorkflowSessions((prev) => prev.filter((s) => s.id !== sessionId));
@@ -498,7 +498,7 @@ export function useWorkflowSessionActions({
           return;
         }
         toast({
-          title: "Erro ao excluir",
+          title: "Erro ao excluir/cancelar",
           description: message || "Não foi possível excluir a sessão.",
           variant: "destructive",
         });
@@ -512,7 +512,18 @@ export function useWorkflowSessionActions({
       let description: string;
       let durationMs = 5000;
 
-      if (deleteAction === "preserve") {
+      if (deleteAction.startsWith("cancel_")) {
+        title = "Sessão cancelada";
+        const partes: string[] = ["Horário liberado na agenda"];
+        if (deleteAction === "cancel_credit") {
+          partes.push("crédito gerado no cliente para pagamentos");
+        } else if (deleteAction === "cancel_refund") {
+          if (estornosCriados) partes.push(`${estornosCriados} estorno(s) registrado(s)`);
+        } else if (deleteAction === "cancel_preserve") {
+          partes.push("pagamento(s) mantido(s)");
+        }
+        description = partes.join(" • ") + ".";
+      } else if (deleteAction === "preserve") {
         title = "Sessão arquivada";
         description = "Sessão movida para o histórico do cliente. Agendamento mantido na agenda como compromisso avulso.";
       } else if (deleteAction === "refund") {
@@ -530,7 +541,7 @@ export function useWorkflowSessionActions({
         if (agendamentoRemovido) acoes.push("agendamento");
         description = `${acoes.join(", ").replace(/, ([^,]*)$/, " e $1")} excluídos permanentemente.`;
         if (cobrancasPreservadas > 0) {
-          description += ` ${cobrancasPreservadas} pagamento(s) recebido(s) via gateway (Asaas/Mercado Pago/InfinitePay) foram mantidos no extrato fiscal para auditoria contábil.`;
+          description += ` ${cobrancasPreservadas} pagamento(s) recebido(s) via gateway foram mantidos no extrato fiscal.`;
           durationMs = 8000;
         }
       }

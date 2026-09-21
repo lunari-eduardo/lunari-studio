@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, Trash2, X, RotateCcw, Shield } from 'lucide-react';
+import { AlertTriangle, Trash2, X, RotateCcw, Shield, Banknote, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DeleteAction = 'preserve' | 'refund' | 'remove';
+export type DeleteAction = 'preserve' | 'refund' | 'remove' | 'cancel_credit' | 'cancel_refund' | 'cancel_preserve';
 
 interface WorkflowDeleteConfirmModalProps {
   isOpen: boolean;
@@ -26,17 +26,20 @@ export function WorkflowDeleteConfirmModal({
   onConfirm,
   sessionData
 }: WorkflowDeleteConfirmModalProps) {
-  const [action, setAction] = useState<DeleteAction>('preserve');
+  const [action, setAction] = useState<DeleteAction>('cancel_preserve');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && sessionData) {
+      setAction(sessionData.hasPayments ? 'cancel_credit' : 'cancel_preserve');
+    }
+  }, [isOpen, sessionData]);
 
   const handleConfirm = async () => {
     if (!sessionData) return;
     setLoading(true);
     try {
-      // Sem pagamentos: força 'remove' para garantir que o agendamento
-      // vinculado também seja excluído da agenda.
-      const effectiveAction: DeleteAction = sessionData.hasPayments ? action : 'remove';
-      onConfirm(effectiveAction);
+      onConfirm(action);
       onClose();
     } finally {
       setLoading(false);
@@ -60,8 +63,8 @@ export function WorkflowDeleteConfirmModal({
         >
           <div className="flex flex-col space-y-1.5 text-center sm:text-left">
             <DialogPrimitive.Title className="text-xl font-semibold text-lunar-text flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Excluir Sessão
+              <Ban className="h-5 w-5 text-destructive" />
+              Cancelar Sessão
             </DialogPrimitive.Title>
           </div>
 
@@ -97,48 +100,63 @@ export function WorkflowDeleteConfirmModal({
                   </p>
                   <RadioGroup value={action} onValueChange={(v) => setAction(v as DeleteAction)}>
                     <div className="flex items-center space-x-2 p-3 rounded-lg border border-lunar-border bg-lunar-surface/50">
-                      <RadioGroupItem value="preserve" id="wf-preserve" />
-                      <Label htmlFor="wf-preserve" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="cancel_credit" id="wf-cancel-credit" />
+                      <Label htmlFor="wf-cancel-credit" className="flex-1 cursor-pointer">
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-lunar-text flex items-center gap-1.5">
-                            <Shield className="h-3.5 w-3.5 text-blue-500" />
-                            Cancelar sessão (preservar histórico)
+                            <Banknote className="h-3.5 w-3.5 text-green-500" />
+                            Converter em crédito
                           </p>
                           <p className="text-xs text-lunar-textSecondary">
-                            Arquiva a sessão no histórico do cliente. O agendamento fica na agenda como compromisso avulso (sem vínculo com a sessão). Pagamentos preservados.
+                            O valor pago será creditado ao cliente para uso futuro. A sessão ficará cancelada e o horário será liberado.
                           </p>
                         </div>
                       </Label>
                     </div>
 
                     <div className="flex items-center space-x-2 p-3 rounded-lg border border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/30">
-                      <RadioGroupItem value="refund" id="wf-refund" />
-                      <Label htmlFor="wf-refund" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="cancel_refund" id="wf-cancel-refund" />
+                      <Label htmlFor="wf-cancel-refund" className="flex-1 cursor-pointer">
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-lunar-text flex items-center gap-1.5">
                             <RotateCcw className="h-3.5 w-3.5 text-orange-500" />
-                            Estornar pagamentos e excluir
+                            Estornar pagamento
                           </p>
                           <p className="text-xs text-lunar-textSecondary">
-                            Cria registros de estorno para cada pagamento, depois exclui a sessão. Histórico financeiro preservado para auditoria.
+                            Registra o estorno do pagamento no histórico. A sessão ficará cancelada e o horário será liberado.
                           </p>
                         </div>
                       </Label>
                     </div>
 
-                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-destructive/20 bg-destructive/5">
+                    <div className="flex items-center space-x-2 p-3 rounded-lg border border-lunar-border bg-lunar-surface/50">
+                      <RadioGroupItem value="cancel_preserve" id="wf-cancel-preserve" />
+                      <Label htmlFor="wf-cancel-preserve" className="flex-1 cursor-pointer">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-lunar-text flex items-center gap-1.5">
+                            <Shield className="h-3.5 w-3.5 text-blue-500" />
+                            Manter pagamento registrado
+                          </p>
+                          <p className="text-xs text-lunar-textSecondary">
+                            Nenhum crédito ou estorno será gerado automaticamente. A sessão ficará cancelada e o horário será liberado.
+                          </p>
+                        </div>
+                      </Label>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 mt-4 rounded-lg border border-destructive/20 bg-destructive/5">
                       <RadioGroupItem value="remove" id="wf-remove" />
                       <Label htmlFor="wf-remove" className="flex-1 cursor-pointer">
                         <div className="space-y-1">
-                          <p className="text-sm font-medium text-lunar-text flex items-center gap-1.5">
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            Excluir tudo permanentemente
+                          <p className="text-sm font-medium text-destructive flex items-center gap-1.5">
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Excluir permanentemente (Ação Administrativa)
                           </p>
-                          <p className="text-xs text-lunar-textSecondary">
-                            Remove sessão do workflow e todos os pagamentos relacionados permanentemente
+                          <p className="text-xs text-destructive/80">
+                            Remove a sessão e todo o histórico financeiro de forma permanente, sem deixar rastros.
                           </p>
                           {action === 'remove' && (
-                            <p className="text-[11px] text-lunar-textSecondary/80 italic mt-2 leading-snug">
+                            <p className="text-[11px] text-destructive/70 italic mt-2 leading-snug">
                               ℹ️ Pagamentos já recebidos via gateway (Asaas, Mercado Pago, InfinitePay) serão mantidos no extrato fiscal para auditoria contábil, mesmo nesta opção.
                             </p>
                           )}
@@ -148,18 +166,44 @@ export function WorkflowDeleteConfirmModal({
                   </RadioGroup>
                 </>
               ) : (
-                <div className="p-3 rounded-lg border border-lunar-border bg-lunar-surface/50">
-                  <p className="text-sm text-lunar-text">
-                    Esta sessão será excluída permanentemente, junto com o agendamento vinculado na agenda.
-                  </p>
-                </div>
+                <RadioGroup value={action} onValueChange={(v) => setAction(v as DeleteAction)}>
+                  <div className="flex items-center space-x-2 p-3 rounded-lg border border-lunar-border bg-lunar-surface/50">
+                    <RadioGroupItem value="cancel_preserve" id="wf-cancel-preserve" />
+                    <Label htmlFor="wf-cancel-preserve" className="flex-1 cursor-pointer">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-lunar-text flex items-center gap-1.5">
+                          <Ban className="h-3.5 w-3.5 text-blue-500" />
+                          Cancelar Sessão
+                        </p>
+                        <p className="text-xs text-lunar-textSecondary">
+                          A sessão ficará no histórico como cancelada, e o horário na agenda será liberado.
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 p-3 mt-4 rounded-lg border border-destructive/20 bg-destructive/5">
+                    <RadioGroupItem value="remove" id="wf-remove" />
+                    <Label htmlFor="wf-remove" className="flex-1 cursor-pointer">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-destructive flex items-center gap-1.5">
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Excluir permanentemente
+                        </p>
+                        <p className="text-xs text-destructive/80">
+                          Remove a sessão permanentemente sem deixar histórico.
+                        </p>
+                      </div>
+                    </Label>
+                  </div>
+                </RadioGroup>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-3">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-3 mt-2">
             <Button variant="outline" onClick={onClose} disabled={loading}>
-              Cancelar
+              Voltar
             </Button>
             <Button 
               variant="destructive" 
@@ -169,13 +213,8 @@ export function WorkflowDeleteConfirmModal({
             >
               {loading ? 'Processando...' : (
                 <>
-                  {action === 'refund' ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                  {sessionData.hasPayments 
-                    ? action === 'preserve' ? 'Cancelar Sessão'
-                      : action === 'refund' ? 'Estornar e Excluir'
-                      : 'Excluir Tudo'
-                    : 'Confirmar Exclusão'
-                  }
+                  {action === 'remove' ? <Trash2 className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                  {action === 'remove' ? 'Excluir Permanentemente' : 'Confirmar Cancelamento'}
                 </>
               )}
             </Button>
