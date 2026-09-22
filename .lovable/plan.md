@@ -1,206 +1,345 @@
-# Capas das Galerias de Entrega — auditoria, correções e redesign completo
+# Reconstrução das capas do construtor de propostas
 
-Documento de estruturação e implementação. Escrito para ser executado por outra IA sem consultar mais nada além do código.
+## Objetivo
+Entregar seis capas realmente distintas, estáveis e responsivas, com geometria previsível, orientação escolhida manualmente e ajuste contextual do texto diretamente no canvas. O mesmo documento deve manter composição equivalente no editor, preview mobile, tela cheia e link público.
 
----
+## Diagnóstico confirmado
 
-## PARTE A — AUDITORIA (o que está errado hoje)
+### 1. Os modelos atuais não correspondem ao catálogo exibido
+- O catálogo declara `minimal-center`, `poster-split`, `seam-side` e `hero-full`.
+- O renderizador possui implementação própria apenas para `poster-split`.
+- `minimal-center`, `seam-side`, `hero-full` e qualquer valor desconhecido caem no mesmo componente minimalista.
+- Por isso Minimal, Split e Hero parecem iguais; não é apenas um problema visual, mas um fallback estrutural.
 
-Arquivos auditados: `src/components/deliver/covers/{registry.ts,types.ts,CoverRenderer.tsx,thumbnails.tsx}`, `variants/{FullscreenCover,FloatingFrameCover,SplitCover,EditorialCover}.tsx`, `editorial/*`, `src/pages/gallery/ClientDeliverGallery.tsx`, `src/hooks/useGalleryDisplayTheme.tsx`, `src/components/FontSelect.tsx`, `index.html`.
+### 2. Frontend, IA e templates persistidos falam contratos diferentes
+- O frontend usa `minimal-center`, `poster-split`, `seam-side` e `hero-full`.
+- O Worker de IA aceita e solicita `split`, `full` e `centered`.
+- Há template persistido com `gradient_parallax`, enquanto outros templates não gravam variante e dependem do fallback.
+- Novas propostas podem, portanto, nascer com variantes antigas, ausentes ou não renderizadas.
 
-### A1. Bug de cor ao sair e voltar da capa (confirmado)
-`ClientDeliverGallery.tsx` renderiza a capa em **dois lugares com fontes de cor diferentes**:
+### 3. Texto e fotografia disputam a mesma geometria
+- A capa minimal atual distribui texto e foto com `flex-1`.
+- O comprimento do texto participa do cálculo do layout e pode comprimir ou deslocar a imagem.
+- Não há contrato de slot de mídia com largura, altura, proporção e posição invariáveis.
+- A foto precisa ser controlada por uma região própria; texto maior deve reduzir, quebrar ou truncar conforme regras da variante, nunca redimensionar a região da imagem.
 
-- Linha ~192, ramo "álbuns" (galeria com pastas): componente **fora** do `GalleryThemeProvider`. Usa constantes locais `bgColor/textColor/primaryColor` (`#0E0E0E` / `#FAF9F7` / `#C6A36A`) e `isDark` derivado de `data.clientMode`.
-- Linha ~339, `ClientDeliverGalleryContent`: **dentro** do provider, lê `cssVars['--gallery-bg'|'--gallery-text'|'--gallery-primary']`.
+### 4. O preview mobile não simula corretamente a entrega final
+- O canvas mobile é limitado a `375 × 812`, usa `overflow-hidden` e depende de container queries.
+- O projeto não possui configuração explícita do plugin de container queries; as regras `@md` e `@lg` usadas pelas capas precisam ser eliminadas ou comprovadamente suportadas.
+- O modo mobile atual representa o documento inteiro como uma caixa com altura fixa. Conteúdo maior pode ser cortado, em vez de rolar naturalmente.
+- O link público força `viewMode="desktop"` e depende apenas do CSS interno para se adaptar; isso permite divergência entre preview e experiência real.
+- A edição inline está desativada quando o editor está em viewport mobile, o que impede o fluxo solicitado de selecionar texto e ajustar seu tamanho nesse modo.
 
-Ao entrar numa pasta e voltar para os álbuns, o componente troca de ramo — a capa remonta com paleta diferente (texto e primária mudam). É exatamente o "muda a cor do texto quando minimiza e acessa de novo".
+### 5. O sistema já tem uma base adequada para persistir novos controles
+- `updateBlockField` e `setPath` já suportam alterações pontuais, histórico, desfazer/refazer e coalescência.
+- As versões salvam o bloco completo em `material_versions.content`; propriedades de orientação e tipografia podem seguir o mesmo fluxo.
+- O que falta é um estado explícito de elemento textual selecionado e um contrato tipado para suas propriedades visuais.
 
-### A2. Fontes escolhidas pelo fotógrafo não carregam
-`GALLERY_FONTS` (`FontSelect.tsx`) oferece 11 famílias, mas `index.html` só carrega Bodoni Moda, Cormorant Garamond, Playfair Display, Source Sans 3, Fraunces, Inter Tight, JetBrains Mono, Instrument Serif, Geist, Manrope e Inter. Não carregam: Imperial Script, League Script, Allura, Amatic SC, Shadows Into Light, Source Serif 4, Cormorant (a lista usa `Cormorant`, o HTML carrega `Cormorant Garamond`), Raleway, Quicksand. Resultado: a capa cai em serif/cursive do sistema e fica diferente do preview.
+### 6. Não existe cobertura automatizada deste motor
+- Não foram encontrados testes específicos para `CoverBlock`, renderização de variantes, seleção de texto, orientação, preview mobile ou paridade com o link público.
+- A validação atual não impede que novas variantes voltem a cair silenciosamente no mesmo fallback.
 
-### A3. Três capas são rascunhos
-`FullscreenCover`, `FloatingFrameCover` e `SplitCover` são quase idênticas: foto + `font-light` + botão com borda + `ChevronDown` piscando. Não usam `subtitle`, `sessionDate`, `category`, `primaryColor` nem `textOverlayColor` — props que o contrato (`types.ts`) já entrega. Não há tratamento de contraste sobre a foto (só um gradiente fixo), não há grade tipográfica, e `FloatingFrame` usa `hover:${textColor}` (classe dinâmica que o Tailwind não gera — hover morto).
+### 7. O erro citado em `use-mobile.tsx` não foi reproduzido na fonte atual
+- A linha informada contém apenas a constante do breakpoint; não há uso de UMD que justifique o TS2686 no arquivo atual.
+- O log disponível aponta outro erro preexistente, em `useCreateMaterialWizard.ts`, relacionado ao parâmetro obrigatório `canvas`.
+- Esse erro deve ser validado novamente na fase de segurança, mas não explica as capas iguais nem o corte do preview.
 
-### A4. Outras inconsistências
-- `Fullscreen` ignora `isDark` no texto (sempre branco) — em tema claro com foto clara o título some.
-- `Split` usa `h-[70vh]` no mobile e `min-h-screen` no container: sobra faixa vazia em telas baixas.
-- `FloatingFrame` fixa `aspect 16/10` mesmo para foto vertical — corta rosto.
-- Miniaturas do catálogo (`thumbnails.tsx`) são SVGs genéricos que não representam os layouts.
-- `Editorial` está correto na arquitetura, mas o peso da fonte varia (traços finos) e o fit em telas pequenas usa mínimo de 24–26px, gerando quebras apertadas.
+## Contrato funcional proposto
 
----
+### Seis variantes oficiais
+1. **Minimal Editorial (`minimal-center`)**  
+   Composição tipográfica central, fotografia em faixa ou moldura inferior independente e bastante respiro.
 
-## PARTE B — CORREÇÕES DE BUG (fase 1, obrigatória antes do redesign)
+2. **Poster Fotográfico (`poster-split`)**  
+   Fotografia em sangria total, contraste localizado e tipografia sobreposta com zona segura.
 
-### B1. Fonte única de tema para a capa
-`src/pages/gallery/ClientDeliverGallery.tsx`
-- Mover o ramo "álbuns" para **dentro** de `ClientDeliverGalleryContent` (ou envolver os dois ramos pelo mesmo `GalleryThemeProvider`), de forma que exista **um único** cálculo de `isDark/bgColor/textColor/primaryColor`, sempre vindo de `cssVars`.
-- Remover as constantes duplicadas `bgColor`, `textColor`, `primaryColor` do topo do arquivo.
-- Passar `textColor` e `textOverlayColor` explicitamente ao `CoverRenderer` (hoje nunca são passados).
+3. **Costura Lateral (`seam-side`)**  
+   Painel textual e fotografia divididos por uma costura determinística; parte do título pode atravessar a divisão sem alterar a largura da foto.
 
-### B2. Estabilidade da capa entre navegações
-- Não remontar a capa ao trocar de pasta: manter a `<CoverRenderer>` sempre montada e alternar apenas o conteúdo abaixo dela.
-- No `EditorialCover`, o `useState` inicial de `size` lê `window` — ao remontar, ocorre um frame com medida errada. Inicializar com `{width:0,height:0}` e só renderizar o título quando `width>0` (evita "pulo" do tipo).
+4. **Hero Imersivo (`hero-full`)**  
+   Fotografia fullscreen, conteúdo ancorado em uma área segura e CTA separado do título.
 
-### B3. Fontes
-`index.html` — adicionar em UM único `<link>` (evitar 3 requisições) todas as famílias do catálogo novo (Parte D), com os pesos exatos listados. Remover do `GALLERY_FONTS` qualquer família que não esteja no link.
+5. **Díptico Editorial (`editorial-diptych`)**  
+   Duas regiões fotográficas estáveis e uma coluna ou faixa tipográfica independente.
 
----
+6. **Moldura Flutuante (`floating-frame`)**  
+   Fotografia elevada dentro de moldura editorial, título externo e metadados alinhados por grid.
 
-## PARTE C — NOVO CONTRATO DAS CAPAS
+Cada variante terá DOM, hierarquia, regras de mídia e comportamento mobile próprios. Não haverá um componente genérico mascarado por classes diferentes.
 
-`src/components/deliver/covers/types.ts` — estender `CoverVariantProps`:
-
-```ts
-export interface CoverVariantProps {
-  coverPhoto: PhotoPaths | null;
-  sessionName: string;
-  subtitle?: string;
-  sessionDate?: string | Date | null;
-  category?: string;
-  issueNumber?: string;
-  studioName?: string;
-  sessionFont?: string;        // font-family CSS resolvida
-  titleCaseMode?: TitleCaseMode;
-  isDark?: boolean;
-  textColor?: string;          // cor de texto do tema
-  textOverlayColor?: string;   // cor de texto sobre foto
-  primaryColor?: string;
-  ctaLabel?: string;           // default 'Ver galeria'
-  onEnter: () => void;
+### Propriedades compartilhadas
+```text
+props.cover = {
+  orientation: "portrait" | "landscape",
+  mediaPlacement: "left" | "right" | "top" | "bottom" | "background",
+  focalPoint: { x: number, y: number },
+  typography: {
+    eyebrowSize: number,
+    titleSize: number,
+    accentSize: number,
+    subtitleSize: number,
+    authorSize: number,
+    ctaSize: number
+  }
 }
 ```
 
-Criar `src/components/deliver/covers/shared/`:
-- `useCoverPalette.ts` — recebe `{isDark, textColor, textOverlayColor, primaryColor}` e devolve tokens estáveis: `ink`, `inkMuted`, `onPhoto`, `onPhotoMuted`, `line`, `accent`, `surface`. Todas as variantes passam a consumir **somente** esses tokens (fim das classes `text-white`/`text-stone-900` espalhadas).
-- `CoverCta.tsx` — botão único, três estilos (`outline` | `solid` | `underline`), altura 44px mínimo (toque), tracking `0.22em`, `text-[11px] md:text-xs`, uppercase, transição 300ms.
-- `CoverScrollCue.tsx` — indicador de rolagem discreto (linha vertical de 40px com animação de 2.4s, sem `animate-bounce`).
-- `useImageOrientation.ts` — lê `coverPhoto.width/height` e devolve `'portrait' | 'landscape' | 'square'` para as capas ajustarem enquadramento.
+- `orientation` controla a proporção do design e é uma escolha manual persistida, não consequência da variante.
+- `mediaPlacement` controla o lado da fotografia somente nas variantes que oferecem essa escolha.
+- Trocar variante preserva conteúdo, imagem, ponto focal, orientação e tamanhos quando forem compatíveis.
+- Valores serão limitados por campo e variante para impedir estouro visual.
 
-`registry.ts` — manter os 4 ids (`fullscreen`, `floating-frame`, `split`, `editorial`) para não quebrar galerias existentes; só o desenho muda. Renomear apenas os `name`/`description` exibidos.
+## Plano de execução
 
----
+### Fase 1 — Unificar o contrato e proteger conteúdo legado
+**Arquivos principais**
+- `src/pages/comercial/blocks/registryDefinitions.ts`
+- `src/pages/comercial/blocks/normalization.ts`
+- `src/pages/comercial/blocks/registry.ts`
+- `workers/proposals-ai/src/sanitize.ts`
+- Tipos compartilhados novos em `src/pages/comercial/blocks/`
 
-## PARTE D — CATÁLOGO DE 10 FONTES (Google Fonts)
+**Ações**
+1. Criar uma fonte única tipada para IDs, nomes, capacidades, defaults e limites das seis variantes.
+2. Separar propriedades de conteúdo, composição, orientação, posicionamento de mídia e tipografia.
+3. Criar normalização explícita de legados:
+   - `centered` → `minimal-center`;
+   - `split` → `seam-side`;
+   - `full` e `gradient_parallax` → `hero-full`;
+   - variante ausente → `minimal-center`.
+4. Preservar propriedades desconhecidas durante a leitura para não destruir documentos antigos.
+5. Remover fallback silencioso: variante inválida deve ser normalizada na entrada; o renderizador deve possuir estado de diagnóstico apenas no editor se algo escapar.
+6. Manter o formato de `material_versions.content`; não exigir alteração de tabela para esses controles.
 
-Substitui `GALLERY_FONTS` em `src/components/FontSelect.tsx`. Cada fonte tem personalidade distinta e uma capa "afinidade" recomendada.
+**Critério de saída**
+- Todo bloco existente resolve para uma das seis variantes sem perder texto, imagem ou link.
 
-| id | Família | Caráter | Pesos a carregar | Afinidade |
-|---|---|---|---|---|
-| `bodoni` | Bodoni Moda | Didone alto contraste | 400;500;600;700 | Editorial |
-| `playfair` | Playfair Display | Serif clássica editorial | 400;500;600;700 | Editorial / Split |
-| `cormorant-garamond` | Cormorant Garamond | Serif fina e romântica | 300;400;500;600 | Floating |
-| `dm-serif` | DM Serif Display | Serif densa de manchete | 400 | Fullscreen |
-| `instrument-serif` | Instrument Serif | Serif moderna condensada | 400 + itálico | Editorial |
-| `syne` | Syne | Sans display geométrica | 400;600;700;800 | Fullscreen |
-| `jost` | Jost | Sans geométrica Bauhaus | 300;400;500;600 | Split |
-| `outfit` | Outfit | Sans neutra contemporânea | 300;400;500;600 | Floating |
-| `marcellus` | Marcellus | Romana lapidar, luxo | 400 | Split |
-| `italiana` | Italiana | Display fina, alta-costura | 400 | Floating |
+### Fase 2 — Construir seis motores visuais reais
+**Arquivos principais**
+- `src/pages/comercial/components/editor/blocks/CoverBlocks.tsx`
+- Novos componentes em `src/pages/comercial/components/editor/blocks/covers/`
+- Utilitários de geometria e tipografia em `src/pages/comercial/blocks/`
 
-Regras:
-- `getFontFamilyById` continua o ponto único de resolução; o fallback passa a ser `'Playfair Display', Georgia, serif`.
-- Cada entrada ganha `weightTitle` e `letterSpacing` recomendados, usados pelas capas:
-  `bodoni 600/-0.01em`, `playfair 500/-0.005em`, `cormorant-garamond 500/0`, `dm-serif 400/-0.01em`, `instrument-serif 400/0`, `syne 700/-0.02em`, `jost 400/0.02em`, `outfit 400/0.01em`, `marcellus 400/0.04em`, `italiana 400/0.08em`.
-- Nunca usar peso 300 em título sobre foto (é a origem dos traços finos).
+**Ações**
+1. Dividir o arquivo atual em seis renderizadores pequenos, um por variante.
+2. Criar um shell compartilhado apenas para acessibilidade, seleção, tokens e edição; não compartilhar a composição visual.
+3. Definir para cada variante:
+   - aspect ratio em retrato e paisagem;
+   - grid e zonas seguras;
+   - slot de mídia com dimensões estáveis;
+   - limites mínimo/máximo de texto;
+   - regras de quebra, fitting e overflow;
+   - comportamento específico em larguras pequenas.
+4. Aplicar `minmax(0, …)`, `min-width: 0`, proporções e tracks fixos para impedir que texto altere a largura da imagem.
+5. Usar `object-fit: cover` e `object-position` a partir do ponto focal; a foto pode recortar, mas nunca deformar.
+6. No modelo Seam, usar duas camadas tipográficas posicionadas no mesmo sistema de coordenadas e recortadas pela costura do container, sem duplicação perceptível ou deslocamento.
+7. Respeitar tokens da proposta e os estados de imagem vazia/erro sem introduzir cores avulsas.
+8. Incluir redução de movimento e ordem semântica correta para leitores de tela.
 
----
+**Critério de saída**
+- As seis miniaturas podem ser reconhecidas apenas pela composição e nenhuma delas muda a geometria da fotografia ao editar textos.
 
-## PARTE E — REDESIGN DAS CAPAS
+### Fase 3 — Orientação manual e independente
+**Arquivos principais**
+- `src/pages/comercial/components/editor/PropertiesSidebar.tsx`
+- `src/pages/comercial/EditorPropostaPage.tsx`
+- `src/hooks/useMaterialEditor.ts`
+- Controles shadcn já existentes
 
-Escala tipográfica compartilhada (usar `clamp`, nunca breakpoints soltos):
-- Display XL: `clamp(2.6rem, 9vw, 7rem)`
-- Display L: `clamp(2.2rem, 6.5vw, 4.75rem)`
-- Display M: `clamp(1.9rem, 4.5vw, 3.25rem)`
-- Kicker: `clamp(0.62rem, 1.1vw, 0.75rem)`, tracking `0.32em`, uppercase
-- Meta: `clamp(0.65rem, 1vw, 0.78rem)`, tracking `0.18em`
+**Ações**
+1. Adicionar seletor segmentado Retrato/Paisagem no bloco Capa.
+2. Adicionar seletor visual de posição da mídia somente quando a variante suportar essa capacidade.
+3. Retirar qualquer derivação de orientação baseada no nome da composição.
+4. Persistir mudanças via `updateBlockField`, com undo/redo e autosave existentes.
+5. Ao trocar de variante, manter a orientação escolhida; quando um posicionamento não existir no novo modelo, usar o default documentado sem alterar `orientation`.
+6. Exibir controles incompatíveis como indisponíveis com explicação curta, em vez de alterar silenciosamente o design.
 
-### E1. `FullscreenCover` → "Cinemática"
-Foto em tela cheia, título ancorado na base, não no centro.
-- Estrutura: foto `object-cover` + **duas** camadas de véu: gradiente vertical `rgba(0,0,0,.55) → transparent 55%` de baixo para cima, e um `backdrop-blur-[2px]` só na faixa inferior de 38% (garante legibilidade sem escurecer a foto inteira).
-- Conteúdo alinhado à esquerda, dentro de um container `max-w-[1440px]` com padding `px-6 md:px-14`, base `pb-16 md:pb-20`.
-- Ordem: kicker (`studioName` · `category`), título Display XL em duas linhas com `text-balance`, régua fina de 56px na cor `accent`, meta (data formatada `dd 'de' MMMM 'de' yyyy` pt-BR), CTA `outline` claro.
-- Peso do título: vem de `weightTitle` da fonte; mínimo 500.
-- Mobile: título Display L, kicker acima, CTA largura total até 320px.
-- Movimento: foto com `scale(1.04) → 1` em 1.2s ease-out no mount; texto sobe 12px com fade escalonado (60ms entre elementos). Respeitar `prefers-reduced-motion`.
+**Critério de saída**
+- A mesma variante funciona em retrato e paisagem; trocar o modelo não troca a orientação escolhida pelo fotógrafo.
 
-### E2. `FloatingFrameCover` → "Passe-partout"
-Moldura de museu: a foto flutua sobre o fundo do tema.
-- Fundo: cor `surface` do tema (não branco fixo) + textura de grão sutil via `radial-gradient` de 2% de opacidade.
-- Moldura: `max-w-[min(1100px,86vw)]`, proporção **derivada da orientação real** (`useImageOrientation`): retrato `4/5`, paisagem `3/2`, quadrado `1/1`; `max-height: 74vh`; sombra `0 40px 80px -40px rgba(0,0,0,.45)`.
-- Título **abaixo** da foto, centralizado, Display M, com o subtítulo em itálico da mesma família e um filete de 1px acima com 72px de largura na cor `accent`.
-- Kicker do estúdio acima da moldura, `Kicker`.
-- Data e categoria em uma linha só, separadas por `·`, cor `inkMuted`.
-- CTA estilo `underline` (texto + linha animada que cresce da esquerda no hover).
-- Mobile: moldura `92vw`, título Display M reduzido, tudo empilhado com gap 24px.
+### Fase 4 — Seleção de texto e slider contextual
+**Arquivos principais**
+- `src/pages/comercial/blocks/EditableText.tsx`
+- `src/pages/comercial/blocks/inlineContext.ts`
+- `src/pages/comercial/components/editor/VisualRenderer.tsx`
+- Novo controle contextual em `src/pages/comercial/components/editor/`
+- `src/pages/comercial/EditorPropostaPage.tsx`
 
-### E3. `SplitCover` → "Diptych"
-Duas colunas com tensão editorial.
-- Grade `md:grid-cols-[1.35fr_1fr]`; foto à esquerda, painel à direita na cor `surface`.
-- Painel com padding `px-8 md:px-14 lg:px-20`, conteúdo alinhado ao baseline óptico (usar `justify-center` + `translate-y-[-4%]`).
-- Ordem: número/ediçāo opcional (`issueNumber`) em mono discreto, kicker, título Display L com quebra manual por palavras (máx. 2 linhas, `hyphens:none`), subtítulo, filete vertical de 1px × 64px na cor `accent` colado à esquerda do bloco, meta, CTA `solid` (fundo `accent`, texto de contraste calculado).
-- Detalhe de sofisticação: a foto avança 40px sobre o painel em desktop (`md:mr-[-40px] z-10`) criando sobreposição — o painel ganha `pl-[64px]`.
-- Mobile: foto `h-[52vh]` no topo, painel abaixo com `pt-10 pb-14`, sem sobreposição, sem `min-h-screen` (usa altura de conteúdo) — corrige a faixa vazia.
+**Ações**
+1. Criar estado de seleção com `blockId`, `fieldPath`, tipo do campo, valor atual e limites permitidos.
+2. Ao clicar ou focar eyebrow, título, destaque, subtítulo, autoria ou CTA, selecionar o campo sem interferir no `contentEditable`.
+3. Mostrar um popover/toolbar ancorado ao texto com slider, valor numérico e ação de restaurar o padrão.
+4. Gravar o tamanho em `props.cover.typography.<campo>Size`, nunca como estilo solto dentro do HTML editável.
+5. Coalescer eventos contínuos do slider em uma única operação lógica de histórico.
+6. Fechar ou reposicionar o controle ao trocar bloco, excluir bloco, rolar, mudar viewport ou pressionar Escape.
+7. No mobile real, apresentar o controle em barra inferior segura para não cobrir o texto nem depender de hover.
+8. Aplicar limites por variante e campo; o fitting continua como proteção final, não como substituto do tamanho escolhido.
 
-### E4. `EditorialCover` — apenas ajustes
-Não alterar a arquitetura (seam, `composition.ts`, `useSeamContrast`, `useFittedTitle`).
-1. Peso: aplicar `fontWeight` do catálogo (mínimo 500; Bodoni/Playfair 600) e `-webkit-text-stroke: 0.35px currentColor` **somente** quando `fontSize < 48px`, para os traços finos não sumirem.
-2. Fit: em `useFittedTitle`, elevar o mínimo mobile de 24px para 30px e reduzir `maxFontSizeVw` vertical de 16→14 (single) e 11→10 (duas linhas), evitando estouro.
-3. Responsivo: em `composition.ts`, mover a costura vertical de mobile para 46% da altura e aumentar a margem lateral do título de forma proporcional (`clamp(16px, 6vw, 64px)`).
-4. Inicialização de `size` conforme B2.
-5. Nada mais muda visualmente.
+**Critério de saída**
+- Selecionar qualquer texto editável da capa revela o slider correto; o valor sobrevive a salvar, recarregar, desfazer e refazer.
 
-### E5. Miniaturas do catálogo
-`thumbnails.tsx` — redesenhar os 4 SVGs para refletirem os layouts finais (retângulo de foto + barras de texto na posição real), 3:2, traços de 1px, cor `currentColor`, sem texto.
+### Fase 5 — Corrigir o preview responsivo e garantir paridade pública
+**Arquivos principais**
+- `src/pages/comercial/components/editor/VisualRenderer.tsx`
+- `src/pages/comercial/EditorPropostaPage.tsx`
+- `src/pages/comercial/components/editor/modals/FullscreenPreviewModal.tsx`
+- `src/pages/comercial/PublicProposalViewer.tsx`
+- Estilos dedicados do motor de propostas
 
----
+**Ações**
+1. Substituir a altura fixa do telefone por viewport com largura controlada e rolagem interna real; o documento não será cortado por `overflow-hidden`.
+2. Separar:
+   - viewport de edição;
+   - tamanho lógico do documento;
+   - escala visual do preview.
+3. Fazer desktop, mobile e link público fornecerem a mesma largura efetiva ao motor responsivo.
+4. Remover dependência incerta de variantes `@md/@lg` ou configurar oficialmente container queries; preferencialmente centralizar breakpoints em CSS do próprio motor.
+5. Não usar `window.innerWidth` para decidir a composição de um canvas reduzido dentro do desktop; a resposta deve depender da largura do próprio documento.
+6. Fazer o viewer público determinar o modo pelo container/viewport real, em vez de forçar desktop.
+7. Validar rolagem, safe area, teclado virtual e barra contextual em celular.
+8. Manter zoom como transformação visual sem mudar os cálculos internos de layout.
 
-## PARTE F — CONTROLES NO EDITOR
-`src/pages/gallery/deliver/detail/components/DeliverDesignTab.tsx`
-- O `CoverCatalog` passa a mostrar nome novo + miniatura nova + descrição de uma linha.
-- Adicionar seletor de fonte usando o catálogo de 10 (componente `FontSelect` já existente) na mesma aba, com preview usando o nome real da sessão.
-- Preview da capa no editor deve receber os mesmos tokens de paleta do público (importar `useCoverPalette`), garantindo paridade editor ↔ link público.
+**Critério de saída**
+- O mesmo bloco tem resultado equivalente no preview mobile e no link aberto em celular; nenhuma capa ou seção termina cortada na altura de 812 px.
 
----
+### Fase 6 — Alinhar IA, modelos de biblioteca e criação de propostas
+**Arquivos principais**
+- `workers/proposals-ai/src/index.ts`
+- `workers/proposals-ai/src/sanitize.ts`
+- `src/hooks/useProposalAI.ts`
+- `src/hooks/useMaterials.ts`
+- `src/pages/comercial/biblioteca/hooks/useCreateMaterialWizard.ts`
+- `src/pages/comercial/biblioteca/components/wizard/StepTemplateGallery.tsx`
+- Nova migração idempotente para `proposal_templates`
 
-## PARTE G — TESTES DE ACEITE
-1. Galeria com pastas: entrar num álbum, voltar — cor de texto, fundo e cor primária da capa idênticas (bug A1).
-2. Cada uma das 10 fontes selecionada renderiza a família correta (inspecionar `computedStyle.fontFamily` e conferir que não caiu no fallback).
-3. As 4 capas em: 375×667, 390×844, 768×1024, 1440×900, 1920×1080 — sem estouro horizontal, sem texto cortado, CTA sempre visível sem rolagem.
-4. Foto vertical, horizontal e quadrada em cada capa — sem corte de rosto no centro.
-5. Tema claro e escuro em cada capa — contraste do título ≥ 4.5:1 sobre a foto.
-6. Editorial: comparar antes/depois — layout igual, apenas peso e tamanho ajustados.
-7. `prefers-reduced-motion: reduce` desliga as animações de entrada.
-8. Galerias antigas com `cover_id` salvo continuam abrindo na mesma variante.
+**Ações**
+1. Atualizar o catálogo do Worker com os seis IDs oficiais e suas capacidades.
+2. A IA poderá escolher uma variante, mas não inventar IDs, tamanhos fora da faixa nem orientação implícita.
+3. Normalizar a resposta do Worker novamente no cliente antes de criar a versão inicial.
+4. Atualizar templates ativos para variantes oficiais e defaults completos, preservando propostas já criadas.
+5. Substituir cards genéricos da biblioteca por previews/miniaturas que representem a composição real.
+6. Corrigir no mesmo escopo o parâmetro `canvas` exigido pelo fluxo de criação, caso o typecheck atual confirme o erro.
+7. Não introduzir novo armazenamento ou serviço; esta frente usa o conteúdo já persistido nas versões.
 
----
+**Critério de saída**
+- Propostas criadas manualmente, por template ou por IA entram no editor com o mesmo contrato válido e uma capa renderizável.
 
-## ARQUIVOS ALTERADOS / CRIADOS
-Alterados:
-- `index.html`
-- `src/components/FontSelect.tsx`
-- `src/components/deliver/covers/types.ts`
-- `src/components/deliver/covers/registry.ts`
-- `src/components/deliver/covers/thumbnails.tsx`
-- `src/components/deliver/covers/variants/FullscreenCover.tsx`
-- `src/components/deliver/covers/variants/FloatingFrameCover.tsx`
-- `src/components/deliver/covers/variants/SplitCover.tsx`
-- `src/components/deliver/covers/variants/EditorialCover.tsx`
-- `src/components/deliver/covers/editorial/composition.ts`
-- `src/components/deliver/covers/editorial/useFittedTitle.ts`
-- `src/pages/gallery/ClientDeliverGallery.tsx`
-- `src/pages/gallery/deliver/detail/components/DeliverDesignTab.tsx`
+### Fase 7 — Compatibilidade e segurança de edição
+**Ações**
+1. Criar fixtures para documentos legados: variante ausente, `centered`, `split`, `full`, `gradient_parallax` e props parciais.
+2. Garantir leitura compatível sem regravar automaticamente o documento ao apenas abri-lo.
+3. Migrar para o novo formato somente quando houver edição/salvamento ou por migração idempotente explicitamente aprovada.
+4. Preservar versão publicada e links congelados; edição de uma versão publicada continua criando novo rascunho.
+5. Não alterar RLS, acesso, compartilhamento ou regras financeiras nesta entrega.
+6. Remover toast de sucesso do salvamento comum e manter feedback inline, conforme o Design DNA; erros continuam explícitos.
 
-Criados:
-- `src/components/deliver/covers/shared/useCoverPalette.ts`
-- `src/components/deliver/covers/shared/CoverCta.tsx`
-- `src/components/deliver/covers/shared/CoverScrollCue.tsx`
-- `src/components/deliver/covers/shared/useImageOrientation.ts`
+### Fase 8 — Testes automatizados e matriz visual
+**Testes unitários**
+- Normalização de todos os IDs legados.
+- Defaults e limites tipográficos por variante.
+- Preservação de orientação ao trocar composição.
+- Fitting sem mutação do slot da fotografia.
+- Sanitização de resposta da IA.
 
-Sem alteração de banco de dados: `cover_id`, `configuracoes.sessionFont` e `titleCaseMode` já existem.
+**Testes de componente**
+- Um teste por variante em retrato e paisagem.
+- Texto curto, longo, palavra sem espaços e campos vazios.
+- Imagens vertical, horizontal, quadrada, ausente e com erro.
+- Seleção de cada campo, slider, reset, undo/redo e troca de bloco.
 
----
+**Testes de integração/E2E**
+- Criar proposta vazia, por cada template e por IA.
+- Editar texto e imagem sem mudança nas dimensões do slot de mídia.
+- Salvar, recarregar e publicar mantendo orientação e tamanhos.
+- Comparar editor, preview tela cheia e link público.
 
-## ORDEM DE EXECUÇÃO
-1. Parte B (bugs) → 2. Parte C (contrato + shared) → 3. Parte D (fontes) → 4. E1 → 5. E2 → 6. E3 → 7. E4 (Editorial) → 8. E5 + Parte F → 9. Parte G.
+**Matriz de viewports**
+- 320 × 568
+- 375 × 812
+- 390 × 844
+- 768 × 1024
+- 1024 × 768
+- 1280 × 800
+- 1440 × 900
+
+**Regressão visual**
+- Capturas estáveis das 6 variantes × 2 orientações × mobile/desktop.
+- Limites geométricos medidos: largura e proporção do slot de imagem devem permanecer iguais antes e depois de alterar cada texto.
+- Sem sobreposição incoerente, texto cortado, scroll horizontal ou controles fora da tela.
+
+### Fase 9 — Validação obrigatória e liberação gradual
+1. Revisar o diff linha a linha nos arquivos alterados.
+2. Executar `npm run typecheck:changed` e corrigir todos os erros reportados.
+3. Executar a suíte focada do construtor e o build de produção.
+4. Conferir `/tmp/observability/build-errors.log`, runtime e console.
+5. Rodar Playwright no editor e no link público com as dimensões da matriz.
+6. Liberar inicialmente atrás de flag para propostas novas.
+7. Validar propostas antigas antes de ampliar a flag.
+8. Manter rollback para o renderizador anterior durante a janela de estabilização.
+
+## Ordem recomendada de entrega
+```text
+Contrato e legado
+    ↓
+6 renderizadores reais
+    ↓
+orientação manual
+    ↓
+seleção + slider
+    ↓
+preview responsivo e viewer público
+    ↓
+IA + templates
+    ↓
+testes, flag e liberação
+```
+
+## Arquivos previstos
+
+### Alteração direta
+- `src/pages/comercial/components/editor/blocks/CoverBlocks.tsx`
+- `src/pages/comercial/blocks/registryDefinitions.ts`
+- `src/pages/comercial/blocks/normalization.ts`
+- `src/pages/comercial/blocks/registry.ts`
+- `src/pages/comercial/blocks/EditableText.tsx`
+- `src/pages/comercial/blocks/inlineContext.ts`
+- `src/pages/comercial/components/editor/VisualRenderer.tsx`
+- `src/pages/comercial/components/editor/PropertiesSidebar.tsx`
+- `src/pages/comercial/EditorPropostaPage.tsx`
+- `src/pages/comercial/components/editor/modals/FullscreenPreviewModal.tsx`
+- `src/pages/comercial/PublicProposalViewer.tsx`
+- `src/hooks/useMaterialEditor.ts`
+- `src/hooks/useProposalAI.ts`
+- `src/hooks/useMaterials.ts`
+- `src/pages/comercial/biblioteca/hooks/useCreateMaterialWizard.ts`
+- `src/pages/comercial/biblioteca/components/wizard/StepTemplateGallery.tsx`
+- `workers/proposals-ai/src/index.ts`
+- `workers/proposals-ai/src/sanitize.ts`
+
+### Criação provável
+- Tipos e catálogo compartilhado das capas.
+- Seis componentes de composição em `blocks/covers/`.
+- Utilitário de fitting e geometria.
+- Toolbar contextual de tipografia.
+- Estilos dedicados ao canvas responsivo.
+- Fixtures e testes do motor.
+- Migração idempotente dos templates oficiais.
+
+## Critérios finais de aceite
+- Existem exatamente seis modelos oficiais, visualmente e estruturalmente distintos.
+- Nenhuma variante oficial cai no renderizador de outra.
+- Texto nunca altera largura, altura ou proporção do slot reservado à fotografia.
+- Orientação é manual, persistida e independente da composição.
+- Clicar em texto editável abre o ajuste contextual de tamanho.
+- Slider, reset, undo/redo, salvar, recarregar e publicar funcionam.
+- Preview mobile e link público apresentam composição equivalente.
+- Não há corte vertical causado pela moldura de telefone.
+- Conteúdo legado continua abrindo com mapeamento previsível.
+- Templates e IA produzem apenas o contrato vigente.
+- Typecheck, testes focados, build e inspeção visual passam sem regressões.
+
+## Fora do escopo
+- Refatorar outros blocos da proposta além do necessário para o canvas compartilhado.
+- Alterar regras comerciais, pacotes, preços, compartilhamento ou pagamentos.
+- Criar novo backend, storage ou fluxo de upload.
+- Redesenhar a biblioteca inteira ou a navegação do módulo Comercial.
