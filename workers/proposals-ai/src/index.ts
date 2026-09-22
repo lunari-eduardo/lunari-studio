@@ -199,7 +199,7 @@ ${pkgSummary}
 
 ${referenceSection}Gere uma proposta completa com os blocos V2 do Lunari.
 CATÁLOGO DE VARIANTES DISPONÍVEIS (SEMPRE especifique no "props": { "variant": "..." } de cada bloco):
-- CoverBlock: "split", "full", "centered"
+- CoverBlock: "minimal-center", "poster-split", "seam-side", "hero-full", "editorial-diptych", "floating-frame"
 - EditorialBlock: "text-only", "with-details"
 - EditorialComposition: "split-left", "split-right", "floating", "masonry"
 - PricingTable: "grid", "cards", "minimal"
@@ -209,7 +209,7 @@ CATÁLOGO DE VARIANTES DISPONÍVEIS (SEMPRE especifique no "props": { "variant":
 Formato JSON exato:
 {
   "blocks": [
-    { "type": "CoverBlock", "props": { "variant": "split" }, "content": { "eyebrow", "title", "title_italic", "subtitle", "photographer_name", "btnText", "image_url": "" } },
+    { "type": "CoverBlock", "props": { "variant": "poster-split", "orientation": "portrait" }, "content": { "eyebrow", "title", "title_italic", "subtitle", "photographer_name", "btnText", "image_url": "" } },
     { "type": "EditorialBlock", "props": { "variant": "with-details" }, "content": { "eyebrow", "title", "title_italic", "body", "vertical_label", "details": [{ "label", "value" }] } },
     { "type": "EditorialComposition", "props": { "variant": "masonry" }, "content": { "eyebrow", "title", "title_italic", "body", "side_label", "image_url": "" } },
     { "type": "Gallery", "props": { "variant": "grid" }, "content": { "eyebrow", "title", "caption", "images": [ { "span": "normal|tall_2rows|wide_2cols", "ratio": "auto" } ] } },

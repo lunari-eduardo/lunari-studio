@@ -1,5 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useInlineEdit } from './inlineContext';
 
 interface EditableTextProps {
   value: string | undefined;
@@ -10,6 +11,8 @@ interface EditableTextProps {
   placeholder?: string;
   multiline?: boolean;
   editable?: boolean;
+  /** Chave do campo para o popover de tamanho de texto (ex: 'title', 'eyebrow'). */
+  fieldKey?: string;
 }
 
 // ============================================================
@@ -37,12 +40,14 @@ export function EditableText({
   placeholder,
   multiline = false,
   editable = false,
+  fieldKey,
 }: EditableTextProps) {
   const ref = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState(false);
   const cancelledRef = useRef(false);
   const clickPointRef = useRef<{ x: number; y: number } | null>(null);
   const text = value ?? '';
+  const inline = useInlineEdit();
 
   // Sincroniza o DOM apenas fora da edição (nunca pula o caret).
   // useLayoutEffect: texto presente já na primeira pintura (sem flash).
@@ -141,7 +146,12 @@ export function EditableText({
       if (editing) e.stopPropagation();
     },
     onClick: (e: React.MouseEvent) => {
-      if (editing) e.stopPropagation();
+      if (editing) {
+        e.stopPropagation();
+      } else if (fieldKey && inline?.onSelectTextField) {
+        // Clique único (fora do editing) abre o popover de tamanho
+        inline.onSelectTextField(fieldKey, ref.current);
+      }
     },
   });
 }

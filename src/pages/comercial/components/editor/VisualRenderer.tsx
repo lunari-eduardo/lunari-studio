@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded } from '../../blocks/design';
@@ -9,6 +9,7 @@ import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
 import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/GalleryAndMiscBlocks';
+import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
 
 export interface VisualRendererProps {
   blocks: BlockData[];
@@ -44,27 +45,63 @@ export function VisualRenderer({
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
 
+  // Estado do popover de tamanho de texto
+  const [textSizeState, setTextSizeState] = useState<{
+    fieldKey: string | null;
+    anchorEl: HTMLElement | null;
+    blockIndex: number;
+  }>({ fieldKey: null, anchorEl: null, blockIndex: -1 });
+
+  const handleSelectTextField = useCallback(
+    (blockIndex: number) => (fieldKey: string | null, anchorEl: HTMLElement | null) => {
+      if (fieldKey && anchorEl) {
+        setTextSizeState({ fieldKey, anchorEl, blockIndex });
+      } else {
+        setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 });
+      }
+    },
+    []
+  );
+
+  const handleTextSizeChange = useCallback(
+    (fieldKey: string, size: number) => {
+      if (textSizeState.blockIndex < 0) return;
+      onUpdateField?.(textSizeState.blockIndex, `props.typography.${fieldKey}Size`, size);
+    },
+    [textSizeState.blockIndex, onUpdateField]
+  );
+
   React.useEffect(() => {
     ensureFontLoaded(designTokens?.typography?.display);
     ensureFontLoaded(designTokens?.typography?.body);
   }, [designTokens?.typography?.display, designTokens?.typography?.body]);
 
   return (
-    <div className="w-full h-full p-4 md:p-8 flex items-start justify-center transition-all duration-300">
+    <div
+      className={cn(
+        "w-full h-full flex items-start justify-center transition-all duration-300",
+        mode === 'edit' ? "p-4 md:p-8" : "p-0 md:p-6"
+      )}
+    >
       <div
         className={cn(
-          '@container bg-white shadow-2xl overflow-hidden relative transition-all duration-500 origin-top flex flex-col w-full',
+          '@container bg-white shadow-2xl relative transition-all duration-500 origin-top flex flex-col w-full',
           viewMode === 'desktop'
-            ? 'max-w-5xl rounded-sm'
-            : 'max-w-[375px] h-[812px] rounded-[3rem] border-[12px] border-zinc-900'
+            ? 'max-w-5xl rounded-sm overflow-hidden'
+            : 'max-w-[375px] h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
-        style={tokensToCssVars(designTokens)}
+        style={{
+          ...tokensToCssVars(designTokens),
+          paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))',
+        }}
       >
         {visibleBlocks.map((block, index) => {
           const isActive = index === activeIndex;
           const inlineHandle = {
             editable: isEditing && inlineEditing,
             set: (path: string, value: any) => onUpdateField?.(index, path, value),
+            activeTextField: textSizeState.blockIndex === index ? textSizeState.fieldKey : null,
+            onSelectTextField: handleSelectTextField(index),
           };
 
           const content = (
@@ -155,6 +192,23 @@ export function VisualRenderer({
           </div>
         )}
       </div>
+
+      {/* Popover flutuante de tamanho de texto */}
+      {isEditing && inlineEditing && textSizeState.fieldKey && textSizeState.anchorEl && (
+        <TextSizeFloatingPopover
+          fieldKey={textSizeState.fieldKey}
+          currentSize={
+            textSizeState.blockIndex >= 0
+              ? (blocks[textSizeState.blockIndex]?.props as any)?.typography?.[
+                  `${textSizeState.fieldKey}Size`
+                ]
+              : undefined
+          }
+          anchorEl={textSizeState.anchorEl}
+          onChange={handleTextSizeChange}
+          onClose={() => setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 })}
+        />
+      )}
     </div>
   );
 }

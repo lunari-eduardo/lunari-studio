@@ -13,7 +13,9 @@ import {
   Sparkles,
   Type,
   Layout,
-  Palette
+  Palette,
+  RectangleVertical,
+  RectangleHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -63,7 +65,7 @@ function isActionField(field: BlockField): boolean {
 function isVisualField(field: BlockField): boolean {
   if (isActionField(field)) return false;
   if (field.kind === 'image' || field.kind === 'color' || field.kind === 'align') return true;
-  if (['background', 'style', 'layout', 'text_color', 'hide_images'].includes(field.key)) return true;
+  if (['background', 'style', 'layout', 'text_color', 'hide_images', 'orientation'].includes(field.key)) return true;
   return false;
 }
 
@@ -140,7 +142,7 @@ export function PropertiesSidebar({
 
   const contentFields = allFields.filter(isContentField);
   const visualContentFields = allFields.filter(isVisualField);
-  const visualLayoutFields = allLayoutFields.filter(isVisualField);
+  const visualLayoutFields = allLayoutFields.filter(f => isVisualField(f) && f.key !== 'orientation');
   const actionFields = [
     ...allFields.filter(isActionField),
     ...allLayoutFields.filter(isActionField),
@@ -291,6 +293,41 @@ export function PropertiesSidebar({
                         <span className="text-[10px] leading-tight opacity-70 line-clamp-2">{v.description}</span>
                       </button>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Controle de Orientação da Capa (segmentado com ícones) */}
+              {block.type === 'CoverBlock' && (
+                <div className="space-y-2 pb-3 border-b border-border/60">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                    <RectangleVertical className="h-3.5 w-3.5" /> Orientação
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setProps({ orientation: 'portrait' })}
+                      className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                        (props.orientation ?? 'portrait') === 'portrait'
+                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                          : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40'
+                      }`}
+                    >
+                      <RectangleVertical className="h-4 w-4" />
+                      Retrato
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProps({ orientation: 'landscape' })}
+                      className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
+                        props.orientation === 'landscape'
+                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
+                          : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40'
+                      }`}
+                    >
+                      <RectangleHorizontal className="h-4 w-4" />
+                      Paisagem
+                    </button>
                   </div>
                 </div>
               )}

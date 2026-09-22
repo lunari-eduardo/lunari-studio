@@ -29,6 +29,15 @@ export function normalizeBlock(raw: any): BlockData | null {
       ...raw,
       content: raw.content ?? raw.data ?? {},
     });
+
+    // Fallback de variantes legadas da capa
+    if (type === 'CoverBlock' && normalized.props) {
+      const v = normalized.props.variant;
+      if (v === 'centered') normalized.props.variant = 'minimal-center';
+      if (v === 'split') normalized.props.variant = 'poster-split';
+      if (v === 'full' || v === 'gradient_parallax') normalized.props.variant = 'hero-full';
+    }
+
     // Garantir variant default para blocos sem variant definida
     if (def.defaultVariant && !normalized.props?.variant) {
       normalized.props = { ...normalized.props, variant: def.defaultVariant };

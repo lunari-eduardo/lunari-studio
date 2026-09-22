@@ -24,7 +24,14 @@ const STRING_FIELDS: Record<string, string[]> = {
 const GALLERY_RATIOS = ['auto', '1/1', '4/5', '4/3', '16/9'];
 
 const VALID_VARIANTS: Record<string, string[]> = {
-  CoverBlock: ['split', 'full', 'centered'],
+  CoverBlock: [
+    'minimal-center',
+    'poster-split',
+    'seam-side',
+    'hero-full',
+    'editorial-diptych',
+    'floating-frame',
+  ],
   EditorialBlock: ['text-only', 'with-details'],
   EditorialComposition: ['split-left', 'split-right', 'floating', 'masonry'],
   PricingTable: ['grid', 'cards', 'minimal'],

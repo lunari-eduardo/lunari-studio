@@ -125,12 +125,27 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'btnLink', label: 'Link do Botão', kind: 'url', placeholder: 'https://wa.me/5511999999999' },
       { key: 'image_url', label: 'Imagem de Capa', kind: 'image' },
     ],
-    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    layoutFields: [
+      ALIGN_FIELD,
+      backgroundField(),
+      textColorField(),
+      {
+        key: 'orientation',
+        label: 'Orientação',
+        kind: 'select',
+        options: [
+          { value: 'portrait', label: 'Retrato (3:4)' },
+          { value: 'landscape', label: 'Paisagem (16:9)' },
+        ],
+      },
+    ],
     variants: [
-      { value: 'minimal-center', label: 'Minimal', description: 'Layout clássico lado a lado (padrão)' },
-      { value: 'poster-split', label: 'Poster', description: 'Título gigante + foto full-bleed com gradiente' },
-      { value: 'seam-side', label: 'Split Lateral', description: 'Divisão vertical 50/50 foto e texto' },
-      { value: 'hero-full', label: 'Hero Fotográfico', description: 'Foto como fundo com overlay escuro' },
+      { value: 'minimal-center', label: 'Minimal', description: 'Editorial Minimalista (Retrato/Paisagem)' },
+      { value: 'poster-split', label: 'Poster', description: 'Pôster Tipográfico em Grid' },
+      { value: 'seam-side', label: 'Split Lateral', description: 'Costura Lateral 50/50' },
+      { value: 'hero-full', label: 'Hero Fotográfico', description: 'Imersivo Full-Bleed' },
+      { value: 'editorial-diptych', label: 'Díptico', description: 'Díptico Editorial' },
+      { value: 'floating-frame', label: 'Moldura', description: 'Moldura Flutuante Fine Art' },
     ],
     defaultVariant: 'minimal-center',
     factory: () => ({
@@ -144,7 +159,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         btnLink: '',
         image_url: '',
       },
-      props: { align: 'left', background: 'white', text_color: 'default' },
+      props: { align: 'left', background: 'white', text_color: 'default', orientation: 'portrait' },
     }),
   },
 
