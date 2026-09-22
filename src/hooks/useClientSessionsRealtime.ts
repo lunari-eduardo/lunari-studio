@@ -253,7 +253,8 @@ export function useClientSessionsRealtime(clienteId: string) {
 
           // FASE 3: Read valor_total directly from database (DON'T recalculate)
           const total = Number(session.valor_total) || 0;
-          const restante = Math.max(0, total - valorPago);
+          const isCancelled = session.status === 'cancelada' || session.status === 'cancelado';
+          const restante = isCancelled ? 0 : Math.max(0, total - valorPago);
 
           // Calcular total agendado: soma dos ajustes (pendentes)
           const totalAgendado = (transacoesData || [])

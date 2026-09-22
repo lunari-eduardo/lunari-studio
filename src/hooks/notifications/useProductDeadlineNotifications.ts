@@ -88,6 +88,7 @@ export function useProductDeadlineNotifications(): AppNotification[] {
       .select('id, data_sessao, produtos_incluidos, clientes(nome)')
       .eq('user_id', user.id)
       .not('produtos_incluidos', 'is', null)
+      .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)')
       .gte('data_sessao', sinceIso)
       .lte('data_sessao', untilIso)
       .order('data_sessao', { ascending: true })

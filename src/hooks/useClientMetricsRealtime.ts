@@ -91,10 +91,18 @@ export function useClientMetricsRealtime(clienteId: string) {
       const totalAgendado = (transacoesData || [])
         .reduce((acc, t) => acc + (Number(t.valor) || 0), 0);
 
-      // Sessões base
-      const totalSessoes = sessionsData?.length || 0;
-      let totalFaturadoSessoes = sessionsData?.reduce((sum, s) => sum + (Number(s.valor_total) || 0), 0) || 0;
-      let totalPagoSessoes = sessionsData?.reduce((sum, s) => sum + (Number(s.valor_pago) || 0), 0) || 0;
+      // Sessões base (excluindo estritamente canceladas e arquivadas)
+      const activeSessions = (sessionsData || []).filter(
+        (s) =>
+          s.status !== "cancelada" &&
+          s.status !== "cancelado" &&
+          s.status !== "historico" &&
+          s.status !== "stub",
+      );
+
+      const totalSessoes = activeSessions.length;
+      let totalFaturadoSessoes = activeSessions.reduce((sum, s) => sum + (Number(s.valor_total) || 0), 0);
+      let totalPagoSessoes = activeSessions.reduce((sum, s) => sum + (Number(s.valor_pago) || 0), 0);
 
       // Galerias e Fotos Extras
       const galerias = galeriasData || [];
@@ -140,16 +148,16 @@ export function useClientMetricsRealtime(clienteId: string) {
       const totalPago = totalPagoSessoes + pagoAvulsoGalerias;
       const aReceber = Math.max(0, totalFaturado - totalPago);
 
-      // Find latest session
-      const sortedSessions = sessionsData?.sort((a, b) => 
+      // Find latest session among active/completed sessions
+      const sortedSessions = [...activeSessions].sort((a, b) => 
         new Date(b.data_sessao).getTime() - new Date(a.data_sessao).getTime()
       );
       const ultimaSessao = sortedSessions?.[0]?.data_sessao;
 
       // Check if there's a session in progress
-      const sessaoEmAndamento = sessionsData?.some(session => 
+      const sessaoEmAndamento = activeSessions.some(session => 
         session.status === 'em_andamento' || session.status === 'agendado'
-      ) || false;
+      );
 
       setMetrics({
         totalSessoes,

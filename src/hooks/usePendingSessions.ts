@@ -21,11 +21,19 @@ export function usePendingSessions(clienteId?: string | null, enabled = true) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clientes_sessoes")
-        .select("session_id, data_sessao, pacote, valor_total, valor_pago")
+        .select("session_id, data_sessao, pacote, valor_total, valor_pago, status")
         .eq("cliente_id", clienteId as string)
+        .or("status.is.null,status.not.in.(historico,stub,cancelada,cancelado)")
         .order("data_sessao", { ascending: true });
       if (error) throw error;
       return (data ?? [])
+        .filter(
+          (r: any) =>
+            r.status !== "cancelada" &&
+            r.status !== "cancelado" &&
+            r.status !== "historico" &&
+            r.status !== "stub",
+        )
         .map((r) => ({
           session_id: r.session_id,
           data_sessao: r.data_sessao,

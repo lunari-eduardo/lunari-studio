@@ -58,7 +58,7 @@ export function useDashboardMetrics(): DashboardMetrics {
             .from('clientes_sessoes')
             .select('valor_pago, valor_total')
             .eq('user_id', user.id)
-            .neq('status', 'cancelado')
+            .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)')
             .gte('data_sessao', monthStart)
             .lte('data_sessao', monthEnd),
           
@@ -67,7 +67,7 @@ export function useDashboardMetrics(): DashboardMetrics {
             .from('clientes_sessoes')
             .select('categoria, valor_pago')
             .eq('user_id', user.id)
-            .neq('status', 'cancelado')
+            .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)')
             .gte('data_sessao', yearStart),
           
           // 3. Novos clientes nos últimos 60 dias

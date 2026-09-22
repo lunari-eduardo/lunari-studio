@@ -61,7 +61,7 @@ export class SupabaseSalesDataSource implements SalesDataSource {
             origem
           )
         `)
-        .neq('status', 'cancelado');
+        .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)');
 
       // Apply year filter
       if (filters?.year) {
@@ -134,7 +134,7 @@ export class SupabaseSalesDataSource implements SalesDataSource {
       const { data, error } = await supabase
         .from('clientes_sessoes')
         .select('data_sessao')
-        .neq('status', 'cancelado');
+        .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)');
       
       if (error) {
         console.error('[SupabaseDataSource] Error fetching years:', error);
@@ -166,7 +166,7 @@ export class SupabaseSalesDataSource implements SalesDataSource {
       const { data, error } = await supabase
         .from('clientes_sessoes')
         .select('categoria')
-        .neq('status', 'cancelado');
+        .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)');
       
       if (error) {
         console.error('[SupabaseDataSource] Error fetching categories:', error);

@@ -49,6 +49,7 @@ export function useSalesTopPerformances(
         .from('clientes_sessoes')
         .select('data_sessao, valor_total, categoria, pacote, cliente_id, tipo_registro, cliente:clientes(nome)')
         .eq('user_id', user.id)
+        .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)')
         .gte('data_sessao', yearStart)
         .lte('data_sessao', yearEnd);
 

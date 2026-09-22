@@ -103,10 +103,16 @@ export function WorkflowHistoryTable({ cliente }: WorkflowHistoryTableProps) {
                   <span
                     className={cn(
                       'text-xs font-semibold tabular-nums',
-                      (item.restante || 0) > 0 ? 'text-accent-gold' : 'text-muted-foreground'
+                      (item.status === 'cancelada' || item.status === 'cancelado')
+                        ? 'text-muted-foreground'
+                        : (item.restante || 0) > 0
+                        ? 'text-accent-gold'
+                        : 'text-muted-foreground'
                     )}
                   >
-                    {formatCurrency(item.restante || 0)}
+                    {(item.status === 'cancelada' || item.status === 'cancelado')
+                      ? '—'
+                      : formatCurrency(item.restante || 0)}
                   </span>
                 </div>
               </div>

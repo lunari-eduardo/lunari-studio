@@ -27,11 +27,12 @@ export function useClientMetrics(clientes: Cliente[]): ClientMetrics[] {
         return;
       }
 
-      // Fetch all sessions from Supabase
+      // Fetch all sessions from Supabase (excluindo canceladas e arquivadas)
       const { data: sessionsData } = await supabase
         .from('clientes_sessoes')
-        .select('cliente_id, valor_total, valor_pago, data_sessao')
-        .eq('user_id', user.id);
+        .select('cliente_id, valor_total, valor_pago, data_sessao, status')
+        .eq('user_id', user.id)
+        .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)');
 
       // Fetch all scheduled transactions from Supabase
       const { data: transacoesData } = await supabase
@@ -44,8 +45,14 @@ export function useClientMetrics(clientes: Cliente[]): ClientMetrics[] {
       const metricsMap = new Map<string, ClientMetrics>();
       
       clientes.forEach(cliente => {
-        // Client sessions
-        const clienteSessions = sessionsData?.filter(s => s.cliente_id === cliente.id) || [];
+        // Client sessions (excluindo estritamente canceladas e arquivadas)
+        const clienteSessions = sessionsData?.filter(s => 
+          s.cliente_id === cliente.id &&
+          s.status !== 'cancelada' &&
+          s.status !== 'cancelado' &&
+          s.status !== 'historico' &&
+          s.status !== 'stub'
+        ) || [];
         
         // Client scheduled transactions
         const clienteTransacoes = transacoesData?.filter(t => t.cliente_id === cliente.id) || [];

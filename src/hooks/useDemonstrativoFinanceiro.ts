@@ -42,7 +42,7 @@ export async function fetchSessoesProdutos(
     .gte('data_sessao', dataInicio)
     .lte('data_sessao', dataFim)
     .not('produtos_incluidos', 'is', null)
-    .or('status.is.null,status.neq.cancelado,status.neq.historico');
+    .or('status.is.null,status.not.in.(historico,stub,cancelada,cancelado)');
 
   if (error || !sessoesProds) return [];
 
