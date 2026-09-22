@@ -27,4 +27,5 @@ No `package.json`, o comando `"build"` executa apenas `"vite build"`.
    - Erros nesses arquivos derrubam a aplicação inteira para todos os usuários com o ErrorBoundary global ("Algo deu errado").
 
 3. **Verificação de Sintaxe e Tipos dos Arquivos Modificados**:
-   - Sempre certifique-se de que os arquivos alterados não possuem erros de sintaxe ou referências não declaradas.
+   - Rodar SEMPRE `npm run typecheck:changed` antes de qualquer entrega ou encerramento de tarefa.
+   - NUNCA considerar uma tarefa pronta se `npm run typecheck:changed` acusar qualquer erro.

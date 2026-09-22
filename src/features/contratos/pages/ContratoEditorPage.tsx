@@ -13,6 +13,7 @@ import { ContratoEditorPreview } from '../components/editor/ContratoEditorPrevie
 import { countVariables, estimateReadingTime } from '../utils/contratoMetrics';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { ContratoTemplate } from '@/types/contrato';
 
 export default function ContratoEditorPage() {

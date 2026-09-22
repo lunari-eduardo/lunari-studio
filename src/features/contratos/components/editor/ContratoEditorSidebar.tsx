@@ -1,4 +1,4 @@
-import { Info, FileText, Code2 } from 'lucide-react';
+import { Info, FileText, Code2, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type ContratoSectionId = 'info' | 'content' | 'variables';
@@ -6,7 +6,7 @@ export type ContratoSectionId = 'info' | 'content' | 'variables';
 interface Item {
   id: ContratoSectionId;
   label: string;
-  Icon: React.ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean }>;
+  Icon: LucideIcon;
   hint?: string;
 }
 
