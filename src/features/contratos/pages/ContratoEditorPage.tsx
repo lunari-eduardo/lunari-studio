@@ -10,6 +10,7 @@ import { ContratoEditorSidebar, type ContratoSectionId } from '../components/edi
 import { ContratoEditorSectionInfo } from '../components/editor/ContratoEditorSectionInfo';
 import { ContratoPaperCanvas, type ContratoPaperCanvasHandle } from '../components/editor/ContratoPaperCanvas';
 import { ContratoVariablesDrawer } from '../components/editor/ContratoVariablesDrawer';
+import { ContratoEditorPreview } from '../components/editor/ContratoEditorPreview';
 import { countVariables, estimateReadingTime } from '../utils/contratoMetrics';
 import { toast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
@@ -30,6 +31,7 @@ export default function ContratoEditorPage() {
   const [saveState, setSaveState] = useState<SaveState>({ kind: 'idle' });
   const [section, setSection] = useState<ContratoSectionId>('content');
   const [variablesDrawerOpen, setVariablesDrawerOpen] = useState(true);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const canvasRef = useRef<ContratoPaperCanvasHandle>(null);
 
@@ -58,7 +60,7 @@ export default function ContratoEditorPage() {
       nome: 'Novo modelo de contrato',
       descricao: '',
       categoria: 'geral',
-      conteudo: '<h2>Contrato de Prestação de Serviços Fotográficos</h2>\n\n<p>Comece a redigir seu contrato ou insira variáveis...</p>',
+      conteudo: '<h2>Contrato de Prestação de Serviços Fotográficos</h2>\n\n<p>Comece a redigir seu contrato ou insira variáveis da lista...</p>',
       is_padrao: false,
     };
     setDraft(initialDraft);
@@ -190,32 +192,46 @@ export default function ContratoEditorPage() {
     );
   }
 
+  // Se estiver no modo de pré-visualização, renderiza o componente de Preview dedicado
+  if (isPreviewMode) {
+    return (
+      <ContratoEditorPreview
+        draft={draft}
+        onVoltar={() => setIsPreviewMode(false)}
+        onSalvar={handleSalvar}
+      />
+    );
+  }
+
   const varsCount = countVariables(draft.conteudo);
   const readingTime = estimateReadingTime(draft.conteudo);
 
   return (
     <div className={PAGE_SCROLL_SHELL}>
-      {/* Header dedicado com status de salvamento */}
+      {/* ── Header fixo no topo da página ── */}
       <ContratoEditorHeader
         draft={draft}
         onTituloChange={(nome) => setDraft({ ...draft, nome })}
         saveState={saveState}
+        onVisualizar={() => setIsPreviewMode(true)}
         onSalvar={handleSalvar}
       />
 
-      <PageContainer className="py-6 max-w-[90rem]">
+      <PageContainer className="py-6 max-w-[92rem]">
         <div className="flex gap-6 items-start">
-          {/* Sidebar vertical de seções */}
-          <ContratoEditorSidebar
-            active={section}
-            onChange={setSection}
-            variablesCount={varsCount}
-            readingTime={readingTime}
-            isPadrao={draft.is_padrao}
-          />
+          {/* ── Sidebar vertical de seções fixa (sticky) com scroll interno ── */}
+          <div className="sticky top-[72px] h-[calc(100vh-100px)] overflow-y-auto hidden md:block">
+            <ContratoEditorSidebar
+              active={section}
+              onChange={setSection}
+              variablesCount={varsCount}
+              readingTime={readingTime}
+              isPadrao={draft.is_padrao}
+            />
+          </div>
 
-          {/* Área Central / Conteúdo da Seção Ativa */}
-          <div className="flex-1 min-w-0">
+          {/* ── Área Central / Conteúdo da Seção com rolagem da página ── */}
+          <div className="flex-1 min-w-0 pb-16">
             {section === 'info' && (
               <ContratoEditorSectionInfo
                 draft={draft}
@@ -225,7 +241,7 @@ export default function ContratoEditorPage() {
 
             {section === 'content' && (
               <div className="flex gap-5 items-start">
-                {/* Paper Canvas (Folha A4) */}
+                {/* Paper Canvas (Folha A4) que rola naturalmente com o conteúdo */}
                 <div className="flex-1 min-w-0">
                   <ContratoPaperCanvas
                     ref={canvasRef}
@@ -237,9 +253,9 @@ export default function ContratoEditorPage() {
                   />
                 </div>
 
-                {/* Gaveta / Painel lateral de variáveis integrado na tela de redação */}
+                {/* Painel lateral de variáveis fixo (sticky) com scroll interno próprio */}
                 {variablesDrawerOpen && (
-                  <div className="w-80 shrink-0 sticky top-[72px] h-[calc(100vh-140px)] hidden xl:block">
+                  <div className="w-80 shrink-0 sticky top-[72px] h-[calc(100vh-100px)] hidden xl:block">
                     <ContratoVariablesDrawer
                       conteudoHtml={draft.conteudo || ''}
                       onInsertVariable={handleInsertVariable}
@@ -254,7 +270,7 @@ export default function ContratoEditorPage() {
                 <ContratoVariablesDrawer
                   conteudoHtml={draft.conteudo || ''}
                   onInsertVariable={handleInsertVariable}
-                  className="h-[calc(100vh-180px)]"
+                  className="h-[calc(100vh-160px)]"
                 />
               </div>
             )}
