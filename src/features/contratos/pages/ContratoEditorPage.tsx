@@ -206,7 +206,7 @@ export default function ContratoEditorPage() {
   const readingTime = estimateReadingTime(draft.conteudo);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden bg-background">
       {/* ── Header fixo no topo da página ── */}
       <ContratoEditorHeader
         draft={draft}
@@ -216,81 +216,109 @@ export default function ContratoEditorPage() {
         onSalvar={handleSalvar}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto py-6 px-2 md:px-4">
-        <div className="mx-auto max-w-[92rem] flex gap-6 items-start">
-          {/* ── Sidebar vertical de seções fixa (sticky) com scroll interno ── */}
-          <div className="sticky top-[120px] h-[calc(100vh-128px)] overflow-y-auto hidden md:block">
-            <ContratoEditorSidebar
-              active={section}
-              onChange={setSection}
-              variablesCount={varsCount}
-              readingTime={readingTime}
-              isPadrao={draft.is_padrao}
-            />
-          </div>
+      {/* ── Navegação de abas para mobile/tablet (< md) ── */}
+      <div className="md:hidden border-b bg-background px-3 py-1.5 flex gap-1 overflow-x-auto shrink-0 z-20">
+        {[
+          { id: 'info' as const, label: 'Informações' },
+          { id: 'content' as const, label: 'Redação & Cláusulas' },
+          { id: 'variables' as const, label: `Variáveis (${varsCount})` },
+        ].map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSection(item.id)}
+            className={cn(
+              'px-2.5 py-1 text-xs rounded-md whitespace-nowrap transition-colors',
+              section === item.id
+                ? 'bg-muted text-foreground font-medium'
+                : 'text-muted-foreground hover:bg-muted/60'
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
 
-          {/* ── Área Central / Conteúdo da Seção com rolagem da página ── */}
-          <div className="flex-1 min-w-0 pb-16">
-            {section === 'info' && (
-              <ContratoEditorSectionInfo
-                draft={draft}
-                onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
+      {/* ── Layout de 3 colunas de altura total (100% da área útil restante) ── */}
+      <div className="flex-1 min-h-0 flex overflow-hidden">
+        {/* ── Coluna Esquerda: Sidebar vertical fixa alinhada no topo com scroll interno ── */}
+        <aside className="w-56 shrink-0 border-r bg-background hidden md:flex flex-col h-full min-h-0 overflow-y-auto">
+          <ContratoEditorSidebar
+            active={section}
+            onChange={setSection}
+            variablesCount={varsCount}
+            readingTime={readingTime}
+            isPadrao={draft.is_padrao}
+          />
+        </aside>
+
+        {/* ── Coluna Central: Mesa de trabalho / Editor ── */}
+        <main className="flex-1 min-w-0 flex flex-col h-full min-h-0 overflow-hidden bg-muted/30">
+          {section === 'content' && (
+            <>
+              {/* Toolbar FIXA no topo da coluna central (NÃO rola com a folha e texto não passa por ela) */}
+              <ContratoEditorToolbar
+                onExec={(cmd, arg) => {
+                  canvasRef.current?.focus();
+                  document.execCommand(cmd, false, arg);
+                }}
+                onFormatBlock={(tag) => {
+                  canvasRef.current?.focus();
+                  document.execCommand('formatBlock', false, `<${tag}>`);
+                }}
+                onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
+                variablesOpen={variablesDrawerOpen}
+                variablesCount={varsCount}
               />
-            )}
 
-            {section === 'content' && (
-              <div className="flex gap-5 items-start">
-                {/* Paper Canvas (Folha A4) que rola naturalmente com o conteúdo */}
-                <div className="flex-1 min-w-0 space-y-3">
-                  {/* Toolbar fixa fora do paper canvas */}
-                  <ContratoEditorToolbar
-                    onExec={(cmd, arg) => {
-                      canvasRef.current?.focus();
-                      document.execCommand(cmd, false, arg);
-                    }}
-                    onFormatBlock={(tag) => {
-                      canvasRef.current?.focus();
-                      document.execCommand('formatBlock', false, `<${tag}>`);
-                    }}
-                    onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
-                    variablesOpen={variablesDrawerOpen}
-                    variablesCount={varsCount}
-                    stickyTopClass="top-[68px]"
-                  />
-                  <ContratoPaperCanvas
-                    ref={canvasRef}
-                    value={draft.conteudo || ''}
-                    onChange={(conteudo) => setDraft((prev) => (prev ? { ...prev, conteudo } : prev))}
-                    hideToolbar
-                    onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
-                    variablesOpen={variablesDrawerOpen}
-                    variablesCount={varsCount}
-                  />
-                </div>
-
-                {/* Painel lateral de variáveis fixo (sticky) com scroll interno próprio */}
-                {variablesDrawerOpen && (
-                  <div className="w-80 shrink-0 sticky top-[120px] h-[calc(100vh-128px)] hidden xl:block">
-                    <ContratoVariablesDrawer
-                      conteudoHtml={draft.conteudo || ''}
-                      onInsertVariable={handleInsertVariable}
-                    />
-                  </div>
-                )}
+              {/* Área de rolagem isolada da folha A4 (corte limpo na borda da toolbar) */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
+                <ContratoPaperCanvas
+                  ref={canvasRef}
+                  value={draft.conteudo || ''}
+                  onChange={(conteudo) => setDraft((prev) => (prev ? { ...prev, conteudo } : prev))}
+                  hideToolbar
+                  onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
+                  variablesOpen={variablesDrawerOpen}
+                  variablesCount={varsCount}
+                />
               </div>
-            )}
+            </>
+          )}
 
-            {section === 'variables' && (
-              <div className="max-w-4xl">
+          {section === 'info' && (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
+              <div className="w-full max-w-3xl">
+                <ContratoEditorSectionInfo
+                  draft={draft}
+                  onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
+                />
+              </div>
+            </div>
+          )}
+
+          {section === 'variables' && (
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
+              <div className="w-full max-w-4xl h-[calc(100vh-140px)]">
                 <ContratoVariablesDrawer
                   conteudoHtml={draft.conteudo || ''}
                   onInsertVariable={handleInsertVariable}
-                  className="h-[calc(100vh-160px)]"
                 />
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </main>
+
+        {/* ── Coluna Direita: Painel de variáveis fixo alinhado no topo ── */}
+        {section === 'content' && variablesDrawerOpen && (
+          <aside className="w-80 shrink-0 border-l bg-background hidden xl:flex flex-col h-full min-h-0 overflow-hidden">
+            <ContratoVariablesDrawer
+              conteudoHtml={draft.conteudo || ''}
+              onInsertVariable={handleInsertVariable}
+              className="border-0 rounded-none shadow-none bg-transparent"
+            />
+          </aside>
+        )}
       </div>
     </div>
   );

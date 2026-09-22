@@ -49,9 +49,9 @@ export function ContratoEditorSidebar({
   return (
     <nav
       aria-label="Seções do editor de contrato"
-      className="w-56 shrink-0 border-r bg-background"
+      className="w-full h-full flex flex-col bg-background"
     >
-      <div className="px-4 py-5">
+      <div className="px-3 pt-3 pb-2">
         <p className="text-[10px] font-semibold tracking-[0.18em] uppercase text-muted-foreground">
           Estrutura
         </p>

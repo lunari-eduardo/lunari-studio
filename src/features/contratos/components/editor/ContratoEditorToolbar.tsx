@@ -34,12 +34,13 @@ export function ContratoEditorToolbar({
   variablesOpen,
   variablesCount = 0,
   className,
-  stickyTopClass = 'top-[61px]',
+  stickyTopClass,
 }: ContratoEditorToolbarProps) {
   return (
     <div
       className={cn(
-        `sticky ${stickyTopClass} z-20 flex items-center flex-wrap gap-1 p-2 border-b border-border/70 bg-background`,
+        'w-full shrink-0 flex items-center flex-wrap gap-1 px-3 py-1.5 border-b border-border/70 bg-background z-10',
+        stickyTopClass && `sticky ${stickyTopClass}`,
         className
       )}
       role="toolbar"

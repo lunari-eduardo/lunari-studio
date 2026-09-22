@@ -29,9 +29,9 @@ export function ContratoEditorHeader({
 
   return (
     <header className="shrink-0 border-b bg-background sticky top-0 z-30">
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
+      <div className="w-full px-4 md:px-6">
         {/* Linha 1: Voltar + Título editável + Ações */}
-        <div className="flex items-center gap-3 py-3">
+        <div className="flex items-center gap-3 py-2">
           <button
             type="button"
             onClick={() => navigate('/app/comercial/contratos')}
@@ -52,7 +52,7 @@ export function ContratoEditorHeader({
             placeholder="Nome do modelo de contrato"
             aria-label="Nome do modelo"
             className={cn(
-              'flex-1 min-w-0 bg-transparent text-base font-semibold text-foreground outline-none',
+              'flex-1 min-w-0 bg-transparent text-sm md:text-base font-semibold text-foreground outline-none',
               'placeholder:text-muted-foreground/60 placeholder:italic'
             )}
           />
@@ -63,9 +63,9 @@ export function ContratoEditorHeader({
                 variant="outline"
                 size="sm"
                 onClick={onVisualizar}
-                className="h-9 gap-1.5 hidden sm:inline-flex text-xs"
+                className="h-8 gap-1.5 hidden sm:inline-flex text-xs"
               >
-                <Eye size={14} />
+                <Eye size={13} />
                 Visualizar
               </Button>
             )}
@@ -74,11 +74,11 @@ export function ContratoEditorHeader({
               size="sm"
               onClick={onSalvar}
               disabled={saveState.kind === 'saving' || !draft.nome?.trim()}
-              className="h-9 gap-1.5 text-xs bg-[hsl(var(--accent-gold))] hover:bg-[hsl(var(--accent-gold))]/90 text-primary-foreground font-medium"
+              className="h-8 gap-1.5 text-xs bg-[hsl(var(--accent-gold))] hover:bg-[hsl(var(--accent-gold))]/90 text-primary-foreground font-medium"
             >
               {saveState.kind === 'saving' ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" aria-hidden /> Salvando...
+                  <Loader2 size={13} className="animate-spin" aria-hidden /> Salvando...
                 </>
               ) : (
                 'Salvar modelo'
@@ -88,14 +88,14 @@ export function ContratoEditorHeader({
         </div>
 
         {/* Linha 2: Descrição discreta e estado de salvamento */}
-        <div className="flex items-center justify-between gap-3 pb-2.5 -mt-1">
+        <div className="flex items-center justify-between gap-3 pb-2 -mt-0.5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {draft.categoria && (
               <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] uppercase font-medium">
                 {draft.categoria}
               </span>
             )}
-            <span className="line-clamp-1">
+            <span className="line-clamp-1 text-[11px]">
               {draft.descricao?.trim() || 'Sem descrição interna informada.'}
             </span>
           </div>

@@ -18,8 +18,8 @@ export default function Layout() {
   useEquipmentSync();
 
   // Bottom nav is shown on mobile and tablet-portrait
-  const hasBottomNav = isMobile || responsiveMode === 'tablet-portrait';
   const isEditor = location.pathname.startsWith('/app/comercial/construtor')
+    || location.pathname === '/app/comercial/contratos/novo'
     || /^\/app\/comercial\/contratos\/[^/]+\/editor$/.test(location.pathname);
 
   return <div className="flex bg-background" style={{ height: '100dvh' }}>

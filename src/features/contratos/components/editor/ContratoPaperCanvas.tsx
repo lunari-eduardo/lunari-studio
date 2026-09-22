@@ -190,10 +190,58 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
       [editable, emitChange, moveCaretToEnd]
     );
 
+    const editorContent = (
+      <div
+        ref={editorRef}
+        contentEditable={editable}
+        suppressContentEditableWarning
+        onInput={emitChange}
+        onBlur={() => {
+          saveSelection();
+          emitChange();
+        }}
+        onKeyUp={saveSelection}
+        onMouseUp={saveSelection}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        data-placeholder={placeholder}
+        spellCheck
+        className={cn(
+          'contrato-paper-content outline-none text-foreground text-[13.5px] leading-relaxed',
+          '[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-foreground [&_h1]:tracking-tight',
+          '[&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-foreground [&_h2]:border-b [&_h2]:border-border/40 [&_h2]:pb-1.5',
+          '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-foreground',
+          '[&_p]:my-2.5 [&_p]:text-foreground/90 [&_p]:leading-relaxed',
+          '[&_strong]:font-semibold [&_strong]:text-foreground',
+          '[&_em]:italic',
+          '[&_u]:underline',
+          '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3',
+          '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3',
+          '[&_li]:my-1.5 [&_li]:text-foreground/90',
+          '[&_hr]:my-6 [&_hr]:border-border/60',
+          '[&_blockquote]:border-l-4 [&_blockquote]:border-[hsl(var(--accent-gold))] [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-4 [&_blockquote]:bg-muted/20 [&_blockquote]:rounded-r',
+          '[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground/60 [&:empty]:before:pointer-events-none'
+        )}
+      />
+    );
+
+    if (hideToolbar) {
+      return (
+        <div
+          className={cn(
+            'w-full max-w-4xl bg-card border border-border/80 rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.08)] p-6 sm:p-10 md:p-14 min-h-[750px]',
+            className
+          )}
+        >
+          {editorContent}
+        </div>
+      );
+    }
+
     return (
       <div className={cn('flex flex-col rounded-xl overflow-hidden border border-border/70 shadow-sm bg-background', className)}>
         {/* Barra de Formatação */}
-        {editable && !hideToolbar && (
+        {editable && (
           <ContratoEditorToolbar
             onExec={exec}
             onFormatBlock={formatBlock}
@@ -207,38 +255,7 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
         <div className="bg-muted/30 p-4 sm:p-6 md:p-8 flex justify-center min-h-[600px] overflow-y-auto">
           {/* Folha de papel formal (A4/Executivo) */}
           <div className="w-full max-w-4xl bg-card border border-border/80 rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.12)] p-6 sm:p-10 md:p-14 min-h-[680px]">
-            <div
-              ref={editorRef}
-              contentEditable={editable}
-              suppressContentEditableWarning
-              onInput={emitChange}
-              onBlur={() => {
-                saveSelection();
-                emitChange();
-              }}
-              onKeyUp={saveSelection}
-              onMouseUp={saveSelection}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
-              data-placeholder={placeholder}
-              spellCheck
-              className={cn(
-                'contrato-paper-content outline-none text-foreground text-[13.5px] leading-relaxed',
-                '[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-foreground [&_h1]:tracking-tight',
-                '[&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-foreground [&_h2]:border-b [&_h2]:border-border/40 [&_h2]:pb-1.5',
-                '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-foreground',
-                '[&_p]:my-2.5 [&_p]:text-foreground/90 [&_p]:leading-relaxed',
-                '[&_strong]:font-semibold [&_strong]:text-foreground',
-                '[&_em]:italic',
-                '[&_u]:underline',
-                '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-3',
-                '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-3',
-                '[&_li]:my-1.5 [&_li]:text-foreground/90',
-                '[&_hr]:my-6 [&_hr]:border-border/60',
-                '[&_blockquote]:border-l-4 [&_blockquote]:border-[hsl(var(--accent-gold))] [&_blockquote]:pl-4 [&_blockquote]:py-1 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_blockquote]:my-4 [&_blockquote]:bg-muted/20 [&_blockquote]:rounded-r',
-                '[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground/60 [&:empty]:before:pointer-events-none'
-              )}
-            />
+            {editorContent}
           </div>
         </div>
       </div>
