@@ -98,7 +98,7 @@ export function PublicThemeWrapper({
 
     return (
       <div
-        className={`${forceHeight ? '' : 'min-h-screen'} bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`}
+        className={`${forceHeight || className?.includes('h-full') ? '' : 'min-h-screen'} bg-[hsl(30,20%,97%)] text-neutral-900 ${className}`}
         style={{
           ...themeStyles,
           ...(forceHeight ? { height: forceHeight, maxHeight: forceHeight, overflow: 'hidden' } : {}),

@@ -16,6 +16,7 @@ import type { Formulario } from '@/types/formulario';
 
 interface Props {
   draft: Formulario;
+  defaultMode?: Mode;
 }
 
 type Mode = 'desktop' | 'mobile';
@@ -27,8 +28,8 @@ const CONTENT_H = 720;
 const MOBILE_W = 375;
 const MOBILE_H = 700;
 
-export function FormEditorPreview({ draft }: Props) {
-  const [mode, setMode] = useState<Mode>('desktop');
+export function FormEditorPreview({ draft, defaultMode }: Props) {
+  const [mode, setMode] = useState<Mode>(defaultMode || 'desktop');
 
   return (
     <div className="flex h-full flex-col">
@@ -61,11 +62,11 @@ export function FormEditorPreview({ draft }: Props) {
       <div className="flex-1 min-h-0 bg-muted/30 overflow-hidden">
         {mode === 'desktop' ? (
           <DesktopFrame>
-            <PreviewContent draft={draft} />
+            <PreviewContent draft={draft} layoutMode="desktop" />
           </DesktopFrame>
         ) : (
           <MobileFrame>
-            <PreviewContent draft={draft} />
+            <PreviewContent draft={draft} layoutMode="mobile" />
           </MobileFrame>
         )}
       </div>
@@ -73,7 +74,13 @@ export function FormEditorPreview({ draft }: Props) {
   );
 }
 
-function PreviewContent({ draft }: { draft: Formulario }) {
+function PreviewContent({
+  draft,
+  layoutMode,
+}: {
+  draft: Formulario;
+  layoutMode: Mode;
+}) {
   return (
     <FormPublicRenderer
       token={draft.public_token}
@@ -81,6 +88,7 @@ function PreviewContent({ draft }: { draft: Formulario }) {
       overrideForm={draft}
       wrapInPublicTheme
       preserveDarkMode
+      layoutMode={layoutMode}
     />
   );
 }
@@ -138,17 +146,21 @@ function DesktopFrame({ children }: { children: React.ReactNode }) {
 }
 
 function MobileFrame({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
   useEffect(() => {
-    const el = ref.current;
+    const el = containerRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w === 0 || h === 0) return;
-      setScale(Math.min(w / MOBILE_W, h / MOBILE_H));
+      const padding = 24;
+      const availW = el.clientWidth - padding;
+      const availH = el.clientHeight - padding;
+      if (availW <= 0 || availH <= 0) return;
+      const totalW = MOBILE_W + 20;
+      const totalH = MOBILE_H + 20;
+      const s = Math.min(1, availW / totalW, availH / totalH);
+      setScale(Math.max(0.35, s));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -157,31 +169,38 @@ function MobileFrame({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="h-full w-full p-6 flex items-center justify-center">
+    <div
+      ref={containerRef}
+      className="h-full w-full p-4 flex items-center justify-center overflow-hidden"
+    >
       <div
-        ref={ref}
-        className="relative rounded-[40px] border-[10px] border-foreground/90 bg-foreground/90 shadow-xl"
         style={{
-          width: MOBILE_W,
-          height: MOBILE_H,
-          maxHeight: '100%',
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
         }}
       >
-        {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-4 bg-foreground/90 rounded-b-2xl z-20" />
         <div
-          className="absolute inset-0 bg-background rounded-[28px] overflow-hidden"
-          style={{ padding: '6px' }}
+          className="relative rounded-[44px] border-[10px] border-foreground/90 bg-foreground/90 shadow-2xl shrink-0"
+          style={{
+            width: `${MOBILE_W + 20}px`,
+            height: `${MOBILE_H + 20}px`,
+          }}
         >
+          {/* Notch */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-4 bg-foreground/90 rounded-b-2xl z-20 pointer-events-none" />
           <div
-            className="origin-top-left w-full h-full"
-            style={{
-              width: `${MOBILE_W}px`,
-              height: `${MOBILE_H}px`,
-              transform: `scale(${scale})`,
-            }}
+            className="absolute inset-0 bg-background rounded-[34px] overflow-hidden"
+            style={{ margin: '2px' }}
           >
-            {children}
+            <div
+              className="w-full h-full overflow-hidden"
+              style={{
+                width: `${MOBILE_W}px`,
+                height: `${MOBILE_H}px`,
+              }}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </div>

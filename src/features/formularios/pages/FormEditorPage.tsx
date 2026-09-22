@@ -345,7 +345,7 @@ function MobilePreviewOverlay({
         </Button>
       </div>
       <div className="flex-1 min-h-0">
-        <FormEditorPreview draft={draft} />
+        <FormEditorPreview draft={draft} defaultMode="mobile" />
       </div>
     </div>
   );

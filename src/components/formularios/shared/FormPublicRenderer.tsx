@@ -14,7 +14,7 @@
  * - Seleção de cores com swatches interativos
  * - Upload de imagens com dropzone
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useDropzone } from 'react-dropzone';
@@ -72,6 +72,13 @@ export interface FormPublicRendererProps {
    * Usado pelo editor para preservar a preferência de dark mode do usuário.
    */
   preserveDarkMode?: boolean;
+  /**
+   * Modo de layout para renderização:
+   * - 'auto' (padrão): responsivo via media queries (usado na rota pública)
+   * - 'mobile': força layout de smartphone (coluna única, banner de capa superior)
+   * - 'desktop': força layout split (50% capa lateral, 50% perguntas)
+   */
+  layoutMode?: 'auto' | 'desktop' | 'mobile';
 }
 
 // ─── Helpers de tipo ─────────────────────────────────────────
@@ -106,7 +113,16 @@ export function FormPublicRenderer({
   overrideForm,
   forceHeight,
   preserveDarkMode = false,
+  layoutMode = 'auto',
 }: FormPublicRendererProps) {
+  const isForcedMobile = layoutMode === 'mobile';
+  const isForcedDesktop = layoutMode === 'desktop';
+  const isAuto = !isForcedMobile && !isForcedDesktop;
+  const effectiveForceHeight = forceHeight || (!isAuto ? (isForcedMobile ? 700 : 720) : undefined);
+  const wrapperClass = !isAuto ? 'h-full' : undefined;
+
+  const mainRef = useRef<HTMLElement>(null);
+
   const fetched = useFormularioPublico(token);
   const formulario = overrideForm ?? fetched.data;
   const isLoading = overrideForm ? false : fetched.isLoading;
@@ -228,26 +244,34 @@ export function FormPublicRenderer({
   };
 
   const handleProximo = () => {
-    if (readOnly) return;
-    const err = validarPasso(currentStep);
-    if (err) {
-      setErrors((prev) => ({
-        ...prev,
-        [camposOrdenados[currentStep].id]: err,
-      }));
-      return;
+    if (!readOnly) {
+      const err = validarPasso(currentStep);
+      if (err) {
+        setErrors((prev) => ({
+          ...prev,
+          [camposOrdenados[currentStep].id]: err,
+        }));
+        return;
+      }
     }
     if (currentStep < totalSteps - 1) {
       setCurrentStep((s) => s + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
   const handleVoltar = () => {
-    if (readOnly) return;
     if (currentStep > 0) {
       setCurrentStep((s) => s - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (mainRef.current) {
+        mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
@@ -297,10 +321,11 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
-        forceHeight={forceHeight}
+        forceHeight={effectiveForceHeight}
         preserveDarkMode={preserveDarkMode}
+        className={wrapperClass}
       >
-        <div className="min-h-screen flex items-center justify-center">
+        <div className={cn(isAuto ? "min-h-screen" : "h-full", "flex items-center justify-center")}>
           <div className="text-center space-y-3">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="text-sm text-muted-foreground">
@@ -318,10 +343,11 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
-        forceHeight={forceHeight}
+        forceHeight={effectiveForceHeight}
         preserveDarkMode={preserveDarkMode}
+        className={wrapperClass}
       >
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className={cn(isAuto ? "min-h-screen" : "h-full", "flex items-center justify-center p-4")}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-destructive" />
@@ -343,10 +369,11 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
-        forceHeight={forceHeight}
+        forceHeight={effectiveForceHeight}
         preserveDarkMode={preserveDarkMode}
+        className={wrapperClass}
       >
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className={cn(isAuto ? "min-h-screen" : "h-full", "flex items-center justify-center p-4")}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <Clock className="h-8 w-8 text-muted-foreground" />
@@ -368,10 +395,11 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
-        forceHeight={forceHeight}
+        forceHeight={effectiveForceHeight}
         preserveDarkMode={preserveDarkMode}
+        className={wrapperClass}
       >
-        <div className="min-h-screen">
+        <div className={cn(isAuto ? "min-h-screen" : "h-full overflow-y-auto")}>
           {formulario.cover_url && (
             <div className="w-full h-56 overflow-hidden bg-neutral-200">
               <img
@@ -414,10 +442,11 @@ export function FormPublicRenderer({
       <ContentWrapper
         primaryColor={primaryColor}
         wrapInPublicTheme={wrapInPublicTheme}
-        forceHeight={forceHeight}
+        forceHeight={effectiveForceHeight}
         preserveDarkMode={preserveDarkMode}
+        className={wrapperClass}
       >
-        <div className="min-h-screen flex items-center justify-center p-4">
+        <div className={cn(isAuto ? "min-h-screen" : "h-full", "flex items-center justify-center p-4")}>
           <div className="text-center space-y-3 max-w-md">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
               <X className="h-8 w-8 text-muted-foreground" />
@@ -443,27 +472,51 @@ export function FormPublicRenderer({
     <ContentWrapper
       primaryColor={primaryColor}
       wrapInPublicTheme={wrapInPublicTheme}
-      forceHeight={forceHeight}
+      forceHeight={effectiveForceHeight}
+      preserveDarkMode={preserveDarkMode}
+      className={wrapperClass}
     >
-      <div className="min-h-screen flex">
+      <div
+        className={cn(
+          isAuto ? 'min-h-screen flex flex-col lg:flex-row' : 'h-full flex',
+          isForcedMobile ? 'flex-col' : isForcedDesktop ? 'flex-row' : '',
+        )}
+      >
         {/* ── Painel da Capa (desktop) — full-bleed, sem overlay ── */}
-        <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-neutral-100">
-          {coverUrl ? (
-            <img
-              src={coverUrl}
-              alt="Capa do formulário"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-950" />
-          )}
-        </div>
+        {!isForcedMobile && (
+          <div
+            className={cn(
+              'relative overflow-hidden bg-neutral-100 shrink-0',
+              isForcedDesktop ? 'w-1/2' : 'hidden lg:block lg:w-1/2',
+            )}
+          >
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt="Capa do formulário"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 to-neutral-950" />
+            )}
+          </div>
+        )}
 
         {/* ── Painel de Conteúdo ──────────────────────────── */}
-        <div className="flex-1 flex flex-col min-h-screen">
+        <div
+          className={cn(
+            'flex-1 flex flex-col min-w-0',
+            isAuto ? 'min-h-screen' : 'h-full min-h-0',
+          )}
+        >
           {/* Header sticky */}
-          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-neutral-100">
-            <div className="flex items-center justify-between px-6 py-3.5">
+          <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-neutral-100 shrink-0">
+            <div
+              className={cn(
+                'flex items-center justify-between py-3.5',
+                isForcedMobile ? 'px-4' : 'px-4 sm:px-6',
+              )}
+            >
               {/* Brand */}
               <div className="flex items-center gap-2 min-w-0">
                 {studioLogoUrl ? (
@@ -479,8 +532,8 @@ export function FormPublicRenderer({
                 )}
               </div>
               {/* Progresso */}
-              <div className="flex items-center gap-2.5">
-                <div className="w-24 h-1 bg-neutral-100 rounded-full overflow-hidden">
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="w-20 sm:w-24 h-1 bg-neutral-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all duration-300"
                     style={{ width: `${progresso}%` }}
@@ -493,37 +546,58 @@ export function FormPublicRenderer({
             </div>
           </header>
 
-          {/* Mobile cover */}
-          {coverUrl && (
-            <div className="lg:hidden w-full h-40 overflow-hidden bg-neutral-200">
-              <img
-                src={coverUrl}
-                alt="Capa do formulário"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
-          {/* Mobile título */}
-          {coverUrl && (
-            <div className="lg:hidden px-4 pt-4 pb-2">
-              <h1 className="text-lg font-semibold leading-snug">
-                {tituloExibicao}
-              </h1>
-              {formulario.descricao && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formulario.descricao}
-                </p>
-              )}
-            </div>
-          )}
-
           {/* Área de scroll */}
-          <main className="flex-1 overflow-y-auto">
+          <main ref={mainRef} className="flex-1 min-h-0 overflow-y-auto">
+            {/* Mobile cover */}
+            {coverUrl && !isForcedDesktop && (
+              <div
+                className={cn(
+                  'w-full h-36 sm:h-40 overflow-hidden bg-neutral-200 shrink-0',
+                  !isForcedMobile && 'lg:hidden',
+                )}
+              >
+                <img
+                  src={coverUrl}
+                  alt="Capa do formulário"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
+            {/* Mobile título */}
+            {!isForcedDesktop && (
+              <div
+                className={cn(
+                  'px-4 pt-4 pb-2',
+                  !isForcedMobile && 'lg:hidden',
+                )}
+              >
+                <h1 className="text-lg font-semibold leading-snug text-foreground">
+                  {tituloExibicao}
+                </h1>
+                {formulario.descricao && (
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    {formulario.descricao}
+                  </p>
+                )}
+                {formattedDate && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground text-xs pt-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{formattedDate}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} noValidate>
               {/* Cabeçalho do formulário (título + descrição) — desktop */}
-              {!readOnly && (
-                <div className="hidden lg:block max-w-lg mx-auto px-6 pt-10 pb-2">
+              {!isForcedMobile && (
+                <div
+                  className={cn(
+                    'max-w-lg mx-auto px-6 pt-10 pb-2',
+                    !isForcedDesktop && 'hidden lg:block',
+                  )}
+                >
                   <div className="space-y-3">
                     <h1 className="text-3xl font-normal text-foreground tracking-tight leading-[1.1]">
                       {tituloExibicao}
@@ -545,7 +619,12 @@ export function FormPublicRenderer({
 
               {/* Info do respondente (apenas no primeiro passo) */}
               {currentStep === 0 && (
-                <div className="max-w-lg mx-auto px-6 pt-6 pb-4">
+                <div
+                  className={cn(
+                    'max-w-lg mx-auto pt-6 pb-4',
+                    isForcedMobile ? 'px-4' : 'px-4 sm:px-6',
+                  )}
+                >
                   <div className="bg-white rounded-xl border border-neutral-200 px-5 py-4 space-y-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                     <p className="text-[11px] font-medium text-muted-foreground tracking-wide">
                       Suas informações (opcional)
@@ -586,7 +665,12 @@ export function FormPublicRenderer({
               )}
 
               {/* Pergunta atual */}
-              <div className="max-w-lg mx-auto px-6 py-6">
+              <div
+                className={cn(
+                  'max-w-lg mx-auto py-6',
+                  isForcedMobile ? 'px-4' : 'px-4 sm:px-6',
+                )}
+              >
                 {currentCampo && (
                   <CampoRendererPublico
                     key={currentCampo.id}
@@ -606,13 +690,18 @@ export function FormPublicRenderer({
               </div>
 
               {/* Navegação */}
-              <div className="max-w-lg mx-auto px-6 pb-8">
+              <div
+                className={cn(
+                  'max-w-lg mx-auto pb-8',
+                  isForcedMobile ? 'px-4' : 'px-4 sm:px-6',
+                )}
+              >
                 <div className="flex items-center gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleVoltar}
-                    disabled={readOnly || currentStep === 0}
+                    disabled={currentStep === 0}
                     className="gap-1.5"
                   >
                     <ArrowLeft className="w-4 h-4" />
@@ -662,6 +751,7 @@ interface ContentWrapperProps {
   wrapInPublicTheme: boolean;
   forceHeight?: number;
   preserveDarkMode?: boolean;
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -670,11 +760,17 @@ function ContentWrapper({
   wrapInPublicTheme,
   forceHeight,
   preserveDarkMode,
+  className,
   children,
 }: ContentWrapperProps) {
   if (!wrapInPublicTheme) return <>{children}</>;
   return (
-    <PublicThemeWrapper primaryColor={primaryColor} forceHeight={forceHeight} preserveDarkMode={preserveDarkMode}>
+    <PublicThemeWrapper
+      primaryColor={primaryColor}
+      forceHeight={forceHeight}
+      preserveDarkMode={preserveDarkMode}
+      className={className}
+    >
       {children}
     </PublicThemeWrapper>
   );
