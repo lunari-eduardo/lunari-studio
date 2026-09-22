@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { PageContainer } from '@/components/layout/PageContainer';
-import { PAGE_SCROLL_SHELL } from '@/components/layout/PageTabs';
 import { useContratoTemplates } from '@/hooks/useContratoTemplates';
 import { CONTRATO_SEED_TEMPLATES } from '@/utils/contratoSeedTemplates';
 import { useBeforeUnload } from '../hooks/useBeforeUnload';
@@ -9,6 +7,7 @@ import { ContratoEditorHeader, type SaveState } from '../components/editor/Contr
 import { ContratoEditorSidebar, type ContratoSectionId } from '../components/editor/ContratoEditorSidebar';
 import { ContratoEditorSectionInfo } from '../components/editor/ContratoEditorSectionInfo';
 import { ContratoPaperCanvas, type ContratoPaperCanvasHandle } from '../components/editor/ContratoPaperCanvas';
+import { ContratoEditorToolbar } from '../components/editor/ContratoEditorToolbar';
 import { ContratoVariablesDrawer } from '../components/editor/ContratoVariablesDrawer';
 import { ContratoEditorPreview } from '../components/editor/ContratoEditorPreview';
 import { countVariables, estimateReadingTime } from '../utils/contratoMetrics';
@@ -207,7 +206,7 @@ export default function ContratoEditorPage() {
   const readingTime = estimateReadingTime(draft.conteudo);
 
   return (
-    <div className={PAGE_SCROLL_SHELL}>
+    <div className="flex flex-col h-full min-h-0">
       {/* ── Header fixo no topo da página ── */}
       <ContratoEditorHeader
         draft={draft}
@@ -217,10 +216,10 @@ export default function ContratoEditorPage() {
         onSalvar={handleSalvar}
       />
 
-      <PageContainer className="py-6 max-w-[92rem]">
-        <div className="flex gap-6 items-start">
+      <div className="flex-1 min-h-0 overflow-y-auto py-6 px-2 md:px-4">
+        <div className="mx-auto max-w-[92rem] flex gap-6 items-start">
           {/* ── Sidebar vertical de seções fixa (sticky) com scroll interno ── */}
-          <div className="sticky top-[72px] h-[calc(100vh-100px)] overflow-y-auto hidden md:block">
+          <div className="sticky top-[120px] h-[calc(100vh-128px)] overflow-y-auto hidden md:block">
             <ContratoEditorSidebar
               active={section}
               onChange={setSection}
@@ -242,11 +241,27 @@ export default function ContratoEditorPage() {
             {section === 'content' && (
               <div className="flex gap-5 items-start">
                 {/* Paper Canvas (Folha A4) que rola naturalmente com o conteúdo */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 space-y-3">
+                  {/* Toolbar fixa fora do paper canvas */}
+                  <ContratoEditorToolbar
+                    onExec={(cmd, arg) => {
+                      canvasRef.current?.focus();
+                      document.execCommand(cmd, false, arg);
+                    }}
+                    onFormatBlock={(tag) => {
+                      canvasRef.current?.focus();
+                      document.execCommand('formatBlock', false, `<${tag}>`);
+                    }}
+                    onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
+                    variablesOpen={variablesDrawerOpen}
+                    variablesCount={varsCount}
+                    stickyTopClass="top-[68px]"
+                  />
                   <ContratoPaperCanvas
                     ref={canvasRef}
                     value={draft.conteudo || ''}
                     onChange={(conteudo) => setDraft((prev) => (prev ? { ...prev, conteudo } : prev))}
+                    hideToolbar
                     onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
                     variablesOpen={variablesDrawerOpen}
                     variablesCount={varsCount}
@@ -255,7 +270,7 @@ export default function ContratoEditorPage() {
 
                 {/* Painel lateral de variáveis fixo (sticky) com scroll interno próprio */}
                 {variablesDrawerOpen && (
-                  <div className="w-80 shrink-0 sticky top-[72px] h-[calc(100vh-100px)] hidden xl:block">
+                  <div className="w-80 shrink-0 sticky top-[120px] h-[calc(100vh-128px)] hidden xl:block">
                     <ContratoVariablesDrawer
                       conteudoHtml={draft.conteudo || ''}
                       onInsertVariable={handleInsertVariable}
@@ -276,7 +291,7 @@ export default function ContratoEditorPage() {
             )}
           </div>
         </div>
-      </PageContainer>
+      </div>
     </div>
   );
 }

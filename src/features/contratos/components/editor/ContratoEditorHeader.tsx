@@ -28,7 +28,7 @@ export function ContratoEditorHeader({
   const navigate = useNavigate();
 
   return (
-    <header className="border-b bg-background sticky top-0 z-30">
+    <header className="shrink-0 border-b bg-background sticky top-0 z-30">
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         {/* Linha 1: Voltar + Título editável + Ações */}
         <div className="flex items-center gap-3 py-3">

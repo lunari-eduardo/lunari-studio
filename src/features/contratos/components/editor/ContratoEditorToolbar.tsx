@@ -24,6 +24,7 @@ interface ContratoEditorToolbarProps {
   variablesOpen?: boolean;
   variablesCount?: number;
   className?: string;
+  stickyTopClass?: string;
 }
 
 export function ContratoEditorToolbar({
@@ -33,11 +34,12 @@ export function ContratoEditorToolbar({
   variablesOpen,
   variablesCount = 0,
   className,
+  stickyTopClass = 'top-[61px]',
 }: ContratoEditorToolbarProps) {
   return (
     <div
       className={cn(
-        'sticky top-[61px] z-20 flex items-center flex-wrap gap-1 p-2 border-b border-border/70 bg-background/95 backdrop-blur-md',
+        `sticky ${stickyTopClass} z-20 flex items-center flex-wrap gap-1 p-2 border-b border-border/70 bg-background`,
         className
       )}
       role="toolbar"

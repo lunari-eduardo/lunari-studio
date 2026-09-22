@@ -11,6 +11,7 @@ interface ContratoPaperCanvasProps {
   onToggleVariables?: () => void;
   variablesOpen?: boolean;
   variablesCount?: number;
+  hideToolbar?: boolean;
   className?: string;
 }
 
@@ -48,6 +49,7 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
       onToggleVariables,
       variablesOpen,
       variablesCount,
+      hideToolbar = false,
       className,
     },
     ref
@@ -191,7 +193,7 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
     return (
       <div className={cn('flex flex-col rounded-xl overflow-hidden border border-border/70 shadow-sm bg-background', className)}>
         {/* Barra de Formatação */}
-        {editable && (
+        {editable && !hideToolbar && (
           <ContratoEditorToolbar
             onExec={exec}
             onFormatBlock={formatBlock}

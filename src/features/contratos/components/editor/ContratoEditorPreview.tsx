@@ -31,9 +31,9 @@ export function ContratoEditorPreview({
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-muted/20 animate-in fade-in duration-200">
+    <div className="flex flex-col h-full min-h-0 bg-muted/20 animate-in fade-in duration-200">
       {/* ── Cabeçalho Fixo do Preview ── */}
-      <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur-md">
+      <header className="shrink-0 sticky top-0 z-30 border-b border-border/70 bg-background">
         <div className="mx-auto max-w-7xl px-4 md:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Button
@@ -98,6 +98,7 @@ export function ContratoEditorPreview({
       </header>
 
       {/* ── Corpo com Painel Lateral Fixo e Folha Central de Rolagem ── */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="mx-auto max-w-7xl w-full px-4 md:px-6 py-6 flex gap-6 items-start">
         {/* Painel Lateral Fixo (Sticky): Dados de Simulação */}
         <aside className="w-72 shrink-0 sticky top-[68px] hidden lg:block space-y-3">
@@ -213,6 +214,7 @@ export function ContratoEditorPreview({
             </div>
           </div>
         </main>
+      </div>
       </div>
     </div>
   );
