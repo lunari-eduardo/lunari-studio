@@ -65,6 +65,7 @@ const FormsListPage = React.lazy(() => import("@/features/formularios/pages/Form
 const FormDetailPage = React.lazy(() => import("@/features/formularios/pages/FormDetailPage"));
 const FormEditorPage = React.lazy(() => import("@/features/formularios/pages/FormEditorPage"));
 const ContratosPage = React.lazy(() => import("@/pages/comercial/ContratosPage"));
+const ContratoEditorPage = React.lazy(() => import("@/features/contratos/pages/ContratoEditorPage"));
 const InfinitePayCheckout = React.lazy(() => import("@/pages/pay/InfinitePayCheckout"));
 const ClientDeliverGallery = React.lazy(() => import("@/pages/gallery/ClientDeliverGallery"));
 const Auth = React.lazy(() => import("@/pages/Auth"));
@@ -299,13 +300,29 @@ export default function PhotographerApp() {
                       </PlanRestrictionGuard>
                     </RequireAdmin>
                   } />
-                  <Route path="contratos" element={
-                    <RequireAdmin>
-                      <PlanRestrictionGuard entitlement="contracts">
-                        <ContratosPage />
-                      </PlanRestrictionGuard>
-                    </RequireAdmin>
-                  } />
+                  <Route path="contratos">
+                    <Route index element={
+                      <RequireAdmin>
+                        <PlanRestrictionGuard entitlement="contracts">
+                          <ContratosPage />
+                        </PlanRestrictionGuard>
+                      </RequireAdmin>
+                    } />
+                    <Route path="novo" element={
+                      <RequireAdmin>
+                        <PlanRestrictionGuard entitlement="contracts">
+                          <ContratoEditorPage />
+                        </PlanRestrictionGuard>
+                      </RequireAdmin>
+                    } />
+                    <Route path=":id/editor" element={
+                      <RequireAdmin>
+                        <PlanRestrictionGuard entitlement="contracts">
+                          <ContratoEditorPage />
+                        </PlanRestrictionGuard>
+                      </RequireAdmin>
+                    } />
+                  </Route>
                 </Route>
 
                 {/* Módulo Gallery */}
