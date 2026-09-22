@@ -272,24 +272,32 @@ export default function ContratoEditorPage() {
                 variablesCount={varsCount}
               />
 
-              {/* Área de rolagem isolada da folha A4 (corte limpo na borda da toolbar) */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
-                <ContratoPaperCanvas
-                  ref={canvasRef}
-                  value={draft.conteudo || ''}
-                  onChange={(conteudo) => setDraft((prev) => (prev ? { ...prev, conteudo } : prev))}
-                  hideToolbar
-                  onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
-                  variablesOpen={variablesDrawerOpen}
-                  variablesCount={varsCount}
-                />
+              {/* Área de rolagem isolada da folha A4 (corte limpo na borda da toolbar e respiro amplo no rodapé) */}
+              <div
+                className="flex-1 min-h-0 overflow-y-auto px-3 sm:px-6 md:px-8 pt-4 sm:pt-6"
+                style={{ paddingBottom: 'calc(9rem + env(safe-area-inset-bottom))' }}
+              >
+                <div className="mx-auto w-full max-w-4xl">
+                  <ContratoPaperCanvas
+                    ref={canvasRef}
+                    value={draft.conteudo || ''}
+                    onChange={(conteudo) => setDraft((prev) => (prev ? { ...prev, conteudo } : prev))}
+                    hideToolbar
+                    onToggleVariables={() => setVariablesDrawerOpen((prev) => !prev)}
+                    variablesOpen={variablesDrawerOpen}
+                    variablesCount={varsCount}
+                  />
+                </div>
               </div>
             </>
           )}
 
           {section === 'info' && (
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
-              <div className="w-full max-w-3xl">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 pt-6"
+              style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+            >
+              <div className="mx-auto w-full max-w-3xl">
                 <ContratoEditorSectionInfo
                   draft={draft}
                   onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
@@ -299,8 +307,11 @@ export default function ContratoEditorPage() {
           )}
 
           {section === 'variables' && (
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center">
-              <div className="w-full max-w-4xl h-[calc(100vh-140px)]">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 md:px-8 pt-6"
+              style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+            >
+              <div className="mx-auto w-full max-w-4xl min-h-[calc(100vh-180px)]">
                 <ContratoVariablesDrawer
                   conteudoHtml={draft.conteudo || ''}
                   onInsertVariable={handleInsertVariable}

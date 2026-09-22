@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UnifiedAccessScreen } from '@/components/UnifiedAccessScreen';
@@ -115,6 +116,8 @@ export default function ClientGallery() {
     refetchGallery,
   });
 
+  const initialLockedRef = useRef<boolean | null>(null);
+
   useEffect(() => {
     if (photos.length > 0) {
       const isAlreadyConfirmed = 
@@ -125,6 +128,20 @@ export default function ClientGallery() {
       const isAwaitingPayment = 
         supabaseGallery?.status_selecao === 'aguardando_pagamento' ||
         galleryResponse?.pendingPayment;
+      
+      const isLockedNow = Boolean(isAlreadyConfirmed || isAwaitingPayment);
+
+      // Se abriu com seleção ativa e travou depois (outro aparelho finalizou)
+      if (initialLockedRef.current === false && isLockedNow) {
+        toast.info('Seleção finalizada', {
+          description: 'A seleção desta galeria foi finalizada por outro dispositivo.',
+          duration: 6000,
+        });
+      }
+
+      if (initialLockedRef.current === null) {
+        initialLockedRef.current = isLockedNow;
+      }
       
       const shouldBeConfirmed = !!isAlreadyConfirmed && !isAwaitingPayment;
       

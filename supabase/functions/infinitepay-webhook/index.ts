@@ -96,8 +96,90 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, message: "Ignored transition", currentStatus: cobranca.status });
     }
 
-    // 4. ATUALIZAÇÃO DA COBRANÇA
+    // 3.5 DETECÇÃO DE DUPLO PAGAMENTO (DOUBLE CHARGE)
+    const existingNsu = cobranca.ip_transaction_nsu || cobranca.provider_transaction_id;
+    const isDoubleCharge = Boolean(
+      cobranca.status === "pago" &&
+      isPaymentConfirmed &&
+      transaction_nsu &&
+      existingNsu &&
+      existingNsu !== transaction_nsu
+    );
+
     const now = new Date().toISOString();
+
+    if (isDoubleCharge) {
+      console.warn(`🚨 [infinitepay-webhook] DOUBLE_CHARGE_DETECTED para cobranca=${cobranca.id}! NSU existente=${existingNsu}, Novo NSU=${transaction_nsu}`);
+      
+      const existingExtras = (cobranca.dados_extras as Record<string, any>) || {};
+      const duplicados = Array.isArray(existingExtras.pagamentos_duplicados) ? existingExtras.pagamentos_duplicados : [];
+      
+      const alreadySaved = duplicados.some((d: any) => d.transaction_nsu === transaction_nsu);
+      if (!alreadySaved) {
+        duplicados.push({
+          transaction_nsu: transaction_nsu || null,
+          paid_amount: amountPaid || payload.paid_amount,
+          receipt_url: receipt_url || null,
+          paid_at: now,
+          invoice_slug: payload.slug || (payload as any).invoice_slug || null,
+          capture_method: payload.capture_method || null,
+        });
+      }
+
+      existingExtras.pagamentos_duplicados = duplicados;
+      existingExtras.duplo_pagamento_detectado = true;
+
+      await supabase
+        .from("cobrancas")
+        .update({
+          dados_extras: existingExtras,
+          updated_at: now,
+        })
+        .eq("id", cobranca.id);
+
+      if (cobranca.galeria_id) {
+        const valorFormatado = payload.paid_amount ? (payload.paid_amount / 100).toFixed(2) : (cobranca.valor || 0);
+        await supabase.from("galeria_acoes").insert({
+          galeria_id: cobranca.galeria_id,
+          tipo: "pagamento_confirmado",
+          descricao: `⚠️ [PAGAMENTO DUPLICADO DETECTADO] O cliente realizou um 2º pagamento na InfinitePay de R$ ${valorFormatado} (NSU: ${transaction_nsu}). Comprovante 2: ${receipt_url || "N/A"}. Acesse seu painel InfinitePay para estornar o valor excedente.`,
+          user_id: cobranca.user_id,
+        }).then(() => {}, (e) => console.warn("[infinitepay-webhook] Erro galeria_acoes:", e));
+      }
+
+      await supabase.from("system_audit_logs").insert({
+        correlation_id: cobranca.correlation_id || crypto.randomUUID(),
+        event_type: "DOUBLE_CHARGE_DETECTED",
+        source: "edge_function",
+        source_name: "infinitepay-webhook",
+        user_id: cobranca.user_id,
+        gallery_id: cobranca.galeria_id,
+        payload: {
+          cobrancaId: cobranca.id,
+          nsu_original: existingNsu,
+          nsu_duplicado: transaction_nsu,
+          receipt_url,
+          paid_amount: payload.paid_amount,
+        },
+        status: "warning",
+        error_message: "Pagamento duplicado recebido para cobrança já liquidada",
+      }).then(() => {}, (e) => console.warn("[infinitepay-webhook] Erro system_audit_logs:", e));
+
+      await supabase
+        .from("webhook_logs")
+        .update({ status: "processed_double_charge" })
+        .eq("order_nsu", order_nsu)
+        .eq("provedor", "infinitepay");
+
+      return jsonResponse({
+        success: true,
+        duplicateDetected: true,
+        cobrancaId: cobranca.id,
+        message: "Double charge detected and registered safely for merchant refund",
+      });
+    }
+
+    // 4. ATUALIZAÇÃO DA COBRANÇA
     const updateData: Record<string, any> = {
       status: nextStatus,
       provider_transaction_id: transaction_nsu || null,

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Gallery, GalleryPhoto, WatermarkSettings, DiscountPackage, TitleCaseMode } from '@/types/gallery';
@@ -122,6 +122,46 @@ export function useClientGalleryData({
 
   // Get session_id from gallery
   const sessionId = supabaseGallery?.sessionId || supabaseGallery?.session_id;
+
+  // 1.5. Realtime subscription para sincronização instantânea entre múltiplos dispositivos
+  useEffect(() => {
+    if (!galleryId) return;
+
+    const channel = supabase
+      .channel(`client-gallery-realtime-${galleryId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'galerias',
+          filter: `id=eq.${galleryId}`,
+        },
+        (payload) => {
+          const newRow = payload.new as any;
+          const oldRow = payload.old as any;
+          console.log('⚡ [Realtime] Atualização da galeria recebida:', {
+            galleryId,
+            newStatusSelecao: newRow?.status_selecao,
+            newStatusPagamento: newRow?.status_pagamento,
+            finalizedAt: newRow?.finalized_at,
+          });
+
+          const justFinalized = Boolean(newRow?.finalized_at && !oldRow?.finalized_at);
+          const statusChanged = Boolean(newRow?.status_selecao !== oldRow?.status_selecao);
+          const paymentChanged = Boolean(newRow?.status_pagamento !== oldRow?.status_pagamento);
+
+          if (justFinalized || statusChanged || paymentChanged) {
+            refetchGallery();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [galleryId, refetchGallery]);
 
   // 2. Fetch frozen pricing rules from Gestão session
   const { data: sessionRegras } = useQuery({

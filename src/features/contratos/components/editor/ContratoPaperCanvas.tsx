@@ -207,7 +207,7 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
         data-placeholder={placeholder}
         spellCheck
         className={cn(
-          'contrato-paper-content outline-none text-foreground text-[13.5px] leading-relaxed',
+          'contrato-paper-content outline-none text-foreground text-[13.5px] leading-relaxed min-h-[700px]',
           '[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-foreground [&_h1]:tracking-tight',
           '[&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2.5 [&_h2]:text-foreground [&_h2]:border-b [&_h2]:border-border/40 [&_h2]:pb-1.5',
           '[&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-5 [&_h3]:mb-2 [&_h3]:text-foreground',
@@ -229,7 +229,7 @@ export const ContratoPaperCanvas = forwardRef<ContratoPaperCanvasHandle, Contrat
       return (
         <div
           className={cn(
-            'w-full max-w-4xl bg-card border border-border/80 rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.08)] p-6 sm:p-10 md:p-14 min-h-[750px]',
+            'w-full bg-card border border-border/80 rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.08)] p-6 sm:p-10 md:p-14 min-h-[850px] h-auto my-1',
             className
           )}
         >

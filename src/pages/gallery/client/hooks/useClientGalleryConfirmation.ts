@@ -89,8 +89,7 @@ export function useClientGalleryConfirmation({
         const error = await response.json().catch(() => ({}));
         if (response.status === 409 || error?.code === 'ALREADY_PROCESSING' || error?.code === 'ALREADY_FINALIZED') {
           await refetchGallery();
-          const err = new Error('ALREADY_FINALIZED') as Error & { silent?: boolean };
-          err.silent = true;
+          const err = new Error(error?.code || 'ALREADY_FINALIZED');
           throw err;
         }
         throw new Error(error.error || 'Erro ao confirmar seleção');
@@ -161,7 +160,25 @@ export function useClientGalleryConfirmation({
       setCurrentStep('confirmed');
     },
     onError: (error: Error & { silent?: boolean }) => {
-      if (error?.silent || error?.message === 'ALREADY_FINALIZED') return;
+      if (error?.message === 'ALREADY_FINALIZED' || error?.message?.includes('ALREADY_FINALIZED')) {
+        toast.info('Seleção já finalizada', {
+          description: 'A seleção desta galeria já foi finalizada em outro dispositivo ou aba. Sua tela está sendo atualizada.',
+          duration: 7000,
+        });
+        refetchGallery();
+        return;
+      }
+
+      if (error?.message === 'ALREADY_PROCESSING' || error?.message?.includes('ALREADY_PROCESSING')) {
+        toast.info('Seleção em processamento', {
+          description: 'A seleção desta galeria já está sendo confirmada em outro dispositivo. Aguarde alguns instantes.',
+          duration: 6000,
+        });
+        refetchGallery();
+        return;
+      }
+
+      if (error?.silent) return;
       const msg = error.message || 'Erro ao confirmar seleção';
 
       const upper = msg.toUpperCase();
@@ -212,7 +229,16 @@ export function useClientGalleryConfirmation({
     },
   });
 
-  const handleStartConfirmation = () => {
+  const handleStartConfirmation = async () => {
+    if (galleryResponse?.finalized || galleryResponse?.selectionLocked) {
+      toast.info('Seleção já finalizada', {
+        description: 'A seleção desta galeria já foi finalizada em outro dispositivo. Sua página está sendo atualizada.',
+        duration: 6000,
+      });
+      await refetchGallery();
+      return;
+    }
+
     const currentSelectedCount = localPhotos.filter(p => p.isSelected).length;
     
     if (currentSelectedCount === 0) {

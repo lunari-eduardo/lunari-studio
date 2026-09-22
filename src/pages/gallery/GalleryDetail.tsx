@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AlertCircle, Clock, Loader2, Users } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, Loader2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Lightbox } from '@/components/Lightbox';
@@ -123,6 +123,48 @@ export default function GalleryDetail() {
                 <p className="text-sm text-amber-600 dark:text-amber-400">
                   Valor: R$ {(data.supabaseGallery.valorExtras || data.calculatedExtraTotal).toFixed(2)}
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alerta de Pagamento Duplicado no Gateway */}
+      {data.duplicateChargeWarning && (
+        <div className="p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-950/40 dark:border-red-800">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <p className="font-semibold text-red-900 dark:text-red-100">
+                Atenção: Pagamento duplicado detectado
+              </p>
+              <p className="text-sm text-red-800 dark:text-red-200">
+                O cliente realizou mais de um pagamento para esta galeria no gateway ({data.duplicateChargeWarning.provedor || 'gateway'}). Um dos pagamentos precisa ser estornado para o cliente na sua conta do gateway.
+              </p>
+              <div className="pt-2 flex flex-wrap gap-2 text-xs">
+                {data.duplicateChargeWarning.reciboOriginal && (
+                  <a
+                    href={data.duplicateChargeWarning.reciboOriginal}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-white dark:bg-red-900/50 border border-red-300 dark:border-red-700 rounded text-red-700 dark:text-red-200 font-medium hover:underline"
+                  >
+                    Ver Comprovante 1 (Principal) ↗
+                  </a>
+                )}
+                {data.duplicateChargeWarning.duplicados.map((dup: any, i: number) => (
+                  dup.receipt_url ? (
+                    <a
+                      key={i}
+                      href={dup.receipt_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded text-red-800 dark:text-red-100 font-semibold hover:underline"
+                    >
+                      Ver Comprovante {i + 2} (Excedente - NSU: {dup.transaction_nsu?.slice(0, 8)}...) ↗
+                    </a>
+                  ) : null
+                ))}
               </div>
             </div>
           </div>

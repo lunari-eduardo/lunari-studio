@@ -120,7 +120,7 @@ export function useGalleryDetailData({
       
       const { data, error } = await supabase
         .from('cobrancas')
-        .select('id, valor, qtd_fotos, provedor, metodo_manual, data_pagamento, ip_receipt_url, ip_checkout_url, status, created_at')
+        .select('id, valor, qtd_fotos, provedor, metodo_manual, data_pagamento, ip_receipt_url, ip_checkout_url, status, created_at, dados_extras')
         .eq('galeria_id', id)
         .eq('finalidade', 'fotos_extras')
         .in('status', ['pago', 'pago_manual'])
@@ -335,6 +335,27 @@ export function useGalleryDetailData({
     extraTotal: calculatedExtraTotal,
   } : null;
 
+  const duplicateChargeWarning = useMemo(() => {
+    for (const c of cobrancasPagas) {
+      const extras = (c as any)?.dados_extras;
+      if (extras?.duplo_pagamento_detectado && Array.isArray(extras?.pagamentos_duplicados) && extras.pagamentos_duplicados.length > 0) {
+        return {
+          cobrancaId: c.id,
+          valor: c.valor,
+          provedor: c.provedor,
+          reciboOriginal: c.ip_receipt_url,
+          duplicados: extras.pagamentos_duplicados as Array<{
+            transaction_nsu?: string;
+            paid_amount?: number;
+            receipt_url?: string;
+            paid_at?: string;
+          }>,
+        };
+      }
+    }
+    return null;
+  }, [cobrancasPagas]);
+
   return {
     supabaseGallery,
     effectiveClienteId,
@@ -348,6 +369,7 @@ export function useGalleryDetailData({
     photosWithComments,
     cobrancasPagas,
     cobrancaData,
+    duplicateChargeWarning,
     effectiveStatus,
     canReactivate,
     deadline,
