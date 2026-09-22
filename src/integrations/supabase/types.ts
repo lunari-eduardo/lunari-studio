@@ -89,6 +89,9 @@ export type Database = {
         Row: {
           availability_type_id: string
           categoria_id: string
+          cover_image_lqip: string | null
+          cover_image_position: string | null
+          cover_image_url: string | null
           created_at: string
           deposit_gateway: string | null
           deposit_type: string | null
@@ -107,6 +110,9 @@ export type Database = {
         Insert: {
           availability_type_id: string
           categoria_id: string
+          cover_image_lqip?: string | null
+          cover_image_position?: string | null
+          cover_image_url?: string | null
           created_at?: string
           deposit_gateway?: string | null
           deposit_type?: string | null
@@ -125,6 +131,9 @@ export type Database = {
         Update: {
           availability_type_id?: string
           categoria_id?: string
+          cover_image_lqip?: string | null
+          cover_image_position?: string | null
+          cover_image_url?: string | null
           created_at?: string
           deposit_gateway?: string | null
           deposit_type?: string | null
@@ -2372,6 +2381,7 @@ export type Database = {
           gallery_status: string | null
           id: string
           nome: string
+          nome_checkout: string | null
           observacoes: string | null
           origem: string | null
           telefone: string | null
@@ -2396,6 +2406,7 @@ export type Database = {
           gallery_status?: string | null
           id?: string
           nome: string
+          nome_checkout?: string | null
           observacoes?: string | null
           origem?: string | null
           telefone?: string | null
@@ -2420,6 +2431,7 @@ export type Database = {
           gallery_status?: string | null
           id?: string
           nome?: string
+          nome_checkout?: string | null
           observacoes?: string | null
           origem?: string | null
           telefone?: string | null
@@ -3414,6 +3426,7 @@ export type Database = {
           instance_id: string
           mute: boolean
           pin: string
+          pin_origin: string | null
           status: string
           ultima_mensagem: string | null
           ultima_mensagem_data: string | null
@@ -3433,6 +3446,7 @@ export type Database = {
           instance_id: string
           mute?: boolean
           pin?: string
+          pin_origin?: string | null
           status?: string
           ultima_mensagem?: string | null
           ultima_mensagem_data?: string | null
@@ -3452,6 +3466,7 @@ export type Database = {
           instance_id?: string
           mute?: boolean
           pin?: string
+          pin_origin?: string | null
           status?: string
           ultima_mensagem?: string | null
           ultima_mensagem_data?: string | null
@@ -3602,6 +3617,11 @@ export type Database = {
           media_mime_type: string | null
           media_size_bytes: number | null
           media_url: string | null
+          quoted_content: string | null
+          quoted_sender: string | null
+          quoted_type: string | null
+          reactions: Json | null
+          reply_to_id: string | null
           status: string
           timestamp: string
           type: string
@@ -3620,6 +3640,11 @@ export type Database = {
           media_mime_type?: string | null
           media_size_bytes?: number | null
           media_url?: string | null
+          quoted_content?: string | null
+          quoted_sender?: string | null
+          quoted_type?: string | null
+          reactions?: Json | null
+          reply_to_id?: string | null
           status?: string
           timestamp?: string
           type?: string
@@ -3638,6 +3663,11 @@ export type Database = {
           media_mime_type?: string | null
           media_size_bytes?: number | null
           media_url?: string | null
+          quoted_content?: string | null
+          quoted_sender?: string | null
+          quoted_type?: string | null
+          reactions?: Json | null
+          reply_to_id?: string | null
           status?: string
           timestamp?: string
           type?: string
@@ -3656,6 +3686,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "conversas_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversas_mensagens_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "conversas_mensagens"
             referencedColumns: ["id"]
           },
         ]
@@ -3691,6 +3728,93 @@ export type Database = {
             columns: ["chat_id"]
             isOneToOne: false
             referencedRelation: "conversas_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversas_stickers: {
+        Row: {
+          created_at: string
+          id: string
+          is_favorite: boolean | null
+          media_url: string
+          tags: string[] | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          media_url: string
+          tags?: string[] | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean | null
+          media_url?: string
+          tags?: string[] | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      conversas_sync_queue: {
+        Row: {
+          chat_id: string
+          created_at: string | null
+          current_page: number | null
+          error_msg: string | null
+          id: string
+          instance_id: string
+          remote_jid: string
+          status: string | null
+          total_pages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string | null
+          current_page?: number | null
+          error_msg?: string | null
+          id?: string
+          instance_id: string
+          remote_jid: string
+          status?: string | null
+          total_pages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string | null
+          current_page?: number | null
+          error_msg?: string | null
+          id?: string
+          instance_id?: string
+          remote_jid?: string
+          status?: string | null
+          total_pages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversas_sync_queue_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "conversas_chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversas_sync_queue_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "conversas_instancias"
             referencedColumns: ["id"]
           },
         ]
@@ -4631,6 +4755,7 @@ export type Database = {
         Row: {
           campos: Json
           categoria: string
+          cover_url: string | null
           created_at: string
           descricao: string | null
           id: string
@@ -4643,6 +4768,7 @@ export type Database = {
         Insert: {
           campos?: Json
           categoria?: string
+          cover_url?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -4655,6 +4781,7 @@ export type Database = {
         Update: {
           campos?: Json
           categoria?: string
+          cover_url?: string | null
           created_at?: string
           descricao?: string | null
           id?: string
@@ -4670,6 +4797,7 @@ export type Database = {
         Row: {
           campos: Json
           cliente_id: string | null
+          cover_url: string | null
           created_at: string
           descricao: string | null
           enviado_em: string | null
@@ -4691,6 +4819,7 @@ export type Database = {
         Insert: {
           campos?: Json
           cliente_id?: string | null
+          cover_url?: string | null
           created_at?: string
           descricao?: string | null
           enviado_em?: string | null
@@ -4712,6 +4841,7 @@ export type Database = {
         Update: {
           campos?: Json
           cliente_id?: string | null
+          cover_url?: string | null
           created_at?: string
           descricao?: string | null
           enviado_em?: string | null
@@ -9082,6 +9212,10 @@ export type Database = {
       deactivate_referral_transfer_bonus: {
         Args: { _referred_user_id: string }
         Returns: boolean
+      }
+      deduct_client_credit: {
+        Args: { p_cliente_id: string; p_motivo?: string; p_valor: number }
+        Returns: string
       }
       deduct_gallery_credit: { Args: { _user_id: string }; Returns: boolean }
       delete_appointment_cascade: {
