@@ -15,26 +15,26 @@ import type { Json } from '@/integrations/supabase/types';
 
 // ─── Enumerações ──────────────────────────────────────────────────────────────
 
-export type Database['public']['Enums']['conversas_instancia_status'] =
+export type ConversasInstanciaStatus =
   | 'connected'
   | 'disconnected'
   | 'connecting'
   | 'error';
 
-export type Database['public']['Enums']['conversas_chat_status'] =
+export type ConversasChatStatus =
   | 'active'
   | 'archived'
   | 'blocked';
 
-export type Database['public']['Enums']['conversas_chat_pin'] =
+export type ConversasChatPin =
   | 'pinned'
   | 'unpinned';
 
-export type Database['public']['Enums']['conversas_message_direction'] =
+export type ConversasMessageDirection =
   | 'inbound'
   | 'outbound';
 
-export type Database['public']['Enums']['conversas_message_type'] =
+export type ConversasMessageType =
   | 'text'
   | 'image'
   | 'audio'
@@ -45,17 +45,27 @@ export type Database['public']['Enums']['conversas_message_type'] =
   | 'contact'
   | 'template';
 
-export type Database['public']['Enums']['conversas_message_status'] =
+export type ConversasMessageStatus =
   | 'pending'
   | 'sent'
   | 'delivered'
   | 'read'
   | 'failed';
 
-export type Database['public']['Enums']['conversas_contact_type'] =
+export type ConversasContactType =
   | 'cliente'
   | 'lead'
   | 'unknown';
+
+export type ConversasEnums = {
+  conversas_instancia_status: ConversasInstanciaStatus;
+  conversas_chat_status: ConversasChatStatus;
+  conversas_chat_pin: ConversasChatPin;
+  conversas_message_direction: ConversasMessageDirection;
+  conversas_message_type: ConversasMessageType;
+  conversas_message_status: ConversasMessageStatus;
+  conversas_contact_type: ConversasContactType;
+};
 
 // ─── Tabelas ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +75,7 @@ export interface DbConversasInstancia {
     user_id: string;
     instance_name: string;
     instance_id: string;
-    status: Database['public']['Enums']['conversas_instancia_status'];
+    status: ConversasInstanciaStatus;
     phone: string | null;
     webhook_url: string | null;
     evolution_token: string | null;
@@ -80,7 +90,7 @@ export interface DbConversasInstancia {
     user_id: string;
     instance_name: string;
     instance_id: string;
-    status?: Database['public']['Enums']['conversas_instancia_status'];
+    status?: ConversasInstanciaStatus;
     phone?: string | null;
     webhook_url?: string | null;
     evolution_token?: string | null;
@@ -95,7 +105,7 @@ export interface DbConversasInstancia {
     user_id?: string;
     instance_name?: string;
     instance_id?: string;
-    status?: Database['public']['Enums']['conversas_instancia_status'];
+    status?: ConversasInstanciaStatus;
     phone?: string | null;
     webhook_url?: string | null;
     evolution_token?: string | null;
@@ -118,7 +128,7 @@ export interface DbConversasContato {
     phone_normalized: string;
     nome: string | null;
     avatar_url: string | null;
-    tipo: Database['public']['Enums']['conversas_contact_type'];
+    tipo: ConversasContactType;
     cliente_id: string | null;
     lead_id: string | null;
     total_conversas: number;
@@ -135,7 +145,7 @@ export interface DbConversasContato {
     phone_normalized?: string;
     nome?: string | null;
     avatar_url?: string | null;
-    tipo?: Database['public']['Enums']['conversas_contact_type'];
+    tipo?: ConversasContactType;
     cliente_id?: string | null;
     lead_id?: string | null;
     total_conversas?: number;
@@ -152,7 +162,7 @@ export interface DbConversasContato {
     phone_normalized?: string;
     nome?: string | null;
     avatar_url?: string | null;
-    tipo?: Database['public']['Enums']['conversas_contact_type'];
+    tipo?: ConversasContactType;
     cliente_id?: string | null;
     lead_id?: string | null;
     total_conversas?: number;
@@ -174,8 +184,8 @@ export interface DbConversasChat {
     user_id: string;
     contato_id: string;
     instance_id: string;
-    status: Database['public']['Enums']['conversas_chat_status'];
-    pin: Database['public']['Enums']['conversas_chat_pin'];
+    status: ConversasChatStatus;
+    pin: ConversasChatPin;
     pin_origin: 'lunari' | 'whatsapp' | null;
     mute: boolean;
     unread_count: number;
@@ -184,8 +194,8 @@ export interface DbConversasChat {
     contato_phone_normalized: string | null;
     ultima_mensagem: string | null;
     ultima_mensagem_data: string | null;
-    ultima_mensagem_type: Database['public']['Enums']['conversas_message_type'] | null;
-    ultima_mensagem_direction: Database['public']['Enums']['conversas_message_direction'] | null;
+    ultima_mensagem_type: ConversasMessageType | null;
+    ultima_mensagem_direction: ConversasMessageDirection | null;
     created_at: string;
     updated_at: string;
   };
@@ -194,8 +204,8 @@ export interface DbConversasChat {
     user_id: string;
     contato_id: string;
     instance_id: string;
-    status?: Database['public']['Enums']['conversas_chat_status'];
-    pin?: Database['public']['Enums']['conversas_chat_pin'];
+    status?: ConversasChatStatus;
+    pin?: ConversasChatPin;
     pin_origin?: 'lunari' | 'whatsapp' | null;
     mute?: boolean;
     unread_count?: number;
@@ -204,8 +214,8 @@ export interface DbConversasChat {
     contato_phone_normalized?: string | null;
     ultima_mensagem?: string | null;
     ultima_mensagem_data?: string | null;
-    ultima_mensagem_type?: Database['public']['Enums']['conversas_message_type'] | null;
-    ultima_mensagem_direction?: Database['public']['Enums']['conversas_message_direction'] | null;
+    ultima_mensagem_type?: ConversasMessageType | null;
+    ultima_mensagem_direction?: ConversasMessageDirection | null;
     created_at?: string;
     updated_at?: string;
   };
@@ -214,8 +224,8 @@ export interface DbConversasChat {
     user_id?: string;
     contato_id?: string;
     instance_id?: string;
-    status?: Database['public']['Enums']['conversas_chat_status'];
-    pin?: Database['public']['Enums']['conversas_chat_pin'];
+    status?: ConversasChatStatus;
+    pin?: ConversasChatPin;
     pin_origin?: 'lunari' | 'whatsapp' | null;
     mute?: boolean;
     unread_count?: number;
@@ -224,8 +234,8 @@ export interface DbConversasChat {
     contato_phone_normalized?: string | null;
     ultima_mensagem?: string | null;
     ultima_mensagem_data?: string | null;
-    ultima_mensagem_type?: Database['public']['Enums']['conversas_message_type'] | null;
-    ultima_mensagem_direction?: Database['public']['Enums']['conversas_message_direction'] | null;
+    ultima_mensagem_type?: ConversasMessageType | null;
+    ultima_mensagem_direction?: ConversasMessageDirection | null;
     created_at?: string;
     updated_at?: string;
   };
@@ -243,14 +253,14 @@ export interface DbConversasMensagem {
     chat_id: string;
     instance_id: string;
     evolution_msg_id: string | null;
-    direction: Database['public']['Enums']['conversas_message_direction'];
-    type: Database['public']['Enums']['conversas_message_type'];
+    direction: ConversasMessageDirection;
+    type: ConversasMessageType;
     content: string;
     media_url: string | null;
     media_mime_type: string | null;
     media_size_bytes: number | null;
     media_filename: string | null;
-    status: Database['public']['Enums']['conversas_message_status'];
+    status: ConversasMessageStatus;
     is_forwarded: boolean | null;
     reply_to_id: string | null;
     quoted_content: string | null;
@@ -266,14 +276,14 @@ export interface DbConversasMensagem {
     chat_id: string;
     instance_id: string;
     evolution_msg_id?: string | null;
-    direction: Database['public']['Enums']['conversas_message_direction'];
-    type?: Database['public']['Enums']['conversas_message_type'];
+    direction: ConversasMessageDirection;
+    type?: ConversasMessageType;
     content?: string;
     media_url?: string | null;
     media_mime_type?: string | null;
     media_size_bytes?: number | null;
     media_filename?: string | null;
-    status?: Database['public']['Enums']['conversas_message_status'];
+    status?: ConversasMessageStatus;
     is_forwarded?: boolean | null;
     reply_to_id?: string | null;
     quoted_content?: string | null;
@@ -289,14 +299,14 @@ export interface DbConversasMensagem {
     chat_id?: string;
     instance_id?: string;
     evolution_msg_id?: string | null;
-    direction?: Database['public']['Enums']['conversas_message_direction'];
-    type?: Database['public']['Enums']['conversas_message_type'];
+    direction?: ConversasMessageDirection;
+    type?: ConversasMessageType;
     content?: string;
     media_url?: string | null;
     media_mime_type?: string | null;
     media_size_bytes?: number | null;
     media_filename?: string | null;
-    status?: Database['public']['Enums']['conversas_message_status'];
+    status?: ConversasMessageStatus;
     is_forwarded?: boolean | null;
     reply_to_id?: string | null;
     quoted_content?: string | null;

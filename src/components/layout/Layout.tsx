@@ -17,10 +17,12 @@ export default function Layout() {
   // Inicializar monitoramento de equipamentos
   useEquipmentSync();
 
-  // Bottom nav is shown on mobile and tablet-portrait
+  // Bottom nav is shown on mobile and tablet-portrait (except in full-screen editor mode)
   const isEditor = location.pathname.startsWith('/app/comercial/construtor')
     || location.pathname === '/app/comercial/contratos/novo'
     || /^\/app\/comercial\/contratos\/[^/]+\/editor$/.test(location.pathname);
+
+  const hasBottomNav = (isMobile || responsiveMode === 'tablet-portrait') && !isEditor;
 
   return <div className="flex bg-background" style={{ height: '100dvh' }}>
       <Sidebar />
