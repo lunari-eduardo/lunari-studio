@@ -50,9 +50,9 @@ export function EditorialOverlapBlend({
       )}
     >
       <div className="max-w-[900px] mx-auto">
-        <div className="grid grid-cols-1 @md:grid-cols-2 gap-10 @md:gap-24 items-center">
+        <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-10 @2xl:gap-20 items-center">
           {/* Visual (Photos) */}
-          <div className="relative h-[280px] @md:h-[520px]">
+          <div className="relative h-[320px] @md:h-[380px] @2xl:h-[520px] w-full max-w-md mx-auto @2xl:max-w-none">
             {imgSlot('photo_a', 'Foto A', {
               position: 'absolute',
               top: 0,
@@ -71,7 +71,7 @@ export function EditorialOverlapBlend({
             })}
             {c.vertical_label && (
               <p
-                className="hidden @md:block absolute bottom-8 -left-5 text-[10px] tracking-[0.35em] uppercase text-white/20"
+                className="hidden @2xl:block absolute bottom-8 -left-5 text-[10px] tracking-[0.35em] uppercase text-white/20"
                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)' }}
               >
                 {c.vertical_label}
@@ -88,7 +88,7 @@ export function EditorialOverlapBlend({
             />
 
             <h2
-              className="text-4xl @md:text-5xl @lg:text-[4rem] font-light leading-[1.02] tracking-[0.03em] mb-10 text-current"
+              className="text-3xl @md:text-4xl @2xl:text-5xl @3xl:text-[3.5rem] font-light leading-[1.05] tracking-[0.03em] mb-8 @2xl:mb-10 text-current"
               style={fd()}
             >
               <EditableText {...et('title', c.title)} placeholder="Título" />
@@ -172,7 +172,7 @@ export function EditorialSplitPortrait({
       )}
     >
       <div className="max-w-[900px] mx-auto">
-        <div className="grid grid-cols-1 @md:grid-cols-[1fr_minmax(0,42%)] gap-10 @md:gap-16 items-start">
+        <div className="grid grid-cols-1 @2xl:grid-cols-[1fr_minmax(0,42%)] gap-10 @2xl:gap-16 items-start">
           {/* Coluna de texto */}
           <div className={cn('flex flex-col', align)}>
             <EditableText
@@ -220,7 +220,7 @@ export function EditorialSplitPortrait({
           </div>
 
           {/* Coluna da foto */}
-          <div className="aspect-[4/5] overflow-hidden">
+          <div className="aspect-[4/5] overflow-hidden w-full max-w-md mx-auto @2xl:max-w-none rounded-xl @2xl:rounded-none">
             <EditableImage
               editable={editable}
               value={photoRef}

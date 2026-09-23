@@ -72,8 +72,8 @@ export function PricingClassic({
     packages.length === 1
       ? 'grid-cols-1 max-w-md mx-auto'
       : packages.length === 2
-      ? 'grid-cols-1 @md:grid-cols-2 max-w-[680px] mx-auto'
-      : 'grid-cols-1 @md:grid-cols-3';
+      ? 'grid-cols-1 @2xl:grid-cols-2 max-w-[760px] mx-auto'
+      : 'grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3';
 
   return (
     <section
@@ -182,8 +182,8 @@ export function PricingCardsMinimal({
     packages.length === 1
       ? 'grid-cols-1 max-w-sm mx-auto'
       : packages.length === 2
-      ? 'grid-cols-1 @md:grid-cols-2 max-w-[700px] mx-auto'
-      : 'grid-cols-1 @md:grid-cols-3';
+      ? 'grid-cols-1 @2xl:grid-cols-2 max-w-[760px] mx-auto'
+      : 'grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3';
 
   return (
     <section
@@ -330,15 +330,15 @@ export function PricingNumberedEditorial({
               >
                 <div
                   className={cn(
-                    'grid gap-8 @md:gap-12 items-start',
+                    'grid gap-8 @2xl:gap-12 items-start',
                     !props?.hide_images && (pkg.image_ref || editable)
-                      ? 'grid-cols-1 @md:grid-cols-[1fr_1fr]'
+                      ? 'grid-cols-1 @2xl:grid-cols-[1fr_1fr]'
                       : 'grid-cols-1',
-                    isEven && '@md:direction-rtl'
+                    isEven && '@2xl:direction-rtl'
                   )}
                 >
                   {/* Lado do conteúdo */}
-                  <div className={cn(isEven && '@md:order-2')}>
+                  <div className={cn(isEven && '@2xl:order-2')}>
                     <div className="flex items-baseline gap-4 mb-4">
                       <span className="text-5xl @md:text-6xl opacity-15 leading-none" style={fd()}>
                         {num}
@@ -388,7 +388,7 @@ export function PricingNumberedEditorial({
 
                   {/* Lado da foto */}
                   {!props?.hide_images && (pkg.image_ref || editable) && (
-                    <div className={cn('aspect-[4/5] @md:aspect-[3/4] overflow-hidden', isEven && '@md:order-1')}>
+                    <div className={cn('aspect-[4/5] @2xl:aspect-[3/4] overflow-hidden', isEven && '@2xl:order-1')}>
                       <EditableImage
                         editable={editable}
                         value={pkg.image_ref || null}

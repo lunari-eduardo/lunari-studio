@@ -94,9 +94,9 @@ export function GalleryRenderer({
         <EditableText as="p" {...et('caption', c.caption)} className="italic opacity-50 mb-12" style={fd()} />
 
         {layout === 'masonry' ? (
-          <div className="columns-2 @md:columns-3 @lg:columns-4 gap-2">
+          <div className="columns-2 @2xl:columns-3 @4xl:columns-4 gap-3">
             {images.map((img: any, idx: number) => (
-              <div key={img.id || idx} className="mb-2 break-inside-avoid rounded-sm overflow-hidden bg-white/5 relative">
+              <div key={img.id || idx} className="mb-3 break-inside-avoid rounded-sm overflow-hidden bg-white/5 relative">
                 <EditableImage
                   editable={editable}
                   value={img.image_ref || null}
@@ -109,13 +109,13 @@ export function GalleryRenderer({
               </div>
             ))}
             {editable && (
-              <div className="mb-2 break-inside-avoid">
+              <div className="mb-3 break-inside-avoid">
                 <AddImageTile onAdd={addImage} onAddMultiple={addMultipleImages} />
               </div>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 @md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4 gap-3">
             {images.map((img: any, idx: number) => {
               const ratio = img.ratio && img.ratio !== 'auto' ? img.ratio : null;
               return (
