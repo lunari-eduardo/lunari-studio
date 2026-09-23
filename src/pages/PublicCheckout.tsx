@@ -8,6 +8,8 @@ import { AsaasCheckout } from '@/components/AsaasCheckout';
 import { usePublicCheckoutData } from './checkout/public/hooks/usePublicCheckoutData';
 import { PublicCheckoutSuccess } from './checkout/public/components/PublicCheckoutSuccess';
 import { PublicCheckoutError } from './checkout/public/components/PublicCheckoutError';
+import { PreCheckoutContactStep, PreCheckoutContactValues } from '@/components/gallery/PreCheckoutContactStep';
+import { useState } from 'react';
 
 export default function PublicCheckout() {
   const {
@@ -56,6 +58,64 @@ export default function PublicCheckout() {
   }
 
   const provedorAtual = (data.provedor ?? 'asaas') as string;
+  const [passedPreCheckout, setPassedPreCheckout] = useState(false);
+
+  const needsPreCheckout = data.payerMissing && 
+    (data.payerMissing.name || data.payerMissing.email || data.payerMissing.phone || data.payerMissing.cpfCnpj) 
+    && !passedPreCheckout;
+
+  if (needsPreCheckout) {
+    return (
+      <PublicThemeWrapper primaryColor={data.theme?.primaryColor || undefined}>
+        <PreCheckoutContactStep
+          valorTotal={data.cobranca.valor}
+          provider={provedorAtual as any}
+          studioName={data.photographer.name || undefined}
+          photographerFirstName={data.photographer.name?.split(' ')[0] || undefined}
+          prefill={{
+            fullName: payerName,
+            email: payerEmail,
+            phone: payerPhone,
+            cpfCnpj: payerCpf,
+          }}
+          missing={data.payerMissing}
+          externalErrors={{}}
+          onBack={() => {
+            // Em cobranças diretas/públicas, não há "voltar". Recarrega a página.
+            window.location.reload();
+          }}
+          onSubmit={async (values: PreCheckoutContactValues) => {
+            setPayerName(values.nome);
+            setPayerEmail(values.email);
+            setPayerPhone(values.phone);
+            setPayerCpf(values.cpfCnpj);
+            await handlePersistContact({
+              nome: values.nome,
+              email: values.email,
+              phone: values.phone,
+              cpfCnpj: values.cpfCnpj,
+            });
+            
+            // Para não pedir de novo nos sub-componentes
+            if (data.payerMissing) {
+              data.payerMissing.name = false;
+              data.payerMissing.email = false;
+              data.payerMissing.phone = false;
+              data.payerMissing.cpfCnpj = false;
+            }
+            if (data.payerHints) {
+              data.payerHints.fullName = values.nome;
+              data.payerHints.email = values.email;
+              data.payerHints.phone = values.phone;
+              data.payerHints.cpfCnpj = values.cpfCnpj;
+            }
+
+            setPassedPreCheckout(true);
+          }}
+        />
+      </PublicThemeWrapper>
+    );
+  }
 
   // Provedores não transparentes (ex: infinitepay)
   if (provedorAtual !== 'asaas' && provedorAtual !== 'mercadopago') {

@@ -133,7 +133,16 @@ Deno.serve(async (req) => {
       body: JSON.stringify(refundBody),
     });
 
-    const asaasData = await asaasResp.json();
+    const textData = await asaasResp.text();
+    let asaasData: any = {};
+    try {
+      if (textData) asaasData = JSON.parse(textData);
+    } catch (e) {
+      asaasData = {
+        error: "Erro de comunicação com o Asaas",
+        message: textData || `HTTP Status ${asaasResp.status}`
+      };
+    }
 
     if (!asaasResp.ok) {
       console.error('[asaas-refund] Asaas error:', asaasResp.status, asaasData);

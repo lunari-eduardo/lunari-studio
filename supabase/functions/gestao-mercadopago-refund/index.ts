@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.2';
-
+import { decryptToken } from '../_shared/crypto.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -64,7 +64,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    const mpToken = integracao.access_token;
+    let mpToken = integracao.access_token;
+    try {
+      mpToken = await decryptToken(mpToken);
+    } catch (err) {
+      console.error('[mp-refund] Falha ao descriptografar token:', err);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Falha na autenticação com o provedor' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Buscar mp_payment_id da cobrança
     const { data: cobranca } = await supabase
@@ -107,7 +116,16 @@ Deno.serve(async (req) => {
       body: JSON.stringify(refundBody),
     });
 
-    const mpData = await mpResp.json();
+    const textData = await mpResp.text();
+    let mpData: any = {};
+    try {
+      if (textData) mpData = JSON.parse(textData);
+    } catch (e) {
+      mpData = {
+        error: "Erro de comunicação com o Mercado Pago",
+        message: textData || `HTTP Status ${mpResp.status}`
+      };
+    }
 
     if (!mpResp.ok) {
       console.error('[mp-refund] MP error:', mpResp.status, mpData);

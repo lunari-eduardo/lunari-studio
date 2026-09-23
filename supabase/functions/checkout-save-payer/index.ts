@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     // para respeitar a regra "primeira vez wins" no nome.
     const { data: clienteDb } = await supabase
       .from("clientes")
-      .select("nome_checkout, nome")
+      .select("nome_checkout, nome, email, telefone, whatsapp, cpf_cnpj")
       .eq("id", cobranca.cliente_id)
       .maybeSingle();
 
@@ -64,8 +64,21 @@ Deno.serve(async (req) => {
     // IMPORTANTE: nome_checkout só grava se ainda estiver vazio (proteção "1ª vez wins")
     // clientes.nome NUNCA é alterado aqui (proteção do CRM)
     const patchCliente: Record<string, string> = {};
+    const isEmptyField = (v: unknown) => v == null || (typeof v === "string" && v.trim() === "");
+
     if (normalizedNome.length >= 2 && !clienteDb?.nome_checkout) {
       patchCliente.nome_checkout = normalizedNome;
+    }
+    if (normalizedEmail && isEmptyField(clienteDb?.email)) {
+      patchCliente.email = normalizedEmail.toLowerCase();
+    }
+    if (normalizedTelefone && isEmptyField(clienteDb?.whatsapp) && isEmptyField(clienteDb?.telefone)) {
+      const phoneDigits = normalizedTelefone.replace(/\D/g, "");
+      patchCliente.whatsapp = phoneDigits;
+      patchCliente.telefone = phoneDigits;
+    }
+    if (normalizedCpf && isEmptyField(clienteDb?.cpf_cnpj)) {
+      patchCliente.cpf_cnpj = normalizedCpf.replace(/\D/g, "");
     }
 
     if (Object.keys(patchCliente).length > 0) {
