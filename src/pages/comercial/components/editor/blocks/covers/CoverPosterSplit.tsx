@@ -57,8 +57,15 @@ export function CoverPosterSplit({
       : {}),
   };
 
+  const isPortrait = (props?.orientation ?? 'portrait') === 'portrait';
+
   return (
-    <section className="relative min-h-[700px] @md:min-h-[900px] flex flex-col overflow-hidden">
+    <section
+      className={cn(
+        "relative flex flex-col overflow-hidden",
+        isPortrait ? "min-h-[680px] @md:min-h-[820px]" : "min-h-[520px] @md:min-h-[640px]"
+      )}
+    >
       {/* Foto full-bleed como fundo */}
       <EditableImage
         editable={editable}
@@ -80,7 +87,10 @@ export function CoverPosterSplit({
       />
 
       {/* Conteúdo sobre o gradiente */}
-      <div className="relative z-10 flex flex-col items-center text-center flex-1 px-6 @md:px-16 pt-12 @md:pt-20">
+      <div className={cn(
+        "relative z-10 flex flex-col items-center text-center flex-1 px-6 pt-10",
+        isPortrait ? "@md:px-10 @md:pt-16" : "@md:px-16 pt-12 @md:pt-20"
+      )}>
         {/* Ornamento vertical */}
         <div className="w-[1px] h-8 bg-[var(--pa-accent,#7A5C42)] mb-6" />
 
@@ -95,7 +105,9 @@ export function CoverPosterSplit({
         {/* Título gigante */}
         <h1
           className={cn(
-            'text-5xl @md:text-7xl @lg:text-8xl uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[12ch]',
+            isPortrait
+              ? 'text-4xl @md:text-6xl uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[14ch]'
+              : 'text-5xl @md:text-7xl @2xl:text-8xl uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[12ch]',
             textColorClass(props?.text_color, props?.background, 'white')
           )}
           style={titleStyle}

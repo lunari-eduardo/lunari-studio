@@ -24,7 +24,6 @@ export function CoverEditorialDiptych({
     fieldKey: path,
   });
 
-  const aspectClass = props?.orientation === 'landscape' ? 'aspect-[16/10]' : 'aspect-[3/4]';
   const btnText = data?.btnText;
   
   // Use either title_regular or title depending on what's available
@@ -51,18 +50,29 @@ export function CoverEditorialDiptych({
       : {}),
   };
 
+  const isLandscape = props?.orientation === 'landscape';
+  const aspectClass = isLandscape ? 'aspect-[16/10]' : 'aspect-[3/4]';
+
   return (
     <section className={cn(
-      "overflow-hidden p-6 @md:p-12 @lg:p-16",
+      "overflow-hidden",
+      isLandscape
+        ? "p-6 @md:p-12 @2xl:p-16 min-h-[500px]"
+        : "p-6 @md:p-12 min-h-[640px] flex flex-col items-center",
       sectionBg(props?.background, 'cream'),
       textColorClass(props?.text_color, props?.background, 'cream')
     )}>
-      <div className="grid grid-cols-1 @lg:grid-cols-12 gap-8 @lg:gap-12">
+      <div className={cn(
+        isLandscape
+          ? "grid grid-cols-1 @2xl:grid-cols-12 gap-8 @2xl:gap-12"
+          : "flex flex-col gap-8 w-full max-w-xl mx-auto items-center text-center"
+      )}>
         
         {/* Coluna de texto */}
         <div className={cn(
-          "@lg:col-span-4 flex flex-col justify-center min-w-0",
-          alignClass(props?.align, 'left')
+          "flex flex-col justify-center min-w-0",
+          isLandscape ? "@2xl:col-span-4" : "w-full items-center text-center",
+          isLandscape && alignClass(props?.align, 'left')
         )}>
           
           {(data?.eyebrow || editable) && (
@@ -74,7 +84,7 @@ export function CoverEditorialDiptych({
           <h1 className="text-3xl @md:text-4xl leading-[1.1] tracking-tight max-w-[15ch] mb-6" style={titleStyle}>
             <EditableText {...et('title', titleVal)} placeholder="O encanto" />{' '}
             {(data?.title_italic || editable) && (
-              <em className="italic opacity-60" style={italicStyle}>
+              <em className="italic opacity-60 block mt-1" style={italicStyle}>
                 <EditableText {...et('title_italic', data?.title_italic)} placeholder="dos detalhes" />
               </em>
             )}
@@ -90,7 +100,7 @@ export function CoverEditorialDiptych({
             <div>
               {editable ? (
                 <div
-                  className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide inline-flex items-center justify-center cursor-text"
+                  className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-5 h-auto text-sm font-medium tracking-wide inline-flex items-center justify-center cursor-text"
                   style={btnStyle}
                 >
                   <EditableText {...et('btnText', btnText)} placeholder="Acessar proposta" />
@@ -98,7 +108,7 @@ export function CoverEditorialDiptych({
               ) : (
                 <Button
                   variant="default"
-                  className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
+                  className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-5 h-auto text-sm font-medium tracking-wide"
                   style={btnStyle}
                   onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
                 >
@@ -109,16 +119,19 @@ export function CoverEditorialDiptych({
           )}
 
           {(data?.photographer_name || editable) && (
-            <div className="text-[9px] tracking-[0.3em] uppercase opacity-50 mt-auto pt-8" style={photographerStyle}>
+            <div className="text-[9px] tracking-[0.3em] uppercase opacity-50 mt-6 pt-4 border-t border-black/5" style={photographerStyle}>
               <EditableText {...et('photographer_name', data?.photographer_name)} placeholder="FOTOGRAFIA POR NOME" />
             </div>
           )}
         </div>
 
         {/* Coluna de fotos */}
-        <div className="@lg:col-span-8 grid grid-cols-2 gap-4">
-          <div className={cn("rounded-lg overflow-hidden relative", aspectClass)}>
-          <EditableImage
+        <div className={cn(
+          "grid grid-cols-2 gap-4 w-full",
+          isLandscape ? "@2xl:col-span-8 self-center" : "max-w-xl mx-auto"
+        )}>
+          <div className={cn("rounded-lg overflow-hidden relative shadow-lg", aspectClass)}>
+            <EditableImage
               editable={editable}
               value={data?.image_url || null}
               onCommit={(url) => inline?.set('image_url', url)}
@@ -129,7 +142,7 @@ export function CoverEditorialDiptych({
               publicEmptyClassName="w-full h-full bg-gradient-to-br from-[var(--pa-linen,#E8DCCB)] to-[var(--pa-stone,#C9B7A2)]"
             />
           </div>
-          <div className={cn("rounded-lg overflow-hidden relative", aspectClass)}>
+          <div className={cn("rounded-lg overflow-hidden relative shadow-lg", aspectClass)}>
             <EditableImage
               editable={editable}
               value={data?.photo_b || null}

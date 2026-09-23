@@ -24,8 +24,8 @@ export function CoverFloatingFrame({
     fieldKey: path,
   });
 
-  const orientation = props?.orientation || 'portrait';
-  const aspectClass = orientation === 'portrait' ? 'aspect-[4/5]' : 'aspect-[16/9]';
+  const isPortrait = (props?.orientation ?? 'portrait') === 'portrait';
+  const aspectClass = isPortrait ? 'aspect-[4/5]' : 'aspect-[16/10]';
 
   const btnText = data?.btnText;
 
@@ -52,7 +52,8 @@ export function CoverFloatingFrame({
 
   return (
     <section className={cn(
-      "overflow-hidden flex flex-col items-center py-10 @md:py-16 px-6 @md:px-16",
+      "overflow-hidden flex flex-col items-center",
+      isPortrait ? "py-10 @md:py-16 px-6 @md:px-12 min-h-[640px]" : "py-12 @md:py-20 px-6 @md:px-16 min-h-[520px]",
       sectionBg(props?.background, 'white'),
       textColorClass(props?.text_color, props?.background, 'white')
     )}>
@@ -82,7 +83,7 @@ export function CoverFloatingFrame({
       )}
 
       {/* Moldura flutuante */}
-      <div className="relative mx-auto max-w-lg w-full">
+      <div className={cn("relative mx-auto w-full", isPortrait ? "max-w-md" : "max-w-2xl")}>
         <div className="p-3 @md:p-4 bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
           <div className={cn("overflow-hidden relative", aspectClass)}>
             <EditableImage

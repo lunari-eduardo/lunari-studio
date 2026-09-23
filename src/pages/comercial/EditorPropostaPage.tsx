@@ -257,8 +257,8 @@ export default function EditorMaterialPage() {
 
   // Orientação da proposta (retrato por padrão para formato editorial/A4/mobile)
   const proposalOrientation = React.useMemo(() => {
-    return getProposalOrientation(editorState.blocks, editorState.globalSettings);
-  }, [editorState.blocks, editorState.globalSettings]);
+    return getProposalOrientation(editorState?.blocks, editorState?.globalSettings);
+  }, [editorState?.blocks, editorState?.globalSettings]);
 
   const isPortrait = proposalOrientation === 'portrait';
 

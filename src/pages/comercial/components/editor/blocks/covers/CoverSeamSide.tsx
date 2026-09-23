@@ -56,9 +56,20 @@ export function CoverSeamSide({
 
   return (
     <section className={cn('relative w-full overflow-hidden @container', bgClass)}>
-      <div className="grid grid-cols-1 @lg:grid-cols-2">
+      <div className={cn(
+        isPortrait
+          ? 'flex flex-col min-h-[640px]'
+          : 'grid grid-cols-1 @2xl:grid-cols-2 min-h-[500px]'
+      )}>
         {/* Media Column */}
-        <div className={cn("relative w-full h-full min-h-[360px] @lg:min-h-[420px] @lg:border-r border-black/5", aspectClass)}>
+        <div
+          className={cn(
+            'relative w-full',
+            isPortrait
+              ? 'aspect-[4/5] min-h-[360px]'
+              : 'h-full min-h-[440px] @2xl:border-r border-black/5 aspect-[16/10] @2xl:aspect-auto'
+          )}
+        >
           <EditableImage
             editable={editable}
             value={data?.image_url || null}
@@ -72,7 +83,16 @@ export function CoverSeamSide({
         </div>
 
         {/* Text Column */}
-        <div className={cn("flex flex-col justify-center min-w-0 p-6 @md:p-12 @lg:p-16", align, txtClass)}>
+        <div
+          className={cn(
+            'flex flex-col justify-center min-w-0',
+            isPortrait
+              ? 'p-6 @md:p-10 border-t border-black/5'
+              : 'p-6 @md:p-12 @2xl:p-16',
+            align,
+            txtClass
+          )}
+        >
           {(data?.eyebrow || editable) && (
             <div className={cn('text-sm uppercase tracking-[0.2em] mb-4 opacity-70')} style={eyebrowStyle || fb()}>
               <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="PROPOSTA EXCLUSIVA" multiline={false} style={eyebrowStyle} />

@@ -64,14 +64,23 @@ export function CoverMinimalCenter({
   return (
     <section
       className={cn(
-        'relative overflow-hidden p-6 @md:p-12 @lg:p-16',
-        'grid grid-cols-1 @lg:grid-cols-12 gap-8 @lg:gap-12 min-h-[500px]',
+        'relative overflow-hidden',
+        isLandscape
+          ? 'p-6 @md:p-12 @2xl:p-16 grid grid-cols-1 @2xl:grid-cols-12 gap-8 @2xl:gap-12 min-h-[500px]'
+          : 'p-6 @md:p-12 flex flex-col items-center text-center gap-8 min-h-[640px]',
         sectionBg(props?.background, 'white'),
         textColorClass(props?.text_color, props?.background, 'white')
       )}
     >
-      {/* Texto — ocupa 7 colunas no desktop, nunca invade a foto */}
-      <div className={cn('@lg:col-span-7 flex flex-col justify-center min-w-0 z-10', colAlign, align)}>
+      {/* Texto */}
+      <div
+        className={cn(
+          'flex flex-col justify-center min-w-0 z-10',
+          isLandscape ? '@2xl:col-span-7' : 'max-w-xl mx-auto items-center text-center',
+          isLandscape && colAlign,
+          isLandscape && align
+        )}
+      >
         <EditableText
           as="p"
           {...et('eyebrow', eyebrow)}
@@ -80,13 +89,16 @@ export function CoverMinimalCenter({
           style={eyebrowStyle}
         />
         <h1
-          className="text-4xl @md:text-5xl @lg:text-6xl text-current leading-[1.1] tracking-tight max-w-[15ch] mb-6"
+          className={cn(
+            'text-4xl @md:text-5xl @2xl:text-6xl text-current leading-[1.1] tracking-tight mb-6',
+            isLandscape ? 'max-w-[15ch]' : 'max-w-[18ch]'
+          )}
           style={titleStyle}
         >
           {hasTitle || editable ? (
             <>
               <EditableText {...et('title', title)} placeholder="Título da capa" />
-              <em className="italic opacity-60" style={italicStyle}>
+              <em className="italic opacity-60 block mt-1" style={italicStyle}>
                 <EditableText {...et('title_italic', titleItalic)} placeholder="continuação em itálico" />
               </em>
             </>
@@ -98,13 +110,13 @@ export function CoverMinimalCenter({
           as="p"
           {...et('subtitle', subtitle)}
           multiline
-          className="text-[var(--pa-taupe,#6D655E)] text-lg max-w-[40ch] mb-10 leading-relaxed font-light"
+          className="text-[var(--pa-taupe,#6D655E)] text-base @md:text-lg max-w-[40ch] mb-8 leading-relaxed font-light"
           style={subtitleStyle}
         />
         {btnText &&
           (editable ? (
             <div
-              className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
+              className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-5 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
               style={btnStyle}
             >
@@ -112,7 +124,7 @@ export function CoverMinimalCenter({
             </div>
           ) : (
             <Button
-              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
+              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-5 h-auto text-sm font-medium tracking-wide"
               style={btnStyle}
               onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
             >
@@ -121,11 +133,13 @@ export function CoverMinimalCenter({
           ))}
       </div>
 
-      {/* Imagem — ocupa 5 colunas, aspect ratio rígido */}
+      {/* Imagem */}
       <div
         className={cn(
-          '@lg:col-span-5 relative rounded-[2rem] overflow-hidden shadow-2xl',
-          isLandscape ? 'aspect-[16/10]' : 'aspect-[3/4]'
+          'relative rounded-[2rem] overflow-hidden shadow-2xl',
+          isLandscape
+            ? '@2xl:col-span-5 aspect-[16/10] w-full self-center'
+            : 'w-full max-w-md aspect-[3/4] mx-auto'
         )}
       >
         <EditableImage

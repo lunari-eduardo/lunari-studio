@@ -48,8 +48,15 @@ export function CoverHeroFull({
       : {}),
   };
 
+  const isPortrait = (props?.orientation ?? 'portrait') === 'portrait';
+
   return (
-    <section className="relative min-h-[600px] @md:min-h-[800px] flex flex-col items-center justify-center overflow-hidden w-full">
+    <section className={cn(
+      "relative flex flex-col items-center justify-center overflow-hidden w-full",
+      isPortrait
+        ? "min-h-[680px] @md:min-h-[820px] py-16"
+        : "min-h-[520px] @md:min-h-[640px] py-12"
+    )}>
       <EditableImage
         editable={editable}
         value={data?.image_url || null}
@@ -63,7 +70,10 @@ export function CoverHeroFull({
       
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20 pointer-events-none" />
       
-      <div className="relative z-10 flex flex-col items-center text-center px-6 @md:px-16 max-w-3xl">
+      <div className={cn(
+        "relative z-10 flex flex-col items-center text-center px-6 @md:px-12",
+        isPortrait ? "max-w-xl" : "max-w-3xl"
+      )}>
         {(data?.eyebrow || editable) && (
           <div className="text-[10px] font-medium tracking-[0.28em] uppercase text-white/70 mb-4" style={eyebrowStyle}>
             <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="COLEÇÃO EXCLUSIVA" style={eyebrowStyle} />
