@@ -29,6 +29,8 @@ export default function PublicCheckout() {
     handlePersistContact,
   } = usePublicCheckoutData();
 
+  const [passedPreCheckout, setPassedPreCheckout] = useState(false);
+
   if (loading) {
     return (
       <PublicThemeWrapper>
@@ -57,9 +59,7 @@ export default function PublicCheckout() {
     );
   }
 
-  const provedorAtual = (data.provedor ?? 'asaas') as string;
-  const [passedPreCheckout, setPassedPreCheckout] = useState(false);
-
+  const provedorAtual = (data?.provedor ?? 'asaas') as string;
   const needsPreCheckout = data.payerMissing && 
     (data.payerMissing.name || data.payerMissing.email || data.payerMissing.phone || data.payerMissing.cpfCnpj) 
     && !passedPreCheckout;

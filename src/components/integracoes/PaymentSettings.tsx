@@ -456,6 +456,7 @@ export function PaymentSettings() {
         handleSaveMpSettings={handleSaveMpSettings} updateMpPending={updateMercadoPagoSettings.isPending}
         mpAppId={mpAppId}
         asaasIntegrationStatus={asaasIntegration?.status || null}
+        asaasIntegration={data?.allIntegrations?.find(i => i.provedor === 'asaas')}
         asaasApiKey={asaasApiKey} setAsaasApiKey={setAsaasApiKey}
         asaasEnvironment={asaasEnvironment} setAsaasEnvironment={setAsaasEnvironment}
         asaasHabilitarPix={asaasHabilitarPix} setAsaasHabilitarPix={setAsaasHabilitarPix}
