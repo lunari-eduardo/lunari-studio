@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ success: false, error: 'Não autenticado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     const token = authHeader.replace('Bearer ', '');
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(
         JSON.stringify({ success: false, error: 'Token inválido' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     const userId = claimsData.claims.sub as string;
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     if (!cobrancaId) {
       return new Response(
         JSON.stringify({ success: false, error: 'cobrancaId é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     if (!asaasConfig) {
       return new Response(
         JSON.stringify({ success: false, error: 'Integração Asaas não configurada' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
       if (!cobranca || cobranca.provedor !== 'asaas') {
         return new Response(
           JSON.stringify({ success: false, error: 'Cobrança Asaas não encontrada' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     if (!asaasPaymentId) {
       return new Response(
         JSON.stringify({ success: false, error: 'ID do pagamento no Asaas não encontrado. Não é possível estornar automaticamente.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
         || `Erro ${asaasResp.status} no Asaas`;
       return new Response(
         JSON.stringify({ success: false, error: errorMsg, asaasResponse: asaasData }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

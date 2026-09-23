@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ success: false, error: 'Não autenticado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     const token = authHeader.replace('Bearer ', '');
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     if (claimsError || !claimsData?.claims?.sub) {
       return new Response(
         JSON.stringify({ success: false, error: 'Token inválido' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     const userId = claimsData.claims.sub as string;
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     if (!cobrancaId) {
       return new Response(
         JSON.stringify({ success: false, error: 'cobrancaId é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     if (integError || !integracao?.access_token) {
       return new Response(
         JSON.stringify({ success: false, error: 'Integração Mercado Pago não configurada' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
       console.error('[mp-refund] Falha ao descriptografar token:', err);
       return new Response(
         JSON.stringify({ success: false, error: 'Falha na autenticação com o provedor' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     if (!cobranca || cobranca.provedor !== 'mercadopago') {
       return new Response(
         JSON.stringify({ success: false, error: 'Cobrança Mercado Pago não encontrada' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     if (!mpPaymentId) {
       return new Response(
         JSON.stringify({ success: false, error: 'ID do pagamento no Mercado Pago não encontrado. Não é possível estornar automaticamente.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         || `Erro ${mpResp.status} no Mercado Pago`;
       return new Response(
         JSON.stringify({ success: false, error: errorMsg, mpResponse: mpData }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
