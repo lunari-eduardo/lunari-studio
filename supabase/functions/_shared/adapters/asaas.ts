@@ -338,7 +338,13 @@ export async function createAsaasPayment(
     body: JSON.stringify(paymentPayload),
   });
 
-  const payData = await payRes.json();
+  const payText = await payRes.text();
+  let payData: any = {};
+  try {
+    if (payText) payData = JSON.parse(payText);
+  } catch (e) {
+    payData = { errors: [{ description: payText || `HTTP Status ${payRes.status}` }] };
+  }
 
   if (!payRes.ok || !payData.id) {
     console.error("[asaas-adapter] Erro na resposta do Asaas:", payData);

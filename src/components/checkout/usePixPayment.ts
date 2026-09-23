@@ -170,6 +170,8 @@ export function usePixPayment({
             errorMsg = 'O valor mínimo exigido pela operadora para este pagamento é de R$ 5,00.';
         } else if (lowerError.includes('processing') || lowerError.includes('timeout')) {
             errorMsg = 'O sistema da operadora demorou a responder. Tente novamente em alguns minutos.';
+        } else if (lowerError.includes('unexpected end of json input') || lowerError.includes('syntaxerror')) {
+            errorMsg = 'Ocorreu uma falha de comunicação com a operadora de pagamentos. Por favor, tente novamente.';
         }
         
         throw new Error(errorMsg);

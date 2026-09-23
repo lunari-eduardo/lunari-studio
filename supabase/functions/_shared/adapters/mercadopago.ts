@@ -129,12 +129,21 @@ export async function createMercadoPagoPayment(
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": cobrancaId + "-pix",
+        "X-Idempotency-Key": `${cobrancaId}-pix-${Date.now()}`,
       },
       body: JSON.stringify(pixPayload),
     });
     
-    const mpData = await mpRes.json();
+    const textData = await mpRes.text();
+    let mpData: any = {};
+    try {
+      if (textData) mpData = JSON.parse(textData);
+    } catch (e) {
+      mpData = { 
+        error: "Erro de comunicação com o Mercado Pago", 
+        message: textData || `HTTP Status ${mpRes.status}` 
+      };
+    }
     
     if (!mpRes.ok || !mpData.id) {
       console.error("[mercadopago-adapter] Erro na API Pix do MP:", mpData);
@@ -199,12 +208,21 @@ export async function createMercadoPagoPayment(
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": cobrancaId + "-card",
+        "X-Idempotency-Key": `${cobrancaId}-card-${Date.now()}`,
       },
       body: JSON.stringify(cardPayload),
     });
     
-    const mpData = await mpRes.json();
+    const textData = await mpRes.text();
+    let mpData: any = {};
+    try {
+      if (textData) mpData = JSON.parse(textData);
+    } catch (e) {
+      mpData = { 
+        error: "Erro de comunicação com o Mercado Pago", 
+        message: textData || `HTTP Status ${mpRes.status}` 
+      };
+    }
     
     if (!mpRes.ok || !mpData.id) {
       console.error("[mercadopago-adapter] Erro na API Cartão do MP:", mpData);
@@ -281,13 +299,14 @@ export async function createMercadoPagoPayment(
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": cobrancaId,
+        "X-Idempotency-Key": `${cobrancaId}-${Date.now()}`,
       },
       body: JSON.stringify(preferencePayload),
     });
 
     if (mpRes.ok) {
-      preferenceData = await mpRes.json();
+      const textData = await mpRes.text();
+      if (textData) preferenceData = JSON.parse(textData);
     }
   } catch (prefErr) {
     console.warn("[mercadopago-adapter] Falha não impeditiva ao criar preferência de auditoria:", prefErr);

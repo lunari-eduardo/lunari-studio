@@ -249,6 +249,8 @@ export function useCreditCardPayment({
           errorMsg = 'Pagamento recusado pelo emissor do cartão. Verifique o limite, os dados ou tente utilizar outro cartão.';
         } else if (lowerError.includes('processing') || lowerError.includes('timeout')) {
           errorMsg = 'O sistema da operadora de cartão demorou a responder. Tente novamente em alguns minutos.';
+        } else if (lowerError.includes('unexpected end of json input') || lowerError.includes('syntaxerror')) {
+          errorMsg = 'Ocorreu uma falha de comunicação com a operadora de cartão. Por favor, tente novamente.';
         }
 
         throw new Error(errorMsg);
