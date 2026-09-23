@@ -26,7 +26,7 @@ interface FinancialSectionProps {
   paidInput: {
     displayValue: string;
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    handleFocus: () => void;
+    handleFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
   };
   pagoCobrancas: any[];
   totalPagoCobrancas: number;

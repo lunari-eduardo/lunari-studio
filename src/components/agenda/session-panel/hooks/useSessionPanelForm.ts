@@ -100,6 +100,8 @@ export function useSessionPanelForm({
   );
   const [timeInput, setTimeInput] = useState(form.time);
 
+  const [selectedPackageData, setSelectedPackageData] = useState<any>(null);
+
   useEffect(() => {
     if (!open) return;
     const next = buildInitialState();
@@ -111,16 +113,21 @@ export function useSessionPanelForm({
     setCobrarAoSalvar(false);
     setChargeSessionId(null);
     setShowHistory(false);
+    setSelectedPackageData(null);
   }, [open, appointment?.id, buildInitialState]);
 
   const selectedPackage = useMemo(
-    () => pacotes.find((p: any) => p.id === form.packageId),
-    [pacotes, form.packageId],
+    () =>
+      (selectedPackageData && selectedPackageData.id === form.packageId
+        ? selectedPackageData
+        : pacotes.find((p: any) => p.id === form.packageId)),
+    [selectedPackageData, pacotes, form.packageId],
   );
   const valorPacote = Number(
     (selectedPackage as any)?.valor ??
       (selectedPackage as any)?.valor_base ??
       (selectedPackage as any)?.valorVenda ??
+      (selectedPackage as any)?.price ??
       0,
   );
 
@@ -227,12 +234,22 @@ export function useSessionPanelForm({
     : "";
 
   const handlePackageSelect = (packageId: string, packageData?: any) => {
+    if (!packageId) {
+      setSelectedPackageData(null);
+      setForm((prev) => ({
+        ...prev,
+        packageId: "",
+        categoria: "",
+      }));
+      return;
+    }
     const pkg = packageData || pacotes.find((p: any) => p.id === packageId);
+    setSelectedPackageData(pkg || null);
     setForm((prev) => ({
       ...prev,
       packageId,
       clientName: prev.clientName,
-      categoria: prev.categoria || (pkg?.categorias?.nome ?? prev.categoria),
+      categoria: pkg?.categorias?.nome || pkg?.categoria || prev.categoria || "",
     }));
   };
 

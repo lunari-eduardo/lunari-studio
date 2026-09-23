@@ -49,7 +49,6 @@ export default function SessionPanel({
   const {
     isEdit,
     pacotes,
-    categorias,
     clientes,
     dialogProps,
     workflowInfo,
@@ -159,8 +158,8 @@ export default function SessionPanel({
             <SessionDetailsSection
               form={form}
               setForm={setForm}
-              categorias={categorias}
               handlePackageSelect={handlePackageSelect}
+              valorPacote={valorPacote}
             />
 
             {/* 3. Financeiro */}
