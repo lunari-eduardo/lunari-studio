@@ -58,6 +58,8 @@ export async function executeGatewayRefund(
       const suffix = paymentId.replace(/^mp-/, '');
       const isUUID = /^[0-9a-f-]{36}$/i.test(suffix);
       let cobrancaId: string | undefined = payment.cobrancaId;
+      let mpPaymentIdToPass: string | undefined = !isUUID ? suffix : undefined;
+
       if (!cobrancaId && isUUID) {
         cobrancaId = suffix;
       } else if (!cobrancaId) {
@@ -76,7 +78,7 @@ export async function executeGatewayRefund(
       }
 
       const { data, error } = await supabase.functions.invoke('gestao-mercadopago-refund', {
-        body: { cobrancaId, valor: payment.valor, motivo }
+        body: { cobrancaId, mpPaymentId: mpPaymentIdToPass, valor: payment.valor, motivo }
       });
 
       if (error || !data?.success) {

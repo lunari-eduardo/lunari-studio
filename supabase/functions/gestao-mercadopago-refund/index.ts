@@ -7,6 +7,7 @@ const corsHeaders = {
 
 interface RequestBody {
   cobrancaId: string;
+  mpPaymentId?: string;
   valor?: number;
   motivo?: string;
 }
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     const body: RequestBody = await req.json();
-    const { cobrancaId, valor, motivo } = body;
+    const { cobrancaId, mpPaymentId: providedMpPaymentId, valor, motivo } = body;
 
     if (!cobrancaId) {
       return new Response(
@@ -75,22 +76,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Buscar mp_payment_id da cobrança
-    const { data: cobranca } = await supabase
-      .from('cobrancas')
-      .select('id, user_id, provedor, mp_payment_id')
-      .eq('id', cobrancaId)
-      .eq('user_id', userId)
-      .maybeSingle();
+    let mpPaymentId = providedMpPaymentId;
 
-    if (!cobranca || cobranca.provedor !== 'mercadopago') {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Cobrança Mercado Pago não encontrada' }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!mpPaymentId) {
+      // Buscar mp_payment_id da cobrança
+      const { data: cobranca } = await supabase
+        .from('cobrancas')
+        .select('id, user_id, provedor, mp_payment_id')
+        .eq('id', cobrancaId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!cobranca || cobranca.provedor !== 'mercadopago') {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Cobrança Mercado Pago não encontrada' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      mpPaymentId = cobranca.mp_payment_id;
     }
 
-    const mpPaymentId = cobranca.mp_payment_id;
+    if (!mpPaymentId) {
+      // Fallback para buscar em clientes_transacoes
+      const { data: trx } = await supabase
+        .from('clientes_transacoes')
+        .select('gateway_payment_id')
+        .eq('cobranca_id', cobrancaId)
+        .eq('forma_pagamento', 'mercadopago')
+        .not('gateway_payment_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (trx?.gateway_payment_id) {
+        mpPaymentId = trx.gateway_payment_id;
+      }
+    }
+
     if (!mpPaymentId) {
       return new Response(
         JSON.stringify({ success: false, error: 'ID do pagamento no Mercado Pago não encontrado. Não é possível estornar automaticamente.' }),
