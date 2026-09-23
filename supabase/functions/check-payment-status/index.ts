@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decryptToken } from "../_shared/crypto.ts";
 
@@ -11,16 +11,16 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 /**
- * CONTRATO OFICIAL: Fallback obrigatório para verificação manual de pagamentos
+ * CONTRATO OFICIAL: Fallback obrigatÃ³rio para verificaÃ§Ã£o manual de pagamentos
  * 
- * Lógica de resolução segue a mesma ordem do webhook:
- * 1º: Buscar por ip_order_nsu = identifier
- * 2º: Fallback por id = identifier
+ * LÃ³gica de resoluÃ§Ã£o segue a mesma ordem do webhook:
+ * 1Âº: Buscar por ip_order_nsu = identifier
+ * 2Âº: Fallback por id = identifier
  * 
- * Para cobranças Asaas com parcelas:
- * - Consulta a API do Asaas usando a chave do FOTÓGRAFO (usuarios_integracoes)
+ * Para cobranÃ§as Asaas com parcelas:
+ * - Consulta a API do Asaas usando a chave do FOTÃ“GRAFO (usuarios_integracoes)
  * - Cria/atualiza cobranca_parcelas com dados de taxas
- * - Deixa o trigger reconcile_cobranca_from_parcelas atualizar o status da cobrança
+ * - Deixa o trigger reconcile_cobranca_from_parcelas atualizar o status da cobranÃ§a
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -35,7 +35,7 @@ serve(async (req) => {
 
     console.log("[check-payment-status] Request:", { cobrancaId, orderNsu, sessionId, galleryId: effectiveGalleryId, galleryToken, forceUpdate });
 
-    // RESOLUÇÃO SEGUE ORDEM CANÔNICA: cobrancaId/ip_order_nsu → sessionId → galeriaId/token
+    // RESOLUÃ‡ÃƒO SEGUE ORDEM CANÃ”NICA: cobrancaId/ip_order_nsu â†’ sessionId â†’ galeriaId/token
     const cobranca = await findCobranca(supabase, {
       cobrancaId,
       orderNsu,
@@ -51,7 +51,7 @@ serve(async (req) => {
 
     console.log(`[check-payment-status] Found: ${cobranca.id}, status: ${cobranca.status}, provedor: ${cobranca.provedor}`);
 
-    // Já pago — retornar
+    // JÃ¡ pago â€” retornar
     if (cobranca.status === "pago") {
       if (cobranca.galeria_id && cobranca.extras_contabilizados !== true) {
         try {
@@ -69,7 +69,7 @@ serve(async (req) => {
       return jsonResponse({ found: true, status: "pago", updated: false, source: "already_paid", cobrancaId: cobranca.id });
     }
 
-    // ASAAS: Query API do fotógrafo para status real
+    // ASAAS: Query API do fotÃ³grafo para status real
     if (cobranca.provedor === "asaas") {
       const asaasConfig = await getPhotographerAsaasConfig(supabase, cobranca.user_id);
 
@@ -103,7 +103,7 @@ serve(async (req) => {
       if (integracao?.access_token && mpPaymentId) {
         try {
           const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${mpPaymentId}`, {
-            headers: { Authorization: `Bearer ${integracao.access_token}` },
+            headers: { Authorization: `Bearer ${await decryptToken(integracao.access_token)}` },
           });
           
           if (mpRes.ok) {
@@ -164,7 +164,7 @@ serve(async (req) => {
             p_manual_obs: null,
           });
         } catch (healErr) {
-          console.warn("[check-payment-status] Auto-heal pós forceUpdate falhou:", healErr);
+          console.warn("[check-payment-status] Auto-heal pÃ³s forceUpdate falhou:", healErr);
         }
       }
 
@@ -234,9 +234,9 @@ async function findCobranca(supabase: any, { cobrancaId, orderNsu, sessionId, ga
     }
   }
 
-  // 4. By galleryId: busca cobrança ativa considerando saldo canônico da galeria
+  // 4. By galleryId: busca cobranÃ§a ativa considerando saldo canÃ´nico da galeria
   if (resolvedGalleryId) {
-    // Verificar saldo canônico atual da galeria
+    // Verificar saldo canÃ´nico atual da galeria
     let canonicalCalc: any = null;
     try {
       const { data: calc } = await supabase.rpc("calculate_gallery_extra_payment", {
@@ -251,7 +251,7 @@ async function findCobranca(supabase: any, { cobrancaId, orderNsu, sessionId, ga
     const valorACobrar = Number(canonicalCalc?.valor_a_cobrar ?? 0);
     const isFullyPaid = canonicalCalc?.is_fully_paid === true && valorACobrar <= 0;
 
-    // Prioriza cobrança pendente do ciclo atual
+    // Prioriza cobranÃ§a pendente do ciclo atual
     const { data: pending } = await supabase
       .from("cobrancas")
       .select("*")
@@ -263,10 +263,10 @@ async function findCobranca(supabase: any, { cobrancaId, orderNsu, sessionId, ga
 
     if (pending) return pending;
 
-    // Se a galeria ainda possui saldo a cobrar (ex: nova seleção delta após reabertura),
-    // NUNCA retornar uma cobrança paga antiga como quitada!
+    // Se a galeria ainda possui saldo a cobrar (ex: nova seleÃ§Ã£o delta apÃ³s reabertura),
+    // NUNCA retornar uma cobranÃ§a paga antiga como quitada!
     if (!isFullyPaid && valorACobrar > 0) {
-      console.log(`[check-payment-status] Galeria ${resolvedGalleryId} possui saldo a cobrar R$ ${valorACobrar} (delta não quitado).`);
+      console.log(`[check-payment-status] Galeria ${resolvedGalleryId} possui saldo a cobrar R$ ${valorACobrar} (delta nÃ£o quitado).`);
       return {
         id: null,
         galeria_id: resolvedGalleryId,
@@ -278,7 +278,7 @@ async function findCobranca(supabase: any, { cobrancaId, orderNsu, sessionId, ga
       };
     }
 
-    // Se a galeria estiver 100% quitada, buscar a última cobrança (que deve ser 'pago')
+    // Se a galeria estiver 100% quitada, buscar a Ãºltima cobranÃ§a (que deve ser 'pago')
     const { data: latest } = await supabase
       .from("cobrancas")
       .select("*")
@@ -309,10 +309,10 @@ async function findCobranca(supabase: any, { cobrancaId, orderNsu, sessionId, ga
 /**
  * Get Asaas API config from the photographer's integration.
  *
- * ISOLAMENTO FINANCEIRO (SEGURANÇA CRÍTICA):
+ * ISOLAMENTO FINANCEIRO (SEGURANÃ‡A CRÃTICA):
  * - NUNCA fazemos fallback para ASAAS_API_KEY da plataforma aqui.
- * - A chave da plataforma é exclusiva para assinaturas Lunari e jamais
- *   pode ser usada para consultar/alterar cobranças de fotógrafos —
+ * - A chave da plataforma Ã© exclusiva para assinaturas Lunari e jamais
+ *   pode ser usada para consultar/alterar cobranÃ§as de fotÃ³grafos â€”
  *   isso causaria cruzamento financeiro entre contas.
  */
 async function getPhotographerAsaasConfig(supabase: any, userId: string) {
@@ -333,7 +333,7 @@ async function getPhotographerAsaasConfig(supabase: any, userId: string) {
   }
 
   if (!integracao?.access_token) {
-    console.warn(`[check-payment-status] No active Asaas integration for user ${userId} — skipping (no platform fallback by design)`);
+    console.warn(`[check-payment-status] No active Asaas integration for user ${userId} â€” skipping (no platform fallback by design)`);
     return null;
   }
 
@@ -373,7 +373,7 @@ async function handleAsaasInstallmentCheck(supabase: any, cobranca: any, config:
 
       if (isPaid) parcelasPagas++;
 
-      // REGRA: valor_bruto = valor original do fotógrafo por parcela (não o inflado do Asaas)
+      // REGRA: valor_bruto = valor original do fotÃ³grafo por parcela (nÃ£o o inflado do Asaas)
       const valorBruto = cobranca.total_parcelas > 0
         ? Math.round((cobranca.valor / cobranca.total_parcelas) * 100) / 100
         : cobranca.valor;
@@ -452,7 +452,7 @@ async function handleAsaasSinglePaymentCheck(supabase: any, cobranca: any, confi
     }
 
     // Create parcela for fee tracking
-    // REGRA: valor_bruto = valor original do fotógrafo (não o inflado do Asaas)
+    // REGRA: valor_bruto = valor original do fotÃ³grafo (nÃ£o o inflado do Asaas)
     const valorBruto = cobranca.valor;
     const valorLiquido = payment.netValue ?? null;
     const taxaGateway = valorLiquido != null ? Math.max(0, Math.round((valorBruto - valorLiquido) * 100) / 100) : 0;

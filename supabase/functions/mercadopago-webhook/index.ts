@@ -1,9 +1,10 @@
-// supabase/functions/mercadopago-webhook/index.ts
-// Webhook do Mercado Pago com reconciliação determinística O(1) e máquina de estados
+﻿// supabase/functions/mercadopago-webhook/index.ts
+// Webhook do Mercado Pago com reconciliaÃ§Ã£o determinÃ­stica O(1) e mÃ¡quina de estados
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { corsHeaders, jsonResponse } from "../_shared/auth-guard.ts";
 import { normalizeGatewayStatus, canTransition } from "../_shared/state-machine.ts";
+import { decryptToken } from "../_shared/crypto.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -24,7 +25,7 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      // Notificação IPN do Mercado Pago pode vir apenas via query params
+      // NotificaÃ§Ã£o IPN do Mercado Pago pode vir apenas via query params
     }
 
     console.log("[mercadopago-webhook] Recebido:", JSON.stringify({ body, query: Object.fromEntries(url.searchParams.entries()) }));
@@ -42,22 +43,22 @@ Deno.serve(async (req) => {
     const paymentId = body.data?.id || idFromQuery;
 
     if (!paymentId || (type !== "payment" && !action?.includes("payment") && topic !== "payment")) {
-      console.log("[mercadopago-webhook] Evento ignorado (não é de pagamento ou ID ausente):", { type, action, paymentId });
+      console.log("[mercadopago-webhook] Evento ignorado (nÃ£o Ã© de pagamento ou ID ausente):", { type, action, paymentId });
       return jsonResponse({ received: true });
     }
 
     console.log(`[mercadopago-webhook] Processando pagamento Mercado Pago: ${paymentId}`);
 
-    // 2. BUSCA O(1) DA COBRANÇA NO BANCO
+    // 2. BUSCA O(1) DA COBRANÃ‡A NO BANCO
     let { data: cobranca } = await supabase
       .from("cobrancas")
       .select("*")
-      .or(`mp_payment_id.eq.${paymentId},provider_transaction_id.eq.${paymentId},id.eq.${paymentId}`)
+      .or(`mp_payment_id.eq.${paymentId},provider_transaction_id.eq.${paymentId},provider_order_id.eq.${paymentId},id.eq.${paymentId}`)
       .maybeSingle();
 
     let paymentData: any = null;
 
-    // Se a cobrança já foi encontrada, usamos o token do fotógrafo dono para consultar dados de taxas atualizados
+    // Se a cobranÃ§a jÃ¡ foi encontrada, usamos o token do fotÃ³grafo dono para consultar dados de taxas atualizados
     if (cobranca) {
       const { data: integ } = await supabase
         .from("usuarios_integracoes")
@@ -70,18 +71,18 @@ Deno.serve(async (req) => {
       if (integ?.access_token) {
         try {
           const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-            headers: { Authorization: `Bearer ${integ.access_token}` },
+            headers: { Authorization: `Bearer ${await decryptToken(integ.access_token)}` },
           });
           if (mpRes.ok) {
             paymentData = await mpRes.json();
           }
         } catch (e) {
-          console.warn("[mercadopago-webhook] Falha não impeditiva ao consultar pagamento no MP:", e);
+          console.warn("[mercadopago-webhook] Falha nÃ£o impeditiva ao consultar pagamento no MP:", e);
         }
       }
     } else {
-      // Cobrança não encontrada por payment_id (ex: pagamento via Link de Preferência onde payment_id só nasce agora)
-      // Fazemos busca por token do fotógrafo ou varredura de integrações
+      // CobranÃ§a nÃ£o encontrada por payment_id (ex: pagamento via Link de PreferÃªncia onde payment_id sÃ³ nasce agora)
+      // Fazemos busca por token do fotÃ³grafo ou varredura de integraÃ§Ãµes
       const { data: integrations } = await supabase
         .from("usuarios_integracoes")
         .select("user_id, access_token")
@@ -92,7 +93,7 @@ Deno.serve(async (req) => {
         if (!integ.access_token) continue;
         try {
           const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-            headers: { Authorization: `Bearer ${integ.access_token}` },
+            headers: { Authorization: `Bearer ${await decryptToken(integ.access_token)}` },
           });
           if (mpRes.ok) {
             paymentData = await mpRes.json();
@@ -104,7 +105,7 @@ Deno.serve(async (req) => {
       }
 
       if (paymentData) {
-        // Reconciliação direta por external_reference (cobranca.id) ou preference_id
+        // ReconciliaÃ§Ã£o direta por external_reference (cobranca.id) ou preference_id
         if (paymentData.external_reference) {
           const { data: byExtRef } = await supabase
             .from("cobrancas")
@@ -126,29 +127,29 @@ Deno.serve(async (req) => {
     }
 
     if (!cobranca) {
-      console.warn(`[mercadopago-webhook] Nenhuma cobrança encontrada para payment_id=${paymentId}`);
+      console.warn(`[mercadopago-webhook] Nenhuma cobranÃ§a encontrada para payment_id=${paymentId}`);
       return jsonResponse({ received: true, not_found: true });
     }
 
     const { requireEntitlement } = await import("../_shared/entitlements.ts");
-    const ent = await requireEntitlement(supabase, cobranca.user_id, "integrations", "Integração MP");
+    const ent = await requireEntitlement(supabase, cobranca.user_id, "integrations", "IntegraÃ§Ã£o MP");
     if (!ent.hasEntitlement) {
-       console.warn(`[mercadopago-webhook] Pagamento ignorado por restrição de plano (user ${cobranca.user_id})`);
+       console.warn(`[mercadopago-webhook] Pagamento ignorado por restriÃ§Ã£o de plano (user ${cobranca.user_id})`);
        return jsonResponse({ received: true, ignored: true, reason: "plan_restriction" });
     }
 
-    // 3. NORMALIZAÇÃO DO EVENTO VIA MÁQUINA DE ESTADOS
+    // 3. NORMALIZAÃ‡ÃƒO DO EVENTO VIA MÃQUINA DE ESTADOS
     const rawStatus = paymentData?.status || "approved";
     const { nextStatus, isPaymentConfirmed } = normalizeGatewayStatus("mercadopago", rawStatus, paymentData);
 
-    console.log(`[mercadopago-webhook] Transição: status_atual=${cobranca.status} -> proximo_status=${nextStatus} (raw=${rawStatus})`);
+    console.log(`[mercadopago-webhook] TransiÃ§Ã£o: status_atual=${cobranca.status} -> proximo_status=${nextStatus} (raw=${rawStatus})`);
 
     if (!canTransition(cobranca.status, nextStatus)) {
-      console.warn(`[mercadopago-webhook] Transição inválida ignorada: ${cobranca.status} -> ${nextStatus}`);
+      console.warn(`[mercadopago-webhook] TransiÃ§Ã£o invÃ¡lida ignorada: ${cobranca.status} -> ${nextStatus}`);
       return jsonResponse({ received: true, skipped_transition: true });
     }
 
-    // 4. ATUALIZAR COBRANÇA
+    // 4. ATUALIZAR COBRANÃ‡A
     const netReceived = paymentData?.transaction_details?.net_received_amount ?? null;
     const updateData: Record<string, any> = {
       status: nextStatus,
@@ -163,7 +164,7 @@ Deno.serve(async (req) => {
         updateData.valor_liquido = netReceived;
       }
       
-      // FASE 1: Populando data de crédito para camada financeira
+      // FASE 1: Populando data de crÃ©dito para camada financeira
       if (paymentData?.money_release_date) {
         updateData.data_credito = paymentData.money_release_date.split("T")[0];
       }
@@ -178,13 +179,13 @@ Deno.serve(async (req) => {
       .eq("id", cobranca.id);
 
     if (updateError) {
-      console.error("[mercadopago-webhook] Erro ao atualizar cobrança:", updateError);
+      console.error("[mercadopago-webhook] Erro ao atualizar cobranÃ§a:", updateError);
       return jsonResponse({ received: false, error: updateError.message }, 500);
     }
 
-    console.log(`[mercadopago-webhook] Cobrança ${cobranca.id} atualizada com sucesso para status=${nextStatus}`);
+    console.log(`[mercadopago-webhook] CobranÃ§a ${cobranca.id} atualizada com sucesso para status=${nextStatus}`);
 
-    // Finalizar galeria e sincronizar extras se aplicável
+    // Finalizar galeria e sincronizar extras se aplicÃ¡vel
     if (isPaymentConfirmed && (cobranca.galeria_id || cobranca.finalidade === "fotos_extras" || cobranca.finalidade === "sessao_e_extras")) {
       try {
         await supabase.rpc("finalize_gallery_payment", {
@@ -193,11 +194,11 @@ Deno.serve(async (req) => {
         });
         console.log(`[mercadopago-webhook] finalize_gallery_payment executado para cobranca=${cobranca.id}`);
       } catch (finalizeErr) {
-        console.warn("[mercadopago-webhook] finalize_gallery_payment erro não impeditivo:", finalizeErr);
+        console.warn("[mercadopago-webhook] finalize_gallery_payment erro nÃ£o impeditivo:", finalizeErr);
       }
     }
 
-    // Disparo de e-mail de pagamento confirmado se aplicável
+    // Disparo de e-mail de pagamento confirmado se aplicÃ¡vel
     if (isPaymentConfirmed) {
       try {
         fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
