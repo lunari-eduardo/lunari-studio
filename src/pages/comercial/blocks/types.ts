@@ -39,3 +39,31 @@ export interface CoverBlockProps {
   typography?: CoverTypography;
   focal_point?: { x: number; y: number };
 }
+
+/**
+ * Extrai a orientação da proposta a partir dos blocos ou configurações globais.
+ * Padrão: 'portrait' (formato editorial/mobile/A4).
+ */
+export function getProposalOrientation(
+  blocks?: Array<{ type: string; props?: any; data?: any; content?: any }>,
+  globalSettings?: any,
+  explicitOrientation?: CoverOrientation
+): CoverOrientation {
+  if (explicitOrientation) return explicitOrientation;
+  if (!blocks || !Array.isArray(blocks)) {
+    return (globalSettings?.orientation as CoverOrientation) ?? 'portrait';
+  }
+
+  const coverBlock = blocks.find((b) => b.type === 'CoverBlock' || b.type === 'cover');
+  if (coverBlock?.props?.orientation) {
+    return coverBlock.props.orientation as CoverOrientation;
+  }
+  const globalBlock = blocks.find((b) => b.type === 'global_settings');
+  if (globalBlock?.data?.orientation || globalBlock?.props?.orientation) {
+    return (globalBlock.data?.orientation || globalBlock.props?.orientation) as CoverOrientation;
+  }
+  if (globalSettings?.orientation) {
+    return globalSettings.orientation as CoverOrientation;
+  }
+  return 'portrait';
+}

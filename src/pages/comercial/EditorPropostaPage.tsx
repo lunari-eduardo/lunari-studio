@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { EditorSidebar } from './components/editor/EditorSidebar';
 import { PropertiesSidebar } from './components/editor/PropertiesSidebar';
 import { VisualRenderer } from './components/editor/VisualRenderer';
+import { getProposalOrientation } from './blocks/types';
 import { useMaterialPublicLink } from '@/hooks/useMaterialPublicLink';
 import { useR2Upload } from '@/hooks/useR2Upload';
 import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
@@ -254,18 +255,27 @@ export default function EditorMaterialPage() {
     return () => observer.disconnect();
   }, [editorState?.format]);
 
+  // Orientação da proposta (retrato por padrão para formato editorial/A4/mobile)
+  const proposalOrientation = React.useMemo(() => {
+    return getProposalOrientation(editorState.blocks, editorState.globalSettings);
+  }, [editorState.blocks, editorState.globalSettings]);
+
+  const isPortrait = proposalOrientation === 'portrait';
+
   // Escala automática proporcional para visualização confortável em desktop
   const autoScale = React.useMemo(() => {
     if (viewMode !== 'desktop') return 1;
     const { width, height } = canvasDimensions;
     if (!width || !height) return 1;
 
-    // Dimensões nominais de referência da proposta
-    const DOC_NOMINAL_WIDTH = 1024;
-    const PAGE_TARGET_HEIGHT = 820;
+    // Dimensões nominais de referência da proposta de acordo com a orientação
+    // Retrato: 580px nominais (editorial / A4 / mobile)
+    // Paisagem: 1024px nominais (apresentação widescreen)
+    const DOC_NOMINAL_WIDTH = isPortrait ? 580 : 1024;
+    const PAGE_TARGET_HEIGHT = isPortrait ? 820 : 640;
 
     // Padding de respiro confortável ao redor da página
-    const PADDING_X = 64;
+    const PADDING_X = isPortrait ? 48 : 64;
     const PADDING_Y = 48;
 
     const availableW = Math.max(320, width - PADDING_X);
@@ -274,10 +284,11 @@ export default function EditorMaterialPage() {
     const scaleW = availableW / DOC_NOMINAL_WIDTH;
     const scaleH = availableH / PAGE_TARGET_HEIGHT;
 
-    // Escala ideal ajustada entre 0.55 e 1.0
-    const idealScale = Math.min(scaleW, scaleH);
+    // Escala ideal ajustada entre 0.55 e 1.0:
+    // No modo retrato, a leitura é vertical contínua, logo a escala preserva nitidez máxima (100%)
+    const idealScale = isPortrait ? Math.min(scaleW, 1.0) : Math.min(scaleW, scaleH);
     return Number(Math.min(1.0, Math.max(0.55, idealScale)).toFixed(2));
-  }, [viewMode, canvasDimensions]);
+  }, [viewMode, canvasDimensions, isPortrait]);
 
   // Seleção de bloco com scroll suave até a seção
   const handleSelectBlock = useCallback((index: number) => {
@@ -489,6 +500,7 @@ export default function EditorMaterialPage() {
                     designTokens={designTokens}
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
+                    orientation={proposalOrientation}
                   />
                 </div>
               </div>
@@ -562,6 +574,7 @@ export default function EditorMaterialPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         designTokens={designTokens}
+        orientation={proposalOrientation}
       />
 
       {/* MODAL SALVAR COMO MODELO */}

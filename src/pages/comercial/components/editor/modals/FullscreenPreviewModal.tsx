@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { VisualRenderer } from '../VisualRenderer';
 import { NativePdfViewer } from '../NativePdfViewer';
 import { ProposalDesignTokens } from '../../../blocks/design';
+import { CoverOrientation } from '../../../blocks/types';
 import { BlockData } from '@/hooks/useMaterialEditor';
 
 interface FullscreenPreviewModalProps {
@@ -17,6 +18,7 @@ interface FullscreenPreviewModalProps {
   viewMode: 'desktop' | 'mobile';
   setViewMode: (mode: 'desktop' | 'mobile') => void;
   designTokens?: ProposalDesignTokens;
+  orientation?: CoverOrientation;
 }
 
 export function FullscreenPreviewModal({
@@ -29,6 +31,7 @@ export function FullscreenPreviewModal({
   viewMode,
   setViewMode,
   designTokens,
+  orientation,
 }: FullscreenPreviewModalProps) {
   if (!isOpen) return null;
 
@@ -81,6 +84,7 @@ export function FullscreenPreviewModal({
             viewMode={viewMode}
             mode="public"
             designTokens={designTokens}
+            orientation={orientation}
           />
         ) : (
           pdfUrl ? (

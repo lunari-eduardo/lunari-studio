@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded } from '../../blocks/design';
+import { CoverOrientation, getProposalOrientation } from '../../blocks/types';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
 import { BlockObserver } from './blocks/helpers';
@@ -27,6 +28,8 @@ export interface VisualRendererProps {
   inlineEditing?: boolean;
   /** Edição granular de campo por camada pontuada ("details.0.label", "props.photo_a.image_ref"). */
   onUpdateField?: (index: number, path: string, value: any) => void;
+  /** Orientação da proposta: 'portrait' (editorial/mobile/A4) ou 'landscape' (ampla/widescreen). */
+  orientation?: CoverOrientation;
 }
 
 export function VisualRenderer({
@@ -40,10 +43,15 @@ export function VisualRenderer({
   designTokens,
   inlineEditing = false,
   onUpdateField,
+  orientation,
 }: VisualRendererProps) {
   const isEditing = mode === 'edit';
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
+
+  // Resolução unificada da orientação da proposta (lida do bloco de capa ou informada explicitamente)
+  const resolvedOrientation = getProposalOrientation(blocks, undefined, orientation);
+  const isPortrait = resolvedOrientation === 'portrait';
 
 // Mapeia chaves de campos para as propriedades canônicas do CoverTypography
 function getTypographyPropKey(fieldKey: string): string {
@@ -94,15 +102,17 @@ function getTypographyPropKey(fieldKey: string): string {
   return (
     <div
       className={cn(
-        "w-full h-full flex items-start justify-center transition-all duration-300",
-        mode === 'edit' ? "p-4 md:p-8" : "p-0 md:p-6"
+        "w-full flex items-start justify-center transition-all duration-300",
+        mode === 'edit' ? "py-2 md:py-4 px-2 md:px-4" : "p-0 md:py-8 md:px-4"
       )}
     >
       <div
         className={cn(
-          '@container bg-white shadow-2xl relative transition-all duration-500 origin-top flex flex-col w-full',
+          '@container bg-white relative transition-all duration-500 origin-top flex flex-col w-full',
           viewMode === 'desktop'
-            ? 'max-w-5xl rounded-sm overflow-hidden'
+            ? isPortrait
+              ? 'max-w-full md:max-w-[580px] rounded-none md:rounded-xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
+              : 'max-w-full md:max-w-5xl rounded-none md:rounded-sm overflow-hidden shadow-none md:shadow-2xl border-0'
             : 'max-w-[375px] h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
         style={{
@@ -130,7 +140,14 @@ function getTypographyPropKey(fieldKey: string): string {
                 onView={onSectionView}
               >
                 {(block.type === 'cover' || block.type === 'CoverBlock') && (
-                  <CoverRenderer data={block.content || block.data} props={block.props} onCtaClick={onCtaClick} />
+                  <CoverRenderer
+                    data={block.content || block.data}
+                    props={{
+                      ...block.props,
+                      orientation: block.props?.orientation ?? resolvedOrientation,
+                    }}
+                    onCtaClick={onCtaClick}
+                  />
                 )}
                 {block.type === 'package' && <PackageRenderer data={block.data} onCtaClick={onCtaClick} />}
                 {block.type === 'EditorialBlock' && (
