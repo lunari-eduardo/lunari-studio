@@ -145,9 +145,24 @@ export const CreditCardCheckoutForm: React.FC<CreditCardCheckoutFormProps> = ({
       </p>
     ) : null;
 
+  if (data.valorTotal < 5) {
+    return (
+      <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-center space-y-3 mt-4">
+        <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+        <p className="text-sm font-medium text-destructive">
+          Valor mínimo não atingido para cartão.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          O valor mínimo exigido pelas operadoras para pagamentos via cartão de crédito é de R$ 5,00. 
+          Por favor, retorne ao topo e utilize a opção <strong>PIX</strong> para concluir seu pagamento.
+        </p>
+      </div>
+    );
+  }
+
   if (feesError && !data.absorverTaxa) {
     return (
-      <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-center space-y-3">
+      <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-center space-y-3 mt-4">
         <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
         <p className="text-sm font-medium text-destructive">
           Não foi possível calcular as taxas de parcelamento no momento.
