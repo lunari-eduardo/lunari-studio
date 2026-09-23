@@ -98,6 +98,7 @@ export function useCreditCardPayment({
 
       let result;
       let res;
+      let textRes = '';
 
       const creditCardPayload = {
         holderName: cardName,
@@ -196,7 +197,6 @@ export function useCreditCardPayment({
             }),
           },
         );
-        result = await res.json();
       } else {
         res = await fetch(`${SUPABASE_URL}/functions/v1/create-cobranca`, {
           method: 'POST',
@@ -225,11 +225,33 @@ export function useCreditCardPayment({
             },
           }),
         });
-        result = await res.json();
+      }
+
+      textRes = await res.text();
+      try {
+        result = JSON.parse(textRes);
+      } catch (e) {
+        console.error('Non-JSON response from server:', textRes);
+        throw new Error(
+          `Serviço de pagamentos indisponível (Erro ${res.status}). Por favor, aguarde alguns instantes e tente novamente.`,
+        );
       }
 
       if (!res.ok || !result.success) {
-        throw new Error(result.error || 'Pagamento recusado');
+        let errorMsg = result.error || 'Pagamento recusado';
+        const lowerError = errorMsg.toLowerCase();
+        
+        if (lowerError.includes('minimum') || lowerError.includes('valor mínimo') || lowerError.includes('r$ 5,00') || lowerError.includes('5.00')) {
+          errorMsg = 'O valor mínimo exigido pela operadora para pagamento em cartão é de R$ 5,00. Valores menores devem ser pagos via PIX.';
+        } else if (lowerError.includes('invalid_email') || lowerError.includes('email inválido')) {
+          errorMsg = 'O e-mail informado é inválido. Verifique o formato e tente novamente.';
+        } else if (lowerError.includes('declined') || lowerError.includes('denied') || lowerError.includes('not authorized') || lowerError.includes('recusado')) {
+          errorMsg = 'Pagamento recusado pelo emissor do cartão. Verifique o limite, os dados ou tente utilizar outro cartão.';
+        } else if (lowerError.includes('processing') || lowerError.includes('timeout')) {
+          errorMsg = 'O sistema da operadora de cartão demorou a responder. Tente novamente em alguns minutos.';
+        }
+
+        throw new Error(errorMsg);
       }
 
       if (result.paid || result.status === 'pago') {

@@ -85,6 +85,7 @@ export function usePixPayment({
 
       let result;
       let res;
+      let textRes = '';
 
       const payerContactData = {
         name: pixName.trim(),
@@ -103,7 +104,6 @@ export function usePixPayment({
             payerContact: payerContactData,
           }),
         });
-        result = await res.json();
       } else {
         res = await fetch(`${SUPABASE_URL}/functions/v1/create-cobranca`, {
           method: 'POST',
@@ -127,11 +127,20 @@ export function usePixPayment({
             },
           }),
         });
-        result = await res.json();
+      }
+
+      textRes = await res.text();
+      try {
+        result = JSON.parse(textRes);
+      } catch (e) {
+        console.error('Non-JSON response from server:', textRes);
+        throw new Error(
+          `Serviço de pagamentos indisponível (Erro ${res.status}). Por favor, aguarde alguns instantes e tente novamente.`,
+        );
       }
 
       if (!res.ok || !result.success) {
-        if (result?.code === 'MISSING_CPF_CNPJ') {
+        if (result?.code === 'MISSING_CPF_CNPJ' || result?.code === 'MISSING_CPF' || result?.errorCode === 'MISSING_CPF' || result?.errorCode === 'MISSING_HOLDER_CPF') {
           setPixQrCode(null);
           setPixCopiaECola(null);
           if (showPixContactForm) {
@@ -142,17 +151,28 @@ export function usePixPayment({
           }
           return;
         }
-        if (result?.code === 'INVALID_EMAIL') {
+        if (result?.code === 'INVALID_EMAIL' || result?.errorCode === 'INVALID_EMAIL' || (result?.error && result.error.toLowerCase().includes('email'))) {
           setPixQrCode(null);
           setPixCopiaECola(null);
           setFieldError(
             'pixEmail',
-            'Este email não é aceito pelo Asaas. Use um email sem acentos ou caracteres especiais.',
+            'O e-mail informado é inválido. Verifique o formato e tente novamente.',
           );
           pixEmailRef.current?.focus();
           return;
         }
-        throw new Error(result.error || 'Erro ao gerar PIX');
+        
+        let errorMsg = result?.error || 'Erro ao gerar PIX';
+        const lowerError = errorMsg.toLowerCase();
+        
+        if (lowerError.includes('minimum') || lowerError.includes('valor mínimo') || lowerError.includes('r$ 5,00') || lowerError.includes('5.00')) {
+            // Asaas now requires R$ 5 for pix via some APIs sometimes, but usually it's just credit card. Still good to map.
+            errorMsg = 'O valor mínimo exigido pela operadora para este pagamento é de R$ 5,00.';
+        } else if (lowerError.includes('processing') || lowerError.includes('timeout')) {
+            errorMsg = 'O sistema da operadora demorou a responder. Tente novamente em alguns minutos.';
+        }
+        
+        throw new Error(errorMsg);
       }
 
       const rawQrCode = result.pixQrCodeBase64 || result.pixQrCode;
