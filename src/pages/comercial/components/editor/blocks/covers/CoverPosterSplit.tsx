@@ -30,7 +30,7 @@ export function CoverPosterSplit({
   });
 
   const eyebrow = data?.eyebrow;
-  const title = data?.title;
+  const title = data?.title ?? data?.title_regular;
   const titleItalic = data?.title_italic;
   const subtitle = data?.subtitle;
   const photographerName = data?.photographer_name;

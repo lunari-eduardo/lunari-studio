@@ -40,21 +40,31 @@ export function TextSizeFloatingPopover({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
-  // Posicionamento do popover relativo ao âncora
+  // Posicionamento do popover relativo ao âncora (com suporte a scroll e resize)
   useEffect(() => {
     if (!anchorEl) return;
-    const rect = anchorEl.getBoundingClientRect();
-    // Posicionar acima do elemento com offset
-    const popoverHeight = 52; // altura estimada do popover
-    let top = rect.top - popoverHeight - 8;
-    let left = rect.left + rect.width / 2;
 
-    // Se não cabe acima, posicionar abaixo
-    if (top < 8) {
-      top = rect.bottom + 8;
-    }
+    const updatePosition = () => {
+      const rect = anchorEl.getBoundingClientRect();
+      const popoverHeight = 52; // altura estimada do popover
+      let top = rect.top - popoverHeight - 8;
+      let left = rect.left + rect.width / 2;
 
-    setPosition({ top, left });
+      // Se não cabe acima, posicionar abaixo
+      if (top < 8) {
+        top = rect.bottom + 8;
+      }
+
+      setPosition({ top, left });
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
   }, [anchorEl]);
 
   // Sync com prop externa

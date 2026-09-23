@@ -298,7 +298,7 @@ export function PropertiesSidebar({
               )}
 
               {/* Controle de Orientação da Capa (segmentado com ícones) */}
-              {block.type === 'CoverBlock' && (
+              {(block.type === 'CoverBlock' || block.type === 'cover') && (
                 <div className="space-y-2 pb-3 border-b border-border/60">
                   <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
                     <RectangleVertical className="h-3.5 w-3.5" /> Orientação

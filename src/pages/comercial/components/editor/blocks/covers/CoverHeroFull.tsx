@@ -25,7 +25,7 @@ export function CoverHeroFull({
     fieldKey: path,
   });
 
-  const btnText = data?.btnText || 'START PROJECT';
+  const btnText = data?.btnText;
 
   const typography = props?.typography;
   const eyebrowStyle = typography?.eyebrowSize ? { fontSize: `${typography.eyebrowSize}px` } : undefined;
@@ -64,44 +64,54 @@ export function CoverHeroFull({
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20 pointer-events-none" />
       
       <div className="relative z-10 flex flex-col items-center text-center px-6 @md:px-16 max-w-3xl">
-        <div className="text-[10px] font-medium tracking-[0.28em] uppercase text-white/70 mb-4" style={eyebrowStyle}>
-          <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="COLLECTION" style={eyebrowStyle} />
-        </div>
+        {(data?.eyebrow || editable) && (
+          <div className="text-[10px] font-medium tracking-[0.28em] uppercase text-white/70 mb-4" style={eyebrowStyle}>
+            <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="COLEÇÃO EXCLUSIVA" style={eyebrowStyle} />
+          </div>
+        )}
         
         <h1 className="text-4xl @md:text-6xl @lg:text-7xl text-white leading-[1.1] tracking-tight max-w-[15ch] mb-6" style={titleStyle}>
-          <EditableText {...et('title', data?.title_regular || data?.title)} placeholder="Modern" />{' '}
-          <em className="italic text-white/70" style={italicStyle}>
-            <EditableText {...et('title_italic', data?.title_italic)} placeholder="Spaces" />
-          </em>
+          <EditableText {...et('title', data?.title_regular || data?.title)} placeholder="Título da sessão" />{' '}
+          {(data?.title_italic || editable) && (
+            <em className="italic text-white/70" style={italicStyle}>
+              <EditableText {...et('title_italic', data?.title_italic)} placeholder="em itálico" />
+            </em>
+          )}
         </h1>
         
-        <div className="text-white/80 text-lg max-w-[40ch] mb-10 leading-relaxed font-light" style={subtitleStyle}>
-          <EditableText {...et('subtitle', data?.subtitle)} placeholder="Discover our latest projects and architectural innovations." />
-        </div>
-        
-        {editable ? (
-          <div
-            className="bg-white text-neutral-900 rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide inline-flex items-center justify-center"
-            style={btnStyle}
-          >
-            <EditableText {...et('btnText', btnText)} placeholder="START PROJECT" />
+        {(data?.subtitle || editable) && (
+          <div className="text-white/80 text-lg max-w-[40ch] mb-10 leading-relaxed font-light" style={subtitleStyle}>
+            <EditableText {...et('subtitle', data?.subtitle)} placeholder="Uma experiência visual inesquecível em cada detalhe." />
           </div>
-        ) : (
-          <Button 
-            className="bg-white hover:bg-white/90 text-neutral-900 rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
-            style={btnStyle}
-            onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
-          >
-            {btnText}
-          </Button>
+        )}
+        
+        {(btnText || editable) && (
+          editable ? (
+            <div
+              className="bg-white text-neutral-900 rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide inline-flex items-center justify-center cursor-text"
+              style={btnStyle}
+            >
+              <EditableText {...et('btnText', btnText)} placeholder="Acessar proposta" />
+            </div>
+          ) : (
+            <Button 
+              className="bg-white hover:bg-white/90 text-neutral-900 rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
+              style={btnStyle}
+              onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
+            >
+              {btnText}
+            </Button>
+          )
         )}
       </div>
 
-      <div className="absolute bottom-6 @md:bottom-10 z-10 text-center w-full">
-        <div className="text-[9px] tracking-[0.3em] uppercase text-white/60" style={photographerStyle}>
-          <EditableText {...et('photographer_name', data?.photographer_name)} placeholder="PHOTOGRAPHY BY JOHN DOE" />
+      {(data?.photographer_name || editable) && (
+        <div className="absolute bottom-6 @md:bottom-10 z-10 text-center w-full">
+          <div className="text-[9px] tracking-[0.3em] uppercase text-white/60" style={photographerStyle}>
+            <EditableText {...et('photographer_name', data?.photographer_name)} placeholder="FOTOGRAFIA POR NOME" />
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

@@ -105,13 +105,22 @@ export function EditableText({
     if (ref.current) ref.current.textContent = text;
   };
 
+  const isFieldSelected = Boolean(
+    editable &&
+    fieldKey &&
+    inline?.activeTextField === fieldKey &&
+    !editing
+  );
+
   return React.createElement(Tag, {
     ref,
     className: cn(
-      'pa-editable-text',
+      'pa-editable-text transition-all duration-150',
       className,
       editing
         ? 'outline-none ring-2 ring-primary/70 ring-offset-2 cursor-text relative z-30'
+        : isFieldSelected
+        ? 'ring-2 ring-primary/80 ring-offset-2 rounded-xs cursor-pointer relative z-20 shadow-xs'
         : 'cursor-text hover:ring-1 hover:ring-primary/30 hover:ring-offset-1'
     ),
     style,
@@ -149,6 +158,7 @@ export function EditableText({
       if (editing) {
         e.stopPropagation();
       } else if (fieldKey && inline?.onSelectTextField) {
+        e.stopPropagation();
         // Clique único (fora do editing) abre o popover de tamanho
         inline.onSelectTextField(fieldKey, ref.current);
       }

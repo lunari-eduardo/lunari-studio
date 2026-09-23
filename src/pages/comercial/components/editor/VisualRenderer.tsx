@@ -45,6 +45,20 @@ export function VisualRenderer({
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
 
+// Mapeia chaves de campos para as propriedades canônicas do CoverTypography
+function getTypographyPropKey(fieldKey: string): string {
+  switch (fieldKey) {
+    case 'photographer_name':
+      return 'photographerSize';
+    case 'btnText':
+      return 'ctaSize';
+    case 'title_italic':
+      return 'titleItalicSize';
+    default:
+      return `${fieldKey}Size`;
+  }
+}
+
   // Estado do popover de tamanho de texto
   const [textSizeState, setTextSizeState] = useState<{
     fieldKey: string | null;
@@ -66,7 +80,8 @@ export function VisualRenderer({
   const handleTextSizeChange = useCallback(
     (fieldKey: string, size: number) => {
       if (textSizeState.blockIndex < 0) return;
-      onUpdateField?.(textSizeState.blockIndex, `props.typography.${fieldKey}Size`, size);
+      const propKey = getTypographyPropKey(fieldKey);
+      onUpdateField?.(textSizeState.blockIndex, `props.typography.${propKey}`, size);
     },
     [textSizeState.blockIndex, onUpdateField]
   );
@@ -96,12 +111,14 @@ export function VisualRenderer({
         }}
       >
         {visibleBlocks.map((block, index) => {
-          const isActive = index === activeIndex;
+          const realIndex = blocks.indexOf(block);
+          const blockIdx = realIndex !== -1 ? realIndex : index;
+          const isActive = blockIdx === activeIndex;
           const inlineHandle = {
             editable: isEditing && inlineEditing,
-            set: (path: string, value: any) => onUpdateField?.(index, path, value),
-            activeTextField: textSizeState.blockIndex === index ? textSizeState.fieldKey : null,
-            onSelectTextField: handleSelectTextField(index),
+            set: (path: string, value: any) => onUpdateField?.(blockIdx, path, value),
+            activeTextField: textSizeState.blockIndex === blockIdx ? textSizeState.fieldKey : null,
+            onSelectTextField: handleSelectTextField(blockIdx),
           };
 
           const content = (
@@ -109,11 +126,10 @@ export function VisualRenderer({
               <BlockObserver
                 blockId={block.id}
                 blockType={block.type}
-                position={index}
+                position={blockIdx}
                 onView={onSectionView}
               >
-                {block.type === 'cover' && <CoverRenderer data={block.data} props={block.props} onCtaClick={onCtaClick} />}
-                {block.type === 'CoverBlock' && (
+                {(block.type === 'cover' || block.type === 'CoverBlock') && (
                   <CoverRenderer data={block.content || block.data} props={block.props} onCtaClick={onCtaClick} />
                 )}
                 {block.type === 'package' && <PackageRenderer data={block.data} onCtaClick={onCtaClick} />}
@@ -197,13 +213,13 @@ export function VisualRenderer({
       {isEditing && inlineEditing && textSizeState.fieldKey && textSizeState.anchorEl && (
         <TextSizeFloatingPopover
           fieldKey={textSizeState.fieldKey}
-          currentSize={
-            textSizeState.blockIndex >= 0
-              ? (blocks[textSizeState.blockIndex]?.props as any)?.typography?.[
-                  `${textSizeState.fieldKey}Size`
-                ]
-              : undefined
-          }
+          currentSize={(() => {
+            if (textSizeState.blockIndex < 0) return undefined;
+            const typo = (blocks[textSizeState.blockIndex]?.props as any)?.typography;
+            if (!typo) return undefined;
+            const canonicalKey = getTypographyPropKey(textSizeState.fieldKey);
+            return typo[canonicalKey] ?? typo[`${textSizeState.fieldKey}Size`];
+          })()}
           anchorEl={textSizeState.anchorEl}
           onChange={handleTextSizeChange}
           onClose={() => setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 })}

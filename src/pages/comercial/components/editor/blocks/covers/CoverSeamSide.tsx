@@ -73,39 +73,39 @@ export function CoverSeamSide({
 
         {/* Text Column */}
         <div className={cn("flex flex-col justify-center min-w-0 p-6 @md:p-12 @lg:p-16", align, txtClass)}>
-          {data?.eyebrow && (
+          {(data?.eyebrow || editable) && (
             <div className={cn('text-sm uppercase tracking-[0.2em] mb-4 opacity-70')} style={eyebrowStyle || fb()}>
-              <EditableText {...et('eyebrow', data.eyebrow)} multiline={false} style={eyebrowStyle} />
+              <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="PROPOSTA EXCLUSIVA" multiline={false} style={eyebrowStyle} />
             </div>
           )}
 
           <h2 className="mb-6 flex flex-col gap-1">
-            {(data?.title || data?.title_regular) && (
+            {(data?.title || data?.title_regular || editable) && (
               <span className={cn('text-5xl @md:text-6xl @lg:text-7xl font-light tracking-tight')} style={titleStyle}>
-                <EditableText {...et('title', data?.title || data?.title_regular)} multiline={false} />
+                <EditableText {...et('title', data?.title || data?.title_regular)} placeholder="Título da sessão" multiline={false} />
               </span>
             )}
-            {data?.title_italic && (
+            {(data?.title_italic || editable) && (
               <span className="text-5xl @md:text-6xl @lg:text-7xl font-serif italic" style={italicStyle}>
-                <EditableText {...et('title_italic', data.title_italic)} multiline={false} />
+                <EditableText {...et('title_italic', data?.title_italic)} placeholder="em itálico" multiline={false} />
               </span>
             )}
           </h2>
 
-          {data?.subtitle && (
+          {(data?.subtitle || editable) && (
             <div className="text-lg @md:text-xl font-light mb-10 max-w-xl leading-relaxed opacity-80" style={subtitleStyle}>
-              <EditableText {...et('subtitle', data.subtitle)} multiline />
+              <EditableText {...et('subtitle', data?.subtitle)} placeholder="Breve introdução sobre esta narrativa visual..." multiline />
             </div>
           )}
 
-          {data?.btnText && (
+          {(data?.btnText || editable) && (
             <div className="mt-4">
               {editable ? (
                 <div
-                  className="inline-flex items-center justify-center bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
+                  className="inline-flex items-center justify-center bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide cursor-text"
                   style={btnStyle}
                 >
-                  <EditableText {...et('btnText', data.btnText)} multiline={false} />
+                  <EditableText {...et('btnText', data?.btnText)} placeholder="Texto do botão" multiline={false} />
                 </div>
               ) : (
                 <Button
@@ -119,9 +119,9 @@ export function CoverSeamSide({
             </div>
           )}
 
-          {data?.photographer_name && (
+          {(data?.photographer_name || editable) && (
             <div className="mt-auto pt-12 @lg:pt-16 text-xs uppercase tracking-widest opacity-50" style={photographerStyle}>
-              <EditableText {...et('photographer_name', data.photographer_name)} multiline={false} />
+              <EditableText {...et('photographer_name', data?.photographer_name)} placeholder="FOTOGRAFIA POR NOME" multiline={false} />
             </div>
           )}
         </div>
