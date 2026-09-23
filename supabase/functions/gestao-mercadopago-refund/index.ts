@@ -79,10 +79,10 @@ Deno.serve(async (req) => {
     let mpPaymentId = providedMpPaymentId;
 
     if (!mpPaymentId) {
-      // Buscar mp_payment_id da cobrança
+      // Buscar IDs da cobrança
       const { data: cobranca } = await supabase
         .from('cobrancas')
-        .select('id, user_id, provedor, mp_payment_id')
+        .select('id, user_id, provedor, mp_payment_id, provider_order_id, provider_transaction_id')
         .eq('id', cobrancaId)
         .eq('user_id', userId)
         .maybeSingle();
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      mpPaymentId = cobranca.mp_payment_id;
+      mpPaymentId = cobranca.mp_payment_id || cobranca.provider_order_id || cobranca.provider_transaction_id;
     }
 
     if (!mpPaymentId) {
