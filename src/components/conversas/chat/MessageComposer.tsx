@@ -29,6 +29,8 @@ export interface MessageComposerProps {
   onOpenAudiosSalvos?: () => void;
   /** Called when user clicks "Salvar apenas" during recording — save to library without sending. */
   onSaveAudio?: (file: File, duration: number) => void;
+  injectedText?: string | null;
+  onClearInjectedText?: () => void;
 }
 
 export interface PendingAttachment {
@@ -75,12 +77,23 @@ export function MessageComposer({
   onCancelReply,
   onOpenAudiosSalvos,
   onSaveAudio,
+  injectedText,
+  onClearInjectedText,
 }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isRecording, recordingTime, startRecording, stopRecording, cancelRecording } = useAudioRecorder();
+
+  // Injeção de texto externo (ex: templates/respostas rápidas)
+  useEffect(() => {
+    if (injectedText != null && injectedText !== '') {
+      setText(prev => (prev.trim() ? `${prev}\n\n${injectedText}` : injectedText));
+      textareaRef.current?.focus();
+      onClearInjectedText?.();
+    }
+  }, [injectedText, onClearInjectedText]);
 
   // Auto-resize
   useLayoutEffect(() => {

@@ -33,14 +33,19 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
+import { TemplatesListTab } from '../templates/TemplatesListTab';
+import { Zap } from 'lucide-react';
+
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
   notas: Nota[];
   onAddNota: (content: string) => Promise<void> | void;
   onDeleteNota: (id: string) => Promise<void> | void;
   onClose: () => void;
-  initialTab?: 'context' | 'notes';
+  initialTab?: 'templates' | 'context' | 'notes';
   isDrawer?: boolean;
+  onInsertToComposer?: (text: string) => void;
+  onSendDirectly?: (text: string) => Promise<void> | void;
 }
 
 function formatCurrency(val: number | null | undefined): string {
@@ -61,17 +66,19 @@ export function ChatContextPanel({
   onAddNota,
   onDeleteNota,
   onClose,
-  initialTab = 'context',
+  initialTab = 'templates',
   isDrawer = false,
+  onInsertToComposer,
+  onSendDirectly,
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'context' | 'notes'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'templates' | 'context' | 'notes'>(initialTab);
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
   const [taskDraft, setTaskDraft] = useState('');
   const [submittingTask, setSubmittingTask] = useState(false);
 
-  // Sincronizar aba ativa quando o pai trocar (ex: usuário clicou no botão de Notas ou Contexto)
+  // Sincronizar aba ativa quando o pai trocar (ex: usuário clicou no botão de Notas, Modelos ou Contexto)
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
@@ -128,7 +135,7 @@ export function ChatContextPanel({
         "flex flex-col h-full bg-[#FBFBF9] dark:bg-[#161616] select-none",
         isDrawer
           ? "w-full"
-          : "w-80 md:w-88 shrink-0 border-l border-black/[0.06] dark:border-white/[0.08] z-20"
+          : "w-80 lg:w-96 shrink-0 border-l border-black/[0.06] dark:border-white/[0.08] z-20"
       )}
     >
       {/* ─── Header do Painel ───────────────────────────────────────────── */}
@@ -150,7 +157,7 @@ export function ChatContextPanel({
       </div>
 
       {/* ─── Perfil do Contato ─────────────────────────────────────────── */}
-      <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#1A1A1A]">
+      <div className="p-3.5 border-b border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#1A1A1A]">
         <div className="flex items-start gap-3">
           <ContactAvatar
             phone={chat.contato_phone_normalized}
@@ -184,15 +191,28 @@ export function ChatContextPanel({
         </div>
       </div>
 
-      {/* ─── Alternador de Abas (Contexto vs Notas) ─────────────────────── */}
-      <div className="flex border-b border-black/[0.05] dark:border-white/[0.06] bg-[#F7F6F3] dark:bg-[#141414] p-1">
+      {/* ─── Alternador de Abas (Modelos vs Contexto vs Notas) ───────────── */}
+      <div className="flex border-b border-black/[0.05] dark:border-white/[0.06] bg-[#F7F6F3] dark:bg-[#141414] p-1 gap-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab('templates')}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
+            activeTab === 'templates'
+              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
+              : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
+          )}
+        >
+          <Zap className="h-3.5 w-3.5 text-[#C9A87C]" />
+          <span>Modelos</span>
+        </button>
         <button
           type="button"
           onClick={() => setActiveTab('context')}
           className={cn(
             'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
             activeTab === 'context'
-              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm'
+              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
               : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
           )}
         >
@@ -205,7 +225,7 @@ export function ChatContextPanel({
           className={cn(
             'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
             activeTab === 'notes'
-              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm'
+              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
               : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
           )}
         >
@@ -215,12 +235,19 @@ export function ChatContextPanel({
       </div>
 
       {/* ─── Corpo do Painel ────────────────────────────────────────────── */}
-      <div
-        className="flex-1 overflow-y-auto"
-        style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
-      >
-        {activeTab === 'context' ? (
-          <div className="p-3.5 space-y-4">
+      {activeTab === 'templates' ? (
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <TemplatesListTab
+            chat={chat}
+            onInsertToComposer={onInsertToComposer ?? (() => {})}
+            onSendDirectly={onSendDirectly ?? (() => {})}
+          />
+        </div>
+      ) : activeTab === 'context' ? (
+        <div
+          className="flex-1 overflow-y-auto p-3.5 space-y-4"
+          style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
+        >
             {/* 1. Contexto Comercial / Oportunidade */}
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <div className="flex items-center justify-between mb-2.5">
@@ -542,7 +569,6 @@ export function ChatContextPanel({
             </div>
           </div>
         )}
-      </div>
     </Container>
   );
 }

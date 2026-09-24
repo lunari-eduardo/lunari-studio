@@ -2,7 +2,7 @@
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
-import { ArrowLeft, MoreVertical, Sparkles, StickyNote, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Sparkles, StickyNote, Zap, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -17,29 +17,33 @@ import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 export interface ChatHeaderProps {
   chat: Chat | EnrichedChat;
   onBack?: () => void;
-  onToggleNotes: () => void;
+  onToggleTemplates?: () => void;
   onToggleContext?: () => void;
+  onToggleNotes: () => void;
   onArchive?: () => void;
   onBlock?: () => void;
   onPin?: () => void;
   onDelete?: () => void;
   onMarkUnread?: () => void;
-  notesOpen: boolean;
+  templatesOpen?: boolean;
   contextOpen?: boolean;
+  notesOpen: boolean;
 }
 
 export function ChatHeader({
   chat,
   onBack,
-  onToggleNotes,
+  onToggleTemplates,
   onToggleContext,
+  onToggleNotes,
   onArchive,
   onBlock,
   onPin,
   onDelete,
   onMarkUnread,
-  notesOpen,
+  templatesOpen,
   contextOpen,
+  notesOpen,
 }: ChatHeaderProps) {
   const contatoTipo =
     'contato_tipo' in chat && (chat as EnrichedChat).contato_tipo
@@ -100,6 +104,23 @@ export function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1">
+        {onToggleTemplates && (
+          <button
+            type="button"
+            aria-label="Modelos de Mensagem"
+            onClick={onToggleTemplates}
+            className={cn(
+              'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
+              templatesOpen
+                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
+                : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
+            )}
+            title="Respostas Rápidas e Modelos"
+          >
+            <Zap className="h-4 w-4" />
+          </button>
+        )}
+
         {onToggleContext && (
           <button
             type="button"
@@ -107,8 +128,8 @@ export function ChatHeader({
             onClick={onToggleContext}
             className={cn(
               'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
-              contextOpen && !notesOpen
-                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20'
+              contextOpen
+                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
                 : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
             )}
             title="Ver Contexto Lunari"
@@ -124,7 +145,7 @@ export function ChatHeader({
           className={cn(
             'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
             notesOpen
-              ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20'
+              ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
               : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
           )}
           title="Notas internas"

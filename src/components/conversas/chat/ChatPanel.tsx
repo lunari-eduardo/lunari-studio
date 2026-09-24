@@ -89,28 +89,38 @@ export function ChatPanel({
   const { save: saveAudio } = useAudiosSalvos();
   const isMobile = useIsMobile();
 
-  const [contextOpen, setContextOpen] = useState(false);
-  const [contextTab, setContextTab] = useState<'context' | 'notes'>('context');
+  type SidePanelTab = 'templates' | 'context' | 'notes';
+
+  const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem('lunari_conversas_sidepanel_open');
+    if (saved !== null) return saved === 'true';
+    return window.innerWidth >= 1024; // Padrão fixo aberto no desktop
+  });
+  const [sidePanelTab, setSidePanelTab] = useState<SidePanelTab>('templates');
+  const [injectedText, setInjectedText] = useState<string | null>(null);
+
   const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
 
-  const handleToggleNotes = () => {
-    if (contextOpen && contextTab === 'notes') {
-      setContextOpen(false);
+  const handleToggleTab = (tab: SidePanelTab) => {
+    if (sidePanelOpen && sidePanelTab === tab) {
+      setSidePanelOpen(false);
+      if (!isMobile) localStorage.setItem('lunari_conversas_sidepanel_open', 'false');
     } else {
-      setContextTab('notes');
-      setContextOpen(true);
+      setSidePanelTab(tab);
+      setSidePanelOpen(true);
+      if (!isMobile) localStorage.setItem('lunari_conversas_sidepanel_open', 'true');
     }
   };
 
-  const handleToggleContext = () => {
-    if (contextOpen && contextTab === 'context') {
-      setContextOpen(false);
-    } else {
-      setContextTab('context');
-      setContextOpen(true);
-    }
+  const handleInsertTemplate = (renderedText: string) => {
+    setInjectedText(renderedText);
+  };
+
+  const handleSendDirectly = async (renderedText: string) => {
+    await sendMessage({ content: renderedText });
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -221,15 +231,17 @@ export function ChatPanel({
         <ChatHeader
           chat={chat}
           onBack={onBack}
-          onToggleNotes={handleToggleNotes}
-          onToggleContext={handleToggleContext}
+          onToggleTemplates={() => handleToggleTab('templates')}
+          onToggleContext={() => handleToggleTab('context')}
+          onToggleNotes={() => handleToggleTab('notes')}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          notesOpen={contextOpen && contextTab === 'notes'}
-          contextOpen={contextOpen && contextTab === 'context'}
+          templatesOpen={sidePanelOpen && sidePanelTab === 'templates'}
+          contextOpen={sidePanelOpen && sidePanelTab === 'context'}
+          notesOpen={sidePanelOpen && sidePanelTab === 'notes'}
         />
 
         <div
@@ -295,6 +307,8 @@ export function ChatPanel({
           disabled={isUploadingMedia}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          injectedText={injectedText}
+          onClearInjectedText={() => setInjectedText(null)}
           onAttach={async (file, kind, isPtt, caption) => {
             if (kind === 'contact') {
               toast.info('Envio de contato em breve');
@@ -323,32 +337,39 @@ export function ChatPanel({
       </div>
 
       {isMobile ? (
-        <Sheet open={contextOpen} onOpenChange={(open) => !open && setContextOpen(false)}>
+        <Sheet open={sidePanelOpen} onOpenChange={setSidePanelOpen}>
           <SheetContent
             side="right"
             className="p-0 w-full sm:max-w-md flex flex-col bg-[#FBFBF9] dark:bg-[#161616] border-l border-black/[0.06] dark:border-white/[0.08] z-50 focus:outline-none"
           >
             <SheetTitle className="sr-only">Painel do Contato</SheetTitle>
-            <SheetDescription className="sr-only">Contexto Lunari e notas internas</SheetDescription>
+            <SheetDescription className="sr-only">Modelos de mensagem, contexto Lunari e notas internas</SheetDescription>
             <ChatContextPanel
               chat={chat}
               notas={notas as Nota[]}
               onAddNota={addNota}
               onDeleteNota={deleteNota}
-              onClose={() => setContextOpen(false)}
-              initialTab={contextTab}
+              onClose={() => setSidePanelOpen(false)}
+              initialTab={sidePanelTab}
               isDrawer
+              onInsertToComposer={handleInsertTemplate}
+              onSendDirectly={handleSendDirectly}
             />
           </SheetContent>
         </Sheet>
-      ) : contextOpen ? (
+      ) : sidePanelOpen ? (
         <ChatContextPanel
           chat={chat}
           notas={notas as Nota[]}
           onAddNota={addNota}
           onDeleteNota={deleteNota}
-          onClose={() => setContextOpen(false)}
-          initialTab={contextTab}
+          onClose={() => {
+            setSidePanelOpen(false);
+            localStorage.setItem('lunari_conversas_sidepanel_open', 'false');
+          }}
+          initialTab={sidePanelTab}
+          onInsertToComposer={handleInsertTemplate}
+          onSendDirectly={handleSendDirectly}
         />
       ) : null}
 
