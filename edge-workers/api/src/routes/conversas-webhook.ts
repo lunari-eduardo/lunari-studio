@@ -617,7 +617,7 @@ async function handleMessagesUpdate(
     if (existingMsg.direction === 'inbound' && ['read', 'played'].includes(status)) {
       const { error: chatError } = await supabase
         .from('conversas_chats')
-        .update({ unread_count: 0 })
+        .update({ unread_count: 0, last_read_at: new Date().toISOString() })
         .eq('id', existingMsg.chat_id)
         .eq('user_id', instance.user_id);
       

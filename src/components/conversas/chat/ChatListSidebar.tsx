@@ -52,6 +52,7 @@ export interface ChatListSidebarProps {
   onArchive?: (chat: EnrichedChat) => void;
   onBlock?: (chat: EnrichedChat) => void;
   onMarkUnread?: (chat: EnrichedChat) => void;
+  onMarkRead?: (chat: EnrichedChat) => void;
   onDeleteChat?: (chat: EnrichedChat) => void;
 }
 
@@ -81,6 +82,7 @@ export function ChatListSidebar({
   onArchive,
   onBlock,
   onMarkUnread,
+  onMarkRead,
   onDeleteChat,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
@@ -234,6 +236,7 @@ export function ChatListSidebar({
                 onArchive={onArchive}
                 onBlock={onBlock}
                 onMarkUnread={onMarkUnread}
+                onMarkRead={onMarkRead}
                 onDelete={onDeleteChat}
               />
             ))}

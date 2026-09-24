@@ -69,7 +69,7 @@ function MessageText({ content, className }: { content: string; className?: stri
             href={seg.text}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-[#C9A87C] underline hover:text-[#b89567] break-all"
+            className="text-[#B8925F] dark:text-[#D4AF37] underline hover:text-[#9A7543] dark:hover:text-[#E2C366] break-all"
           >
             {seg.text}
           </a>
@@ -170,6 +170,16 @@ export interface MessageBubbleProps {
   onReact?: (emoji: string) => void;
 }
 
+function getFileExtension(filename?: string): string {
+  if (!filename) return 'DOC';
+  const parts = filename.split('.');
+  if (parts.length > 1) {
+    const ext = parts.pop()?.toUpperCase() || 'DOC';
+    return ext.length <= 4 ? ext : ext.slice(0, 4);
+  }
+  return 'DOC';
+}
+
 function StatusIcon({ status }: { status?: MessageStatus }) {
   switch (status) {
     case 'pending':
@@ -177,11 +187,11 @@ function StatusIcon({ status }: { status?: MessageStatus }) {
     case 'failed':
       return <AlertCircle className="h-3 w-3 text-red-500" />;
     case 'read':
-      return <CheckCheck className="h-3.5 w-3.5 text-[#C9A87C]" />;
+      return <CheckCheck className="h-3.5 w-3.5 text-[#C9A87C] dark:text-[#D4AF37]" />;
     case 'delivered':
-      return <CheckCheck className="h-3.5 w-3.5 text-[#C9A87C]" />;
+      return <CheckCheck className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />;
     case 'sent':
-      return <Check className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-600" />;
+      return <Check className="h-3.5 w-3.5 text-zinc-400 dark:text-zinc-500" />;
     default:
       return null;
   }
@@ -326,10 +336,10 @@ export function MessageBubble({
           hasStickerMedia
             ? 'p-0 bg-transparent border-0 shadow-none'
             : cn(
-                'max-w-[85%] md:max-w-[65%] px-3 py-1.5 shadow-sm',
+                'max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
                 isOwn
-                  ? 'bg-[#F0F0F0] dark:bg-white text-[#1C1C1C] dark:text-[#1C1C1C] border border-[rgba(0,0,0,0.04)] dark:border-transparent'
-                  : 'bg-white dark:bg-[#242424] text-[#1C1C1C] dark:text-[#EFEFEF] border border-[rgba(0,0,0,0.06)] dark:border-transparent',
+                  ? 'bg-[#F4EFE6] text-zinc-900 border border-[#E5DAC6]/80 dark:bg-[#221D17] dark:text-zinc-100 dark:border-[#382E22] dark:shadow-none'
+                  : 'bg-white text-zinc-900 border border-black/[0.05] dark:bg-[#1D1D1D] dark:text-zinc-100 dark:border-white/[0.06] dark:shadow-none',
                 radiusClass,
                 failed && 'border border-red-400',
               )
@@ -337,8 +347,8 @@ export function MessageBubble({
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
         {mensagem.quoted_content ? (
-          <div className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.04] rounded-r px-2 py-1 mb-1.5 text-xs select-none">
-            <span className="block font-semibold text-[11px] text-[#C9A87C] dark:text-[#C9A87C] leading-tight mb-0.5">
+          <div className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.05] rounded-r px-2 py-1 mb-1.5 text-xs select-none">
+            <span className="block font-semibold text-[11px] text-[#B8925F] dark:text-[#D4AF37] leading-tight mb-0.5">
               {mensagem.quoted_sender || 'Mensagem'}
             </span>
             <p className="text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed text-[12px]">
@@ -440,22 +450,29 @@ export function MessageBubble({
                   href={mensagem.media_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-3 p-2.5 rounded-lg border border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors min-w-[240px] max-w-[320px]"
+                  className={cn(
+                    'flex items-center gap-3 p-2.5 rounded-lg border transition-colors min-w-[240px] max-w-[320px]',
+                    isOwn
+                      ? 'border-black/[0.06] dark:border-white/[0.08] bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.08]'
+                      : 'border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+                  )}
                 >
-                  <div className="shrink-0 h-9 w-9 rounded-md bg-[#C9A87C]/15 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-[#C9A87C]" strokeWidth={1.75} />
+                  <div className="shrink-0 h-10 w-10 rounded-lg bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 border border-[#C9A87C]/30 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-bold text-[#A58253] dark:text-[#E2C366] leading-none tracking-tight">
+                      {getFileExtension(mensagem.media_filename)}
+                    </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[#1C1C1C] dark:text-[#EFEFEF] truncate">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
                       {mensagem.media_filename || 'Documento'}
                     </p>
-                    {mensagem.media_size && (
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-500 mt-0.5">
-                        {formatBytes(mensagem.media_size)}
+                    {mensagem.media_size_bytes && (
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 font-mono">
+                        {formatBytes(mensagem.media_size_bytes)}
                       </p>
                     )}
                   </div>
-                  <Download className="h-4 w-4 text-zinc-400 dark:text-zinc-500 shrink-0" />
+                  <Download className="h-4 w-4 text-zinc-400 dark:text-zinc-400 shrink-0" />
                 </a>
               ) : (
                 <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
@@ -513,7 +530,7 @@ export function MessageBubble({
         {!hasStickerMedia && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
             <div className="relative group/tt">
-              <span className="text-[11px] text-zinc-500 dark:text-zinc-500 leading-none cursor-default">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-none cursor-default font-sans">
                 {formatTime(mensagem.timestamp)}
               </span>
               {/* Tooltip: data completa */}

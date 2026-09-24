@@ -17,13 +17,13 @@ export function NoChatSelectedIllustration() {
 
 export function EmptyChatState() {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12 bg-white dark:bg-[#0F0F0F]">
+    <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12 bg-[#F8F7F4] dark:bg-[#121212] select-none">
       <NoChatSelectedIllustration />
-      <h2 className="font-serif text-2xl text-zinc-700 dark:text-zinc-300 mb-2">Lunari Conversas</h2>
+      <h2 className="font-serif text-2xl text-zinc-700 dark:text-zinc-200 mb-2">Lunari Conversas</h2>
       <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
         Selecione uma conversa na lista ao lado para começar a trocar mensagens.
       </p>
-      <p className="text-xs text-zinc-400 dark:text-zinc-600 mt-3 max-w-sm">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-3 max-w-sm">
         Dica: use a busca para encontrar clientes por nome ou telefone.
       </p>
     </div>

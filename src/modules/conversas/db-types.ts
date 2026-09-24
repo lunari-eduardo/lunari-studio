@@ -196,6 +196,10 @@ export interface DbConversasChat {
     ultima_mensagem_data: string | null;
     ultima_mensagem_type: ConversasMessageType | null;
     ultima_mensagem_direction: ConversasMessageDirection | null;
+    last_inbound_at: string | null;
+    last_read_at: string | null;
+    cliente_id: string | null;
+    lead_id: string | null;
     created_at: string;
     updated_at: string;
   };
@@ -216,6 +220,10 @@ export interface DbConversasChat {
     ultima_mensagem_data?: string | null;
     ultima_mensagem_type?: ConversasMessageType | null;
     ultima_mensagem_direction?: ConversasMessageDirection | null;
+    last_inbound_at?: string | null;
+    last_read_at?: string | null;
+    cliente_id?: string | null;
+    lead_id?: string | null;
     created_at?: string;
     updated_at?: string;
   };
@@ -236,13 +244,18 @@ export interface DbConversasChat {
     ultima_mensagem_data?: string | null;
     ultima_mensagem_type?: ConversasMessageType | null;
     ultima_mensagem_direction?: ConversasMessageDirection | null;
+    last_inbound_at?: string | null;
+    last_read_at?: string | null;
+    cliente_id?: string | null;
+    lead_id?: string | null;
     created_at?: string;
     updated_at?: string;
   };
   Relationships: [
     { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
     { schema: 'public'; table: 'conversas_contatos'; columns: ['contato_id'] },
-    { schema: 'public'; table: 'conversas_instancias'; columns: ['instance_id'] }
+    { schema: 'public'; table: 'conversas_instancias'; columns: ['instance_id'] },
+    { schema: 'public'; table: 'clientes'; columns: ['cliente_id'] }
   ];
 }
 

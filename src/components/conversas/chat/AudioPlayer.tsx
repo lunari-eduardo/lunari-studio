@@ -209,14 +209,14 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
         </div>
 
         {/* Linha de tempo e status */}
-        <div className="flex items-center justify-between mt-0.5 text-[11px] text-zinc-500 select-none">
+        <div className="flex items-center justify-between mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 select-none font-mono">
           <span>{isPlaying || currentTime > 0 ? formatTime(currentTime) : formatTime(duration)}</span>
           
           {isError ? (
-            <span className="text-red-500 font-medium">Erro ao carregar</span>
+            <span className="text-red-500 font-sans font-medium text-[11px]">Erro ao carregar</span>
           ) : (
             <div className="flex items-center gap-1.5">
-              <Volume2 className="h-3 w-3 text-zinc-400" />
+              <Volume2 className="h-3 w-3 text-zinc-400/80 dark:text-zinc-500" />
             </div>
           )}
         </div>
@@ -226,7 +226,7 @@ export function AudioPlayer({ src, isOwn = false }: AudioPlayerProps) {
       <button
         type="button"
         onClick={toggleSpeed}
-        className="shrink-0 px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition-colors select-none"
+        className="shrink-0 px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-[11px] font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors select-none"
         title="Velocidade de reprodução"
       >
         {playbackRate}x

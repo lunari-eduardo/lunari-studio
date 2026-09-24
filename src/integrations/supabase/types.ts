@@ -3417,6 +3417,7 @@ export type Database = {
       }
       conversas_chats: {
         Row: {
+          cliente_id: string | null
           contato_avatar: string | null
           contato_id: string
           contato_nome: string | null
@@ -3424,6 +3425,9 @@ export type Database = {
           created_at: string
           id: string
           instance_id: string
+          last_inbound_at: string | null
+          last_read_at: string | null
+          lead_id: string | null
           mute: boolean
           pin: string
           pin_origin: string | null
@@ -3437,6 +3441,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cliente_id?: string | null
           contato_avatar?: string | null
           contato_id: string
           contato_nome?: string | null
@@ -3444,6 +3449,9 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id: string
+          last_inbound_at?: string | null
+          last_read_at?: string | null
+          lead_id?: string | null
           mute?: boolean
           pin?: string
           pin_origin?: string | null
@@ -3457,6 +3465,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cliente_id?: string | null
           contato_avatar?: string | null
           contato_id?: string
           contato_nome?: string | null
@@ -3464,6 +3473,9 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id?: string
+          last_inbound_at?: string | null
+          last_read_at?: string | null
+          lead_id?: string | null
           mute?: boolean
           pin?: string
           pin_origin?: string | null

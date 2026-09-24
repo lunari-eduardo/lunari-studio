@@ -4,7 +4,7 @@
  * Gerencia o estado de seleção de chat e visibilidade mobile.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
@@ -31,6 +31,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     pinChat,
     unpinChat,
     deleteChat,
+    markAsRead,
     markAsUnread,
     syncHistoricalChats,
     isPinLimitReached,
@@ -47,6 +48,30 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Suporte à navegação mobile nativa (botão Voltar do Android / gestos do iOS)
+  useEffect(() => {
+    if (!mobileShowChat) return;
+
+    window.history.pushState({ lunariConversasChat: true }, '');
+
+    const handlePopState = () => {
+      setMobileShowChat(false);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [mobileShowChat]);
+
+  const handleBackToChatList = () => {
+    if (window.history.state?.lunariConversasChat) {
+      window.history.back();
+    } else {
+      setMobileShowChat(false);
+    }
+  };
 
   const connectedInstance = useMemo(
     () => instancias.find(i => i.status === 'connected') ?? instancias[0] ?? null,
@@ -67,9 +92,11 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
   };
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] bg-background overflow-hidden">
+    <div className="flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] bg-background overflow-hidden">
       <div
-        className={`${mobileShowChat ? 'hidden' : 'flex'} md:flex w-full md:w-auto flex-shrink-0`}
+        className={`${
+          mobileShowChat ? 'hidden' : 'flex'
+        } md:flex w-full md:w-auto flex-shrink-0 animate-in fade-in-50 duration-150`}
       >
         <ChatListSidebar
           chats={chats}
@@ -132,6 +159,9 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
               await blockChat(chat.id);
             }
           }}
+          onMarkRead={async (chat) => {
+            await markAsRead(chat.id);
+          }}
           onMarkUnread={async (chat) => {
             await markAsUnread(chat.id);
           }}
@@ -146,12 +176,12 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
       <div
         className={`${
           mobileShowChat ? 'flex' : 'hidden'
-        } md:flex flex-1 min-w-0`}
+        } md:flex flex-1 min-w-0 animate-in fade-in-50 duration-150`}
       >
         {selectedChat ? (
           <ChatPanel
             chat={selectedChat}
-            onBack={() => setMobileShowChat(false)}
+            onBack={handleBackToChatList}
             onArchive={async () => {
               if (selectedChat.status === 'archived') {
                 await unarchiveChat(selectedChat.id);
@@ -178,7 +208,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
                 return;
               await deleteChat(selectedChat.id);
               setSelectedChatId(null);
-              setMobileShowChat(false);
+              handleBackToChatList();
             }}
             onMarkUnread={async () => {
               await markAsUnread(selectedChat.id);

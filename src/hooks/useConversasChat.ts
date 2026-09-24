@@ -41,7 +41,12 @@ export interface UseConversasChatReturn {
     mediaMimeType?: string;
     mediaFilename?: string;
     mediaSizeBytes?: number;
+    replyToId?: string;
   }) => Promise<void>;
+
+  sendMediaMessage: (file: File, kind: 'image' | 'video' | 'document' | 'audio', isPtt?: boolean, caption?: string) => Promise<void>;
+  sendSavedAudio: (audioSavedId: string, audio: { media_url: string; nome: string; duration: number }) => Promise<void>;
+  sendSticker: (fileOrUrl: File | string) => Promise<void>;
 
   retryMessage: (mensagemId: string) => Promise<void>;
   deleteMessage: (mensagemId: string) => Promise<void>;
@@ -141,12 +146,12 @@ export function useConversasChat(
         if (chatResult.data) {
           instanceIdRef.current = chatResult.data.instance_id;
           if (cancelled) return;
-          setChat(chatResult.data);
+          setChat(chatResult.data as unknown as Chat);
         }
 
         if (mensagensResult.error) throw mensagensResult.error;
         if (!cancelled) {
-          setMensagens((mensagensResult.data ?? []).reverse());
+          setMensagens((mensagensResult.data ?? []).reverse() as unknown as MensagemLocal[]);
         }
 
         if (notasResult.error) console.warn('[Conversas] Notas load error:', notasResult.error);
@@ -156,10 +161,17 @@ export function useConversasChat(
 
         // Auto-mark read
         if (autoMarkRead && chatResult.data && (chatResult.data as Chat).unread_count > 0) {
-          await supabase
-            .from('conversas_chats')
-            .update({ unread_count: 0 })
-            .eq('id', chatId);
+          // Fase 1: Delegação exclusiva para o worker sem race condition
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const workerUrl = import.meta.env.VITE_EDGE_API_URL;
+            if (workerUrl) {
+              fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              }).catch(err => console.warn('[ConversasChat] mark-read worker failed:', err));
+            }
+          }
         }
 
         // Buscar histórico mais profundo sob demanda na Evolution API em background
@@ -228,7 +240,7 @@ export function useConversasChat(
 
       if (data && data.length > 0) {
         const olderReversed = data.reverse();
-        setMensagens(prev => [...olderReversed, ...prev]);
+        setMensagens(prev => [...(olderReversed as unknown as MensagemLocal[]), ...prev]);
         setPage(nextPage);
         // Se retornou menos que a página cheia, sabemos que acabou o histórico.
         if (data.length < PAGE_SIZE) lastPageWasFullRef.current = false;
@@ -419,6 +431,7 @@ export function useConversasChat(
         quoted_sender: quotedMsg ? (quotedMsg.direction === 'outbound' ? 'Você' : 'Contato') : null,
         quoted_type: quotedMsg?.type ?? null,
         timestamp: new Date().toISOString(),
+        reactions: null,
         created_at: new Date().toISOString(),
       };
 
@@ -481,7 +494,7 @@ export function useConversasChat(
   // ─── Send media message (com upload em background e preview imediato) ─────────
 
   const sendMediaMessage = useCallback(
-    async (file: File, kind: 'image' | 'video' | 'document' | 'audio', isPtt?: boolean) => {
+    async (file: File, kind: 'image' | 'video' | 'document' | 'audio', isPtt?: boolean, caption?: string) => {
       const userId = userIdRef.current;
       const instanceId = instanceIdRef.current;
       if (!chatId || !userId || !instanceId) {
@@ -500,14 +513,19 @@ export function useConversasChat(
         evolution_msg_id: null,
         direction: 'outbound',
         type: kind,
-        content: '',
+        content: caption?.trim() || '',
         media_url: localPreviewUrl,
         media_mime_type: file.type || 'application/octet-stream',
         media_filename: file.name,
         media_size_bytes: file.size,
         status: 'pending',
         is_forwarded: null,
+        reply_to_id: null,
+        quoted_content: null,
+        quoted_sender: null,
+        quoted_type: null,
         timestamp: new Date().toISOString(),
+        reactions: null,
         created_at: new Date().toISOString(),
       };
 
@@ -551,7 +569,7 @@ export function useConversasChat(
             id: msgId,
             chatId,
             instanceId,
-            content: '',
+            content: caption?.trim() || '',
             type: kind,
             mediaUrl: uploadData.mediaUrl,
             mediaMimeType: uploadData.mediaMimeType || file.type,
@@ -621,7 +639,12 @@ export function useConversasChat(
         media_size_bytes: isUrl ? 0 : (fileOrUrl as File).size,
         status: 'pending',
         is_forwarded: null,
+        reply_to_id: null,
+        quoted_content: null,
+        quoted_sender: null,
+        quoted_type: null,
         timestamp: new Date().toISOString(),
+        reactions: null,
         created_at: new Date().toISOString(),
       };
 
@@ -729,7 +752,12 @@ export function useConversasChat(
         media_size_bytes: null,
         status: 'pending',
         is_forwarded: null,
+        reply_to_id: null,
+        quoted_content: null,
+        quoted_sender: null,
+        quoted_type: null,
         timestamp: new Date().toISOString(),
+        reactions: null,
         created_at: new Date().toISOString(),
       };
 

@@ -34,6 +34,8 @@ export interface ChatListItemProps {
   onBlock?: (chat: EnrichedChat) => void;
   /** Marcar como não lida */
   onMarkUnread?: (chat: EnrichedChat) => void;
+  /** Marcar como lida */
+  onMarkRead?: (chat: EnrichedChat) => void;
   /** Excluir conversa */
   onDelete?: (chat: EnrichedChat) => void;
 }
@@ -53,6 +55,7 @@ export const ChatListItem = React.memo(function ChatListItem({
   onArchive,
   onBlock,
   onMarkUnread,
+  onMarkRead,
   onDelete,
 }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
@@ -64,7 +67,7 @@ export const ChatListItem = React.memo(function ChatListItem({
   const isPinned = chat.pin === 'pinned';
   const canPinThisChat = isPinned || !isPinLimitReached;
 
-  const hasAnyAction = onTogglePin || onArchive || onBlock || onMarkUnread || onDelete;
+  const hasAnyAction = onTogglePin || onArchive || onBlock || onMarkUnread || onMarkRead || onDelete;
 
   // Lazy avatar via IntersectionObserver
   const { avatar, elementRef } = useLazyContactAvatar(
@@ -222,9 +225,16 @@ export const ChatListItem = React.memo(function ChatListItem({
                         : 'Fixar no topo'}
                     </DropdownMenuItem>
                   )}
-                  {onMarkUnread && (
+                  {(onMarkUnread || onMarkRead) && (
                     <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); onMarkUnread(chat); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isUnread && onMarkRead) {
+                          onMarkRead(chat);
+                        } else if (!isUnread && onMarkUnread) {
+                          onMarkUnread(chat);
+                        }
+                      }}
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       {isUnread ? 'Marcar como lida' : 'Marcar como não lida'}

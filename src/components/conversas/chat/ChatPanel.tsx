@@ -4,23 +4,25 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { Chat, Mensagem, Nota } from '@/modules/conversas/types';
+import type { Chat, EnrichedChat, Mensagem, Nota } from '@/modules/conversas/types';
 import { ChatHeader } from './ChatHeader';
 import { MessageComposer } from './MessageComposer';
 import { MessageGroup } from './MessageGroup';
 import { DateDivider } from './DateDivider';
-import { NotesPanel } from './NotesPanel';
+import { ChatContextPanel } from '../context/ChatContextPanel';
 import { AudiosSalvosLibrary } from './AudiosSalvosLibrary';
 import { MessagesSkeleton } from './skeletons';
 import { EmptyChatState } from './EmptyChatState';
 import { useConversasChat } from '@/hooks/useConversasChat';
 import { useAudiosSalvos } from '@/hooks/useAudiosSalvos';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ChatPanelProps {
-  chat: Chat;
+  chat: Chat | EnrichedChat;
   onBack?: () => void;
   onArchive: () => void;
   onBlock: () => void;
@@ -85,11 +87,31 @@ export function ChatPanel({
   } = useConversasChat(chat.id, { autoMarkRead: true });
 
   const { save: saveAudio } = useAudiosSalvos();
+  const isMobile = useIsMobile();
 
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
+  const [contextTab, setContextTab] = useState<'context' | 'notes'>('context');
   const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
+
+  const handleToggleNotes = () => {
+    if (contextOpen && contextTab === 'notes') {
+      setContextOpen(false);
+    } else {
+      setContextTab('notes');
+      setContextOpen(true);
+    }
+  };
+
+  const handleToggleContext = () => {
+    if (contextOpen && contextTab === 'context') {
+      setContextOpen(false);
+    } else {
+      setContextTab('context');
+      setContextOpen(true);
+    }
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -176,17 +198,17 @@ export function ChatPanel({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#0F0F0F]">
+      <div className="flex-1 flex flex-col bg-[#F8F7F4] dark:bg-[#121212]">
         <ChatHeader
           chat={{} as Chat}
           onBack={onBack}
-          onToggleNotes={() => setNotesOpen(v => !v)}
+          onToggleNotes={() => {}}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          notesOpen={notesOpen}
+          notesOpen={false}
         />
         <MessagesSkeleton />
       </div>
@@ -195,17 +217,19 @@ export function ChatPanel({
 
   return (
     <>
-      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#0F0F0F]">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#F8F7F4] dark:bg-[#121212]">
         <ChatHeader
           chat={chat}
           onBack={onBack}
-          onToggleNotes={() => setNotesOpen(v => !v)}
+          onToggleNotes={handleToggleNotes}
+          onToggleContext={handleToggleContext}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          notesOpen={notesOpen}
+          notesOpen={contextOpen && contextTab === 'notes'}
+          contextOpen={contextOpen && contextTab === 'context'}
         />
 
         <div
@@ -213,7 +237,7 @@ export function ChatPanel({
           className="flex-1 overflow-y-auto dark:[color-scheme:dark]"
           style={{
             backgroundImage:
-              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.025), transparent 70%)',
+              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.015), transparent 70%)',
           }}
         >
           <div ref={sentinelRef} className="h-px" />
@@ -243,17 +267,19 @@ export function ChatPanel({
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    {item.type === 'date' ? (
-                      <DateDivider date={item.date!} />
-                    ) : (
-                      <MessageGroup
-                        messages={item.group!}
-                        onRetry={retryMessage}
-                        onReply={setReplyingTo}
-                        onDelete={deleteMessage}
-                        onReact={reactMessage}
-                      />
-                    )}
+                    <div className="max-w-4xl mx-auto w-full px-3 sm:px-6">
+                      {item.type === 'date' ? (
+                        <DateDivider date={item.date!} />
+                      ) : (
+                        <MessageGroup
+                          messages={item.group!}
+                          onRetry={retryMessage}
+                          onReply={setReplyingTo}
+                          onDelete={deleteMessage}
+                          onReact={reactMessage}
+                        />
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -269,7 +295,7 @@ export function ChatPanel({
           disabled={isUploadingMedia}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
-          onAttach={async (file, kind) => {
+          onAttach={async (file, kind, isPtt, caption) => {
             if (kind === 'contact') {
               toast.info('Envio de contato em breve');
               return;
@@ -279,7 +305,7 @@ export function ChatPanel({
               if (kind === 'sticker') {
                 await sendSticker(file);
               } else {
-                await sendMediaMessage(file, kind as 'image' | 'video' | 'document' | 'audio');
+                await sendMediaMessage(file, kind as 'image' | 'video' | 'document' | 'audio', isPtt, caption);
               }
             } finally {
               setIsUploadingMedia(false);
@@ -296,11 +322,33 @@ export function ChatPanel({
         />
       </div>
 
-      {notesOpen ? (
-        <NotesPanel
-          notes={notas as Nota[]}
-          onAdd={addNota}
-          onDelete={deleteNota}
+      {isMobile ? (
+        <Sheet open={contextOpen} onOpenChange={(open) => !open && setContextOpen(false)}>
+          <SheetContent
+            side="right"
+            className="p-0 w-full sm:max-w-md flex flex-col bg-[#FBFBF9] dark:bg-[#161616] border-l border-black/[0.06] dark:border-white/[0.08] z-50 focus:outline-none"
+          >
+            <SheetTitle className="sr-only">Painel do Contato</SheetTitle>
+            <SheetDescription className="sr-only">Contexto Lunari e notas internas</SheetDescription>
+            <ChatContextPanel
+              chat={chat}
+              notas={notas as Nota[]}
+              onAddNota={addNota}
+              onDeleteNota={deleteNota}
+              onClose={() => setContextOpen(false)}
+              initialTab={contextTab}
+              isDrawer
+            />
+          </SheetContent>
+        </Sheet>
+      ) : contextOpen ? (
+        <ChatContextPanel
+          chat={chat}
+          notas={notas as Nota[]}
+          onAddNota={addNota}
+          onDeleteNota={deleteNota}
+          onClose={() => setContextOpen(false)}
+          initialTab={contextTab}
         />
       ) : null}
 
