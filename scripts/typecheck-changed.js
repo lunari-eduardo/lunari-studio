@@ -10,28 +10,46 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
+import fs from 'fs';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 function getChangedFiles() {
   try {
-    const diffOutput = execSync('git diff --name-only HEAD', { cwd: rootDir, encoding: 'utf-8' });
-    const untrackedOutput = execSync('git status -s', { cwd: rootDir, encoding: 'utf-8' });
+    const statusOutput = execSync('git status --porcelain', { cwd: rootDir, encoding: 'utf-8' });
+    const files = [];
 
-    const diffFiles = diffOutput.split('\n').map((f) => f.trim()).filter(Boolean);
-    const untrackedFiles = untrackedOutput
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith('??') || line.startsWith('A ') || line.startsWith('M '))
-      .map((line) => line.substring(3).trim())
-      .filter(Boolean);
+    for (const rawLine of statusOutput.split('\n')) {
+      if (!rawLine.trim()) continue;
+      // git status --porcelain tem 2 caracteres de status, 1 espaço, depois o caminho
+      const filePath = rawLine.substring(3).trim().replace(/^"|"$/g, '');
+      const fullPath = path.resolve(rootDir, filePath);
+      
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory()) {
+          const findInDir = (dir) => {
+            for (const item of fs.readdirSync(dir)) {
+              const itemPath = path.join(dir, item);
+              try {
+                if (fs.statSync(itemPath).isDirectory()) {
+                  findInDir(itemPath);
+                } else if (item.endsWith('.ts') || item.endsWith('.tsx')) {
+                  files.push(itemPath);
+                }
+              } catch {}
+            }
+          };
+          findInDir(fullPath);
+        } else if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) {
+          files.push(fullPath);
+        }
+      } catch {}
+    }
 
-    const allFiles = Array.from(new Set([...diffFiles, ...untrackedFiles]))
-      .map((f) => path.resolve(rootDir, f))
-      .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'));
-
-    return allFiles;
+    return Array.from(new Set(files));
   } catch {
     return [];
   }
@@ -52,12 +70,16 @@ const configPath = path.resolve(rootDir, 'tsconfig.app.json');
 const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
 const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configPath));
 
-const program = ts.createProgram(parsedConfig.fileNames, parsedConfig.options);
+const allFilesToCompile = Array.from(new Set([...parsedConfig.fileNames, ...targetFiles]));
+const program = ts.createProgram(allFilesToCompile, parsedConfig.options);
 let errorCount = 0;
 
 for (const filePath of targetFiles) {
   const sourceFile = program.getSourceFile(filePath);
-  if (!sourceFile) continue;
+  if (!sourceFile) {
+    console.warn(`⚠️  Aviso: Não foi possível carregar AST para: ${path.relative(rootDir, filePath)}`);
+    continue;
+  }
 
   const diagnostics = [
     ...program.getSyntacticDiagnostics(sourceFile),
