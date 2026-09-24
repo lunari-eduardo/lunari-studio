@@ -42,6 +42,7 @@ interface Props {
   qtdAPagar: number;
   aReceberMensal: number[];
   aPagarMensal: number[];
+  totalTransacoes?: number;
 }
 
 const statusTheme: Record<Health, { color: string; softBg: string; icon: 'heart' | 'crack' | 'sparkles'; anim: string }> = {
@@ -128,7 +129,7 @@ const MESES_NOMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
 
 export const EstadoFinanceiroSection = memo(function EstadoFinanceiroSection({
   kpis, metaReceita, metaReceitaProporcional, periodoEfetivo, comparison, dadosMensais,
-  contasAPagar, qtdAReceber, qtdAPagar, aReceberMensal, aPagarMensal,
+  contasAPagar, qtdAReceber, qtdAPagar, aReceberMensal, aPagarMensal, totalTransacoes,
 }: Props) {
   const metaProporcional = metaReceitaProporcional ?? metaReceita;
 
@@ -146,9 +147,10 @@ export const EstadoFinanceiroSection = memo(function EstadoFinanceiroSection({
       metaReceitaProporcional: metaProporcional,
       dadosMensaisReais: dadosMensais,
       temDados: kpis.totalReceita > 0 || kpis.totalDespesas > 0,
+      totalTransacoes,
       mesCorrenteParcial,
     });
-  }, [kpis, contasAPagar, metaProporcional, dadosMensais, periodoEfetivo]);
+  }, [kpis, contasAPagar, metaProporcional, dadosMensais, periodoEfetivo, totalTransacoes]);
 
   const theme = statusTheme[health.status];
   const HeartIcon = theme.icon === 'crack' ? HeartCrack : theme.icon === 'sparkles' ? Sparkles : Heart;

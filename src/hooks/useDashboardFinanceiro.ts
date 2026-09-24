@@ -89,12 +89,14 @@ export function useDashboardFinanceiro() {
         receita: workflowMetricsByYear.totalAnual.receita || 0,
         previsto: workflowMetricsByYear.totalAnual.previsto || 0,
         aReceber: workflowMetricsByYear.totalAnual.aReceber || 0,
+        sessoes: workflowMetricsByYear.totalAnual.sessoes || 0,
       };
     }
     return {
       receita: workflowMetrics.receita,
       previsto: workflowMetrics.previsto,
       aReceber: workflowMetrics.aReceber,
+      sessoes: workflowMetrics.sessoes || 0,
     };
   }, [isYearMode, workflowMetricsByYear, workflowMetrics]);
 
@@ -103,6 +105,11 @@ export function useDashboardFinanceiro() {
 
   // Transações do período selecionado
   const transacoesFiltradasPorPeriodo = transacoesDoAno;
+
+  // Total de transações registradas no período (movimentações financeiras + sessões do workflow)
+  const totalTransacoes = useMemo(() => {
+    return transacoesFiltradasPorPeriodo.length + (workflowPeriod.sessoes || 0);
+  }, [transacoesFiltradasPorPeriodo.length, workflowPeriod.sessoes]);
 
   // KPIs
   const kpisData = useMemo(() => {
@@ -258,6 +265,7 @@ export function useDashboardFinanceiro() {
 
     // Dados filtrados
     transacoesFiltradas: transacoesFiltradasPorPeriodo,
+    totalTransacoes,
 
     // Estados do modal de equipamentos
     equipmentModalOpen,

@@ -80,7 +80,7 @@ export const VisaoGeralPage = memo(function VisaoGeralPage() {
         kpis={{
           ...dash.kpisData,
           totalReceita: (dash.kpisData as any).receitaOperacional ?? dash.kpisData.totalReceita,
-          totalLucro: dash.kpisData.totalLucro,
+          totalLucro: ((dash.kpisData as any).receitaOperacional ?? dash.kpisData.totalReceita) - dash.kpisData.totalDespesas,
           totalDespesas: dash.kpisData.totalDespesas,
           aReceber: dash.kpisData.aReceber,
           valorPrevisto: dash.kpisData.valorPrevisto,
@@ -95,6 +95,7 @@ export const VisaoGeralPage = memo(function VisaoGeralPage() {
         qtdAPagar={qtdAPagar}
         aReceberMensal={aReceberMensal}
         aPagarMensal={aPagarMensal}
+        totalTransacoes={(dash as any).totalTransacoes}
       />
 
 

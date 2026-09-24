@@ -25,6 +25,8 @@ export interface HealthResult {
   sinais: HealthSignal[];
 }
 
+export const MIN_TRANSACOES_PARA_SAUDE = 10;
+
 export interface HealthInput {
   receita: number;
   despesas: number;
@@ -34,6 +36,8 @@ export interface HealthInput {
   metaReceitaProporcional: number;
   dadosMensaisReais: PontoMensal[];
   temDados: boolean; // false quando não há nenhum mês real
+  /** Quantidade total de transações/movimentações registradas no período. Requer >= 10 para diagnóstico. */
+  totalTransacoes?: number;
   /**
    * true quando o último ponto de `dadosMensaisReais` corresponde ao mês
    * corrente ainda em curso. Nesse caso, o slope de tendência descarta o
@@ -82,15 +86,20 @@ export function computeHealth(input: HealthInput): HealthResult {
   const {
     receita, despesas, lucro, aReceber, aPagar,
     metaReceitaProporcional, dadosMensaisReais, temDados,
+    totalTransacoes,
     mesCorrenteParcial = false,
   } = input;
 
-  if (!temDados) {
+  const qtdTransacoes = totalTransacoes ?? (temDados ? MIN_TRANSACOES_PARA_SAUDE : 0);
+
+  if (!temDados || qtdTransacoes < MIN_TRANSACOES_PARA_SAUDE) {
     return {
       status: 'atencao',
       score: 50,
       titulo: 'Sem dados suficientes',
-      justificativa: 'Ainda não há movimentações registradas no período selecionado para gerar um diagnóstico.',
+      justificativa: qtdTransacoes === 0
+        ? 'Ainda não há movimentações registradas no período selecionado para gerar um diagnóstico.'
+        : `São necessárias pelo menos ${MIN_TRANSACOES_PARA_SAUDE} transações no período para uma análise confiável da saúde do negócio (atualmente com ${qtdTransacoes} transaç${qtdTransacoes === 1 ? 'ão registrada' : 'ões registradas'}).`,
       sinais: [],
     };
   }
@@ -132,14 +141,38 @@ export function computeHealth(input: HealthInput): HealthResult {
   sinais.push({ key: 'tendencia', peso: 15, score: scoreTend, label: labelTend, impacto: impTend });
 
   // 5. Cobertura A Receber vs A Pagar — peso 10
-  let scoreCob = 100, labelCob = 'A receber cobre pendências', impCob: HealthSignal['impacto'] = 'positivo';
-  if (aPagar > 0) {
+  let scoreCob = 100;
+  let labelCob = 'Sem pendências a pagar';
+  let impCob: HealthSignal['impacto'] = 'positivo';
+  let detalheCob: string | undefined = undefined;
+
+  if (aPagar <= 0) {
+    scoreCob = 100;
+    labelCob = 'Sem pendências a pagar';
+    impCob = 'positivo';
+    detalheCob = aReceber > 0
+      ? `${formatMoney(aReceber)} a receber · nenhuma conta em aberto`
+      : 'Nenhum vencimento em aberto';
+  } else {
     const cob = aReceber / aPagar;
-    if (cob >= 1) { scoreCob = 100; labelCob = 'A receber cobre pendências'; impCob = 'positivo'; }
-    else if (cob >= 0.6) { scoreCob = 70; labelCob = 'Cobertura parcial de pendências'; impCob = 'neutro'; }
-    else { scoreCob = 30; labelCob = 'Pendências acima do a receber'; impCob = 'negativo'; }
+    if (cob >= 1) {
+      scoreCob = 100;
+      labelCob = 'A receber cobre pendências';
+      impCob = 'positivo';
+      detalheCob = `${formatMoney(aReceber)} a receber vs ${formatMoney(aPagar)} a pagar (${(cob * 100).toFixed(0)}% de cobertura)`;
+    } else if (cob >= 0.6) {
+      scoreCob = 70;
+      labelCob = 'Cobertura parcial de pendências';
+      impCob = 'neutro';
+      detalheCob = `${formatMoney(aReceber)} a receber vs ${formatMoney(aPagar)} a pagar (${(cob * 100).toFixed(0)}% de cobertura)`;
+    } else {
+      scoreCob = 30;
+      labelCob = 'Pendências acima do a receber';
+      impCob = 'negativo';
+      detalheCob = `${formatMoney(aReceber)} a receber vs ${formatMoney(aPagar)} a pagar (${(cob * 100).toFixed(0)}% de cobertura)`;
+    }
   }
-  sinais.push({ key: 'cobertura', peso: 10, score: scoreCob, label: labelCob, impacto: impCob });
+  sinais.push({ key: 'cobertura', peso: 10, score: scoreCob, label: labelCob, impacto: impCob, detalhe: detalheCob });
 
   // 6. Despesas vs Receita — peso 15
   const razao = receita > 0 ? despesas / receita : 1;
@@ -217,4 +250,8 @@ export function computeHealth(input: HealthInput): HealthResult {
 
 function capitalize(s: string): string {
   return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+function formatMoney(val: number): string {
+  return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
