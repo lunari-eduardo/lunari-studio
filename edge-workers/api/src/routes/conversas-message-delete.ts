@@ -85,7 +85,15 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
       }
     }
 
-    // 4. Update DB (Removido - agora aguardamos o Webhook de MESSAGES_DELETE para atualizar a tabela para is_deleted: true)
+    // 4. Update DB (Authoritative, after Evolution succeeds)
+    await supabaseAdmin
+      .from('conversas_mensagens')
+      .update({ 
+        is_deleted: true, 
+        content: '🚫 Mensagem apagada', 
+        media_url: null 
+      })
+      .eq('id', msgId);
     
     return c.json({ ok: true });
   } catch (err: any) {

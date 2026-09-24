@@ -99,6 +99,16 @@ export async function conversasMessageUpdateRoute(c: Context<{ Bindings: Binding
       }
     }
 
+    // 4. Update DB (Authoritative, after Evolution succeeds)
+    await supabaseAdmin
+      .from('conversas_mensagens')
+      .update({
+        content: newContent,
+        is_edited: true,
+        edited_at: new Date().toISOString()
+      })
+      .eq('id', msgId);
+
     return c.json({ ok: true });
   } catch (err: any) {
     console.error('[conversas-message-update] Error:', err);

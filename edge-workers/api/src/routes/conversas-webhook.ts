@@ -637,7 +637,7 @@ async function handleMessagesUpdate(
     if (existingMsg.direction === 'inbound' && ['read', 'played'].includes(status)) {
       const { error: chatError } = await supabase
         .from('conversas_chats')
-        .update({ unread_count: 0, last_read_at: new Date().toISOString() })
+        .update({ unread_count: 0 })
         .eq('id', existingMsg.chat_id)
         .eq('user_id', instance.user_id);
       
@@ -713,8 +713,8 @@ async function handleMessagesDelete(
   payload: unknown,
   instance: ResolvedInstance,
 ) {
-  const data = payload as { key?: { id?: string }; keyId?: string };
-  const keyId = data?.key?.id ?? data?.keyId;
+  const data = payload as any;
+  const keyId = data?.key?.id ?? data?.keyId ?? data?.id ?? data?.messageId;
   if (!keyId) return;
 
   await supabase

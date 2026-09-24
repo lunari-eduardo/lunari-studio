@@ -22,7 +22,7 @@ export async function conversasMarkReadRoute(c: Context<{ Bindings: Bindings }>)
     // 1. Fetch Chat details
     const { data: chat, error: chatError } = await supabase
       .from('conversas_chats')
-      .select('id, instance_id, contato_phone_normalized, unread_count, last_inbound_at, last_read_at')
+      .select('id, instance_id, contato_phone_normalized, unread_count')
       .eq('id', chatId)
       .eq('user_id', user.id)
       .single();
@@ -31,11 +31,9 @@ export async function conversasMarkReadRoute(c: Context<{ Bindings: Bindings }>)
       return c.json({ ok: false, error: 'Chat not found' }, 404);
     }
 
-    const hasInbound = !!chat.last_inbound_at;
-    const isUnread = hasInbound && (!chat.last_read_at || new Date(chat.last_inbound_at) > new Date(chat.last_read_at));
+    // We proceed if unread_count > 0
 
-    // We proceed if it's considered unread by cursor OR if unread_count > 0 (fallback for transition)
-    if (!isUnread && chat.unread_count === 0) {
+    if (chat.unread_count === 0) {
       return c.json({ ok: true, message: 'No unread messages' }, 200);
     }
 
@@ -104,7 +102,7 @@ export async function conversasMarkReadRoute(c: Context<{ Bindings: Bindings }>)
       .in('evolution_msg_id', messages.map(m => m.evolution_msg_id!));
 
     await supabase.from('conversas_chats')
-      .update({ unread_count: 0, last_read_at: new Date().toISOString() })
+      .update({ unread_count: 0 })
       .eq('id', chat.id);
 
     return c.json({ ok: true, marked: readMessages.length });
