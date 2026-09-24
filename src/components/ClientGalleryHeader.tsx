@@ -43,6 +43,7 @@ interface ClientGalleryHeaderProps {
   filterMode: FilterMode;
   onFilterChange: (mode: FilterMode) => void;
   favoritesCount: number;
+  chargeType?: 'all_selected' | 'only_extras';
 }
 
 export function ClientGalleryHeader({
@@ -67,6 +68,7 @@ export function ClientGalleryHeader({
   filterMode,
   onFilterChange,
   favoritesCount,
+  chargeType = 'only_extras',
 }: ClientGalleryHeaderProps) {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -193,11 +195,15 @@ export function ClientGalleryHeader({
           <div className="flex items-center justify-center gap-4 text-sm">
             <span>
               <span className="font-semibold text-primary">{selectedCount}</span>
-              <span className="text-muted-foreground">/{includedPhotos} selecionadas</span>
+              {chargeType === 'only_extras' ? (
+                <span className="text-muted-foreground">/{includedPhotos} selecionadas</span>
+              ) : (
+                <span className="text-muted-foreground"> selecionadas</span>
+              )}
             </span>
             {extraCount > 0 && (
               <span className="text-primary font-medium flex items-center gap-1">
-                +{extraCount} extras
+                {chargeType === 'only_extras' ? `+${extraCount} extras` : `(${extraCount} a cobrar)`}
                 {extrasPagasAnteriormente > 0 && (
                   <span className="text-xs text-muted-foreground font-normal">
                     ({extrasPagasAnteriormente} já pagas{typeof extrasACobrar === 'number' ? `, ${extrasACobrar} a pagar` : ''})

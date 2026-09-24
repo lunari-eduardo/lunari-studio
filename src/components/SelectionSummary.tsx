@@ -38,6 +38,7 @@ interface SelectionSummaryProps {
     pricingModel?: string;
     discountPackages?: DiscountPackage[];
     fixedPrice?: number;
+    chargeType?: 'all_selected' | 'only_extras';
   } | null;
   billingInfo?: BillingInfo;
   hasPayment?: boolean;
@@ -93,15 +94,15 @@ export function SelectionSummary({
   billingInfo,
   hasPayment = false,
 }: SelectionSummaryProps) {
-  const { includedPhotos, selectedCount, extraPhotoPrice, selectionStatus } = gallery;
-  const extraCount = Math.max(0, selectedCount - includedPhotos);
-  const currentExtras = extraCount;
-  const isOverLimit = extraCount > 0;
+  const { includedPhotos, selectedCount, extraPhotoPrice, selectionStatus, extraCount: propExtraCount } = gallery;
+  const chargeType = saleSettings?.chargeType || gallery.saleSettings?.chargeType || 'only_extras';
+  const currentExtras = propExtraCount ?? (chargeType === 'all_selected' ? selectedCount : Math.max(0, selectedCount - includedPhotos));
+  const isOverLimit = currentExtras > 0;
   const isConfirmed = selectionStatus === 'confirmed';
   const isBlocked = selectionStatus === 'blocked';
   const isMobile = useIsMobile();
 
-  const extrasACobrar = extrasACobrarProp ?? Math.max(0, extraCount - extrasPagasTotal);
+  const extrasACobrar = extrasACobrarProp ?? Math.max(0, currentExtras - extrasPagasTotal);
   const hasPendingCharge = extrasACobrar > 0;
   const hasPaidExtras = extrasPagasTotal > 0;
 
@@ -137,11 +138,15 @@ export function SelectionSummary({
           <div className={cn('flex items-center shrink-0', isMobile ? 'gap-1.5' : 'gap-3')}>
             <div className="flex items-center gap-1">
               <span className={cn('font-bold', isMobile ? 'text-sm' : 'text-lg')}>{selectedCount}</span>
-              <span className={cn('text-muted-foreground', isMobile ? 'text-[10px]' : 'text-sm')}>/ {includedPhotos}</span>
+              {chargeType === 'only_extras' && (
+                <span className={cn('text-muted-foreground', isMobile ? 'text-[10px]' : 'text-sm')}>/ {includedPhotos}</span>
+              )}
             </div>
             {isOverLimit && (
               <div className={cn('flex items-center gap-1 text-primary', isMobile ? 'text-[10px]' : 'text-sm')}>
-                <span className="font-medium">+{currentExtras}</span>
+                {chargeType === 'only_extras' && (
+                  <span className="font-medium">+{currentExtras}</span>
+                )}
                 {extrasPagasTotal > 0 && (
                   <span className={cn('text-muted-foreground font-normal', isMobile ? 'text-[9px]' : 'text-xs')}>
                     (−{extrasPagasTotal} já pagas)
@@ -203,44 +208,58 @@ export function SelectionSummary({
       </div>
 
       <div className="space-y-4">
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs uppercase tracking-widest opacity-50">
-            <span>Progresso da Seleção</span>
-            <span>{Math.round((selectedCount / Math.max(includedPhotos, 1)) * 100)}%</span>
-          </div>
-          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-            <div
-              className={cn(
-                'h-full transition-all duration-1000 ease-out',
-                isOverLimit ? 'bg-amber-500' : 'bg-primary'
-              )}
-              style={{ width: `${Math.min(100, (selectedCount / Math.max(includedPhotos, 1)) * 100)}%` }}
-            />
-          </div>
-        </div>
+        {chargeType === 'only_extras' && (
+          <>
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs uppercase tracking-widest opacity-50">
+                <span>Progresso da Seleção</span>
+                <span>{Math.round((selectedCount / Math.max(includedPhotos, 1)) * 100)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    'h-full transition-all duration-1000 ease-out',
+                    isOverLimit ? 'bg-amber-500' : 'bg-primary'
+                  )}
+                  style={{ width: `${Math.min(100, (selectedCount / Math.max(includedPhotos, 1)) * 100)}%` }}
+                />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-4 py-2">
-          <div className="space-y-1">
-            <span className="text-[10px] uppercase tracking-widest opacity-40 block">Fotos Incluídas</span>
-            <span className="text-xl font-medium">{includedPhotos}</span>
+            <div className="grid grid-cols-2 gap-4 py-2">
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest opacity-40 block">Fotos Incluídas</span>
+                <span className="text-xl font-medium">{includedPhotos}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] uppercase tracking-widest opacity-40 block">Selecionadas</span>
+                <span className={cn(
+                  'text-xl font-bold transition-colors',
+                  isOverLimit ? 'text-amber-500' : 'text-primary'
+                )}>
+                  {selectedCount}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+        {chargeType === 'all_selected' && (
+          <div className="grid grid-cols-1 gap-4 py-2">
+            <div className="space-y-1">
+              <span className="text-[10px] uppercase tracking-widest opacity-40 block">Fotos Selecionadas</span>
+              <span className="text-xl font-bold text-primary">
+                {selectedCount}
+              </span>
+            </div>
           </div>
-          <div className="space-y-1">
-            <span className="text-[10px] uppercase tracking-widest opacity-40 block">Selecionadas</span>
-            <span className={cn(
-              'text-xl font-bold transition-colors',
-              isOverLimit ? 'text-amber-500' : 'text-primary'
-            )}>
-              {selectedCount}
-            </span>
-          </div>
-        </div>
+        )}
 
         {isOverLimit && (
           <div className="space-y-3 pt-4 border-t border-white/5 animate-fade-in">
             <div className="flex items-center justify-between text-sm">
-              <span className="opacity-60">Fotos extras (esta seleção)</span>
-              <span className="font-semibold text-amber-500">+{currentExtras}</span>
+              <span className="opacity-60">{chargeType === 'all_selected' ? 'Fotos a cobrar (esta seleção)' : 'Fotos extras (esta seleção)'}</span>
+              <span className="font-semibold text-amber-500">{chargeType === 'all_selected' ? currentExtras : `+${currentExtras}`}</span>
             </div>
 
             {hasPaidExtras && (
@@ -338,9 +357,14 @@ export function SelectionSummary({
         <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm">
           <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-amber-500/90 leading-relaxed">
-            {isClient
-              ? `Você selecionou ${extraCount} foto${extraCount > 1 ? 's' : ''} além do seu pacote original.`
-              : `O cliente selecionou ${extraCount} foto${extraCount > 1 ? 's' : ''} extra${extraCount > 1 ? 's' : ''}.`}
+            {chargeType === 'all_selected'
+              ? isClient 
+                ? `Você selecionou ${currentExtras} foto${currentExtras > 1 ? 's' : ''} para compra.` 
+                : `O cliente selecionou ${currentExtras} foto${currentExtras > 1 ? 's' : ''} para compra.`
+              : isClient
+                ? `Você selecionou ${currentExtras} foto${currentExtras > 1 ? 's' : ''} além do seu pacote original.`
+                : `O cliente selecionou ${currentExtras} foto${currentExtras > 1 ? 's' : ''} extra${currentExtras > 1 ? 's' : ''}.`
+            }
           </p>
         </div>
       )}

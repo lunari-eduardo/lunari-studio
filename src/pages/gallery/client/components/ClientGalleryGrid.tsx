@@ -137,6 +137,7 @@ export function ClientGalleryGrid({
         filterMode={filterMode}
         onFilterChange={onFilterChange}
         favoritesCount={localPhotos.filter(p => p.isFavorite).length}
+        chargeType={gallery.saleSettings?.chargeType || 'only_extras'}
       />
 
       {visitorName && (

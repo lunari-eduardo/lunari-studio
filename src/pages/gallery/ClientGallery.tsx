@@ -311,7 +311,11 @@ export default function ClientGallery() {
   }
 
   // 7. Pagamento Pendente (travada e não paga)
-  if (selectionLocked && !hasPaid && !isProcessingPaymentReturn && !confirmation.isConfirmed) {
+  const isActivelyCheckingOut = 
+    confirmation.currentStep === 'payment' && 
+    (confirmation.asaasCheckoutData || confirmation.pixPaymentData || confirmation.paymentInfo);
+
+  if (selectionLocked && !hasPaid && !isProcessingPaymentReturn && !confirmation.isConfirmed && !isActivelyCheckingOut) {
     return (
       <ClientPendingPaymentView
         galleryId={galleryId}

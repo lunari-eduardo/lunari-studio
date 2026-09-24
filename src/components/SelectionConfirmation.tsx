@@ -206,23 +206,42 @@ export function SelectionConfirmation({
                 <span className="text-muted-foreground">Selecionadas</span>
                 <span className="font-medium">{selectedCount}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Incluídas no pacote</span>
-                <span className="font-medium">{gallery.includedPhotos}</span>
-              </div>
               
-              {extrasPagasAnteriormente > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Extras já pagas</span>
-                  <span className="font-medium text-green-600 dark:text-green-400">+{extrasPagasAnteriormente}</span>
-                </div>
+              {saleSettings?.chargeType === 'only_extras' && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Incluídas no pacote</span>
+                    <span className="font-medium">{gallery.includedPhotos}</span>
+                  </div>
+                  
+                  {extrasPagasAnteriormente > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Extras já pagas</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">+{extrasPagasAnteriormente}</span>
+                    </div>
+                  )}
+                  
+                  {extraCount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Extras</span>
+                      <span className="font-medium text-primary">{extraCount}</span>
+                    </div>
+                  )}
+                </>
               )}
-              
-              {extraCount > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Extras</span>
-                  <span className="font-medium text-primary">{extraCount}</span>
-                </div>
+              {saleSettings?.chargeType === 'all_selected' && (
+                <>
+                  {extrasPagasAnteriormente > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Já pagas anteriormente</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">{extrasPagasAnteriormente}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">A cobrar</span>
+                    <span className="font-medium text-primary">{extrasACobrar}</span>
+                  </div>
+                </>
               )}
 
               {hasCharge && (
@@ -249,7 +268,9 @@ export function SelectionConfirmation({
                 {valorJaPago > 0 && (
                   <>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Você já pagou R$ {valorJaPago.toFixed(2)} por {extrasPagasAnteriormente} foto{extrasPagasAnteriormente === 1 ? '' : 's'} extra{extrasPagasAnteriormente === 1 ? '' : 's'} anteriormente. Agora paga apenas o adicional.
+                      {saleSettings?.chargeType === 'all_selected'
+                        ? `Você já pagou R$ ${valorJaPago.toFixed(2)} por ${extrasPagasAnteriormente} foto${extrasPagasAnteriormente === 1 ? '' : 's'} anteriormente. Agora paga apenas o adicional.`
+                        : `Você já pagou R$ ${valorJaPago.toFixed(2)} por ${extrasPagasAnteriormente} foto${extrasPagasAnteriormente === 1 ? '' : 's'} extra${extrasPagasAnteriormente === 1 ? '' : 's'} anteriormente. Agora paga apenas o adicional.`}
                     </p>
                     <details className="mt-2 text-xs text-muted-foreground">
                       <summary className="cursor-pointer select-none hover:text-foreground transition-colors">
