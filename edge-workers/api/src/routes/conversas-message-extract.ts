@@ -45,6 +45,18 @@ export interface EvolutionMessageContent {
     address?: string;
   };
   contactMessage?: { displayName: string; vcard?: string };
+  protocolMessage?: {
+    key?: {
+      remoteJid?: string;
+      fromMe?: boolean;
+      id?: string;
+    };
+    type?: number | string;
+    editedMessage?: {
+      conversation?: string;
+      extendedTextMessage?: { text: string };
+    };
+  };
 }
 
 export interface EvolutionMessagePayload {
@@ -253,4 +265,30 @@ export function extractQuotedInfo(msg: EvolutionMessagePayload): QuotedInfo | nu
     content: quotedContent || null,
     type: quotedType,
   };
+}
+
+// ─── Extract Edited Info (Fase 2 - Edição de Mensagem) ─────────────────────────
+
+export interface EditedInfo {
+  targetId: string;
+  newContent: string;
+}
+
+export function extractEditedInfo(msg: EvolutionMessagePayload): EditedInfo | null {
+  const m = msg.message;
+  if (!m?.protocolMessage) return null;
+  
+  // type pode ser 14 (MESSAGE_EDIT) ou string 'MESSAGE_EDIT' dependendo do parser
+  const type = m.protocolMessage.type;
+  if (type === 14 || type === 'MESSAGE_EDIT' || m.protocolMessage.editedMessage) {
+    const targetId = m.protocolMessage.key?.id;
+    const editedMsg = m.protocolMessage.editedMessage;
+    const newContent = editedMsg?.conversation || editedMsg?.extendedTextMessage?.text || '';
+    
+    if (targetId && newContent) {
+      return { targetId, newContent };
+    }
+  }
+  
+  return null;
 }

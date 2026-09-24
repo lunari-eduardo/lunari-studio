@@ -30,6 +30,7 @@ import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 import { conversasMarkReadRoute } from './routes/conversas-mark-read.js';
 import { conversasMarkUnreadRoute } from './routes/conversas-mark-unread.js';
 import { conversasMessageDeleteRoute } from './routes/conversas-message-delete.js';
+import { conversasMessageUpdateRoute } from './routes/conversas-message-update.js';
 import { conversasMessageReactRoute } from './routes/conversas-message-react.js';
 import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
 import { getAudiosSalvosRoute, saveAudiosSalvosRoute, patchAudiosSalvosRoute, deleteAudiosSalvosRoute } from './routes/conversas-audios-savos.js';
@@ -51,12 +52,12 @@ export type Bindings = {
   EVOLUTION_WEBHOOK_SECRET: string;
 
   // R2 Bucket Bindings
-  LUNARI_PREVIEWS: R2Bucket;
-  LUNARI_PRIVATE: R2Bucket;
-  LUNARI_COMMERCIAL_DOCUMENTS: R2Bucket;
-  LUNARI_MEDIA: R2Bucket;
-  LUNARI_GALLERY: R2Bucket;
-  LUNARI_CONVERSAS: R2Bucket;
+  LUNARI_PREVIEWS: any;
+  LUNARI_PRIVATE: any;
+  LUNARI_COMMERCIAL_DOCUMENTS: any;
+  LUNARI_MEDIA: any;
+  LUNARI_GALLERY: any;
+  LUNARI_CONVERSAS: any;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -126,6 +127,7 @@ app.post('/api/conversas/fetch-avatar', conversasFetchAvatarRoute);
 app.post('/api/conversas/mark-read/:chatId', conversasMarkReadRoute);
 app.post('/api/conversas/mark-unread/:chatId', conversasMarkUnreadRoute);
 app.delete('/api/conversas/message/delete/:id', conversasMessageDeleteRoute);
+app.post('/api/conversas/message/update/:id', conversasMessageUpdateRoute);
 app.post('/api/conversas/message/react/:id', conversasMessageReactRoute);
 
 export default app;

@@ -50,6 +50,7 @@ export interface UseConversasChatReturn {
 
   retryMessage: (mensagemId: string) => Promise<void>;
   deleteMessage: (mensagemId: string) => Promise<void>;
+  editMessage: (mensagemId: string, newContent: string) => Promise<void>;
   reactMessage: (mensagemId: string, emoji: string) => Promise<void>;
 
   addNota: (content: string) => Promise<void>;
@@ -433,6 +434,9 @@ export function useConversasChat(
         timestamp: new Date().toISOString(),
         reactions: null,
         created_at: new Date().toISOString(),
+        is_deleted: false,
+        is_edited: false,
+        edited_at: null,
       };
 
       // Optimistic insert
@@ -527,6 +531,9 @@ export function useConversasChat(
         timestamp: new Date().toISOString(),
         reactions: null,
         created_at: new Date().toISOString(),
+        is_deleted: false,
+        is_edited: false,
+        edited_at: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);
@@ -646,6 +653,9 @@ export function useConversasChat(
         timestamp: new Date().toISOString(),
         reactions: null,
         created_at: new Date().toISOString(),
+        is_deleted: false,
+        is_edited: false,
+        edited_at: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);
@@ -759,6 +769,9 @@ export function useConversasChat(
         timestamp: new Date().toISOString(),
         reactions: null,
         created_at: new Date().toISOString(),
+        is_deleted: false,
+        is_edited: false,
+        edited_at: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);
@@ -855,10 +868,6 @@ export function useConversasChat(
   );
 
   const deleteMessage = useCallback(async (mensagemId: string) => {
-    // Snapshot
-    const snapshot = mensagens;
-    setMensagens(prev => prev.filter(m => m.id !== mensagemId));
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
@@ -883,10 +892,39 @@ export function useConversasChat(
       }
     } catch (err: any) {
       toast.error('Erro ao apagar: ' + err.message);
-      // Revert on error
-      setMensagens(snapshot);
     }
-  }, [mensagens]);
+  }, []);
+
+  const editMessage = useCallback(async (mensagemId: string, newContent: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+
+      const response = await fetch(`${workerUrl}/api/conversas/message/update/${mensagemId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Erro ao editar mensagem';
+        try {
+          const err = await response.json();
+          errorMsg = err.error || err.detail || errorMsg;
+        } catch {
+          const text = await response.text();
+          errorMsg = text || `Erro HTTP ${response.status}`;
+        }
+        throw new Error(errorMsg);
+      }
+    } catch (err: any) {
+      toast.error('Erro ao editar: ' + err.message);
+      throw err;
+    }
+  }, []);
 
   const reactMessage = useCallback(async (mensagemId: string, emoji: string) => {
     // Snapshot para rollback
@@ -1022,6 +1060,7 @@ export function useConversasChat(
     sendSavedAudio,
     retryMessage,
     deleteMessage,
+    editMessage,
     reactMessage,
     addNota,
     updateNota,

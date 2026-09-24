@@ -3,10 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 import type { Bindings } from '../index.js';
 import { normalizeBrPhone } from '../utils/phone.js';
 
-export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Bindings }>) {
+export async function conversasMessageUpdateRoute(c: Context<{ Bindings: Bindings }>) {
   try {
     const msgId = c.req.param('id');
     if (!msgId) return c.json({ ok: false, error: 'msgId is required' }, 400);
+
+    const bodyObj = await c.req.json().catch(() => ({}));
+    const newContent = bodyObj.content;
+    if (!newContent) return c.json({ ok: false, error: 'newContent is required' }, 400);
 
     const authHeader = c.req.header('Authorization');
     if (!authHeader) return c.json({ ok: false, error: 'Missing Authorization header' }, 401);
@@ -25,7 +29,7 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
     // 1. Fetch message details
     const { data: msg, error: msgError } = await supabaseAdmin
       .from('conversas_mensagens')
-      .select('id, chat_id, instance_id, evolution_msg_id, direction, user_id, conversas_chats!inner(contato_phone_normalized)')
+      .select('id, chat_id, instance_id, evolution_msg_id, direction, user_id, type, conversas_chats!inner(contato_phone_normalized)')
       .eq('id', msgId)
       .eq('user_id', userId)
       .single();
@@ -34,13 +38,19 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
       return c.json({ ok: false, error: 'Message not found' }, 404);
     }
 
-    if (!msg.evolution_msg_id) {
-      // Se não tem ID na Evolution, apenas deleta localmente (ex: erro de envio pendente)
-      await supabaseAdmin.from('conversas_mensagens').delete().eq('id', msgId);
-      return c.json({ ok: true, localOnly: true });
+    if (msg.direction !== 'outbound') {
+      return c.json({ ok: false, error: 'Only outbound messages can be edited' }, 403);
+    }
+    
+    if (msg.type !== 'text') {
+      return c.json({ ok: false, error: 'Only text messages can be edited' }, 400);
     }
 
-    // 2. Fetch Instance to get instance_name
+    if (!msg.evolution_msg_id) {
+      return c.json({ ok: false, error: 'Message cannot be edited (not sent yet)' }, 400);
+    }
+
+    // 2. Fetch Instance
     const { data: instance, error: instanceError } = await supabaseAdmin
       .from('conversas_instancias')
       .select('instance_name')
@@ -56,42 +66,43 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
     const normalizedPhone = normalizeBrPhone(rawPhone) || rawPhone.replace(/\D/g, '');
     const remoteJid = normalizedPhone.startsWith('55') ? `${normalizedPhone}@s.whatsapp.net` : `55${normalizedPhone}@s.whatsapp.net`;
 
-    // 3. Delete via Evolution API
+    // 3. Edit via Evolution API
     const evoUrl = c.env.EVOLUTION_API_URL;
     const evoKey = c.env.EVOLUTION_API_KEY;
 
     if (evoUrl && evoKey) {
-      const evolutionEndpoint = `${evoUrl}/message/delete/${instance.instance_name}`;
+      const evolutionEndpoint = `${evoUrl}/message/update/${instance.instance_name}`;
       
-      const body = {
-        message: {
+      const payload = {
+        key: {
           remoteJid: remoteJid,
-          fromMe: msg.direction === 'outbound',
+          fromMe: true,
           id: msg.evolution_msg_id
+        },
+        message: {
+          conversation: newContent
         }
       };
 
       const response = await fetch(evolutionEndpoint, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': evoKey,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        console.warn("%s", `[conversas-message-delete] Evolution API error: ${response.status}`, errText);
-        return c.json({ ok: false, error: 'Falha ao excluir mensagem na Evolution API: ' + errText }, response.status as any);
+        console.warn("%s", `[conversas-message-update] Evolution API error: ${response.status}`, errText);
+        return c.json({ ok: false, error: 'Falha ao editar mensagem na Evolution API: ' + errText }, response.status as any);
       }
     }
 
-    // 4. Update DB (Removido - agora aguardamos o Webhook de MESSAGES_DELETE para atualizar a tabela para is_deleted: true)
-    
     return c.json({ ok: true });
   } catch (err: any) {
-    console.error('[conversas-message-delete] Error:', err);
+    console.error('[conversas-message-update] Error:', err);
     return c.json({ ok: false, error: err.message }, 500);
   }
 }

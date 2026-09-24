@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, Send, X, Square, Trash2, Sticker as StickerIcon } from 'lucide-react';
+import { Mic, Send, X, Square, Trash2, Sticker as StickerIcon, Pencil, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Mensagem } from '@/modules/conversas/types';
 import { AttachMenu } from './AttachMenu';
@@ -26,6 +26,9 @@ export interface MessageComposerProps {
   disabled?: boolean;
   replyingTo?: Mensagem | null;
   onCancelReply?: () => void;
+  editingMessage?: Mensagem | null;
+  onCancelEdit?: () => void;
+  onSaveEdit?: (mensagemId: string, newContent: string) => Promise<void>;
   onOpenAudiosSalvos?: () => void;
   /** Called when user clicks "Salvar apenas" during recording — save to library without sending. */
   onSaveAudio?: (file: File, duration: number) => void;
@@ -75,6 +78,9 @@ export function MessageComposer({
   disabled,
   replyingTo,
   onCancelReply,
+  editingMessage,
+  onCancelEdit,
+  onSaveEdit,
   onOpenAudiosSalvos,
   onSaveAudio,
   injectedText,
@@ -85,6 +91,14 @@ export function MessageComposer({
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isRecording, recordingTime, startRecording, stopRecording, cancelRecording } = useAudioRecorder();
+
+  // Preencher composer ao entrar em modo de edição
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.content || '');
+      textareaRef.current?.focus();
+    }
+  }, [editingMessage]);
 
   // Injeção de texto externo (ex: templates/respostas rápidas)
   useEffect(() => {
@@ -106,7 +120,7 @@ export function MessageComposer({
   // Foco ao montar ou ao citar uma mensagem
   useEffect(() => {
     textareaRef.current?.focus();
-  }, [replyingTo, pendingAttachment]);
+  }, [replyingTo, pendingAttachment, editingMessage]);
 
   const handleClearAttachment = () => {
     if (pendingAttachment?.previewUrl) {
@@ -131,6 +145,24 @@ export function MessageComposer({
   const handleSend = async () => {
     const trimmed = text.trim();
     if (sending) return;
+
+    if (editingMessage && onSaveEdit) {
+      if (!trimmed) {
+        toast.error('A mensagem não pode ficar vazia');
+        return;
+      }
+      try {
+        setSending(true);
+        await onSaveEdit(editingMessage.id, trimmed);
+        setText('');
+        onCancelEdit?.();
+      } catch {
+        // toast já tratado no hook
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
 
     if (pendingAttachment) {
       try {
@@ -166,6 +198,9 @@ export function MessageComposer({
       if (pendingAttachment) {
         e.preventDefault();
         handleClearAttachment();
+      } else if (editingMessage && onCancelEdit) {
+        e.preventDefault();
+        onCancelEdit();
       } else if (replyingTo && onCancelReply) {
         e.preventDefault();
         onCancelReply();
@@ -203,8 +238,40 @@ export function MessageComposer({
       className="flex flex-col bg-[#F5F4F0] dark:bg-[#151515] border-t border-black/[0.05] dark:border-white/[0.06]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
+      {/* Banner de Edição */}
+      {editingMessage && (
+        <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-sm">
+          <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
+            <div className="flex items-center gap-2 border-l-[3px] border-[#C9A87C] pl-2.5 overflow-hidden">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Pencil className="h-3 w-3 text-[#B8925F] dark:text-[#D4AF37]" />
+                  <span className="text-[11px] font-semibold text-[#B8925F] dark:text-[#D4AF37]">
+                    Editando mensagem
+                  </span>
+                </div>
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 truncate max-w-[400px]">
+                  {editingMessage.content}
+                </span>
+              </div>
+            </div>
+            {onCancelEdit && (
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                className="p-1 rounded-full hover:bg-zinc-200/80 dark:hover:bg-zinc-700/80 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors ml-2 shrink-0"
+                title="Cancelar edição (Esc)"
+                aria-label="Cancelar edição"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Banner de Citação / Resposta (Fase P3) */}
-      {replyingTo && (
+      {!editingMessage && replyingTo && (
         <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center gap-2 border-l-[3px] border-[#C9A87C] pl-2.5 overflow-hidden">
@@ -233,7 +300,7 @@ export function MessageComposer({
       )}
 
       {/* Card de Pré-visualização do Anexo */}
-      {pendingAttachment && (
+      {!editingMessage && pendingAttachment && (
         <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -277,7 +344,7 @@ export function MessageComposer({
       )}
 
       <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2.5 flex items-end gap-2">
-        {!isRecording && (
+        {!isRecording && !editingMessage && (
           <div className="flex items-center gap-1 shrink-0">
             <StickerPickerPopover onSendSticker={(url) => onAttach(url as any, 'sticker')}>
               <button
@@ -305,7 +372,7 @@ export function MessageComposer({
               value={text}
               onChange={e => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={pendingAttachment ? 'Adicione uma legenda (opcional)...' : 'Mensagem'}
+              placeholder={editingMessage ? 'Edite a mensagem...' : pendingAttachment ? 'Adicione uma legenda (opcional)...' : 'Mensagem'}
               rows={1}
               disabled={disabled}
               className="w-full resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50 focus:ring-1 focus:ring-[#C9A87C] rounded-2xl"
@@ -346,10 +413,18 @@ export function MessageComposer({
           <button
             type="button"
             onClick={handleSend}
-            aria-label="Enviar"
+            aria-label={editingMessage ? 'Salvar edição' : 'Enviar'}
             className="h-9 w-9 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm"
           >
-            <Send className="h-4 w-4" />
+            {editingMessage ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+          </button>
+        ) : editingMessage ? (
+          <button
+            type="button"
+            disabled
+            className="h-9 w-9 flex items-center justify-center rounded-full text-zinc-300 dark:text-zinc-600 opacity-50 cursor-not-allowed"
+          >
+            <Check className="h-4 w-4" />
           </button>
         ) : (
           <button

@@ -30,6 +30,7 @@ import {
   extractDirection,
   extractTimestamp,
   extractQuotedInfo,
+  extractEditedInfo,
   type EvolutionMessagePayload as BaseEvolutionMessagePayload,
 } from './conversas-message-extract.js';
 
@@ -389,6 +390,25 @@ async function processSingleMessage(
     throw new Error(`Falha ao criar chat para contato ${contatoId}`);
   }
 
+  // 2.2 Tratamento de Edição de Mensagem (Fase 2)
+  const editedInfo = extractEditedInfo(msg);
+  if (editedInfo) {
+    const { error: editError } = await supabase
+      .from('conversas_mensagens')
+      .update({
+        content: editedInfo.newContent,
+        is_edited: true,
+        edited_at: new Date().toISOString()
+      })
+      .eq('evolution_msg_id', editedInfo.targetId)
+      .eq('user_id', instance.user_id);
+      
+    if (editError) {
+      console.error('[conversas-webhook] Edit message error:', editError.message);
+    }
+    return; // Encerra, não precisa salvar a mensagem de protocolo no banco
+  }
+
   // 2.5 Quote / Reply (Fase P3)
   const quotedInfo = extractQuotedInfo(msg);
   let replyToId: string | null = null;
@@ -699,7 +719,11 @@ async function handleMessagesDelete(
 
   await supabase
     .from('conversas_mensagens')
-    .delete()
+    .update({ 
+      is_deleted: true, 
+      content: '🚫 Mensagem apagada', 
+      media_url: null 
+    })
     .eq('evolution_msg_id', keyId)
     .eq('instance_id', instance.id)
     .eq('user_id', instance.user_id);

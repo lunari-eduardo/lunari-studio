@@ -11,9 +11,10 @@ export interface MessageGroupProps {
   onRetry?: (msgId: string) => void;
   onDelete?: (msgId: string) => void;
   onReact?: (msgId: string, emoji: string) => void;
+  onEdit?: (msg: Mensagem) => void;
 }
 
-export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact }: MessageGroupProps) {
+export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact, onEdit }: MessageGroupProps) {
   if (messages.length === 0) return null;
   const isOwn = messages[0].direction === 'outbound';
 
@@ -29,6 +30,7 @@ export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact }: 
           onReply={onReply}
           onDelete={onDelete}
           onReact={onReact ? (emoji) => onReact(msg.id, emoji) : undefined}
+          onEdit={onEdit}
         />
       ))}
     </div>

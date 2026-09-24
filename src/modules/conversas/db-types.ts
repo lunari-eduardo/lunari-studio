@@ -282,6 +282,9 @@ export interface DbConversasMensagem {
     reactions: any[] | null;
     timestamp: string;
     created_at: string;
+    is_deleted: boolean;
+    is_edited: boolean;
+    edited_at: string | null;
   };
   Insert: {
     id?: string;
@@ -305,6 +308,9 @@ export interface DbConversasMensagem {
     reactions?: any;
     timestamp?: string;
     created_at?: string;
+    is_deleted?: boolean;
+    is_edited?: boolean;
+    edited_at?: string | null;
   };
   Update: {
     id?: string;
@@ -328,6 +334,9 @@ export interface DbConversasMensagem {
     reactions?: any;
     timestamp?: string;
     created_at?: string;
+    is_deleted?: boolean;
+    is_edited?: boolean;
+    edited_at?: string | null;
   };
   Relationships: [
     { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },

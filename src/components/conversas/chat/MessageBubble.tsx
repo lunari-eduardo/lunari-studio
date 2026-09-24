@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download, Pencil, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
@@ -168,6 +168,7 @@ export interface MessageBubbleProps {
   onReply?: (mensagem: Mensagem) => void;
   onDelete?: (id: string) => void;
   onReact?: (emoji: string) => void;
+  onEdit?: (mensagem: Mensagem) => void;
 }
 
 function getFileExtension(filename?: string): string {
@@ -205,14 +206,17 @@ export function MessageBubble({
   onReply,
   onDelete,
   onReact,
+  onEdit,
 }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const { saveSticker } = useConversasStickers();
+  const isDeleted = Boolean(mensagem.is_deleted || mensagem.content === '🚫 Mensagem apagada');
+  const isEdited = Boolean(mensagem.is_edited && !isDeleted);
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
-  const isMedia = mensagem.type !== 'text';
+  const isMedia = !isDeleted && mensagem.type !== 'text';
 
   const handleCopy = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -243,16 +247,16 @@ export function MessageBubble({
     : cn(cornerClass, 'rounded-b-md');
 
   // Ignora conteúdo gerado como fallback de mídia
-  const isSticker = mensagem.type === 'sticker';
+  const isSticker = !isDeleted && mensagem.type === 'sticker';
   const hasStickerMedia = isSticker && Boolean(mensagem.media_url);
 
   const isDefaultMediaContent =
     isMedia &&
     ['🎤 Áudio', '🎥 Vídeo', '📎 Documento', '📷 Imagem', '🎨 Figurinha'].includes(mensagem.content);
 
-  const showContent = Boolean(mensagem.content && !isDefaultMediaContent);
+  const showContent = !isDeleted && Boolean(mensagem.content && !isDefaultMediaContent);
 
-  const reactions: any[] = Array.isArray((mensagem as any).reactions) ? (mensagem as any).reactions : [];
+  const reactions: any[] = !isDeleted && Array.isArray((mensagem as any).reactions) ? (mensagem as any).reactions : [];
   const hasReactions = reactions.length > 0;
 
   return (
@@ -263,7 +267,8 @@ export function MessageBubble({
       )}
     >
       {/* Botões de Ação (aparecem no hover da mensagem para outbound) */}
-      {isOwn && (
+      {/* Botões de Ação (aparecem no hover da mensagem para outbound) */}
+      {isOwn && !isDeleted && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
           {hasStickerMedia && !isPending && !failed && (
             <button
@@ -304,12 +309,23 @@ export function MessageBubble({
               {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
             </button>
           )}
+          {onEdit && mensagem.type === 'text' && !isPending && !failed && (
+            <button
+              type="button"
+              onClick={() => onEdit(mensagem)}
+              className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+              title="Editar mensagem"
+              aria-label="Editar"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
           {onDelete && (
             <button
               type="button"
               onClick={() => onDelete(mensagem.id)}
               className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
-              title="Apagar mensagem"
+              title="Apagar mensagem para todos"
               aria-label="Apagar"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -337,16 +353,18 @@ export function MessageBubble({
             ? 'p-0 bg-transparent border-0 shadow-none'
             : cn(
                 'max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
-                isOwn
-                  ? 'bg-[#F4EFE6] text-zinc-900 border border-[#E5DAC6]/80 dark:bg-[#221D17] dark:text-zinc-100 dark:border-[#382E22] dark:shadow-none'
-                  : 'bg-white text-zinc-900 border border-black/[0.05] dark:bg-[#1D1D1D] dark:text-zinc-100 dark:border-white/[0.06] dark:shadow-none',
+                isDeleted
+                  ? 'bg-black/[0.02] dark:bg-white/[0.03] text-zinc-500 dark:text-zinc-400 border border-dashed border-black/[0.1] dark:border-white/[0.1] shadow-none select-none'
+                  : isOwn
+                    ? 'bg-[#F4EFE6] text-zinc-900 border border-[#E5DAC6]/80 dark:bg-[#221D17] dark:text-zinc-100 dark:border-[#382E22] dark:shadow-none'
+                    : 'bg-white text-zinc-900 border border-black/[0.05] dark:bg-[#1D1D1D] dark:text-zinc-100 dark:border-white/[0.06] dark:shadow-none',
                 radiusClass,
                 failed && 'border border-red-400',
               )
         )}
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
-        {mensagem.quoted_content ? (
+        {!isDeleted && mensagem.quoted_content ? (
           <div className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.05] rounded-r px-2 py-1 mb-1.5 text-xs select-none">
             <span className="block font-semibold text-[11px] text-[#B8925F] dark:text-[#D4AF37] leading-tight mb-0.5">
               {mensagem.quoted_sender || 'Mensagem'}
@@ -357,7 +375,12 @@ export function MessageBubble({
           </div>
         ) : null}
 
-        {hasStickerMedia ? (
+        {isDeleted ? (
+          <div className="flex items-center gap-1.5 py-0.5 text-zinc-500/80 dark:text-zinc-400/80 italic select-none">
+            <Ban className="h-3.5 w-3.5 opacity-60 shrink-0" />
+            <span className="text-[13px]">Mensagem apagada</span>
+          </div>
+        ) : hasStickerMedia ? (
           /* Figurinha estilo WhatsApp: flutuante, sem borda de bolha e timestamp sutil */
           <div className="relative inline-block select-none my-0.5">
             <img
@@ -529,6 +552,11 @@ export function MessageBubble({
         {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
         {!hasStickerMedia && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
+            {isEdited ? (
+              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 italic select-none mr-0.5">
+                editada
+              </span>
+            ) : null}
             <div className="relative group/tt">
               <span className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-none cursor-default font-sans">
                 {formatTime(mensagem.timestamp)}
@@ -538,7 +566,7 @@ export function MessageBubble({
                 {formatFullDate(mensagem.timestamp)}
               </div>
             </div>
-            {isOwn ? <StatusIcon status={mensagem.status} /> : null}
+            {isOwn && !isDeleted ? <StatusIcon status={mensagem.status} /> : null}
             {failed && onRetry ? (
               <button
                 onClick={() => onRetry(mensagem.id)}
@@ -575,7 +603,7 @@ export function MessageBubble({
       </div>
 
       {/* Botões de Ação para inbound (à direita da bolha) */}
-      {!isOwn && (
+      {!isOwn && !isDeleted && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
           {hasStickerMedia && !isPending && !failed && (
             <button

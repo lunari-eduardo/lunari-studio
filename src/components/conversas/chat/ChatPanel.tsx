@@ -78,6 +78,7 @@ export function ChatPanel({
     sendSavedAudio,
     retryMessage,
     deleteMessage,
+    editMessage,
     reactMessage,
     addNota,
     deleteNota,
@@ -103,6 +104,7 @@ export function ChatPanel({
   const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Mensagem | null>(null);
 
   const handleToggleTab = (tab: SidePanelTab) => {
     if (sidePanelOpen && sidePanelTab === tab) {
@@ -286,9 +288,16 @@ export function ChatPanel({
                         <MessageGroup
                           messages={item.group!}
                           onRetry={retryMessage}
-                          onReply={setReplyingTo}
+                          onReply={(msg) => {
+                            setEditingMessage(null);
+                            setReplyingTo(msg);
+                          }}
                           onDelete={deleteMessage}
                           onReact={reactMessage}
+                          onEdit={(msg) => {
+                            setReplyingTo(null);
+                            setEditingMessage(msg);
+                          }}
                         />
                       )}
                     </div>
@@ -307,6 +316,12 @@ export function ChatPanel({
           disabled={isUploadingMedia}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          editingMessage={editingMessage}
+          onCancelEdit={() => setEditingMessage(null)}
+          onSaveEdit={async (id, newContent) => {
+            await editMessage(id, newContent);
+            setEditingMessage(null);
+          }}
           injectedText={injectedText}
           onClearInjectedText={() => setInjectedText(null)}
           onAttach={async (file, kind, isPtt, caption) => {
