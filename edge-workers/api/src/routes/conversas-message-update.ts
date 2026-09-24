@@ -71,17 +71,16 @@ export async function conversasMessageUpdateRoute(c: Context<{ Bindings: Binding
     const evoKey = c.env.EVOLUTION_API_KEY;
 
     if (evoUrl && evoKey) {
-      const evolutionEndpoint = `${evoUrl}/message/update/${instance.instance_name}`;
+      const evolutionEndpoint = `${evoUrl}/chat/updateMessage/${instance.instance_name}`;
       
       const payload = {
+        number: remoteJid,
         key: {
           remoteJid: remoteJid,
           fromMe: true,
           id: msg.evolution_msg_id
         },
-        message: {
-          conversation: newContent
-        }
+        text: newContent
       };
 
       const response = await fetch(evolutionEndpoint, {

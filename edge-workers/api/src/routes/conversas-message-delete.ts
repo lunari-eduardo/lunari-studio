@@ -61,14 +61,12 @@ export async function conversasMessageDeleteRoute(c: Context<{ Bindings: Binding
     const evoKey = c.env.EVOLUTION_API_KEY;
 
     if (evoUrl && evoKey) {
-      const evolutionEndpoint = `${evoUrl}/message/delete/${instance.instance_name}`;
+      const evolutionEndpoint = `${evoUrl}/chat/deleteMessageForEveryone/${instance.instance_name}`;
       
       const body = {
-        message: {
-          remoteJid: remoteJid,
-          fromMe: msg.direction === 'outbound',
-          id: msg.evolution_msg_id
-        }
+        remoteJid: remoteJid,
+        fromMe: msg.direction === 'outbound',
+        id: msg.evolution_msg_id
       };
 
       const response = await fetch(evolutionEndpoint, {

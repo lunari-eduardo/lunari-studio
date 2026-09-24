@@ -881,12 +881,12 @@ export function useConversasChat(
 
       if (!response.ok) {
         let errorMsg = 'Erro ao apagar mensagem';
+        const rawText = await response.text();
         try {
-          const err = await response.json();
+          const err = JSON.parse(rawText);
           errorMsg = err.error || err.detail || errorMsg;
         } catch {
-          const text = await response.text();
-          errorMsg = text || `Erro HTTP ${response.status}`;
+          errorMsg = rawText || `Erro HTTP ${response.status}`;
         }
         throw new Error(errorMsg);
       }
@@ -911,12 +911,12 @@ export function useConversasChat(
 
       if (!response.ok) {
         let errorMsg = 'Erro ao editar mensagem';
+        const rawText = await response.text();
         try {
-          const err = await response.json();
+          const err = JSON.parse(rawText);
           errorMsg = err.error || err.detail || errorMsg;
         } catch {
-          const text = await response.text();
-          errorMsg = text || `Erro HTTP ${response.status}`;
+          errorMsg = rawText || `Erro HTTP ${response.status}`;
         }
         throw new Error(errorMsg);
       }
@@ -966,12 +966,12 @@ export function useConversasChat(
 
       if (!response.ok) {
         let errorMsg = 'Erro ao reagir à mensagem';
+        const rawText = await response.text();
         try {
-          const err = await response.json();
+          const err = JSON.parse(rawText);
           errorMsg = err.error || err.detail || errorMsg;
         } catch {
-          const text = await response.text();
-          errorMsg = text || `Erro HTTP ${response.status}`;
+          errorMsg = rawText || `Erro HTTP ${response.status}`;
         }
         throw new Error(errorMsg);
       }

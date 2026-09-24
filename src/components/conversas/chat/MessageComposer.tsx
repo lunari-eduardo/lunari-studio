@@ -153,10 +153,11 @@ export function MessageComposer({
       }
       try {
         setSending(true);
-        await onSaveEdit(editingMessage.id, trimmed);
         setText('');
+        await onSaveEdit(editingMessage.id, trimmed);
         onCancelEdit?.();
       } catch {
+        setText(trimmed); // rollback se falhar
         // toast já tratado no hook
       } finally {
         setSending(false);
@@ -180,9 +181,10 @@ export function MessageComposer({
     if (!trimmed) return;
     try {
       setSending(true);
-      await onSend(trimmed);
       setText('');
+      await onSend(trimmed);
     } catch {
+      setText(trimmed); // rollback se falhar
       // toast já tratado no hook
     } finally {
       setSending(false);
