@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { Chat, EnrichedChat, Mensagem, Nota } from '@/modules/conversas/types';
 import { ChatHeader } from './ChatHeader';
 import { MessageComposer } from './MessageComposer';
@@ -106,6 +107,7 @@ export function ChatPanel({
   const [editingMessage, setEditingMessage] = useState<Mensagem | null>(null);
   const [previewImageId, setPreviewImageId] = useState<string | null>(null);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const chatImages = useMemo(() => {
     return mensagens.filter((m) => m.type === 'image' && m.media_url && !m.is_deleted);
@@ -139,6 +141,7 @@ export function ChatPanel({
   // "primeira mensagem visível" muda sem aviso.
   const loadingOlderRef = useRef(false);
   const prevScrollHeightRef = useRef<number | null>(null);
+  const isAtBottomRef = useRef(true);
 
   const grouped = useMemo(() => groupByDay(mensagens), [mensagens]);
 
@@ -159,6 +162,7 @@ export function ChatPanel({
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 80,
     overscan: 20,
+    getItemKey: (index) => items[index].id,
   });
 
   const handleScrollToMessage = (messageId: string) => {
@@ -202,11 +206,21 @@ export function ChatPanel({
 
     const newCount = mensagens.length;
     if (newCount > lastMessageCount.current && items.length > 0) {
-      // Usa o virtualizer para rolar para o último item garantindo renderização correta
-      rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+      // Se novas mensagens chegaram e estamos no fim (ou é o load inicial), rola para baixo
+      if (isAtBottomRef.current || lastMessageCount.current === 0) {
+        rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+      }
     }
     lastMessageCount.current = newCount;
   }, [mensagens.length, items.length, rowVirtualizer]);
+
+  // Garante que a rolagem grude no final se as imagens carregarem e o totalSize mudar
+  const totalSize = rowVirtualizer.getTotalSize();
+  useLayoutEffect(() => {
+    if (isAtBottomRef.current && items.length > 0) {
+      rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+    }
+  }, [totalSize, items.length, rowVirtualizer]);
 
   // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {
@@ -279,8 +293,17 @@ export function ChatPanel({
           notesOpen={sidePanelOpen && sidePanelTab === 'notes'}
         />
 
-        <div
-          ref={scrollRef}
+        <div className="flex-1 min-h-0 relative flex flex-col">
+          <div
+            ref={scrollRef}
+          onScroll={(e) => {
+            const target = e.currentTarget;
+            const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+            isAtBottomRef.current = distanceToBottom < 50;
+            // Mostra o botão se o usuário subiu mais de 300px da base
+            const isScrolledUp = distanceToBottom > 300;
+            setShowScrollButton((prev) => (prev !== isScrolledUp ? isScrolledUp : prev));
+          }}
           className="flex-1 overflow-y-auto relative z-10 dark:[color-scheme:dark]"
         >
           <div ref={sentinelRef} className="h-px" />
@@ -337,6 +360,22 @@ export function ChatPanel({
                 );
               })}
             </div>
+          )}
+          </div>
+
+          {/* Botão de Scroll to Bottom (Desktop) */}
+          {!isMobile && showScrollButton && (
+            <button
+              onClick={() => {
+                if (items.length > 0) {
+                  rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+                }
+              }}
+              className="absolute bottom-4 right-6 z-50 p-2.5 bg-white/90 dark:bg-[#1C1C1C]/90 backdrop-blur-md text-zinc-500 dark:text-zinc-400 border border-black/5 dark:border-white/10 rounded-full shadow-[0_4px_14px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_14px_rgba(0,0,0,0.5)] hover:bg-white dark:hover:bg-[#242424] hover:text-zinc-800 dark:hover:text-zinc-200 transition-all animate-in fade-in zoom-in slide-in-from-bottom-4"
+              aria-label="Ir para o final da conversa"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
           )}
         </div>
 

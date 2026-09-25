@@ -495,7 +495,7 @@ export function MessageBubble({
                   if (!isPending && onPreviewImage) onPreviewImage(mensagem.id);
                 }}
                 className={cn(
-                  "relative rounded-[14px] overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02] group/image block",
+                  "relative rounded-[14px] overflow-hidden max-w-full sm:max-w-[420px] lg:max-w-[500px] bg-black/[0.02] dark:bg-white/[0.02] group/image block",
                   !isPending && onPreviewImage ? "cursor-pointer" : "cursor-default"
                 )}
               >
@@ -505,7 +505,7 @@ export function MessageBubble({
                       src={mensagem.media_url}
                       alt={mensagem.media_filename ?? 'imagem'}
                       className={cn(
-                        'rounded-[14px] max-w-full max-h-[320px] block object-contain transition-transform duration-300',
+                        'rounded-[14px] max-w-full max-h-[500px] block object-contain transition-transform duration-300',
                         isPending ? 'opacity-70 blur-[1px]' : 'group-hover/image:scale-[1.02]'
                       )}
                       loading="lazy"
