@@ -20,6 +20,7 @@ export async function galleryOgRoute(c: Context<{ Bindings: Bindings }>) {
   else if (typeParam === "proposal" && slug) targetPath = `/${slug}`;
 
   const canonicalUrl = `${PUBLIC_SITE_URL}${targetPath}`;
+  const wantsJson = (url.searchParams.get("format") || "").toLowerCase() === "json" || (c.req.header("accept") || "").includes("application/json");
 
   // Se não for crawler (humanos), em tese eles nem batem aqui porque o Vercel faz o redirect no edge, 
   // mas caso caiam aqui por erro, não tem problema o fallback responder um HTML ou poderiamos dar redirect. 
@@ -199,6 +200,20 @@ export async function galleryOgRoute(c: Context<{ Bindings: Bindings }>) {
 
     if (!ogImageUrl) ogImageUrl = FALLBACK_OG_IMAGE;
 
+    if (wantsJson) {
+      return c.json({
+        title: ogTitle,
+        description: ogDescription,
+        imageUrl: ogImageUrl,
+        brandName,
+        domain: new URL(canonicalUrl).hostname.replace(/^www\./, ''),
+        url: canonicalUrl,
+      }, 200, {
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=3600, s-maxage=86400",
+      });
+    }
+
     const html = renderHtml({
       title: ogTitle,
       desc: ogDescription,
@@ -213,6 +228,15 @@ export async function galleryOgRoute(c: Context<{ Bindings: Bindings }>) {
     return c.html(html, 200, BOT_HTML_HEADERS);
   } catch (err) {
     console.error("[gallery-og] error:", err);
+    if (wantsJson) {
+      return c.json({
+        title: "Fotografia",
+        description: "Clique e confira suas fotos!",
+        imageUrl: FALLBACK_OG_IMAGE,
+        domain: "app.lunarihub.com",
+        url: canonicalUrl,
+      }, 200, { "Access-Control-Allow-Origin": "*" });
+    }
     const html = renderHtml({
       title: "Fotografia",
       desc: "Clique e confira suas fotos!",

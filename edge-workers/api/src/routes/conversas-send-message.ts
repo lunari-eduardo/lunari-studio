@@ -190,9 +190,11 @@ export async function conversasSendMessageRoute(c: Context<{ Bindings: Bindings 
   // 5. Enviar via Evolution API
   try {
     let evolutionEndpoint = `${c.env.EVOLUTION_API_URL}/message/sendText/${instance.instance_name}`;
+    const hasUrl = /(?:https?:\/\/|www\.)[^\s]+/i.test(content || '');
     let evolutionBody: any = {
       number: recipientNumber,
       text: content,
+      ...(hasUrl ? { linkPreview: true } : {}),
     };
 
     if (type === 'sticker' && mediaUrl) {

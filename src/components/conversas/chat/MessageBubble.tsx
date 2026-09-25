@@ -420,7 +420,7 @@ export function MessageBubble({
                   isDeleted
                     ? 'bg-black/[0.02] dark:bg-white/[0.03] text-zinc-500 dark:text-zinc-400 border border-dashed border-black/[0.1] dark:border-white/[0.1] shadow-none select-none'
                     : isOwn
-                      ? 'bg-[#EAE1D3]/95 text-zinc-900 border border-[#D5C1A6]/80 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:bg-[#282117]/95 dark:text-zinc-100 dark:border-[#D4AF37]/35 dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+                      ? 'bg-[#EAE1D3]/95 text-zinc-900 border-0 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:bg-[#282117]/95 dark:text-zinc-100 dark:border-0 dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)]'
                       : 'bg-white/95 text-zinc-900 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:bg-[#1C1C1E]/95 dark:text-zinc-100 dark:border-white/[0.08] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)]',
                   radiusClass,
                   failed && 'border border-red-400',
@@ -610,6 +610,9 @@ export function MessageBubble({
 
             {showContent && (
               <>
+                {previewUrl && (
+                  <LinkPreview url={previewUrl} direction={mensagem.direction} className="mb-1.5" />
+                )}
                 <MessageText
                   content={cleanCaption!}
                   className={cn(
@@ -617,9 +620,6 @@ export function MessageBubble({
                     isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
                   )}
                 />
-                {previewUrl && (
-                  <LinkPreview url={previewUrl} direction={mensagem.direction} />
-                )}
               </>
             )}
 
@@ -649,6 +649,9 @@ export function MessageBubble({
           </div>
         ) : (
           <>
+            {previewUrl && (
+              <LinkPreview url={previewUrl} direction={mensagem.direction} className="mb-1.5" />
+            )}
             <MessageText
               content={mensagem.content}
               className={cn(
@@ -656,9 +659,6 @@ export function MessageBubble({
                 isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
               )}
             />
-            {previewUrl && (
-              <LinkPreview url={previewUrl} direction={mensagem.direction} />
-            )}
           </>
         )}
 
