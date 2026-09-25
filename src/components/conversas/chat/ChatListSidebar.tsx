@@ -17,6 +17,7 @@ import { ChatListItem } from './ChatListItem';
 import { ChatListSkeleton } from './skeletons';
 import { InstanceStatusBar } from '../shared/InstanceStatusBar';
 import type { Chat, EnrichedChat, InstanciaStatus } from '@/modules/conversas/types';
+import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
 
 export type PrimaryFilter = 'all' | 'unread' | 'cliente' | 'lead';
 
@@ -87,6 +88,7 @@ export function ChatListSidebar({
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<PrimaryFilter>('all');
+  const { getLeadStatusForChat } = useChatLeadStatuses(chats);
 
   // ─── Filtro combinado: primary filter + busca ─────────────────────────────────
 
@@ -238,6 +240,7 @@ export function ChatListSidebar({
                 onMarkUnread={onMarkUnread}
                 onMarkRead={onMarkRead}
                 onDelete={onDeleteChat}
+                leadStatus={getLeadStatusForChat(c)}
               />
             ))}
           </div>

@@ -11,6 +11,7 @@ import React from 'react';
 import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { EnrichedChat } from '@/modules/conversas/types';
+import type { LeadStatusInfo } from '@/hooks/useChatLeadStatuses';
 import { ContactAvatar } from '../shared/ContactAvatar';
 import { formatChatTimestamp } from '../shared/format';
 import { useLazyContactAvatar } from './useLazyContactAvatar';
@@ -38,6 +39,8 @@ export interface ChatListItemProps {
   onMarkRead?: (chat: EnrichedChat) => void;
   /** Excluir conversa */
   onDelete?: (chat: EnrichedChat) => void;
+  /** Status do lead vinculado (null se não houver lead). */
+  leadStatus?: LeadStatusInfo | null;
 }
 
 const CONTEXT_BADGE: Record<EnrichedChat['contato_tipo'], { label: string; className: string } | null> = {
@@ -57,6 +60,7 @@ export const ChatListItem = React.memo(function ChatListItem({
   onMarkUnread,
   onMarkRead,
   onDelete,
+  leadStatus,
 }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
   const isUnread = unread > 0;
@@ -129,7 +133,19 @@ export const ChatListItem = React.memo(function ChatListItem({
             >
               {chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
-            {badge && (
+            {leadStatus ? (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 max-w-[120px] truncate"
+              >
+                {leadStatus.color && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: leadStatus.color }}
+                  />
+                )}
+                {leadStatus.label}
+              </span>
+            ) : badge ? (
               <span
                 className={cn(
                   'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0',
@@ -138,7 +154,7 @@ export const ChatListItem = React.memo(function ChatListItem({
               >
                 {badge.label}
               </span>
-            )}
+            ) : null}
           </div>
           <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
             {formatChatTimestamp(chat.ultima_mensagem_data)}
@@ -288,6 +304,7 @@ export const ChatListItem = React.memo(function ChatListItem({
     prev.chat.contato_avatar === next.chat.contato_avatar &&
     prev.chat.contato_tipo === next.chat.contato_tipo &&
     prev.chat.ultima_mensagem_direction === next.chat.ultima_mensagem_direction &&
-    prev.chat.ultima_mensagem_type === next.chat.ultima_mensagem_type
+    prev.chat.ultima_mensagem_type === next.chat.ultima_mensagem_type &&
+    prev.leadStatus?.key === next.leadStatus?.key
   );
 });
