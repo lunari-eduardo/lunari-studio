@@ -42,3 +42,6 @@ bucket_name = "lunari-gallery"
 [[r2_buckets]]
 binding = "LUNARI_CONVERSAS"
 bucket_name = "lunari-conversas"
+
+[ai]
+binding = "AI"

@@ -40,6 +40,7 @@ import { SuggestionCard } from './SuggestionCard';
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
   notas: Nota[];
+  messages?: any[];
   onAddNota: (content: string) => Promise<void> | void;
   onDeleteNota: (id: string) => Promise<void> | void;
   onClose: () => void;
@@ -71,6 +72,7 @@ export function ChatContextPanel({
   isDrawer = false,
   onInsertToComposer,
   onSendDirectly,
+  messages = [],
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'templates' | 'context' | 'notes'>(initialTab);
@@ -102,6 +104,7 @@ export function ChatContextPanel({
   } = useConversasContactContext(chat);
 
   const [isFastLeadModalOpen, setIsFastLeadModalOpen] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | undefined>();
   const isUnknownContact = !isLinkedToCliente && !isLinkedToLead;
 
   const handleAddNota = async () => {
@@ -218,7 +221,11 @@ export function ChatContextPanel({
         >
             <SuggestionCard 
               isUnknownContact={isUnknownContact} 
-              onCreateLead={() => setIsFastLeadModalOpen(true)}
+              messages={messages}
+              onCreateLead={(cat) => {
+                setSuggestedCategory(cat);
+                setIsFastLeadModalOpen(true);
+              }}
             />
 
             {/* 1. Contexto Comercial / Oportunidade */}
@@ -545,7 +552,11 @@ export function ChatContextPanel({
         
       <FastLeadModal 
         isOpen={isFastLeadModalOpen}
-        onClose={() => setIsFastLeadModalOpen(false)}
+        onClose={() => {
+          setIsFastLeadModalOpen(false);
+          setSuggestedCategory(undefined);
+        }}
+        defaultCategory={suggestedCategory}
         chat={chat}
         onLeadCreated={async (leadId, clienteId) => {
           if (clienteId) await vincularCliente(clienteId);

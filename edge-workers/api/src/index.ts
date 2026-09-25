@@ -34,6 +34,7 @@ import { conversasMessageUpdateRoute } from './routes/conversas-message-update.j
 import { conversasMessageReactRoute } from './routes/conversas-message-react.js';
 import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
 import { getAudiosSalvosRoute, saveAudiosSalvosRoute, patchAudiosSalvosRoute, deleteAudiosSalvosRoute } from './routes/conversas-audios-savos.js';
+import { conversasClassifyLeadRoute } from './routes/conversas-classify-lead.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -58,6 +59,7 @@ export type Bindings = {
   LUNARI_MEDIA: any;
   LUNARI_GALLERY: any;
   LUNARI_CONVERSAS: any;
+  AI: any;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -129,5 +131,6 @@ app.post('/api/conversas/mark-unread/:chatId', conversasMarkUnreadRoute);
 app.delete('/api/conversas/message/delete/:id', conversasMessageDeleteRoute);
 app.post('/api/conversas/message/update/:id', conversasMessageUpdateRoute);
 app.post('/api/conversas/message/react/:id', conversasMessageReactRoute);
+app.post('/api/conversas/classify-lead', conversasClassifyLeadRoute);
 
 export default app;

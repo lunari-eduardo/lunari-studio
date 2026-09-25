@@ -379,6 +379,41 @@ async function tryAutoLinkContact(
   }
 }
 
+/**
+ * Fase 5: Evolução Automática "Cliente Respondeu"
+ * Se um lead estiver em "Follow-up" e enviar uma mensagem (inbound),
+ * o sistema remove a flag de needs_follow_up, devolvendo-o para o estágio atual.
+ */
+async function clearLeadFollowUpIfInbound(
+  supabase: any,
+  userId: string,
+  contatoId: string,
+): Promise<void> {
+  try {
+    const { data: contato } = await supabase
+      .from('conversas_contatos')
+      .select('lead_id')
+      .eq('id', contatoId)
+      .single();
+
+    if (!contato?.lead_id) return;
+
+    // Remove a flag de follow-up apenas se estiver true
+    const { error } = await supabase
+      .from('leads')
+      .update({ needs_follow_up: false })
+      .eq('id', contato.lead_id)
+      .eq('user_id', userId)
+      .eq('needs_follow_up', true);
+
+    if (error) {
+      console.error('[conversas-webhook] Erro ao limpar follow-up:', error.message);
+    }
+  } catch (err) {
+    console.error('[conversas-webhook] Erro não-bloqueante no clear-follow-up:', err);
+  }
+}
+
 // ─── Event Handlers ───────────────────────────────────────────────────────────
 
 async function processSingleMessage(
@@ -495,6 +530,11 @@ async function processSingleMessage(
   if (direction === 'inbound' && ctx?.waitUntil) {
     ctx.waitUntil(
       tryAutoLinkContact(supabase, instance.user_id, contatoId, chatId, phoneNormalized)
+    );
+    
+    // 2.2 Evolução Automática "Cliente Respondeu" (Fase 5)
+    ctx.waitUntil(
+      clearLeadFollowUpIfInbound(supabase, instance.user_id, contatoId)
     );
   }
 

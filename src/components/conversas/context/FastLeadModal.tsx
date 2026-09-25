@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ export interface FastLeadModalProps {
   onClose: () => void;
   chat: Chat | EnrichedChat;
   onLeadCreated: (leadId: string, clienteId?: string) => Promise<void>;
+  defaultCategory?: string;
 }
 
 const ORIGENS_COMUNS = [
@@ -34,7 +35,7 @@ const ORIGENS_COMUNS = [
   'Outro',
 ];
 
-export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated }: FastLeadModalProps) {
+export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCategory }: FastLeadModalProps) {
   const { addLead, convertToClient } = useLeads();
   const { categorias } = useCategorias();
   const { statuses, getDefaultOpenKey } = useLeadStatuses();
@@ -43,6 +44,16 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated }: FastLead
   const [categoria, setCategoria] = useState<string>('');
   const [origem, setOrigem] = useState<string>('WhatsApp');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && defaultCategory && categorias) {
+      // Tenta encontrar a categoria exata ou via aproximação de string
+      const matched = categorias.find(c => c.nome.toLowerCase() === defaultCategory.toLowerCase());
+      if (matched) {
+        setCategoria(matched.id);
+      }
+    }
+  }, [isOpen, defaultCategory, categorias]);
 
   // Status inicial padrão é o primeiro da fila (ex: "novo_interessado")
   const statusInicial = getDefaultOpenKey() || 'novo_interessado';
