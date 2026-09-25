@@ -34,6 +34,8 @@ import { toast } from 'sonner';
 
 import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { Zap } from 'lucide-react';
+import { FastLeadModal } from './FastLeadModal';
+import { SuggestionCard } from './SuggestionCard';
 
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
@@ -87,12 +89,20 @@ export function ChatContextPanel({
     lead,
     sessoes,
     tarefas,
+    orcamentos,
+    cobrancas,
+    leadsPerdidos,
     isLoading,
     isLinkedToCliente,
     isLinkedToLead,
+    vincularCliente,
+    vincularLead,
     criarTarefaRapida,
     concluirTarefa,
   } = useConversasContactContext(chat);
+
+  const [isFastLeadModalOpen, setIsFastLeadModalOpen] = useState(false);
+  const isUnknownContact = !isLinkedToCliente && !isLinkedToLead;
 
   const handleAddNota = async () => {
     if (!notaDraft.trim() || submittingNota) return;
@@ -206,6 +216,11 @@ export function ChatContextPanel({
           className="flex-1 overflow-y-auto p-3.5 space-y-4"
           style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
         >
+            <SuggestionCard 
+              isUnknownContact={isUnknownContact} 
+              onCreateLead={() => setIsFastLeadModalOpen(true)}
+            />
+
             {/* 1. Contexto Comercial / Oportunidade */}
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <div className="flex items-center justify-between mb-2.5">
@@ -527,6 +542,16 @@ export function ChatContextPanel({
             </div>
           </div>
         )}
+        
+      <FastLeadModal 
+        isOpen={isFastLeadModalOpen}
+        onClose={() => setIsFastLeadModalOpen(false)}
+        chat={chat}
+        onLeadCreated={async (leadId, clienteId) => {
+          if (clienteId) await vincularCliente(clienteId);
+          await vincularLead(leadId);
+        }}
+      />
     </Container>
   );
 }

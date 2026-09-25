@@ -279,6 +279,106 @@ async function getOrCreateChat(
   return data?.id ?? null;
 }
 
+/**
+ * Tenta vincular automaticamente um contato de Conversas a um Cliente/Lead do CRM.
+ * Só vincula se houver um match determinístico único (1 resultado).
+ * Em caso de ambiguidade, não faz nada (fotógrafo resolverá manualmente).
+ *
+ * Regra aprovada: Nunca vincular por similaridade de nome.
+ * Apenas telefone normalizado E.164 com match determinístico.
+ */
+async function tryAutoLinkContact(
+  supabase: any,
+  userId: string,
+  contatoId: string,
+  chatId: string,
+  phoneNormalized: string,
+): Promise<void> {
+  try {
+    // 1. Verificar se o contato já está vinculado
+    const { data: contato } = await supabase
+      .from('conversas_contatos')
+      .select('cliente_id, lead_id')
+      .eq('id', contatoId)
+      .single();
+
+    // Se já tem cliente ou lead vinculado, não faz nada
+    if (contato?.cliente_id || contato?.lead_id) return;
+
+    // 2. Chamar a RPC de matching determinístico
+    const { data: matchResult, error: matchError } = await supabase
+      .rpc('match_conversas_contact_to_crm', {
+        p_phone_normalized: phoneNormalized,
+        p_user_id: userId,
+      });
+
+    if (matchError || !matchResult || matchResult.length === 0) return;
+
+    const match = matchResult[0];
+
+    // 3. Só vincula automaticamente se match for determinístico (único)
+    if (match.match_type === 'exact_cliente' && match.cliente_id) {
+      // Atualiza contato
+      await supabase
+        .from('conversas_contatos')
+        .update({
+          cliente_id: match.cliente_id,
+          tipo: 'cliente',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contatoId);
+
+      // Atualiza chat (dados denormalizados para listagem rápida)
+      await supabase
+        .from('conversas_chats')
+        .update({
+          cliente_id: match.cliente_id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', chatId);
+
+      console.log(`[conversas-webhook] Auto-link: contato ${contatoId} → cliente ${match.cliente_id}`);
+    }
+    else if (match.match_type === 'exact_lead' && match.lead_id) {
+      const contatoUpdates: Record<string, any> = {
+        lead_id: match.lead_id,
+        tipo: 'lead',
+        updated_at: new Date().toISOString(),
+      };
+      const chatUpdates: Record<string, any> = {
+        lead_id: match.lead_id,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Se o lead tem cliente associado, vincula também
+      if (match.cliente_id) {
+        contatoUpdates.cliente_id = match.cliente_id;
+        contatoUpdates.tipo = 'cliente';
+        chatUpdates.cliente_id = match.cliente_id;
+      }
+
+      await supabase
+        .from('conversas_contatos')
+        .update(contatoUpdates)
+        .eq('id', contatoId);
+
+      await supabase
+        .from('conversas_chats')
+        .update(chatUpdates)
+        .eq('id', chatId);
+
+      console.log(`[conversas-webhook] Auto-link: contato ${contatoId} → lead ${match.lead_id}${match.cliente_id ? ` (+ cliente ${match.cliente_id})` : ''}`);
+    }
+    else if (match.match_type === 'ambiguous') {
+      console.log(`[conversas-webhook] Ambiguidade para ${phoneNormalized}: ${match.match_count} candidatos. Resolução manual necessária.`);
+    }
+    // match_type === 'none' → silencioso, permanece 'unknown'
+  } catch (err) {
+    // Auto-link é best-effort: nunca deve bloquear o fluxo do webhook
+    console.error('[conversas-webhook] Erro no auto-link (não-bloqueante):', err);
+  }
+}
+
 // ─── Event Handlers ───────────────────────────────────────────────────────────
 
 async function processSingleMessage(
@@ -388,6 +488,14 @@ async function processSingleMessage(
   );
   if (!chatId) {
     throw new Error(`Falha ao criar chat para contato ${contatoId}`);
+  }
+
+  // 2.1 Auto-vinculação com CRM/Leads (best-effort, não-bloqueante)
+  // Roda em background para não atrasar o processamento do webhook
+  if (direction === 'inbound' && ctx?.waitUntil) {
+    ctx.waitUntil(
+      tryAutoLinkContact(supabase, instance.user_id, contatoId, chatId, phoneNormalized)
+    );
   }
 
   // 2.2 Tratamento de Edição de Mensagem (Fase 2)

@@ -52,6 +52,31 @@ export interface ContextTask {
   created_at: string;
 }
 
+export interface ContextOrcamento {
+  id: string;
+  type: string;
+  status: string;
+  date: string | null;
+  time: string | null;
+  title: string | null;
+}
+
+export interface ContextCobranca {
+  id: string;
+  status: string;
+  valor: number | null;
+  created_at: string | null;
+  descricao: string | null;
+}
+
+export interface ContextLeadPerdido {
+  id: string;
+  nome: string;
+  status: string;
+  perdido_em: string | null;
+  motivo_perda: string | null;
+}
+
 export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   const { user } = useAuth();
   const userId = user?.id;
@@ -103,19 +128,43 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
         return data as unknown as ContextCliente;
       }
 
-      // Tentativa de correspondência inteligente por telefone
-      if (rawPhone && rawPhone.length >= 8) {
+      // Tentativa de correspondência determinística por telefone normalizado
+      // phone_normalized de conversas vem com DDI (ex: 5511987654321)
+      // clientes.telefone é armazenado sem DDI (ex: 11987654321)
+      if (rawPhone && rawPhone.length >= 10) {
         const cleanPhone = rawPhone.replace(/\D/g, '');
-        const suffix = cleanPhone.slice(-8); // últimos 8 dígitos
-        const { data } = await supabase
-          .from('clientes')
-          .select('id, nome, email, telefone, whatsapp, observacoes, created_at')
-          .eq('user_id', userId)
-          .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
-          .limit(1)
-          .maybeSingle();
+        const phoneWithoutDdi = cleanPhone.startsWith('55') && cleanPhone.length >= 12
+          ? cleanPhone.slice(2)
+          : cleanPhone;
 
-        if (data) return data as unknown as ContextCliente;
+        // Passo 1: Match exato (formato do CRM, sem DDI)
+        const { data: exactData, count: exactCount } = await supabase
+          .from('clientes')
+          .select('id, nome, email, telefone, whatsapp, observacoes, created_at', { count: 'exact' })
+          .eq('user_id', userId)
+          .or(`telefone.eq.${phoneWithoutDdi},whatsapp.eq.${phoneWithoutDdi}`)
+          .limit(2);
+
+        // Só retorna se match for único e determinístico
+        if (exactCount === 1 && exactData?.[0]) {
+          return exactData[0] as unknown as ContextCliente;
+        }
+
+        // Passo 2: Fallback suffix-8 (para números salvos com formatação diferente)
+        if (!exactData || exactData.length === 0) {
+          const suffix = cleanPhone.slice(-8);
+          const { data: fallbackData, count: fallbackCount } = await supabase
+            .from('clientes')
+            .select('id, nome, email, telefone, whatsapp, observacoes, created_at', { count: 'exact' })
+            .eq('user_id', userId)
+            .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
+            .limit(2);
+
+          // Só retorna se match único (ambiguidade → null → fotógrafo resolve)
+          if (fallbackCount === 1 && fallbackData?.[0]) {
+            return fallbackData[0] as unknown as ContextCliente;
+          }
+        }
       }
 
       return null;
@@ -164,19 +213,39 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
         return data as unknown as ContextLead;
       }
 
-      // Tentativa de correspondência inteligente por telefone
-      if (rawPhone && rawPhone.length >= 8) {
+      // Tentativa de correspondência determinística por telefone normalizado
+      if (rawPhone && rawPhone.length >= 10) {
         const cleanPhone = rawPhone.replace(/\D/g, '');
-        const suffix = cleanPhone.slice(-8);
-        const { data } = await (supabase as any)
-          .from('leads')
-          .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at')
-          .eq('user_id', userId)
-          .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
-          .limit(1)
-          .maybeSingle();
+        const phoneWithoutDdi = cleanPhone.startsWith('55') && cleanPhone.length >= 12
+          ? cleanPhone.slice(2)
+          : cleanPhone;
 
-        if (data) return data as unknown as ContextLead;
+        // Passo 1: Match exato (formato do CRM, sem DDI)
+        const { data: exactData, count: exactCount } = await (supabase as any)
+          .from('leads')
+          .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at', { count: 'exact' })
+          .eq('user_id', userId)
+          .or(`telefone.eq.${phoneWithoutDdi},whatsapp.eq.${phoneWithoutDdi}`)
+          .limit(2);
+
+        if (exactCount === 1 && exactData?.[0]) {
+          return exactData[0] as unknown as ContextLead;
+        }
+
+        // Passo 2: Fallback suffix-8
+        if (!exactData || exactData.length === 0) {
+          const suffix = cleanPhone.slice(-8);
+          const { data: fallbackData, count: fallbackCount } = await (supabase as any)
+            .from('leads')
+            .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at', { count: 'exact' })
+            .eq('user_id', userId)
+            .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
+            .limit(2);
+
+          if (fallbackCount === 1 && fallbackData?.[0]) {
+            return fallbackData[0] as unknown as ContextLead;
+          }
+        }
       }
 
       return null;
@@ -204,6 +273,72 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     enabled: !!cliente?.id && !!userId,
     staleTime: 1000 * 60 * 2,
+  });
+
+  // 6. Carregar Orçamentos Abertos
+  const { data: orcamentos = [] } = useQuery({
+    queryKey: ['conversas-context-orcamentos', cliente?.id, userId],
+    queryFn: async () => {
+      if (!cliente?.id || !userId) return [];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, type, status, date, time, title')
+        .eq('cliente_id', cliente.id)
+        .eq('user_id', userId)
+        .eq('type', 'budget')
+        .eq('status', 'a confirmar')
+        .limit(5);
+
+      if (error) return [];
+      return data as ContextOrcamento[];
+    },
+    enabled: !!cliente?.id && !!userId,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // 7. Carregar Cobranças Pendentes
+  const { data: cobrancas = [] } = useQuery({
+    queryKey: ['conversas-context-cobrancas', cliente?.id, userId],
+    queryFn: async () => {
+      if (!cliente?.id || !userId) return [];
+      const { data, error } = await supabase
+        .from('cobrancas')
+        .select('id, status, valor, created_at, descricao')
+        .eq('cliente_id', cliente.id)
+        .eq('user_id', userId)
+        .eq('status', 'pendente')
+        .limit(5);
+
+      if (error) return [];
+      return data as ContextCobranca[];
+    },
+    enabled: !!cliente?.id && !!userId,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // 8. Carregar Leads Perdidos Recentes (Últimos 30 dias)
+  const { data: leadsPerdidos = [] } = useQuery({
+    queryKey: ['conversas-context-leads-perdidos', cliente?.id, userId],
+    queryFn: async () => {
+      if (!cliente?.id || !userId) return [];
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data, error } = await (supabase as any)
+        .from('leads')
+        .select('id, nome, status, perdido_em, motivo_perda')
+        .eq('cliente_id', cliente.id)
+        .eq('user_id', userId)
+        .eq('status', 'perdido')
+        .gte('perdido_em', thirtyDaysAgo.toISOString())
+        .limit(5);
+
+      if (error) return [];
+      return data as ContextLeadPerdido[];
+    },
+    enabled: !!cliente?.id && !!userId,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Mutations de Vinculação
@@ -317,6 +452,9 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     lead,
     sessoes,
     tarefas,
+    orcamentos,
+    cobrancas,
+    leadsPerdidos,
     isLoading: isLoadingCliente || isLoadingSessoes || isLoadingLead,
     isLinkedToCliente: !!cliente?.id,
     isLinkedToLead: !!lead?.id,

@@ -152,7 +152,9 @@ export function useConversasChat(
 
         if (mensagensResult.error) throw mensagensResult.error;
         if (!cancelled) {
-          setMensagens((mensagensResult.data ?? []).reverse() as unknown as MensagemLocal[]);
+          const raw = mensagensResult.data ?? [];
+          setMensagens(raw.reverse() as unknown as MensagemLocal[]);
+          lastPageWasFullRef.current = raw.length >= INITIAL_PAGE_SIZE;
         }
 
         if (notasResult.error) console.warn('[Conversas] Notas load error:', notasResult.error);
@@ -220,8 +222,8 @@ export function useConversasChat(
     const userId = userIdRef.current;
     if (!userId) return;
 
-    const nextPage = page + 1;
-    const from = nextPage * PAGE_SIZE;
+    const currentCount = mensagens.length;
+    const from = currentCount;
     const to = from + PAGE_SIZE - 1;
 
     loadingMoreRef.current = true;
@@ -242,7 +244,7 @@ export function useConversasChat(
       if (data && data.length > 0) {
         const olderReversed = data.reverse();
         setMensagens(prev => [...(olderReversed as unknown as MensagemLocal[]), ...prev]);
-        setPage(nextPage);
+        setPage(prev => prev + 1);
         // Se retornou menos que a página cheia, sabemos que acabou o histórico.
         if (data.length < PAGE_SIZE) lastPageWasFullRef.current = false;
         else lastPageWasFullRef.current = true;
@@ -253,15 +255,10 @@ export function useConversasChat(
     } finally {
       loadingMoreRef.current = false;
     }
-  }, [chatId, page, isLoading]);
+  }, [chatId, isLoading, mensagens.length]);
 
-  // Fase 3 (P1-10) — `hasMore` correto considerando INITIAL_PAGE_SIZE para a
-  // primeira página e PAGE_SIZE para as seguintes, mais flag de "última página
-  // cheia" para desativar o sentinel quando o histórico se esgota.
-  const expectedLoaded = INITIAL_PAGE_SIZE + page * PAGE_SIZE;
-  const hasMore = page === 0
-    ? mensagens.length >= INITIAL_PAGE_SIZE
-    : mensagens.length >= expectedLoaded && lastPageWasFullRef.current;
+  // hasMore ativo enquanto a última página retornou completa e há mensagens carregadas
+  const hasMore = lastPageWasFullRef.current && mensagens.length > 0;
 
   // ─── Mark message read ──────────────────────────────────────────────────────
 

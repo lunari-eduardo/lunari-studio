@@ -135,9 +135,9 @@ export function ChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const lastMessageCount = useRef(0);
-  // Âncora de scroll dinâmico para evitar saltos durante paginação
-  const anchorItemRef = useRef<{ id: string; offset: number } | null>(null);
+  const lastBottomMessageIdRef = useRef<string | null>(null);
   const isAtBottomRef = useRef(true);
+  const hasUserScrolledUpRef = useRef(false);
 
   const grouped = useMemo(() => groupByDay(mensagens), [mensagens]);
 
@@ -146,8 +146,10 @@ export function ChatPanel({
     grouped.forEach(g => {
       result.push({ type: 'date', date: g.items[0].timestamp, id: `date-${g.day}` });
       const adjacent = groupAdjacent(g.items);
-      adjacent.forEach((group, idx) => {
-        result.push({ type: 'message_group', group, id: `msg-${g.day}-${idx}` });
+      adjacent.forEach((group) => {
+        const firstId = group[0]?.id || 'unknown';
+        const lastId = group[group.length - 1]?.id || firstId;
+        result.push({ type: 'message_group', group, id: `msg-group-${firstId}-${lastId}` });
       });
     });
     return result;
@@ -183,31 +185,47 @@ export function ChatPanel({
     markAllRead();
   }, [chat.id, markAllRead]);
 
-  const totalSize = rowVirtualizer.getTotalSize();
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+  // Resetar referências quando o chat selecionado mudar
+  useEffect(() => {
+    lastMessageCount.current = 0;
+    lastBottomMessageIdRef.current = null;
+    isAtBottomRef.current = true;
+    hasUserScrolledUpRef.current = false;
+  }, [chat.id]);
 
-    // Se estamos no fundo ou é o load inicial, manter a rolagem no fim.
-    // Isso garante que se imagens carregarem e mudarem o totalSize, continuamos no fim.
-    if (isAtBottomRef.current || lastMessageCount.current === 0) {
+  // 1. Manter rolagem no fim na abertura inicial e quando chegam mensagens novas no fim
+  useLayoutEffect(() => {
+    if (items.length === 0) return;
+
+    // Load inicial: rolar para o final
+    if (lastMessageCount.current === 0) {
       rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
-    } 
-    // Se não estamos no fundo (ex: scroll up para histórico), manter a âncora visual exata
-    else if (anchorItemRef.current && items.length > 0) {
-      const { id, offset } = anchorItemRef.current;
-      const index = items.findIndex((i) => i.id === id);
-      if (index !== -1) {
-        const itemStart = rowVirtualizer.getOffsetForIndex(index, 'start');
-        if (typeof itemStart === 'number') {
-          // Ajustar o scrollTop para manter a exata mesma distância visual do topo
-          el.scrollTop = itemStart - offset;
-        }
-      }
+      lastBottomMessageIdRef.current = mensagens[mensagens.length - 1]?.id ?? null;
+      lastMessageCount.current = mensagens.length;
+      return;
     }
 
+    // Se uma nova mensagem foi adicionada no final (ex: envio próprio ou mensagem recebida em tempo real)
+    const currentBottomId = mensagens[mensagens.length - 1]?.id ?? null;
+    const isNewMessageAtBottom =
+      mensagens.length > lastMessageCount.current &&
+      currentBottomId !== lastBottomMessageIdRef.current;
+
+    if (isNewMessageAtBottom && isAtBottomRef.current) {
+      rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+    }
+
+    lastBottomMessageIdRef.current = currentBottomId;
     lastMessageCount.current = mensagens.length;
-  }, [totalSize, items.length, rowVirtualizer, mensagens.length]);
+  }, [mensagens.length, items.length, rowVirtualizer]);
+
+  // 2. Acompanhar carregamento inicial de imagens e expansão de altura enquanto o usuário ainda está na base
+  const totalSize = rowVirtualizer.getTotalSize();
+  useLayoutEffect(() => {
+    if (isAtBottomRef.current && !hasUserScrolledUpRef.current && items.length > 0 && lastMessageCount.current > 0) {
+      rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
+    }
+  }, [totalSize, items.length, rowVirtualizer]);
 
   // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {
@@ -220,7 +238,7 @@ export function ChatPanel({
           void loadMore();
         }
       },
-      { root, rootMargin: '200px' },
+      { root, rootMargin: '150px' },
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
@@ -281,22 +299,13 @@ export function ChatPanel({
           onScroll={(e) => {
             const target = e.currentTarget;
             const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
-            isAtBottomRef.current = distanceToBottom < 50;
+            const atBottom = distanceToBottom < 50;
+            isAtBottomRef.current = atBottom;
 
-            if (!isAtBottomRef.current) {
-              const virtualItems = rowVirtualizer.getVirtualItems();
-              if (virtualItems.length > 0) {
-                const first = virtualItems[0];
-                const item = items[first.index];
-                if (item) {
-                  anchorItemRef.current = {
-                    id: item.id,
-                    offset: first.start - target.scrollTop,
-                  };
-                }
-              }
+            if (!atBottom) {
+              hasUserScrolledUpRef.current = true;
             } else {
-              anchorItemRef.current = null;
+              hasUserScrolledUpRef.current = false;
             }
 
             // Mostra o botão se o usuário subiu mais de 300px da base
@@ -367,6 +376,8 @@ export function ChatPanel({
             <button
               onClick={() => {
                 if (items.length > 0) {
+                  hasUserScrolledUpRef.current = false;
+                  isAtBottomRef.current = true;
                   rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
                 }
               }}
