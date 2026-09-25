@@ -55,7 +55,10 @@ export function ChatHeader({
       : 'unknown';
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2.5 bg-[#F8F8F8] dark:bg-[#181818] border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)]">
+    <div
+      className="flex items-center gap-3 px-3 py-2.5 bg-[#F8F8F8] dark:bg-[#181818] border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] shrink-0"
+      style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top))' }}
+    >
       {onBack ? (
         <button
           type="button"

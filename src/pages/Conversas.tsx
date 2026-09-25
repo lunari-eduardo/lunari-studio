@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import { ConnectLandingScreen } from '@/components/conversas/ConnectLandingScreen';
 import { WhatsAppLayout } from '@/components/conversas/chat/WhatsAppLayout';
@@ -18,8 +19,10 @@ import { NewChatModal } from '@/components/conversas/chat/NewChatModal';
 import { ChatListSkeleton } from '@/components/conversas/chat/skeletons';
 
 export default function ConversasPage() {
-  const { instanceViewState, connectedInstance } = useConversas();
+  const conversas = useConversas();
+  const { instanceViewState, connectedInstance } = conversas;
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [, setSearchParams] = useSearchParams();
 
   if (instanceViewState === 'loading') {
     return (
@@ -47,14 +50,16 @@ export default function ConversasPage() {
     <>
       <WhatsAppLayout
         onNewChat={() => setNewChatOpen(true)}
+        conversas={conversas}
       />
       <NewChatModal 
         open={newChatOpen}
         onOpenChange={setNewChatOpen}
         instanceId={connectedInstance}
-        onChatCreated={(_chatId) => {
-          // A Sidebar list vai atualizar automaticamente via Supabase Realtime
-          // e WhatsAppLayout vai auto-selecionar caso seja a única ativa
+        onChatCreated={(newChatId) => {
+          if (newChatId) {
+            setSearchParams({ chat: newChatId });
+          }
         }}
       />
     </>

@@ -50,6 +50,32 @@ function formatBytes(bytes: number): string {
   return `${n.toFixed(n < 10 && u > 0 ? 1 : 0)} ${units[u]}`;
 }
 
+/** Remove legendas automáticas ou repetitivas geradas pelo WhatsApp/webhook */
+function getCleanMediaCaption(mensagem: Mensagem): string | null {
+  if (!mensagem.content) return null;
+  const trimmed = mensagem.content.trim();
+  if (!trimmed) return null;
+  if (['🎤 Áudio', '🎥 Vídeo', '📎 Documento', '📷 Imagem', '🎨 Figurinha', 'Documento', 'Imagem'].includes(trimmed)) return null;
+
+  if (mensagem.type === 'document') {
+    if (trimmed === '📄 Documento' || trimmed === '📎 Documento') return null;
+    if (mensagem.media_filename) {
+      const cleanFilename = mensagem.media_filename.trim().toLowerCase();
+      const cleanContent = trimmed.toLowerCase();
+      if (cleanContent === cleanFilename) return null;
+      if (cleanContent === `📄 ${cleanFilename}` || cleanContent === `📎 ${cleanFilename}`) return null;
+      if (cleanContent.replace(/^[📄📎]\s*/, '') === cleanFilename) return null;
+    }
+  }
+
+  if (mensagem.type === 'image') {
+    if (trimmed === '📷 Imagem' || trimmed === 'Imagem') return null;
+    if (mensagem.media_filename && trimmed.toLowerCase() === mensagem.media_filename.trim().toLowerCase()) return null;
+  }
+
+  return trimmed;
+}
+
 /** Detecta URLs no texto e divide em segmentos. */
 type Segment = { text: string; isUrl: boolean };
 const URL_REGEX = /((?:https?:\/\/|www\.)[^\s]+)/gi;
@@ -252,32 +278,22 @@ export function MessageBubble({
     }, 450);
   };
 
-  // Cauda: canto cortado apenas no primeiro e último do grupo.
-  const cornerClass = isOwn
-    ? isFirstInGroup
-      ? 'rounded-tl-2xl rounded-tr-md'
-      : 'rounded-tl-md'
-    : isFirstInGroup
-      ? 'rounded-tr-2xl rounded-tl-md'
-      : 'rounded-tr-md';
-
-  const lastCornerClass = isOwn
-    ? 'rounded-bl-2xl rounded-br-md'
-    : 'rounded-br-2xl rounded-bl-md';
-
-  const radiusClass = isLastInGroup
-    ? cn(cornerClass, lastCornerClass)
-    : cn(cornerClass, 'rounded-b-md');
+  // Cantos arredondados modernos estilo Linear/Telegram/Design DNA
+  const radiusClass = isOwn
+    ? isLastInGroup
+      ? 'rounded-2xl rounded-br-xs'
+      : 'rounded-2xl rounded-r-md'
+    : isLastInGroup
+      ? 'rounded-2xl rounded-bl-xs'
+      : 'rounded-2xl rounded-l-md';
 
   // Ignora conteúdo gerado como fallback de mídia
   const isSticker = !isDeleted && mensagem.type === 'sticker';
   const hasStickerMedia = isSticker && Boolean(mensagem.media_url);
 
-  const isDefaultMediaContent =
-    isMedia &&
-    ['🎤 Áudio', '🎥 Vídeo', '📎 Documento', '📷 Imagem', '🎨 Figurinha'].includes(mensagem.content);
-
-  const showContent = !isDeleted && Boolean(mensagem.content && !isDefaultMediaContent);
+  const cleanCaption = isMedia ? getCleanMediaCaption(mensagem) : mensagem.content;
+  const showContent = !isDeleted && Boolean(cleanCaption);
+  const isImageOnly = !isDeleted && mensagem.type === 'image' && !cleanCaption;
 
   const reactions: any[] = !isDeleted && Array.isArray((mensagem as any).reactions) ? (mensagem as any).reactions : [];
   const hasReactions = reactions.length > 0;
@@ -321,7 +337,7 @@ export function MessageBubble({
               )}
             </div>
           )}
-          {Boolean(mensagem.content && !isDefaultMediaContent) && (
+          {showContent && (
             <button
               type="button"
               onClick={handleCopy}
@@ -387,21 +403,29 @@ export function MessageBubble({
 
       <div
         className={cn(
-          'relative w-fit min-w-[50px] text-sm break-words transition-all duration-500',
+          'relative w-fit min-w-[50px] text-sm break-words transition-all duration-300',
           hasReactions && 'mb-3',
           hasStickerMedia
             ? 'p-0 bg-transparent border-0 shadow-none'
-            : cn(
-                'max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] px-3 py-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]',
-                isDeleted
-                  ? 'bg-black/[0.02] dark:bg-white/[0.03] text-zinc-500 dark:text-zinc-400 border border-dashed border-black/[0.1] dark:border-white/[0.1] shadow-none select-none'
-                  : isOwn
-                    ? 'bg-[#F4EFE6] text-zinc-900 border border-[#E5DAC6]/80 dark:bg-[#221D17] dark:text-zinc-100 dark:border-[#382E22] dark:shadow-none'
-                    : 'bg-white text-zinc-900 border border-black/[0.05] dark:bg-[#1D1D1D] dark:text-zinc-100 dark:border-white/[0.06] dark:shadow-none',
-                radiusClass,
-                failed && 'border border-red-400',
-                isHighlighted && 'ring-2 ring-offset-1 ring-[#D4AF37] shadow-lg scale-[1.02] z-10'
-              )
+            : isImageOnly
+              ? cn(
+                  'max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] p-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)] backdrop-blur-md',
+                  'bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08]',
+                  radiusClass,
+                  failed && 'border-red-400',
+                  isHighlighted && 'ring-2 ring-offset-1 ring-[#D4AF37] shadow-lg scale-[1.02] z-10'
+                )
+              : cn(
+                  'max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] px-3.5 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-md',
+                  isDeleted
+                    ? 'bg-black/[0.02] dark:bg-white/[0.03] text-zinc-500 dark:text-zinc-400 border border-dashed border-black/[0.1] dark:border-white/[0.1] shadow-none select-none'
+                    : isOwn
+                      ? 'bg-[#EAE1D3]/95 text-zinc-900 border border-[#D5C1A6]/80 shadow-[0_1px_3px_rgba(0,0,0,0.05)] dark:bg-[#282117]/95 dark:text-zinc-100 dark:border-[#D4AF37]/35 dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)]'
+                      : 'bg-white/95 text-zinc-900 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:bg-[#1C1C1E]/95 dark:text-zinc-100 dark:border-white/[0.08] dark:shadow-[0_2px_8px_rgba(0,0,0,0.25)]',
+                  radiusClass,
+                  failed && 'border border-red-400',
+                  isHighlighted && 'ring-2 ring-offset-1 ring-[#D4AF37] shadow-lg scale-[1.02] z-10'
+                )
         )}
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
@@ -471,7 +495,7 @@ export function MessageBubble({
                   if (!isPending && onPreviewImage) onPreviewImage(mensagem.id);
                 }}
                 className={cn(
-                  "relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02] group/image block",
+                  "relative rounded-[14px] overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02] group/image block",
                   !isPending && onPreviewImage ? "cursor-pointer" : "cursor-default"
                 )}
               >
@@ -481,7 +505,7 @@ export function MessageBubble({
                       src={mensagem.media_url}
                       alt={mensagem.media_filename ?? 'imagem'}
                       className={cn(
-                        'rounded-lg max-w-full max-h-[320px] block object-contain transition-transform duration-300',
+                        'rounded-[14px] max-w-full max-h-[320px] block object-contain transition-transform duration-300',
                         isPending ? 'opacity-70 blur-[1px]' : 'group-hover/image:scale-[1.02]'
                       )}
                       loading="lazy"
@@ -493,7 +517,7 @@ export function MessageBubble({
                     )}
                   </>
                 ) : (
-                  <div className="w-[240px] h-[160px] bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
+                  <div className="w-[240px] h-[160px] bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-[14px] flex items-center justify-center text-zinc-400 text-xs">
                     Carregando imagem...
                   </div>
                 )}
@@ -504,6 +528,24 @@ export function MessageBubble({
                     <div className="p-2 rounded-full bg-black/50 text-white shadow-md">
                       <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
+                  </div>
+                )}
+
+                {/* Floating Timestamp na imagem quando não tem legenda */}
+                {isImageOnly && !isPending && (
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/55 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[10px] leading-tight shadow-sm select-none pointer-events-none">
+                    <span>{formatTime(mensagem.timestamp)}</span>
+                    {isOwn ? <StatusIcon status={mensagem.status} /> : null}
+                    {failed && onRetry ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onRetry(mensagem.id); }}
+                        className="ml-1 text-red-400 hover:text-red-200 pointer-events-auto"
+                        aria-label="Tentar enviar novamente"
+                      >
+                        <RotateCw className="h-3 w-3" />
+                      </button>
+                    ) : null}
                   </div>
                 )}
               </button>
@@ -537,20 +579,15 @@ export function MessageBubble({
                   href={mensagem.media_url}
                   target="_blank"
                   rel="noreferrer"
-                  className={cn(
-                    'flex items-center gap-3 p-2.5 rounded-lg border transition-colors min-w-[240px] max-w-[320px]',
-                    isOwn
-                      ? 'border-black/[0.06] dark:border-white/[0.08] bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.08]'
-                      : 'border-black/[0.06] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
-                  )}
+                  className="flex items-center gap-3 py-1 px-0.5 transition-opacity hover:opacity-80 min-w-[220px] max-w-[320px] group/doc"
                 >
-                  <div className="shrink-0 h-10 w-10 rounded-lg bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 border border-[#C9A87C]/30 flex flex-col items-center justify-center">
+                  <div className="shrink-0 h-10 w-10 rounded-xl bg-[#C9A87C]/20 dark:bg-[#D4AF37]/20 border border-[#C9A87C]/30 dark:border-[#D4AF37]/35 flex flex-col items-center justify-center shadow-xs">
                     <span className="text-[10px] font-bold text-[#A58253] dark:text-[#E2C366] leading-none tracking-tight">
                       {getFileExtension(mensagem.media_filename)}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate group-hover/doc:underline">
                       {mensagem.media_filename || 'Documento'}
                     </p>
                     {mensagem.media_size_bytes && (
@@ -559,7 +596,9 @@ export function MessageBubble({
                       </p>
                     )}
                   </div>
-                  <Download className="h-4 w-4 text-zinc-400 dark:text-zinc-400 shrink-0" />
+                  <div className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-zinc-400 dark:text-zinc-400 shrink-0">
+                    <Download className="h-4 w-4" />
+                  </div>
                 </a>
               ) : (
                 <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
@@ -572,9 +611,9 @@ export function MessageBubble({
             {showContent && (
               <>
                 <MessageText
-                  content={mensagem.content}
+                  content={cleanCaption!}
                   className={cn(
-                    'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200',
+                    'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200 block',
                     isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
                   )}
                 />
@@ -623,8 +662,8 @@ export function MessageBubble({
           </>
         )}
 
-        {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
-        {!hasStickerMedia && isLastInGroup ? (
+        {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha ou imagem sem legenda já com timestamp em overlay) */}
+        {!hasStickerMedia && !isImageOnly && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
             {isEdited ? (
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 italic select-none mr-0.5">
@@ -707,7 +746,7 @@ export function MessageBubble({
               )}
             </div>
           )}
-          {Boolean(mensagem.content && !isDefaultMediaContent) && (
+          {showContent && (
             <button
               type="button"
               onClick={handleCopy}

@@ -5,18 +5,24 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
-import { useConversas } from '@/hooks/useConversasRealtime';
+import { MessagesSkeleton } from './skeletons';
+import { useConversas, type UseConversasReturn } from '@/hooks/useConversasRealtime';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { EnrichedChat } from '@/modules/conversas/types';
 
 export interface WhatsAppLayoutProps {
   onNewChat: () => void;
+  conversas?: UseConversasReturn;
 }
 
-export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
+export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsAppLayoutProps) {
+  const hookConversas = useConversas({ realtime: !propConversas });
+  const conversasData = propConversas ?? hookConversas;
   const {
     chats,
     instancias,
@@ -35,7 +41,7 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     markAsUnread,
     syncHistoricalChats,
     isPinLimitReached,
-  } = useConversas();
+  } = conversasData;
 
   const { profile } = useUserProfile();
   // Nome amigável para a barra de instância conectado (perfil.empresa ?? perfil.nome).
@@ -45,31 +51,30 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     [profile?.empresa, profile?.nome],
   );
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const selectedChatId = searchParams.get('chat');
+  const mobileShowChat = Boolean(selectedChatId);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Suporte à navegação mobile nativa (botão Voltar do Android / gestos do iOS)
-  useEffect(() => {
-    if (!mobileShowChat) return;
-
-    window.history.pushState({ lunariConversasChat: true }, '');
-
-    const handlePopState = () => {
-      setMobileShowChat(false);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [mobileShowChat]);
+  const handleSelect = (chat: EnrichedChat) => {
+    if (isMobile) {
+      // No mobile: cria entrada de histórico para que o botão 'Voltar' do dispositivo
+      // desempilhe a conversa e retorne diretamente à lista
+      setSearchParams({ chat: chat.id });
+    } else {
+      // No desktop: faz replace para não poluir o histórico do navegador a cada conversa
+      setSearchParams({ chat: chat.id }, { replace: true });
+    }
+  };
 
   const handleBackToChatList = () => {
-    if (window.history.state?.lunariConversasChat) {
-      window.history.back();
+    if (window.history.length > 1) {
+      navigate(-1);
     } else {
-      setMobileShowChat(false);
+      setSearchParams({}, { replace: true });
     }
   };
 
@@ -86,13 +91,8 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
     [chats, selectedChatId],
   );
 
-  const handleSelect = (chat: EnrichedChat) => {
-    setSelectedChatId(chat.id);
-    setMobileShowChat(true);
-  };
-
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] bg-background overflow-hidden">
+    <div className="flex h-full w-full bg-background overflow-hidden">
       <div
         className={`${
           mobileShowChat ? 'hidden' : 'flex'
@@ -207,13 +207,20 @@ export function WhatsAppLayout({ onNewChat }: WhatsAppLayoutProps) {
               if (!confirm(`Excluir conversa com ${selectedChat.contato_nome ?? 'este contato'}?`))
                 return;
               await deleteChat(selectedChat.id);
-              setSelectedChatId(null);
               handleBackToChatList();
             }}
             onMarkUnread={async () => {
               await markAsUnread(selectedChat.id);
             }}
           />
+        ) : selectedChatId && isLoading ? (
+          <div className="flex-1 flex flex-col bg-[#F8F7F4] dark:bg-[#121212]">
+            <div className="h-14 border-b border-border/40 px-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+              <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+            </div>
+            <MessagesSkeleton />
+          </div>
         ) : (
           <div className="flex-1 hidden md:flex">
             <EmptyChatState />

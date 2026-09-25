@@ -232,17 +232,21 @@ export function ChatPanel({
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex flex-col bg-[#F8F7F4] dark:bg-[#121212]">
+      <div className="flex-1 flex flex-col bg-[#F6F5F2] dark:bg-[#0E0E10]">
         <ChatHeader
-          chat={{} as Chat}
+          chat={chat}
           onBack={onBack}
-          onToggleNotes={() => {}}
+          onToggleTemplates={() => handleToggleTab('templates')}
+          onToggleContext={() => handleToggleTab('context')}
+          onToggleNotes={() => handleToggleTab('notes')}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          notesOpen={false}
+          templatesOpen={sidePanelOpen && sidePanelTab === 'templates'}
+          contextOpen={sidePanelOpen && sidePanelTab === 'context'}
+          notesOpen={sidePanelOpen && sidePanelTab === 'notes'}
         />
         <MessagesSkeleton />
       </div>
@@ -251,7 +255,14 @@ export function ChatPanel({
 
   return (
     <>
-      <div className="flex-1 flex flex-col min-w-0 bg-[#F8F7F4] dark:bg-[#121212]">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#F6F5F2] dark:bg-[#0E0E10] relative overflow-hidden">
+        {/* Atmosfera de fundo suave e moderna (Lightweight, pure CSS, responsive) */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0">
+          <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#E8DCB8]/25 dark:bg-[#D4AF37]/[0.035] blur-[100px]" />
+          <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-[#DCE4EC]/30 dark:bg-[#161D2A]/30 blur-[110px]" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-radial from-amber-500/[0.015] dark:from-white/[0.01] to-transparent blur-3xl" />
+        </div>
+
         <ChatHeader
           chat={chat}
           onBack={onBack}
@@ -270,11 +281,7 @@ export function ChatPanel({
 
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto dark:[color-scheme:dark]"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.015), transparent 70%)',
-          }}
+          className="flex-1 overflow-y-auto relative z-10 dark:[color-scheme:dark]"
         >
           <div ref={sentinelRef} className="h-px" />
           
