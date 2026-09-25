@@ -25,7 +25,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ContactAvatar } from '../shared/ContactAvatar';
 import type { Chat, EnrichedChat, Nota } from '@/modules/conversas/types';
 import { useConversasContactContext } from '@/hooks/useConversasContactContext';
 import { Button } from '@/components/ui/button';
@@ -121,12 +120,6 @@ export function ChatContextPanel({
     }
   };
 
-  const contactType = isLinkedToCliente
-    ? 'cliente'
-    : isLinkedToLead
-    ? 'lead'
-    : 'unknown';
-
   const Container = isDrawer ? 'div' : 'aside';
 
   return (
@@ -135,7 +128,7 @@ export function ChatContextPanel({
         "flex flex-col h-full bg-[#FBFBF9] dark:bg-[#161616] select-none",
         isDrawer
           ? "w-full"
-          : "w-80 lg:w-96 shrink-0 border-l border-black/[0.06] dark:border-white/[0.08] z-20"
+          : "w-80 lg:w-[400px] xl:w-[440px] 2xl:w-[460px] shrink-0 border-l border-black/[0.06] dark:border-white/[0.08] z-20"
       )}
     >
       {/* ─── Header do Painel ───────────────────────────────────────────── */}
@@ -154,41 +147,6 @@ export function ChatContextPanel({
         >
           <X className="h-4 w-4" />
         </button>
-      </div>
-
-      {/* ─── Perfil do Contato ─────────────────────────────────────────── */}
-      <div className="p-3.5 border-b border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#1A1A1A]">
-        <div className="flex items-start gap-3">
-          <ContactAvatar
-            phone={chat.contato_phone_normalized}
-            name={chat.contato_nome}
-            src={chat.contato_avatar}
-            size="lg"
-          />
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-              {cliente?.nome || lead?.nome || chat.contato_nome || 'Contato'}
-            </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">
-              {chat.contato_phone_normalized || 'Sem telefone'}
-            </p>
-            <div className="flex items-center gap-1.5 mt-2">
-              {contactType === 'cliente' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40">
-                  Cliente Ativo
-                </span>
-              ) : contactType === 'lead' ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60">
-                  Lead / Oportunidade
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400">
-                  Novo Contato
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ─── Alternador de Abas (Modelos vs Contexto vs Notas) ───────────── */}

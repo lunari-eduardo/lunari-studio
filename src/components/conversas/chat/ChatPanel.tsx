@@ -20,6 +20,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ChatImagePreviewModal } from './ChatImagePreviewModal';
 
 export interface ChatPanelProps {
   chat: Chat | EnrichedChat;
@@ -94,9 +95,7 @@ export function ChatPanel({
 
   const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('lunari_conversas_sidepanel_open');
-    if (saved !== null) return saved === 'true';
-    return window.innerWidth >= 1024; // Padrão fixo aberto no desktop
+    return window.innerWidth >= 1024; // Padrão sempre aberto no desktop
   });
   const [sidePanelTab, setSidePanelTab] = useState<SidePanelTab>('templates');
   const [injectedText, setInjectedText] = useState<string | null>(null);
@@ -105,6 +104,12 @@ export function ChatPanel({
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Mensagem | null>(null);
   const [editingMessage, setEditingMessage] = useState<Mensagem | null>(null);
+  const [previewImageId, setPreviewImageId] = useState<string | null>(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+
+  const chatImages = useMemo(() => {
+    return mensagens.filter((m) => m.type === 'image' && m.media_url && !m.is_deleted);
+  }, [mensagens]);
 
   const handleToggleTab = (tab: SidePanelTab) => {
     if (sidePanelOpen && sidePanelTab === tab) {
@@ -155,6 +160,23 @@ export function ChatPanel({
     estimateSize: () => 80,
     overscan: 20,
   });
+
+  const handleScrollToMessage = (messageId: string) => {
+    const index = items.findIndex((item) => {
+      if (item.type === 'message_group' && item.group) {
+        return item.group.some((m) => m.id === messageId);
+      }
+      return false;
+    });
+
+    if (index !== -1) {
+      rowVirtualizer.scrollToIndex(index, { align: 'center' });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    } else {
+      toast.info('Mensagem muito antiga para ser visualizada diretamente.');
+    }
+  };
 
   // Marcar como lido ao abrir
   useEffect(() => {
@@ -281,12 +303,13 @@ export function ChatPanel({
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    <div className="max-w-4xl mx-auto w-full px-3 sm:px-6">
+                    <div className="w-full max-w-5xl px-3 sm:px-6">
                       {item.type === 'date' ? (
                         <DateDivider date={item.date!} />
                       ) : (
                         <MessageGroup
                           messages={item.group!}
+                          highlightedMessageId={highlightedMessageId}
                           onRetry={retryMessage}
                           onReply={(msg) => {
                             setEditingMessage(null);
@@ -298,6 +321,8 @@ export function ChatPanel({
                             setReplyingTo(null);
                             setEditingMessage(msg);
                           }}
+                          onPreviewImage={setPreviewImageId}
+                          onScrollToMessage={handleScrollToMessage}
                         />
                       )}
                     </div>
@@ -397,6 +422,14 @@ export function ChatPanel({
           onClose={() => setAudiosSalvosOpen(false)}
         />
       ) : null}
+
+      {previewImageId && (
+        <ChatImagePreviewModal
+          images={chatImages}
+          initialImageId={previewImageId}
+          onClose={() => setPreviewImageId(null)}
+        />
+      )}
     </>
   );
 }

@@ -243,7 +243,7 @@ export function MessageComposer({
       {/* Banner de Edição */}
       {editingMessage && (
         <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="w-full max-w-5xl px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center gap-2 border-l-[3px] border-[#C9A87C] pl-2.5 overflow-hidden">
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -275,7 +275,7 @@ export function MessageComposer({
       {/* Banner de Citação / Resposta (Fase P3) */}
       {!editingMessage && replyingTo && (
         <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/70 dark:bg-[#1A1A1A]/70 backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <div className="w-full max-w-5xl px-3 sm:px-6 py-2 flex items-center justify-between animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center gap-2 border-l-[3px] border-[#C9A87C] pl-2.5 overflow-hidden">
               <div className="flex flex-col min-w-0">
                 <span className="text-[11px] font-semibold text-[#B8925F] dark:text-[#D4AF37] truncate">
@@ -304,7 +304,7 @@ export function MessageComposer({
       {/* Card de Pré-visualização do Anexo */}
       {!editingMessage && pendingAttachment && (
         <div className="border-b border-black/[0.05] dark:border-white/[0.06] bg-white/80 dark:bg-[#1A1A1A]/80 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3">
+          <div className="w-full max-w-5xl px-3 sm:px-6 py-2.5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               {pendingAttachment.kind === 'image' && pendingAttachment.previewUrl ? (
                 <div className="h-12 w-12 rounded-lg overflow-hidden border border-black/[0.08] dark:border-white/[0.1] bg-black/5 shrink-0">
@@ -345,7 +345,7 @@ export function MessageComposer({
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto w-full px-3 sm:px-6 py-2.5 flex items-end gap-2">
+      <div className="w-full max-w-5xl px-3 sm:px-6 py-2.5 flex items-end gap-2">
         {!isRecording && !editingMessage && (
           <div className="flex items-center gap-1 shrink-0">
             <StickerPickerPopover onSendSticker={(url) => onAttach(url as any, 'sticker')}>

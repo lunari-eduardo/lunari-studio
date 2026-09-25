@@ -7,14 +7,27 @@ import { MessageBubble } from './MessageBubble';
 
 export interface MessageGroupProps {
   messages: Mensagem[];
+  highlightedMessageId?: string | null;
   onReply?: (msg: Mensagem) => void;
   onRetry?: (msgId: string) => void;
   onDelete?: (msgId: string) => void;
   onReact?: (msgId: string, emoji: string) => void;
   onEdit?: (msg: Mensagem) => void;
+  onPreviewImage?: (msgId: string) => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
-export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact, onEdit }: MessageGroupProps) {
+export function MessageGroup({ 
+  messages, 
+  highlightedMessageId,
+  onRetry, 
+  onReply, 
+  onDelete, 
+  onReact, 
+  onEdit, 
+  onPreviewImage,
+  onScrollToMessage
+}: MessageGroupProps) {
   if (messages.length === 0) return null;
   const isOwn = messages[0].direction === 'outbound';
 
@@ -26,11 +39,14 @@ export function MessageGroup({ messages, onRetry, onReply, onDelete, onReact, on
           mensagem={msg}
           isFirstInGroup={idx === 0}
           isLastInGroup={idx === messages.length - 1}
+          isHighlighted={highlightedMessageId === msg.id}
           onRetry={onRetry}
           onReply={onReply}
           onDelete={onDelete}
           onReact={onReact ? (emoji) => onReact(msg.id, emoji) : undefined}
           onEdit={onEdit}
+          onPreviewImage={onPreviewImage}
+          onScrollToMessage={onScrollToMessage}
         />
       ))}
     </div>

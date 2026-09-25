@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from "react";
+import { useLocation } from "react-router-dom";
 import { Sparkles, X, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,11 @@ const AssistantChat = lazy(() =>
 export function AssistantLauncher() {
   const [open, setOpen] = useState(false);
   const { allowed } = useAssistantAccess();
+  const location = useLocation();
+
   if (!allowed) return null;
+  // Não renderizar o botão flutuante na página de conversas
+  if (location.pathname.startsWith('/app/conversas')) return null;
 
   return (
     <>

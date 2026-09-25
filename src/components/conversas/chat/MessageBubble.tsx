@@ -4,13 +4,25 @@
  * Suporta texto + mídia (imagem, áudio, vídeo, documento) + caudas quando agrupadas.
  */
 
-import { useState } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download, Pencil, Ban } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download, Pencil, Ban, ZoomIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
+import { LinkPreview, extractFirstUrl } from './LinkPreview';
 import { useConversasStickers } from '@/hooks/useConversasStickers';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const MONTHS_PT_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
@@ -164,11 +176,14 @@ export interface MessageBubbleProps {
   isFirstInGroup?: boolean;
   /** Última do grupo (corte de cauda inferior + footer visível) */
   isLastInGroup?: boolean;
+  isHighlighted?: boolean;
   onRetry?: (id: string) => void;
   onReply?: (mensagem: Mensagem) => void;
   onDelete?: (id: string) => void;
   onReact?: (emoji: string) => void;
   onEdit?: (mensagem: Mensagem) => void;
+  onPreviewImage?: (id: string) => void;
+  onScrollToMessage?: (messageId: string) => void;
 }
 
 function getFileExtension(filename?: string): string {
@@ -202,11 +217,14 @@ export function MessageBubble({
   mensagem,
   isFirstInGroup = false,
   isLastInGroup = true,
+  isHighlighted = false,
   onRetry,
   onReply,
   onDelete,
   onReact,
   onEdit,
+  onPreviewImage,
+  onScrollToMessage,
 }: MessageBubbleProps) {
   const [showReactions, setShowReactions] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -217,6 +235,11 @@ export function MessageBubble({
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
   const isMedia = !isDeleted && mensagem.type !== 'text';
+
+  const previewUrl = useMemo(() => {
+    if (isDeleted || !mensagem.content) return null;
+    return extractFirstUrl(mensagem.content);
+  }, [mensagem.content, isDeleted]);
 
   const handleCopy = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -321,15 +344,32 @@ export function MessageBubble({
             </button>
           )}
           {onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(mensagem.id)}
-              className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
-              title="Apagar mensagem para todos"
-              aria-label="Apagar"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
+                  title="Apagar mensagem para todos"
+                  aria-label="Apagar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar mensagem</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja apagar esta mensagem para todos? Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(mensagem.id)} className="bg-red-600 text-white hover:bg-red-700">
+                    Apagar para todos
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           {onReply && (
             <button
@@ -347,7 +387,7 @@ export function MessageBubble({
 
       <div
         className={cn(
-          'relative w-fit min-w-[50px] text-sm break-words',
+          'relative w-fit min-w-[50px] text-sm break-words transition-all duration-500',
           hasReactions && 'mb-3',
           hasStickerMedia
             ? 'p-0 bg-transparent border-0 shadow-none'
@@ -360,12 +400,20 @@ export function MessageBubble({
                     : 'bg-white text-zinc-900 border border-black/[0.05] dark:bg-[#1D1D1D] dark:text-zinc-100 dark:border-white/[0.06] dark:shadow-none',
                 radiusClass,
                 failed && 'border border-red-400',
+                isHighlighted && 'ring-2 ring-offset-1 ring-[#D4AF37] shadow-lg scale-[1.02] z-10'
               )
         )}
       >
         {/* Bloco de Mensagem Citada (Quote / Reply) */}
         {!isDeleted && mensagem.quoted_content ? (
-          <div className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.05] rounded-r px-2 py-1 mb-1.5 text-xs select-none">
+          <div 
+            className="border-l-[3px] border-[#C9A87C] bg-black/[0.03] dark:bg-white/[0.05] rounded-r px-2 py-1 mb-1.5 text-xs select-none cursor-pointer hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+            onClick={() => {
+              if (mensagem.reply_to_id && onScrollToMessage) {
+                onScrollToMessage(mensagem.reply_to_id);
+              }
+            }}
+          >
             <span className="block font-semibold text-[11px] text-[#B8925F] dark:text-[#D4AF37] leading-tight mb-0.5">
               {mensagem.quoted_sender || 'Mensagem'}
             </span>
@@ -417,17 +465,33 @@ export function MessageBubble({
         ) : isMedia ? (
           <div className="space-y-1">
             {mensagem.type === 'image' && (
-              <div className="relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02]">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isPending && onPreviewImage) onPreviewImage(mensagem.id);
+                }}
+                className={cn(
+                  "relative rounded-lg overflow-hidden max-w-full sm:max-w-[280px] bg-black/[0.02] dark:bg-white/[0.02] group/image block",
+                  !isPending && onPreviewImage ? "cursor-pointer" : "cursor-default"
+                )}
+              >
                 {mensagem.media_url ? (
-                  <img
-                    src={mensagem.media_url}
-                    alt={mensagem.media_filename ?? 'imagem'}
-                    className={cn(
-                      'rounded-lg max-w-full max-h-[320px] block object-contain',
-                      isPending && 'opacity-70 blur-[1px]'
+                  <>
+                    <img
+                      src={mensagem.media_url}
+                      alt={mensagem.media_filename ?? 'imagem'}
+                      className={cn(
+                        'rounded-lg max-w-full max-h-[320px] block object-contain transition-transform duration-300',
+                        isPending ? 'opacity-70 blur-[1px]' : 'group-hover/image:scale-[1.02]'
+                      )}
+                      loading="lazy"
+                    />
+                    {!isPending && onPreviewImage && (
+                      <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/10 dark:group-hover/image:bg-black/20 transition-colors flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover/image:opacity-100 transition-opacity drop-shadow-md scale-90 group-hover/image:scale-100 duration-200" />
+                      </div>
                     )}
-                    loading="lazy"
-                  />
+                  </>
                 ) : (
                   <div className="w-[240px] h-[160px] bg-zinc-200 dark:bg-zinc-800 animate-pulse rounded-lg flex items-center justify-center text-zinc-400 text-xs">
                     Carregando imagem...
@@ -442,7 +506,7 @@ export function MessageBubble({
                     </div>
                   </div>
                 )}
-              </div>
+              </button>
             )}
             
             {mensagem.type === 'audio' && (
@@ -506,13 +570,18 @@ export function MessageBubble({
             )}
 
             {showContent && (
-              <MessageText
-                content={mensagem.content}
-                className={cn(
-                  'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200',
-                  isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+              <>
+                <MessageText
+                  content={mensagem.content}
+                  className={cn(
+                    'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200',
+                    isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+                  )}
+                />
+                {previewUrl && (
+                  <LinkPreview url={previewUrl} direction={mensagem.direction} />
                 )}
-              />
+              </>
             )}
 
             {/* Figurinha sem mídia / pendente de download */}
@@ -540,13 +609,18 @@ export function MessageBubble({
             )}
           </div>
         ) : (
-          <MessageText
-            content={mensagem.content}
-            className={cn(
-              'whitespace-pre-wrap leading-relaxed transition-all duration-200',
-              isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
+          <>
+            <MessageText
+              content={mensagem.content}
+              className={cn(
+                'whitespace-pre-wrap leading-relaxed transition-all duration-200',
+                isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
+              )}
+            />
+            {previewUrl && (
+              <LinkPreview url={previewUrl} direction={mensagem.direction} />
             )}
-          />
+          </>
         )}
 
         {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha com mídia já exibindo) */}
@@ -656,15 +730,32 @@ export function MessageBubble({
             </button>
           )}
           {onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(mensagem.id)}
-              className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
-              title="Apagar mensagem (apenas para mim)"
-              aria-label="Apagar"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-500/20 text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400"
+                  title="Apagar mensagem (apenas para mim)"
+                  aria-label="Apagar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Apagar mensagem local</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apagar esta mensagem removerá ela apenas para você. O contato ainda poderá vê-la.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(mensagem.id)} className="bg-red-600 text-white hover:bg-red-700">
+                    Apagar para mim
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       )}
