@@ -9,7 +9,11 @@ import {
   Trash2,
   Sparkles,
   Loader2,
-  FileText
+  FileText,
+  MessageCircle,
+  Briefcase,
+  Calendar,
+  Zap
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,159 +132,106 @@ export function TemplatesListTab({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ─── Top Toolbar: Busca e Botão + Novo ──────────────────────────── */}
-      <div className="p-3 border-b border-black/[0.05] dark:border-white/[0.06] space-y-2 bg-white dark:bg-[#181818]">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
-            <Input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar modelos..."
-              className="pl-8 text-xs h-8 bg-zinc-50 dark:bg-zinc-900 border-black/[0.06] dark:border-white/[0.08]"
-            />
-          </div>
-          <Button
-            size="sm"
-            onClick={handleNew}
-            className="h-8 px-2.5 bg-[#C9A87C] hover:bg-[#b89567] text-white text-xs shrink-0"
-            title="Criar novo modelo"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" /> Novo
-          </Button>
-        </div>
+    <div className="flex flex-col h-full bg-transparent">
+      {/* ─── Header: Sugestões de mensagens ─────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">
+          Sugestões de mensagens
+        </h3>
+        <button 
+          onClick={handleNew}
+          className="text-[11px] font-medium text-[#B8925F] hover:text-[#C9A87C] transition-colors"
+        >
+          Ver todos
+        </button>
       </div>
 
-      {/* ─── Lista de Templates ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+      <div className="relative mb-3 px-1">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar mensagens ou modelos..."
+          className="h-8 pl-8 text-[11px] bg-zinc-50 dark:bg-zinc-900/50 border-black/[0.06] dark:border-white/[0.08] rounded-lg shadow-sm"
+        />
+      </div>
+
+      {/* ─── Lista Compacta de Templates ─────────────────────────────────── */}
+      <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] px-1 pb-1">
         {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center text-zinc-400">
-            <Loader2 className="h-5 w-5 animate-spin mb-2" />
-            <span className="text-xs">Carregando modelos...</span>
+          <div className="py-8 flex flex-col items-center justify-center text-zinc-400">
+            <Loader2 className="h-4 w-4 animate-spin mb-2" />
+            <span className="text-[11px]">Carregando...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="py-8 px-4 text-center">
-            <FileText className="h-8 w-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-            <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              {search ? 'Nenhum modelo encontrado' : 'Nenhum modelo cadastrado'}
-            </h4>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 mb-4">
-              {search
-                ? 'Tente buscar por outro termo ou limpe o filtro.'
-                : 'Crie respostas prontas para Pix, agendamentos e instruções recorrentes.'}
-            </p>
+          <div className="py-6 text-center">
+            <p className="text-[11px] text-zinc-500">Nenhum modelo encontrado.</p>
             {!search && (
-              <div className="space-y-2 max-w-[240px] mx-auto">
-                <Button
-                  size="sm"
-                  onClick={handleNew}
-                  className="w-full text-xs h-8 bg-[#C9A87C] hover:bg-[#b89567] text-white"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Criar Primeiro Modelo
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => seedDefaultTemplates()}
-                  disabled={isSeeding}
-                  className="w-full text-[11px] h-7 border-dashed hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                >
-                  {isSeeding ? (
-                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                  ) : (
-                    <Sparkles className="h-3 w-3 mr-1 text-[#C9A87C]" />
-                  )}
-                  Carregar Modelos Sugeridos
-                </Button>
-              </div>
+              <Button
+                variant="link"
+                onClick={() => seedDefaultTemplates()}
+                disabled={isSeeding}
+                className="text-[11px] text-[#C9A87C] h-auto p-0 mt-1"
+              >
+                {isSeeding ? 'Carregando...' : 'Carregar modelos sugeridos'}
+              </Button>
             )}
           </div>
         ) : (
-          filtered.map(template => {
+          filtered.map((template, idx) => {
             const preview = renderTemplateText(template.conteudo, templateContext);
-            const isSending = sendingId === template.id;
+            const isSuggested = template.categoria === suggestedCategory && suggestedCategory;
+            
+            // Ícones aleatórios limpos baseados no ID ou index para a UI
+            const icons = [
+               { icon: <MessageCircle className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />, bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30" },
+               { icon: <Briefcase className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />, bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30" },
+               { icon: <Calendar className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />, bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30" },
+               { icon: <Zap className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />, bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30" }
+            ];
+            const visual = icons[idx % icons.length];
 
             return (
               <div
                 key={template.id}
                 className={cn(
-                  "group rounded-xl border bg-white dark:bg-[#1A1A1A] p-3 transition-all",
-                  template.categoria === suggestedCategory && suggestedCategory
-                    ? "border-[#D4AF37]/40 shadow-[0_2px_8px_rgba(212,175,55,0.1)] dark:border-[#D4AF37]/30"
-                    : "border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:border-black/[0.12] dark:hover:border-white/[0.15]"
+                  "group flex items-center justify-between gap-2 p-1.5 rounded-xl border transition-all cursor-pointer bg-white dark:bg-[#1A1A1A]",
+                  isSuggested
+                    ? "border-[#D4AF37]/40 shadow-[0_2px_8px_rgba(212,175,55,0.08)] bg-gradient-to-r from-[#D4AF37]/[0.02] to-transparent"
+                    : "border-black/[0.04] dark:border-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:border-black/[0.1] dark:hover:border-white/[0.1]"
                 )}
+                onClick={() => handleEdit(template)}
               >
-                {/* Header do Card */}
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div>
-                    <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
-                      {template.nome}
-                    </h4>
-                    {template.categoria && (
-                      <span className="inline-block mt-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                        {template.categoria}
-                        {template.categoria === suggestedCategory && ' (Sugerido)'}
-                      </span>
-                    )}
+                <div className="flex items-center gap-3 min-w-0 pl-1">
+                  <div className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 border", visual.bg)}>
+                    {visual.icon}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="h-6 w-6 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 opacity-60 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem onClick={() => handleEdit(template)} className="text-xs">
-                          <Pencil className="h-3 w-3 mr-1.5 text-zinc-500" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            if (confirm(`Excluir o modelo "${template.nome}"?`)) {
-                              deleteTemplate(template.id);
-                            }
-                          }}
-                          className="text-xs text-red-600 dark:text-red-400"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1.5" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex flex-col min-w-0 gap-0.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                      {template.nome}
+                      {isSuggested && (
+                        <span className="text-[9px] font-bold text-[#A87E43] uppercase tracking-wider">
+                          Sugerido
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
+                      {preview}
+                    </span>
                   </div>
                 </div>
 
-                {/* Prévia do Conteúdo Renderizado */}
-                <p className="text-[11px] text-zinc-600 dark:text-zinc-300 line-clamp-3 leading-relaxed whitespace-pre-wrap font-sans bg-zinc-50/70 dark:bg-zinc-900/50 p-2 rounded-lg border border-black/[0.03] dark:border-white/[0.04] mb-2.5">
-                  {preview}
-                </p>
-
-                {/* Ações do Card */}
-                <div className="flex items-center gap-1.5 pt-1 border-t border-black/[0.04] dark:border-white/[0.04]">
+                <div className="pr-1">
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleInsert(template)}
-                    className="flex-1 text-[11px] h-7 border-black/[0.08] dark:border-white/[0.08] hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                    title="Inserir texto no campo de digitação para editar antes de enviar"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleInsert(template);
+                    }}
+                    className="h-6 px-3 text-[10px] font-medium border-[#C9A87C]/30 text-[#A87E43] dark:text-[#D4AF37] hover:bg-[#C9A87C]/10 dark:hover:bg-[#C9A87C]/20 bg-transparent shrink-0 shadow-none rounded-full"
                   >
-                    <CornerDownLeft className="h-3 w-3 mr-1 text-zinc-400" /> Inserir no campo
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleSend(template)}
-                    disabled={isSending}
-                    className="text-[11px] h-7 px-3 bg-[#C9A87C] hover:bg-[#b89567] text-white shrink-0 shadow-sm"
-                    title="Enviar agora para a conversa com um clique"
-                  >
-                    {isSending ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Send className="h-3 w-3" />
-                    )}
+                    Inserir
                   </Button>
                 </div>
               </div>

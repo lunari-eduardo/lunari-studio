@@ -1,5 +1,4 @@
-import { DollarSign, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { DollarSign } from 'lucide-react';
 
 interface FinancialSummaryCardProps {
   cobrancas: any[];
@@ -25,40 +24,32 @@ export function FinancialSummaryCard({ cobrancas, onNavigate }: FinancialSummary
   return (
     <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <DollarSign className="h-4 w-4 text-emerald-600" />
-          <span className="text-xs font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Resumo Financeiro
-          </span>
-        </div>
+        <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+          <DollarSign className="h-3.5 w-3.5 text-[#B8925F]" />
+          Financeiro da sessão
+        </span>
+        <button
+          type="button"
+          onClick={() => onNavigate('/financas')}
+          className="text-[10px] text-[#B8925F] font-medium"
+        >
+          Ver detalhes
+        </button>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-zinc-500">Valor Total Contratado</span>
-          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatCurrency(total)}</span>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-zinc-500">Total</span>
+          <span className="text-[12px] font-bold text-zinc-900 dark:text-zinc-100">{formatCurrency(total)}</span>
         </div>
-        
-        <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-500">
-          <span className="text-xs font-medium">Já Recebido</span>
-          <span className="text-xs font-bold">{formatCurrency(totalRecebido)}</span>
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-zinc-500">Recebido</span>
+          <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-500">{formatCurrency(totalRecebido)}</span>
         </div>
-        
-        {totalPendente > 0 && (
-          <div className="flex items-center justify-between text-red-600 dark:text-red-400">
-            <span className="text-xs font-medium">Pendente</span>
-            <span className="text-xs font-bold">{formatCurrency(totalPendente)}</span>
-          </div>
-        )}
-
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => onNavigate('/financas')}
-          className="w-full h-7 mt-2 text-[11px]"
-        >
-          Ver detalhes <ExternalLink className="h-3 w-3 ml-1.5" />
-        </Button>
+        <div className="flex flex-col gap-1">
+          <span className="text-[10px] font-medium text-zinc-500">Pendente</span>
+          <span className="text-[12px] font-bold text-red-600 dark:text-red-500">{formatCurrency(totalPendente)}</span>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ContactAvatar } from '../shared/ContactAvatar';
+import { LuAssistantPopover } from './LuAssistantPopover';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 
 export interface ChatHeaderProps {
@@ -99,16 +100,7 @@ export function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          aria-label="Assistente Lu"
-          className="h-8 px-2.5 flex items-center gap-1.5 rounded-full text-[11px] font-semibold text-[#D4AF37] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 transition-colors border border-[#D4AF37]/20 mr-1"
-          title="Inteligência Lunari"
-          onClick={() => { /* TODO: Integrar Lu */ }}
-        >
-          <Sparkles className="h-3 w-3" />
-          <span>Lu</span>
-        </button>
+        <LuAssistantPopover chatId={chat.id} />
 
         {onTogglePanel && (
           <button

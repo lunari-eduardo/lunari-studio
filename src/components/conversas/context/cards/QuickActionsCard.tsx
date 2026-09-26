@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, ExternalLink, Plus, User, Image } from 'lucide-react';
+import { Calendar, DollarSign, Plus, User, Briefcase, Sparkles } from 'lucide-react';
 import type { ChatState } from '@/hooks/useChatStateResolver';
 
 interface QuickActionsCardProps {
@@ -9,71 +9,46 @@ interface QuickActionsCardProps {
 }
 
 export function QuickActionsCard({ state, hasCliente, onNavigate }: QuickActionsCardProps) {
+  // Configurar as ações baseado no estado
+  const actions = [];
+
+  if (state === 'UNKNOWN') {
+    actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, path: '/leads' });
+    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, path: '/agenda' });
+    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, path: '/propostas' });
+  } else if (state === 'LEAD') {
+    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, path: '/agenda' });
+    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+  } else if (state === 'SESSION') {
+    actions.push({ id: 'pagamento', label: 'Registrar Pagamento', icon: <DollarSign className="h-4 w-4" />, path: '/financas' });
+    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, path: '/workflow' });
+    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+  } else if (state === 'POST_SALE') {
+    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, path: '/workflow' });
+    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+  }
+
+  // Sempre tem botão "Mais" no final
+  actions.push({ id: 'mais', label: 'Mais', icon: <span className="font-serif tracking-widest leading-none mb-1 text-lg">...</span>, path: '/clientes' });
+
   return (
-    <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 block mb-2">
-        Ações Rápidas
+    <div className="mt-2 mb-2">
+      <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 mb-2.5 px-1">
+        <Sparkles className="h-3.5 w-3.5 text-[#C9A87C]" /> Ações rápidas
       </span>
-      <div className="grid grid-cols-1 gap-1.5">
-        {(state === 'UNKNOWN' || state === 'LEAD') && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate('/propostas')}
-            className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
+        {actions.map((act) => (
+          <button
+            key={act.id}
+            onClick={() => onNavigate(act.path)}
+            className="flex flex-col items-center justify-center gap-1.5 flex-1 min-w-[76px] py-2.5 px-1 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.03] hover:bg-[#D4AF37]/10 transition-colors text-[#A87E43] dark:text-[#D4AF37]"
           >
-            <span className="flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-[#C9A87C]" />
-              {state === 'UNKNOWN' ? 'Enviar Orçamento' : 'Atualizar Orçamento'}
+            {act.icon}
+            <span className="text-[10px] font-medium leading-tight text-center px-1">
+              {act.label}
             </span>
-            <ExternalLink className="h-3 w-3 text-zinc-400" />
-          </Button>
-        )}
-
-        {(state === 'UNKNOWN' || state === 'LEAD') && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate('/agenda')}
-            className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          >
-            <span className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 text-[#C9A87C]" />
-              Abrir Agenda
-            </span>
-            <ExternalLink className="h-3 w-3 text-zinc-400" />
-          </Button>
-        )}
-
-        {state === 'SESSION' && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate('/financas/receitas')}
-            className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          >
-            <span className="flex items-center gap-2">
-              <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-              Registrar Pagamento
-            </span>
-            <ExternalLink className="h-3 w-3 text-zinc-400" />
-          </Button>
-        )}
-
-        {hasCliente && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate('/clientes')}
-            className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-          >
-            <span className="flex items-center gap-2">
-              <User className="h-3.5 w-3.5 text-[#C9A87C]" />
-              Ficha do Cliente
-            </span>
-            <ExternalLink className="h-3 w-3 text-zinc-400" />
-          </Button>
-        )}
+          </button>
+        ))}
       </div>
     </div>
   );

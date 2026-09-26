@@ -44,6 +44,7 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
   const [categoria, setCategoria] = useState<string>('');
   const [origem, setOrigem] = useState<string>('WhatsApp');
   const [valorEstimado, setValorEstimado] = useState<string>('');
+  const [detalhes, setDetalhes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Sincroniza campos e categoria quando o modal abre ou os dados mudam
@@ -51,6 +52,8 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
     if (isOpen) {
       setNome(chat.contato_nome || '');
       setValorEstimado('');
+      setOrigem('WhatsApp');
+      setDetalhes('');
 
       if (defaultCategory && categorias.length > 0) {
         const target = defaultCategory.toLowerCase().trim();
@@ -65,6 +68,8 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
         }
         if (matched) {
           setCategoria(matched.id);
+          // Pre-fill detalhes com a sugestão
+          setDetalhes(`Detectado interesse inicial via IA para o ensaio: ${matched.nome}.`);
         } else {
           setCategoria('');
         }
@@ -87,7 +92,7 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
 
     setIsSubmitting(true);
     try {
-      // 1. Monta as observações com categoria e valor estimado
+      // 1. Monta as observações com categoria, valor estimado e detalhes
       const obsParts: string[] = [];
       if (categoria) {
         const catNome = categorias.find(c => c.id === categoria)?.nome || categoria;
@@ -95,6 +100,9 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
       }
       if (valorEstimado.trim()) {
         obsParts.push(`Valor Estimado: R$ ${valorEstimado.trim()}`);
+      }
+      if (detalhes.trim()) {
+        obsParts.push(`Detalhes: ${detalhes.trim()}`);
       }
       const observacoes = obsParts.join(' | ');
 
@@ -273,6 +281,19 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
                 <span className="text-[10px] text-muted-foreground shrink-0">Entrada</span>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            <Label htmlFor="detalhes" className="text-xs font-medium text-foreground/90 flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3 text-[#D4AF37]" /> Detalhes da Conversa
+            </Label>
+            <textarea
+              id="detalhes"
+              value={detalhes}
+              onChange={(e) => setDetalhes(e.target.value)}
+              placeholder="Ex: Cliente tem disponibilidade na quinta-feira, quer pacote completo..."
+              className="w-full flex min-h-[60px] rounded-xl border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+            />
           </div>
 
           {/* Rodapé de Ações */}

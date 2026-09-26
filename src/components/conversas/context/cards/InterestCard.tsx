@@ -1,5 +1,5 @@
+import { Sparkles, Plus, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Plus } from 'lucide-react';
 
 interface InterestCardProps {
   suggestedCategory?: string;
@@ -8,30 +8,58 @@ interface InterestCardProps {
 
 export function InterestCard({ suggestedCategory, onCreateLead }: InterestCardProps) {
   return (
-    <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <div className="flex flex-col items-center justify-center py-4 px-2 text-center space-y-3">
-        <div className="h-10 w-10 rounded-full bg-[#D4AF37]/10 flex items-center justify-center">
-          <Sparkles className="h-5 w-5 text-[#D4AF37]" />
+    <div className="flex flex-col gap-2">
+      {/* Top Card: Interest */}
+      <div className="rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.06] p-3 flex flex-col gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center gap-2.5 px-1">
+          <Sparkles className="h-4 w-4 text-[#D4AF37]" />
+          <span className="text-[13px] font-bold text-[#A87E43] dark:text-[#D4AF37]">
+            {suggestedCategory ? `Possível interesse: ${suggestedCategory}` : 'Contato desconhecido'}
+          </span>
         </div>
         
-        <div>
-          <h4 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            Novo Contato Detectado
-          </h4>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-[240px] mx-auto">
-            {suggestedCategory 
-              ? `A Lu sugere possível interesse em "${suggestedCategory}".` 
-              : "Este contato ainda não possui histórico no sistema."}
-          </p>
-        </div>
-
         <Button
           onClick={() => onCreateLead(suggestedCategory)}
-          className="w-full h-8 text-xs bg-[#171717] hover:bg-[#2A2A2A] dark:bg-[#EFEFEF] dark:hover:bg-[#FFFFFF] dark:text-[#121212] transition-colors"
+          className="w-full h-9 text-[11px] font-semibold bg-[#C9A87C] hover:bg-[#b89567] text-white rounded-lg shadow-sm"
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
           Criar Lead / Oportunidade
         </Button>
+      </div>
+
+      {/* Bottom Card: Context */}
+      <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5 text-zinc-400" />
+            Contexto do contato
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-2.5 text-[11px]">
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Status</span>
+            <span className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
+              Contato desconhecido
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Origem</span>
+            <span className="font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+              WhatsApp
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Primeiro contato</span>
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">Hoje, {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-zinc-500">Mensagens</span>
+            <span className="font-medium text-zinc-900 dark:text-zinc-100">1</span>
+          </div>
+        </div>
       </div>
     </div>
   );

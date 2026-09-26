@@ -44,6 +44,7 @@ import { WorkflowContextCard } from './cards/WorkflowContextCard';
 import { HistoryCard } from './cards/HistoryCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
+import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
@@ -215,18 +216,15 @@ export function ChatContextPanel({
       )}
     >
       {/* ─── Header do Painel ───────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-            Painel do Contato
-          </span>
-        </div>
+      <div className="px-3 py-3 flex items-center justify-between shrink-0">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 pl-1">
+          Painel do Contato
+        </span>
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
           title="Fechar painel"
-          aria-label="Fechar painel"
         >
           <X className="h-4 w-4" />
         </button>
@@ -234,45 +232,44 @@ export function ChatContextPanel({
 
       {/* ─── Corpo do Painel ────────────────────────────────────────────── */}
       <div
-        className="flex-1 overflow-y-auto p-3.5 space-y-4"
+        className="flex-1 overflow-y-auto px-3.5 pb-4 space-y-3"
         style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
       >
+        <ContactHeaderCard chat={chat} state={chatState} />
         {renderStateCards()}
 
         {/* ─── Notas Internas e Rodapé Fixo ───────────────────────────────── */}
-        <div className="mt-6 border-t border-black/[0.05] dark:border-white/[0.06] pt-4">
-          <div className="flex items-center gap-1.5 mb-3">
-            <StickyNote className="h-4 w-4 text-zinc-500" />
-            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Notas Internas</span>
+      {/* ─── Notas Internas ────────────────────────────────────────────── */}
+        <div className="mt-4 px-1">
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <StickyNote className="h-3.5 w-3.5 text-[#B8925F]" />
+            <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">Notas internas</span>
           </div>
           
-          <div className="space-y-2 mb-3">
+          <div className="space-y-2.5">
             {notas.length === 0 ? (
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic mb-2">
                 Nenhuma nota registrada.
               </p>
             ) : (
               notas.map((n) => (
-                <div
-                  key={n.id}
-                  className="group rounded-lg bg-white dark:bg-[#1E1E1E] border border-black/[0.05] dark:border-white/[0.06] p-2.5 text-xs shadow-sm"
-                >
-                  <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                    {n.content}
-                  </p>
-                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-black/[0.03] dark:border-white/[0.03]">
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
-                      {n.created_at ? new Date(n.created_at).toLocaleDateString('pt-BR') : ''}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteNota(n.id)}
-                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-0.5"
-                      title="Excluir nota"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                <div key={n.id} className="group flex justify-between gap-3 text-xs">
+                  <div className="flex-1">
+                    <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-300 leading-relaxed text-[11px]">
+                      {n.content}
+                    </p>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1">
+                      Você <span className="w-0.5 h-0.5 rounded-full bg-zinc-400"></span> 
+                      {n.created_at ? new Date(n.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                    </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteNota(n.id)}
+                    className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 transition-opacity p-0.5 h-fit shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))
             )}
@@ -280,26 +277,40 @@ export function ChatContextPanel({
         </div>
       </div>
       
-      {/* ─── Input Fixo de Notas ────────────────────────────────────────── */}
+      {/* ─── Input Fixo de Notas (Compacto em 1 linha) ────────────────── */}
       <div
-        className="p-3 border-t border-black/[0.05] dark:border-white/[0.06] bg-[#FBFBF9] dark:bg-[#181818] space-y-2 shrink-0"
+        className="p-3 border-t border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#181818] shrink-0"
         style={isDrawer ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
       >
-        <Textarea
-          value={notaDraft}
-          onChange={e => setNotaDraft(e.target.value)}
-          placeholder="Escreva uma anotação interna..."
-          rows={2}
-          className="resize-none text-xs bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-black/[0.06] dark:border-white/[0.08]"
-        />
-        <Button
-          onClick={handleAddNota}
-          disabled={!notaDraft.trim() || submittingNota}
-          size="sm"
-          className="w-full bg-[#C9A87C] hover:bg-[#b89567] text-white text-xs h-8"
-        >
-          {submittingNota ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5 mr-1" /> Salvar Nota</>}
-        </Button>
+        <div className="flex items-center gap-2">
+          <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1.5 rounded transition-colors">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7.49991 14.5C8.98687 14.5 10.4128 13.909 11.4643 12.8573C12.5157 11.8057 13.1065 10.3795 13.1065 8.89241V3.28479C13.1065 2.16913 12.6633 1.09923 11.8744 0.31034C11.0855 -0.478548 10.0156 -0.921768 8.89991 -0.921768C7.78426 -0.921768 6.71435 -0.478548 5.92547 0.31034C5.13658 1.09923 4.69336 2.16913 4.69336 3.28479V8.89241C4.69336 9.63604 4.98877 10.3492 5.51457 10.875C6.04037 11.4008 6.75359 11.6962 7.49722 11.6962C8.24086 11.6962 8.95408 11.4008 9.47988 10.875C10.0057 10.3492 10.3011 9.63604 10.3011 8.89241V3.28479H8.89831V8.89241C8.89831 9.26392 8.75073 9.62022 8.48799 9.88295C8.22525 10.1457 7.86895 10.2933 7.49744 10.2933C7.12592 10.2933 6.76963 10.1457 6.50689 9.88295C6.24415 9.62022 6.09657 9.26392 6.09657 8.89241V3.28479C6.09657 2.54117 6.39198 1.82795 6.91778 1.30215C7.44358 0.776348 8.1568 0.480938 8.90043 0.480938C9.64407 0.480938 10.3573 0.776348 10.8831 1.30215C11.4089 1.82795 11.7043 2.54117 11.7043 3.28479V8.89241C11.7043 10.0081 11.2611 11.078 10.4722 11.8668C9.6833 12.6557 8.6134 13.0989 7.49774 13.0989C6.38209 13.0989 5.31218 12.6557 4.5233 11.8668C3.73441 11.078 3.2912 10.0081 3.2912 8.89241V3.28479H1.8884V8.89241C1.8884 10.3795 2.47924 11.8057 3.53068 12.8573C4.58212 13.909 6.00826 14.5 7.49522 14.5H7.49991Z" fill="currentColor"/>
+            </svg>
+          </button>
+          
+          <Input
+            value={notaDraft}
+            onChange={e => setNotaDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAddNota();
+              }
+            }}
+            placeholder="Adicionar uma nova nota..."
+            className="h-8 text-[11px] bg-zinc-50 dark:bg-zinc-900 border-none shadow-none focus-visible:ring-1 focus-visible:ring-[#D4AF37]/50"
+          />
+          
+          <Button
+            onClick={handleAddNota}
+            disabled={!notaDraft.trim() || submittingNota}
+            size="sm"
+            className="h-8 px-3 text-[11px] font-semibold bg-[#C9A87C] hover:bg-[#b89567] text-white shrink-0 shadow-sm"
+          >
+            {submittingNota ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Salvar'}
+          </Button>
+        </div>
       </div>
         
       <FastLeadModal 
