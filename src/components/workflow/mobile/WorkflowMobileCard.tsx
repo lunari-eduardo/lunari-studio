@@ -954,11 +954,18 @@ export function WorkflowMobileCard({
                     <div className="flex justify-between text-muted-foreground">
                       <span>Total de fotos extras:</span>
                       <span className="font-semibold text-foreground">
-                        {formatCurrencyBRL(
-                          extrasFullyPaid && extrasPagoCanonico > 0
-                            ? extrasPagoCanonico
-                            : extrasTotalCanonico
-                        )}
+                        {(() => {
+                          const pagoDiretoExtras = Array.isArray(session.pagamentos) 
+                            ? session.pagamentos
+                                .filter((p: any) => p.cobranca?.finalidade === 'fotos_extras' || p.cobranca?.finalidade === 'sessao_e_extras')
+                                .reduce((sum, p) => sum + (Number(p.valor) || 0), 0)
+                            : 0;
+                          return formatCurrencyBRL(
+                            extrasFullyPaid && pagoDiretoExtras > 0
+                              ? pagoDiretoExtras
+                              : extrasTotalCanonico
+                          );
+                        })()}
                       </span>
                     </div>
                     {extrasPendente > 0 && (
@@ -1001,11 +1008,18 @@ export function WorkflowMobileCard({
                       <div className="flex justify-between text-muted-foreground">
                         <span>Fotos extras:</span>
                         <span className="text-foreground">
-                          + {formatCurrencyBRL(
-                            extrasFullyPaid && extrasPagoCanonico > 0
-                              ? extrasPagoCanonico
-                              : extrasTotalCanonico
-                          )}
+                          + {(() => {
+                            const pagoDiretoExtras = Array.isArray(session.pagamentos) 
+                              ? session.pagamentos
+                                  .filter((p: any) => p.cobranca?.finalidade === 'fotos_extras' || p.cobranca?.finalidade === 'sessao_e_extras')
+                                  .reduce((sum, p) => sum + (Number(p.valor) || 0), 0)
+                              : 0;
+                            return formatCurrencyBRL(
+                              extrasFullyPaid && pagoDiretoExtras > 0
+                                ? pagoDiretoExtras
+                                : extrasTotalCanonico
+                            );
+                          })()}
                         </span>
                       </div>
                     )}

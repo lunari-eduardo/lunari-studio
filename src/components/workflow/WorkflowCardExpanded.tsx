@@ -155,12 +155,17 @@ export function WorkflowCardExpanded({
   const extrasPagoCanonico = fin.extrasPago;
   const extrasPendente = fin.extrasPend;
   const extrasFullyPaid = fin.extrasPend <= 0.001;
-  // Quando extras estão 100% pagos e o valor pago difere do bruto (desconto
-  // global consumido pela base), exibe o valor realmente cobrado/pago para
-  // evitar a confusão de mostrar "R$ 294 Pago" quando o cliente pagou R$ 280.
+  // Calcula exatamente quanto foi pago DIRETAMENTE para fotos extras via cobrança
+  // para evitar exibir o valor com spillover (R$ 294) quando o fotógrafo cobrou R$ 280
+  const pagoDiretoExtras = Array.isArray(session.pagamentos) 
+    ? session.pagamentos
+        .filter((p: any) => p.cobranca?.finalidade === 'fotos_extras' || p.cobranca?.finalidade === 'sessao_e_extras')
+        .reduce((sum, p) => sum + (Number(p.valor) || 0), 0)
+    : 0;
+
   const valorFotoExtraTotal = formatCurrency(
-    extrasFullyPaid && extrasPagoCanonico > 0
-      ? extrasPagoCanonico
+    extrasFullyPaid && pagoDiretoExtras > 0
+      ? pagoDiretoExtras
       : extrasTotalCanonico
   );
 

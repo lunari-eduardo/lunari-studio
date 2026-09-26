@@ -54,11 +54,18 @@ export function SessionPaymentsSummaryCards({
               <div>
                 <p className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide">Extras</p>
                 <p className="font-semibold text-accent-gold text-xs sm:text-sm">
-                  {formatCurrency(
-                    fin.extrasPend <= 0.001 && fin.extrasPago > 0
-                      ? fin.extrasPago
-                      : fin.extrasIdeal
-                  )}
+                  {(() => {
+                    const pagoDiretoExtras = Array.isArray(session.pagamentos) 
+                      ? session.pagamentos
+                          .filter((p: any) => p.cobranca?.finalidade === 'fotos_extras' || p.cobranca?.finalidade === 'sessao_e_extras')
+                          .reduce((sum, p) => sum + (Number(p.valor) || 0), 0)
+                      : 0;
+                    return formatCurrency(
+                      fin.extrasPend <= 0.001 && pagoDiretoExtras > 0
+                        ? pagoDiretoExtras
+                        : fin.extrasIdeal
+                    );
+                  })()}
                 </p>
                 <p className="text-2xs text-muted-foreground">
                   Pago {formatCurrency(fin.extrasPago)} · Pend {formatCurrency(fin.extrasPend)}
