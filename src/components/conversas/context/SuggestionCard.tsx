@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Sparkles, UserPlus, Briefcase, Plus, Loader2 } from 'lucide-react';
 
@@ -34,21 +33,8 @@ export function SuggestionCard({
           content: m.content || ''
         }));
 
-        // 1. Prioridade: Motor Oficial da Lua com Google Gemini
-        const { data, error } = await supabase.functions.invoke('conversas-ai-classify', {
-          body: {
-            messages: payloadMessages,
-            categories: availableCategories
-          }
-        });
-
-        if (!error && data && mounted) {
-          setIntent(data);
-          return;
-        }
-
-        // 2. Fallback: Edge Worker se a Edge Function estiver offline
-        const response = await fetch('/api/conversas/classify-lead', {
+        const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+        const response = await fetch(`${workerUrl}/api/conversas/classify-lead`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -58,8 +44,8 @@ export function SuggestionCard({
         });
         
         if (response.ok && mounted) {
-          const fallbackData = await response.json();
-          setIntent(fallbackData);
+          const data = await response.json();
+          setIntent(data);
         }
       } catch (err) {
         console.error('[SuggestionCard] Error classifying lead', err);
