@@ -120,6 +120,12 @@ export function SessionPaymentsManager({
   };
 
   // Shared content
+  const pagoDiretoExtras = Array.isArray(sessionData.pagamentos)
+    ? sessionData.pagamentos
+        .filter((p: any) => p.cobranca?.finalidade === 'fotos_extras' || p.cobranca?.finalidade === 'sessao_e_extras')
+        .reduce((sum: number, p: any) => sum + (Number(p.valor) || 0), 0)
+    : 0;
+
   const content = (
     <>
       <SessionPaymentsSummaryCards
@@ -135,6 +141,7 @@ export function SessionPaymentsManager({
         totalTaxas={totalTaxas}
         totalAgendado={totalAgendado}
         valorRestante={valorRestante}
+        pagoDiretoExtras={pagoDiretoExtras}
       />
 
       <Card className={isCard ? 'border-0 bg-transparent shadow-none' : undefined}>
