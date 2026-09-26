@@ -92,13 +92,10 @@ export function ChatPanel({
   const { save: saveAudio } = useAudiosSalvos();
   const isMobile = useIsMobile();
 
-  type SidePanelTab = 'templates' | 'context' | 'notes';
-
   const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth >= 1024; // Padrão sempre aberto no desktop
   });
-  const [sidePanelTab, setSidePanelTab] = useState<SidePanelTab>('templates');
   const [injectedText, setInjectedText] = useState<string | null>(null);
 
   const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
@@ -113,15 +110,12 @@ export function ChatPanel({
     return mensagens.filter((m) => m.type === 'image' && m.media_url && !m.is_deleted);
   }, [mensagens]);
 
-  const handleToggleTab = (tab: SidePanelTab) => {
-    if (sidePanelOpen && sidePanelTab === tab) {
-      setSidePanelOpen(false);
-      if (!isMobile) localStorage.setItem('lunari_conversas_sidepanel_open', 'false');
-    } else {
-      setSidePanelTab(tab);
-      setSidePanelOpen(true);
-      if (!isMobile) localStorage.setItem('lunari_conversas_sidepanel_open', 'true');
-    }
+  const handleTogglePanel = () => {
+    setSidePanelOpen((prev) => {
+      const next = !prev;
+      if (!isMobile) localStorage.setItem('lunari_conversas_sidepanel_open', next.toString());
+      return next;
+    });
   };
 
   const handleInsertTemplate = (renderedText: string) => {
@@ -250,17 +244,13 @@ export function ChatPanel({
         <ChatHeader
           chat={chat}
           onBack={onBack}
-          onToggleTemplates={() => handleToggleTab('templates')}
-          onToggleContext={() => handleToggleTab('context')}
-          onToggleNotes={() => handleToggleTab('notes')}
+          onTogglePanel={handleTogglePanel}
+          isPanelOpen={sidePanelOpen}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          templatesOpen={sidePanelOpen && sidePanelTab === 'templates'}
-          contextOpen={sidePanelOpen && sidePanelTab === 'context'}
-          notesOpen={sidePanelOpen && sidePanelTab === 'notes'}
         />
         <MessagesSkeleton />
       </div>
@@ -280,17 +270,13 @@ export function ChatPanel({
         <ChatHeader
           chat={chat}
           onBack={onBack}
-          onToggleTemplates={() => handleToggleTab('templates')}
-          onToggleContext={() => handleToggleTab('context')}
-          onToggleNotes={() => handleToggleTab('notes')}
+          onTogglePanel={handleTogglePanel}
+          isPanelOpen={sidePanelOpen}
           onArchive={onArchive}
           onBlock={onBlock}
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
-          templatesOpen={sidePanelOpen && sidePanelTab === 'templates'}
-          contextOpen={sidePanelOpen && sidePanelTab === 'context'}
-          notesOpen={sidePanelOpen && sidePanelTab === 'notes'}
         />
 
         <div className="flex-1 min-h-0 relative flex flex-col">
@@ -447,7 +433,6 @@ export function ChatPanel({
               onAddNota={addNota}
               onDeleteNota={deleteNota}
               onClose={() => setSidePanelOpen(false)}
-              initialTab={sidePanelTab}
               isDrawer
               onInsertToComposer={handleInsertTemplate}
               onSendDirectly={handleSendDirectly}
@@ -465,7 +450,6 @@ export function ChatPanel({
             setSidePanelOpen(false);
             localStorage.setItem('lunari_conversas_sidepanel_open', 'false');
           }}
-          initialTab={sidePanelTab}
           onInsertToComposer={handleInsertTemplate}
           onSendDirectly={handleSendDirectly}
         />

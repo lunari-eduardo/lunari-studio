@@ -45,7 +45,6 @@ export interface ChatContextPanelProps {
   onAddNota: (content: string) => Promise<void> | void;
   onDeleteNota: (id: string) => Promise<void> | void;
   onClose: () => void;
-  initialTab?: 'templates' | 'context' | 'notes';
   isDrawer?: boolean;
   onInsertToComposer?: (text: string) => void;
   onSendDirectly?: (text: string) => Promise<void> | void;
@@ -69,23 +68,16 @@ export function ChatContextPanel({
   onAddNota,
   onDeleteNota,
   onClose,
-  initialTab = 'templates',
   isDrawer = false,
   onInsertToComposer,
   onSendDirectly,
   messages = [],
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'templates' | 'context' | 'notes'>(initialTab);
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
   const [taskDraft, setTaskDraft] = useState('');
   const [submittingTask, setSubmittingTask] = useState(false);
-
-  // Sincronizar aba ativa quando o pai trocar (ex: usuário clicou no botão de Notas, Modelos ou Contexto)
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
 
   const {
     cliente,
@@ -148,7 +140,7 @@ export function ChatContextPanel({
       )}
     >
       {/* ─── Header do Painel ───────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.06] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
             Painel do Contato
@@ -165,63 +157,11 @@ export function ChatContextPanel({
         </button>
       </div>
 
-      {/* ─── Alternador de Abas (Modelos vs Contexto vs Notas) ───────────── */}
-      <div className="flex border-b border-black/[0.05] dark:border-white/[0.06] bg-[#F7F6F3] dark:bg-[#141414] p-1 gap-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('templates')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
-            activeTab === 'templates'
-              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
-              : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-          )}
-        >
-          <Zap className="h-3.5 w-3.5 text-[#C9A87C]" />
-          <span>Modelos</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('context')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
-            activeTab === 'context'
-              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
-              : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-          )}
-        >
-          <Sparkles className="h-3.5 w-3.5 text-[#C9A87C]" />
-          <span>Contexto</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('notes')}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition-all',
-            activeTab === 'notes'
-              ? 'bg-white dark:bg-[#202020] text-zinc-900 dark:text-zinc-100 shadow-sm font-semibold'
-              : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-          )}
-        >
-          <StickyNote className="h-3.5 w-3.5 text-zinc-500" />
-          <span>Notas ({notas.length})</span>
-        </button>
-      </div>
-
       {/* ─── Corpo do Painel ────────────────────────────────────────────── */}
-      {activeTab === 'templates' ? (
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <TemplatesListTab
-            chat={chat}
-            onInsertToComposer={onInsertToComposer ?? (() => {})}
-            onSendDirectly={onSendDirectly ?? (() => {})}
-          />
-        </div>
-      ) : activeTab === 'context' ? (
-        <div
-          className="flex-1 overflow-y-auto p-3.5 space-y-4"
-          style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
-        >
+      <div
+        className="flex-1 overflow-y-auto p-3.5 space-y-4"
+        style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
+      >
             <SuggestionCard 
               isUnknownContact={isUnknownContact} 
               messages={messages}
@@ -232,7 +172,16 @@ export function ChatContextPanel({
               }}
             />
 
-            {/* 1. Contexto Comercial / Oportunidade */}
+            {/* 1. Modelos (Temporário na stack para Fase 1) */}
+            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <TemplatesListTab
+                chat={chat}
+                onInsertToComposer={onInsertToComposer ?? (() => {})}
+                onSendDirectly={onSendDirectly ?? (() => {})}
+              />
+            </div>
+
+            {/* 2. Contexto Comercial / Oportunidade */}
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-1.5">
@@ -488,71 +437,70 @@ export function ChatContextPanel({
                   </Button>
                 )}
               </div>
-            </div>
           </div>
-        ) : (
-          /* ─── Aba: Notas Internas ───────────────────────────────────────── */
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {notas.length === 0 ? (
-                <div className="text-center py-10 px-4">
-                  <StickyNote className="h-8 w-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-2" />
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Nenhuma nota interna registrada nesta conversa.
-                  </p>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
-                    Anote detalhes importantes sobre preferências do cliente ou acordos fechados.
-                  </p>
-                </div>
-              ) : (
-                notas.map((n) => (
-                  <div
-                    key={n.id}
-                    className="group rounded-lg bg-white dark:bg-[#1E1E1E] border border-black/[0.05] dark:border-white/[0.06] p-2.5 text-xs shadow-sm"
-                  >
-                    <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                      {n.content}
-                    </p>
-                    <div className="flex items-center justify-between mt-2 pt-1 border-t border-black/[0.03] dark:border-white/[0.03]">
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
-                        {n.created_at ? new Date(n.created_at).toLocaleDateString('pt-BR') : ''}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteNota(n.id)}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-0.5"
-                        title="Excluir nota"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
 
-            <div
-              className="p-3 border-t border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#181818] space-y-2"
-              style={isDrawer ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
-            >
-              <Textarea
-                value={notaDraft}
-                onChange={e => setNotaDraft(e.target.value)}
-                placeholder="Escreva uma anotação interna..."
-                rows={3}
-                className="resize-none text-xs bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-black/[0.06] dark:border-white/[0.08]"
-              />
-              <Button
-                onClick={handleAddNota}
-                disabled={!notaDraft.trim() || submittingNota}
-                size="sm"
-                className="w-full bg-[#C9A87C] hover:bg-[#b89567] text-white text-xs h-8"
-              >
-                {submittingNota ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5 mr-1" /> Salvar Nota</>}
-              </Button>
-            </div>
+        {/* ─── Notas Internas e Rodapé Fixo ───────────────────────────────── */}
+        <div className="mt-6 border-t border-black/[0.05] dark:border-white/[0.06] pt-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <StickyNote className="h-4 w-4 text-zinc-500" />
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Notas Internas</span>
           </div>
-        )}
+          
+          <div className="space-y-2 mb-3">
+            {notas.length === 0 ? (
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic">
+                Nenhuma nota registrada.
+              </p>
+            ) : (
+              notas.map((n) => (
+                <div
+                  key={n.id}
+                  className="group rounded-lg bg-white dark:bg-[#1E1E1E] border border-black/[0.05] dark:border-white/[0.06] p-2.5 text-xs shadow-sm"
+                >
+                  <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-200 leading-relaxed">
+                    {n.content}
+                  </p>
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-black/[0.03] dark:border-white/[0.03]">
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
+                      {n.created_at ? new Date(n.created_at).toLocaleDateString('pt-BR') : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteNota(n.id)}
+                      className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity p-0.5"
+                      title="Excluir nota"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* ─── Input Fixo de Notas ────────────────────────────────────────── */}
+      <div
+        className="p-3 border-t border-black/[0.05] dark:border-white/[0.06] bg-[#FBFBF9] dark:bg-[#181818] space-y-2 shrink-0"
+        style={isDrawer ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
+      >
+        <Textarea
+          value={notaDraft}
+          onChange={e => setNotaDraft(e.target.value)}
+          placeholder="Escreva uma anotação interna..."
+          rows={2}
+          className="resize-none text-xs bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-black/[0.06] dark:border-white/[0.08]"
+        />
+        <Button
+          onClick={handleAddNota}
+          disabled={!notaDraft.trim() || submittingNota}
+          size="sm"
+          className="w-full bg-[#C9A87C] hover:bg-[#b89567] text-white text-xs h-8"
+        >
+          {submittingNota ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5 mr-1" /> Salvar Nota</>}
+        </Button>
+      </div>
         
       <FastLeadModal 
         isOpen={isFastLeadModalOpen}

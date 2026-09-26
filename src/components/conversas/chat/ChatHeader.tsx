@@ -2,7 +2,7 @@
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
-import { ArrowLeft, MoreVertical, Sparkles, StickyNote, Zap, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -17,33 +17,25 @@ import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 export interface ChatHeaderProps {
   chat: Chat | EnrichedChat;
   onBack?: () => void;
-  onToggleTemplates?: () => void;
-  onToggleContext?: () => void;
-  onToggleNotes: () => void;
+  onTogglePanel?: () => void;
+  isPanelOpen?: boolean;
   onArchive?: () => void;
   onBlock?: () => void;
   onPin?: () => void;
   onDelete?: () => void;
   onMarkUnread?: () => void;
-  templatesOpen?: boolean;
-  contextOpen?: boolean;
-  notesOpen: boolean;
 }
 
 export function ChatHeader({
   chat,
   onBack,
-  onToggleTemplates,
-  onToggleContext,
-  onToggleNotes,
+  onTogglePanel,
+  isPanelOpen,
   onArchive,
   onBlock,
   onPin,
   onDelete,
   onMarkUnread,
-  templatesOpen,
-  contextOpen,
-  notesOpen,
 }: ChatHeaderProps) {
   const contatoTipo =
     'contato_tipo' in chat && (chat as EnrichedChat).contato_tipo
@@ -71,11 +63,11 @@ export function ChatHeader({
       ) : null}
 
       <div
-        onClick={onToggleContext}
+        onClick={onTogglePanel}
         title="Toque para ver o contexto do contato"
         className={cn(
           'flex items-center gap-3 flex-1 min-w-0',
-          onToggleContext && 'cursor-pointer group/header select-none active:opacity-75 transition-opacity'
+          onTogglePanel && 'cursor-pointer group/header select-none active:opacity-75 transition-opacity'
         )}
       >
         <ContactAvatar
@@ -107,54 +99,34 @@ export function ChatHeader({
       </div>
 
       <div className="flex items-center gap-1">
-        {onToggleTemplates && (
-          <button
-            type="button"
-            aria-label="Modelos de Mensagem"
-            onClick={onToggleTemplates}
-            className={cn(
-              'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
-              templatesOpen
-                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
-            )}
-            title="Respostas Rápidas e Modelos"
-          >
-            <Zap className="h-4 w-4" />
-          </button>
-        )}
-
-        {onToggleContext && (
-          <button
-            type="button"
-            aria-label="Contexto Lunari"
-            onClick={onToggleContext}
-            className={cn(
-              'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
-              contextOpen
-                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
-                : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
-            )}
-            title="Ver Contexto Lunari"
-          >
-            <Sparkles className="h-4 w-4" />
-          </button>
-        )}
-
         <button
           type="button"
-          aria-label="Notas"
-          onClick={onToggleNotes}
-          className={cn(
-            'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
-            notesOpen
-              ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20 font-semibold'
-              : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
-          )}
-          title="Notas internas"
+          aria-label="Assistente Lu"
+          className="h-8 px-2.5 flex items-center gap-1.5 rounded-full text-[11px] font-semibold text-[#D4AF37] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 transition-colors border border-[#D4AF37]/20 mr-1"
+          title="Inteligência Lunari"
+          onClick={() => { /* TODO: Integrar Lu */ }}
         >
-          <StickyNote className="h-4 w-4" />
+          <Sparkles className="h-3 w-3" />
+          <span>Lu</span>
         </button>
+
+        {onTogglePanel && (
+          <button
+            type="button"
+            aria-label="Painel do Contato"
+            onClick={onTogglePanel}
+            className={cn(
+              'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
+              isPanelOpen
+                ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20'
+                : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
+            )}
+            title="Ver Painel do Contato"
+          >
+            {/* Ícone representando painel lateral */}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+          </button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
