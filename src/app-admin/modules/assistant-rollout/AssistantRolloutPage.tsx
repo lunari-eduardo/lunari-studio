@@ -230,9 +230,9 @@ export default function AssistantRolloutPage() {
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold">Rollout da Assistente Lu</h1>
+          <h1 className="text-2xl font-semibold">Rollout da Assistente Lua</h1>
           <p className="text-sm text-muted-foreground">
-            Controle quem pode acessar a Lu enquanto ela está em beta.
+            Controle quem pode acessar a Lua enquanto ela está em beta.
           </p>
         </div>
       </div>
@@ -253,7 +253,7 @@ export default function AssistantRolloutPage() {
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            A mudança é global e vale imediatamente. Fail-closed: em qualquer erro a Lu é escondida.
+            A mudança é global e vale imediatamente. Fail-closed: em qualquer erro a Lua é escondida.
           </p>
         </CardContent>
       </Card>

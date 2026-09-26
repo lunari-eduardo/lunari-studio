@@ -27,6 +27,9 @@ function getChangedFiles() {
       const filePath = rawLine.substring(3).trim().replace(/^"|"$/g, '');
       const fullPath = path.resolve(rootDir, filePath);
       
+      // Ignora Edge Functions do Supabase (executadas em runtime Deno)
+      if (filePath.startsWith('supabase') || filePath.startsWith('supabase/')) continue;
+
       try {
         const stats = fs.statSync(fullPath);
         if (stats.isDirectory()) {

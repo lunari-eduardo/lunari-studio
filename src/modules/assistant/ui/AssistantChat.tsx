@@ -400,7 +400,7 @@ export function AssistantChat() {
               <span className="font-medium tracking-tight">
                 {executingToolCount > 0
                   ? "Executando ação no Lunari..."
-                  : "Lu está pensando..."}
+                  : "Lua está pensando..."}
               </span>
             </div>
           )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Sparkles, UserPlus, Briefcase, Plus, Loader2 } from 'lucide-react';
 
@@ -26,20 +27,31 @@ export function SuggestionCard({
       
       setAnalyzing(true);
       try {
+        const payloadMessages = messages.map(m => ({
+          role: m.direction === 'inbound' ? 'user' : 'assistant',
+          content: m.content || ''
+        }));
+
+        // 1. Prioridade: Motor Oficial da Lua com Google Gemini
+        const { data, error } = await supabase.functions.invoke('conversas-ai-classify', {
+          body: { messages: payloadMessages }
+        });
+
+        if (!error && data && mounted) {
+          setIntent(data);
+          return;
+        }
+
+        // 2. Fallback: Edge Worker se a Edge Function estiver offline
         const response = await fetch('/api/conversas/classify-lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: messages.map(m => ({
-              role: m.direction === 'inbound' ? 'user' : 'assistant',
-              content: m.content || ''
-            }))
-          })
+          body: JSON.stringify({ messages: payloadMessages })
         });
         
         if (response.ok && mounted) {
-          const data = await response.json();
-          setIntent(data);
+          const fallbackData = await response.json();
+          setIntent(fallbackData);
         }
       } catch (err) {
         console.error('[SuggestionCard] Error classifying lead', err);
@@ -64,8 +76,8 @@ export function SuggestionCard({
     
   const desc = intent?.has_intent
     ? intent.category 
-      ? `A Lu percebeu interesse em ensaio ${intent.category}. Deseja iniciar o atendimento?`
-      : "A Lu percebeu interesse em orçamentos. Deseja iniciar o atendimento?"
+      ? `A Lua percebeu interesse em ensaio ${intent.category}. Deseja iniciar o atendimento?`
+      : "A Lua percebeu interesse em orçamentos. Deseja iniciar o atendimento?"
     : "Este número não possui vínculos no seu CRM. Deseja iniciar um atendimento?";
 
   return (
@@ -83,7 +95,7 @@ export function SuggestionCard({
             <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
               {title}
               {intent?.has_intent && (
-                <span className="bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wider">Lu</span>
+                <span className="bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wider">Lua</span>
               )}
             </h4>
             <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5 leading-snug">
