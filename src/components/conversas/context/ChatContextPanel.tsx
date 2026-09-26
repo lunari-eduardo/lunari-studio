@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 
 import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { Zap } from 'lucide-react';
+import { useCategorias } from '@/hooks/useCategorias';
 import { FastLeadModal } from './FastLeadModal';
 import { SuggestionCard } from './SuggestionCard';
 
@@ -103,6 +104,7 @@ export function ChatContextPanel({
     concluirTarefa,
   } = useConversasContactContext(chat);
 
+  const { categorias } = useCategorias();
   const [isFastLeadModalOpen, setIsFastLeadModalOpen] = useState(false);
   const [suggestedCategory, setSuggestedCategory] = useState<string | undefined>();
   const isUnknownContact = !isLinkedToCliente && !isLinkedToLead;
@@ -222,6 +224,7 @@ export function ChatContextPanel({
             <SuggestionCard 
               isUnknownContact={isUnknownContact} 
               messages={messages}
+              availableCategories={categorias.map(c => c.nome)}
               onCreateLead={(cat) => {
                 setSuggestedCategory(cat);
                 setIsFastLeadModalOpen(true);

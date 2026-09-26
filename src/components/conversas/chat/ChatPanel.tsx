@@ -443,6 +443,7 @@ export function ChatPanel({
             <ChatContextPanel
               chat={chat}
               notas={notas as Nota[]}
+              messages={mensagens}
               onAddNota={addNota}
               onDeleteNota={deleteNota}
               onClose={() => setSidePanelOpen(false)}
@@ -457,6 +458,7 @@ export function ChatPanel({
         <ChatContextPanel
           chat={chat}
           notas={notas as Nota[]}
+          messages={mensagens}
           onAddNota={addNota}
           onDeleteNota={deleteNota}
           onClose={() => {

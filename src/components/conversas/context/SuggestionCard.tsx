@@ -6,12 +6,14 @@ import { Sparkles, UserPlus, Briefcase, Plus, Loader2 } from 'lucide-react';
 export interface SuggestionCardProps {
   isUnknownContact: boolean;
   messages?: any[];
+  availableCategories?: string[];
   onCreateLead: (defaultCategory?: string) => void;
 }
 
 export function SuggestionCard({ 
   isUnknownContact,
   messages = [],
+  availableCategories = [],
   onCreateLead, 
 }: SuggestionCardProps) {
   const [analyzing, setAnalyzing] = useState(false);
@@ -22,8 +24,8 @@ export function SuggestionCard({
 
     let mounted = true;
     const analyze = async () => {
-      // Analisa apenas se tiver pelo menos 2 mensagens (para ter contexto mínimo)
-      if (messages.length < 2) return;
+      // Analisa se tiver ao menos 1 mensagem
+      if (messages.length < 1) return;
       
       setAnalyzing(true);
       try {
@@ -34,7 +36,10 @@ export function SuggestionCard({
 
         // 1. Prioridade: Motor Oficial da Lua com Google Gemini
         const { data, error } = await supabase.functions.invoke('conversas-ai-classify', {
-          body: { messages: payloadMessages }
+          body: {
+            messages: payloadMessages,
+            categories: availableCategories
+          }
         });
 
         if (!error && data && mounted) {
@@ -46,7 +51,10 @@ export function SuggestionCard({
         const response = await fetch('/api/conversas/classify-lead', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: payloadMessages })
+          body: JSON.stringify({
+            messages: payloadMessages,
+            categories: availableCategories
+          })
         });
         
         if (response.ok && mounted) {

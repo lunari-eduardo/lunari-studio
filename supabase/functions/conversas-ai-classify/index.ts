@@ -30,6 +30,8 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const messages = body?.messages;
+    const availableCategories: string[] = Array.isArray(body?.categories) ? body.categories : [];
+
     if (!Array.isArray(messages) || messages.length === 0) {
       return jsonResponse({ has_intent: false, category: null });
     }
@@ -39,16 +41,22 @@ Deno.serve(async (req) => {
       .map((m: any) => `${m.role === "user" ? "Cliente" : "Fotógrafo"}: ${m.content}`)
       .join("\n");
 
+    const categoriesInstruction = availableCategories.length > 0
+      ? `As categorias cadastradas neste estúdio de fotografia são: [${availableCategories.join(", ")}].
+Se o cliente tiver interesse em alguma dessas, você DEVE retornar EXATAMENTE o nome de uma dessas categorias no campo "category".`
+      : `Exemplos de categorias: Gestante, Newborn, Casamento, Ensaio Feminino, Aniversário, Infantil, Família, Corporativo, Formatura.`;
+
     const system = `Você é a Lua, assistente de inteligência comercial do Lunari Studio para fotógrafos profissionais.
 Sua função é analisar as últimas mensagens de uma conversa de WhatsApp entre um cliente potencial e o estúdio de fotografia.
-Você deve detectar se o cliente demonstra real intenção comercial de contratação (orçamento, disponibilidade de datas, valores, pacotes de fotos) e identificar a categoria de ensaio pretendida.`;
+Você deve detectar se o cliente demonstra real intenção comercial de contratação (orçamento, disponibilidade de datas, valores, pacotes de fotos) e identificar a categoria de ensaio pretendida.
+${categoriesInstruction}`;
 
     const prompt = `Analise as mensagens abaixo:
 ${conversationText}
 
 Responda exclusivamente com um JSON contendo:
 - "has_intent": boolean (true apenas se o cliente perguntar de preços, datas, pacotes ou demonstrar interesse em fechar/agendar)
-- "category": string ou null (a categoria de ensaio fotográfico identificada, ex.: "Gestante", "Newborn", "Casamento", "Ensaio Feminino", "Aniversário", "Infantil", "Família", "Corporativo", "Formatura", "Smash the Cake")
+- "category": string ou null (a categoria de ensaio identificada, preferencialmente uma das cadastradas no estúdio)
 
 Formato estrito:
 {
