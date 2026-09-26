@@ -45,6 +45,8 @@ import { HistoryCard } from './cards/HistoryCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
 import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
+import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
+import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
   notas: Nota[];
@@ -105,8 +107,11 @@ export function ChatContextPanel({
     availableCategories: categorias?.map(c => c.nome) || [],
   });
 
+  const { needsFollowUp, daysIgnored, suggestedCategory: followUpSuggestedCategory } = useFollowUpEngine(chat as Chat, lead);
+
   const resolvedCategoryForTemplates = (() => {
     if (chatState === 'UNKNOWN') return aiSuggestedCategory;
+    if (chatState === 'LEAD' && needsFollowUp) return followUpSuggestedCategory;
     if (chatState === 'SESSION') return sessoes?.[0]?.categoria; // ContextSessao tem categoria (string)
     return undefined;
   })();
@@ -150,6 +155,7 @@ export function ChatContextPanel({
         return (
           <>
             <LeadContextCard lead={lead} onOpenCRM={() => navigate('/leads')} />
+            {needsFollowUp && <FollowUpAlertCard daysIgnored={daysIgnored} />}
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}
