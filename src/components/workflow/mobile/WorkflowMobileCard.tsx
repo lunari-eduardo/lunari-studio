@@ -954,7 +954,11 @@ export function WorkflowMobileCard({
                     <div className="flex justify-between text-muted-foreground">
                       <span>Total de fotos extras:</span>
                       <span className="font-semibold text-foreground">
-                        {formatCurrencyBRL(extrasTotalCanonico)}
+                        {formatCurrencyBRL(
+                          extrasFullyPaid && extrasPagoCanonico > 0
+                            ? extrasPagoCanonico
+                            : extrasTotalCanonico
+                        )}
                       </span>
                     </div>
                     {extrasPendente > 0 && (
@@ -997,7 +1001,11 @@ export function WorkflowMobileCard({
                       <div className="flex justify-between text-muted-foreground">
                         <span>Fotos extras:</span>
                         <span className="text-foreground">
-                          + {formatCurrencyBRL(extrasTotalCanonico)}
+                          + {formatCurrencyBRL(
+                            extrasFullyPaid && extrasPagoCanonico > 0
+                              ? extrasPagoCanonico
+                              : extrasTotalCanonico
+                          )}
                         </span>
                       </div>
                     )}

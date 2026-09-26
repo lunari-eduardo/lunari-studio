@@ -54,7 +54,11 @@ export function SessionPaymentsSummaryCards({
               <div>
                 <p className="text-2xs sm:text-xs text-muted-foreground uppercase tracking-wide">Extras</p>
                 <p className="font-semibold text-accent-gold text-xs sm:text-sm">
-                  {formatCurrency(fin.extrasIdeal)}
+                  {formatCurrency(
+                    fin.extrasPend <= 0.001 && fin.extrasPago > 0
+                      ? fin.extrasPago
+                      : fin.extrasIdeal
+                  )}
                 </p>
                 <p className="text-2xs text-muted-foreground">
                   Pago {formatCurrency(fin.extrasPago)} · Pend {formatCurrency(fin.extrasPend)}

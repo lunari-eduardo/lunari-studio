@@ -155,7 +155,14 @@ export function WorkflowCardExpanded({
   const extrasPagoCanonico = fin.extrasPago;
   const extrasPendente = fin.extrasPend;
   const extrasFullyPaid = fin.extrasPend <= 0.001;
-  const valorFotoExtraTotal = formatCurrency(extrasTotalCanonico);
+  // Quando extras estão 100% pagos e o valor pago difere do bruto (desconto
+  // global consumido pela base), exibe o valor realmente cobrado/pago para
+  // evitar a confusão de mostrar "R$ 294 Pago" quando o cliente pagou R$ 280.
+  const valorFotoExtraTotal = formatCurrency(
+    extrasFullyPaid && extrasPagoCanonico > 0
+      ? extrasPagoCanonico
+      : extrasTotalCanonico
+  );
 
   // Totais visuais vêm da RPC com fallback resiliente para o snapshot local da sessão.
   const valorTotalFallback = parseCurrency(String(session.total || "0"));
