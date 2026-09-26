@@ -314,8 +314,25 @@ export function useSupabaseLeads() {
 
   // Convert lead to client (creates or links to existing client)
   const convertToClient = useCallback(
-    async (leadId: string) => {
-      const lead = leads.find((l) => l.id === leadId);
+    async (leadId: string, leadDataOverride?: Partial<Lead>) => {
+      let lead = leads.find((l) => l.id === leadId);
+
+      if (!lead && leadDataOverride && leadDataOverride.nome) {
+        lead = { id: leadId, ...leadDataOverride } as Lead;
+      }
+
+      if (!lead && userId) {
+        const { data: freshLead } = await supabase
+          .from('leads')
+          .select('*')
+          .eq('id', leadId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (freshLead) {
+          lead = supabaseLeadToFrontend(freshLead);
+        }
+      }
+
       if (!lead) return null;
 
       // Check if already has clienteId

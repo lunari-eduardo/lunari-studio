@@ -18,14 +18,14 @@ export function SuggestionCard({
   const [analyzing, setAnalyzing] = useState(false);
   const [intent, setIntent] = useState<{ has_intent: boolean; category: string | null } | null>(null);
 
+  const categoriesKey = availableCategories.join(',');
+  const messagesCount = messages.length;
+
   useEffect(() => {
-    if (!isUnknownContact || messages.length === 0 || intent) return;
+    if (!isUnknownContact || messagesCount === 0) return;
 
     let mounted = true;
     const analyze = async () => {
-      // Analisa se tiver ao menos 1 mensagem
-      if (messages.length < 1) return;
-      
       setAnalyzing(true);
       try {
         const payloadMessages = messages.map(m => ({
@@ -54,13 +54,25 @@ export function SuggestionCard({
       }
     };
 
-    // Debounce analysis
-    const timer = setTimeout(analyze, 1000);
+    // Debounce ágil (300ms)
+    const timer = setTimeout(analyze, 300);
     return () => {
       mounted = false;
       clearTimeout(timer);
     };
-  }, [isUnknownContact, messages, intent]);
+  }, [isUnknownContact, messagesCount, categoriesKey]);
+
+  // Detector instantâneo local (garante que, ao clicar, nunca fique vazio se a categoria estiver mencionada nas mensagens)
+  const getResolvedCategory = () => {
+    if (intent?.category) return intent.category;
+    const allText = messages.map(m => m.content || '').join(' ').toLowerCase();
+    for (const cat of availableCategories) {
+      if (allText.includes(cat.toLowerCase().trim())) {
+        return cat;
+      }
+    }
+    return undefined;
+  };
 
   if (!isUnknownContact) return null;
 
@@ -98,7 +110,7 @@ export function SuggestionCard({
           </div>
           <Button 
             size="sm" 
-            onClick={() => onCreateLead(intent?.category || undefined)}
+            onClick={() => onCreateLead(getResolvedCategory())}
             className="w-full bg-[#C9A87C] hover:bg-[#b89567] text-white text-[11px] h-7 px-2 transition-all"
           >
             <Plus className="h-3 w-3 mr-1.5" />

@@ -100,6 +100,7 @@ export function ChatContextPanel({
     isLinkedToLead,
     vincularCliente,
     vincularLead,
+    vincularAmbos,
     criarTarefaRapida,
     concluirTarefa,
   } = useConversasContactContext(chat);
@@ -562,8 +563,7 @@ export function ChatContextPanel({
         defaultCategory={suggestedCategory}
         chat={chat}
         onLeadCreated={async (leadId, clienteId) => {
-          if (clienteId) await vincularCliente(clienteId);
-          await vincularLead(leadId);
+          await vincularAmbos({ leadId, clienteId });
         }}
       />
     </Container>

@@ -402,6 +402,53 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
   });
 
+  const linkAmbosMutation = useMutation({
+    mutationFn: async ({ leadId, clienteId }: { leadId?: string; clienteId?: string }) => {
+      if (!chatId || !userId) throw new Error('Chat não selecionado');
+
+      const chatUpdates: { cliente_id?: string; lead_id?: string; updated_at: string } = {
+        updated_at: new Date().toISOString(),
+      };
+      if (clienteId) chatUpdates.cliente_id = clienteId;
+      if (leadId) chatUpdates.lead_id = leadId;
+
+      const { error: chatError } = await (supabase
+        .from('conversas_chats')
+        .update as any)(chatUpdates)
+        .eq('id', chatId);
+
+      if (chatError) throw chatError;
+
+      if (contatoId) {
+        const contatoUpdates: { cliente_id?: string; lead_id?: string; tipo?: string; updated_at: string } = {
+          updated_at: new Date().toISOString(),
+        };
+        if (clienteId) {
+          contatoUpdates.cliente_id = clienteId;
+          contatoUpdates.tipo = 'cliente';
+        }
+        if (leadId) {
+          contatoUpdates.lead_id = leadId;
+          if (!clienteId) contatoUpdates.tipo = 'lead';
+        }
+        await (supabase
+          .from('conversas_contatos')
+          .update as any)(contatoUpdates)
+          .eq('id', contatoId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
+    },
+    onError: (err) => {
+      console.error('[linkAmbosMutation] Erro:', err);
+      toast.error('Não foi possível vincular o lead/cliente à conversa.');
+    },
+  });
+
   const createQuickTaskMutation = useMutation({
     mutationFn: async (title: string) => {
       if (!cliente?.id || !userId) throw new Error('Cliente não identificado');
@@ -460,6 +507,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     isLinkedToLead: !!lead?.id,
     vincularCliente: linkClienteMutation.mutateAsync,
     vincularLead: linkLeadMutation.mutateAsync,
+    vincularAmbos: linkAmbosMutation.mutateAsync,
     criarTarefaRapida: createQuickTaskMutation.mutateAsync,
     concluirTarefa: completeTaskMutation.mutateAsync,
   };

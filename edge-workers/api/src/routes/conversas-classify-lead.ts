@@ -52,6 +52,7 @@ Retorne exclusivamente um JSON no seguinte formato:
   "category": string | null
 }`;
 
+    let geminiError = '';
     // 1. Tenta usar o Google Gemini oficial da Lua configurado no banco Supabase
     try {
       const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -63,69 +64,103 @@ Retorne exclusivamente um JSON no seguinte formato:
 
       if (keyRow?.api_key) {
         const rawApiKey = await decryptToken(keyRow.api_key, c.env.SUPABASE_SERVICE_ROLE_KEY);
-        if (rawApiKey && rawApiKey.startsWith('AIza')) {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${rawApiKey}`;
-          const geminiRes = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: systemPrompt },
-                    { text: `Conversa recente:\n${conversationText}` }
-                  ]
-                }
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json'
-              }
-            })
-          });
-
-          if (geminiRes.ok) {
-            const geminiData: any = await geminiRes.json();
-            const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) {
-              const parsed = JSON.parse(text);
-              return c.json({
-                has_intent: !!parsed.has_intent,
-                category: parsed.category || null
+        if (rawApiKey && typeof rawApiKey === 'string' && rawApiKey.trim().length > 15) {
+          const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.5-flash'];
+          
+          for (const model of candidateModels) {
+            try {
+              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${rawApiKey.trim()}`;
+              const geminiRes = await fetch(geminiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [
+                    {
+                      parts: [
+                        { text: systemPrompt },
+                        { text: `Conversa recente:\n${conversationText}` }
+                      ]
+                    }
+                  ],
+                  generationConfig: {
+                    responseMimeType: 'application/json'
+                  }
+                })
               });
+
+              if (geminiRes.ok) {
+                const geminiData: any = await geminiRes.json();
+                const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                  const cleanedText = text.replace(/```(?:json)?\s*([\s\S]*?)```/, '$1').trim();
+                  const parsed = JSON.parse(cleanedText);
+                  return c.json({
+                    has_intent: !!parsed.has_intent,
+                    category: parsed.category || null
+                  });
+                }
+              } else {
+                console.warn(`[conversas-classify-lead] Gemini ${model} retornou status:`, geminiRes.status);
+              }
+            } catch (modelErr) {
+              console.warn(`[conversas-classify-lead] Erro ao chamar modelo ${model}:`, modelErr);
             }
-          } else {
-            console.warn('[conversas-classify-lead] Gemini API retornou status:', geminiRes.status);
           }
         }
       }
-    } catch (geminiErr) {
+    } catch (geminiErr: any) {
+      geminiError = geminiErr?.message || String(geminiErr);
       console.warn('[conversas-classify-lead] Erro ao chamar Google Gemini, tentando fallback:', geminiErr);
     }
 
     // 2. Fallback resiliente: Cloudflare Workers AI
     if (c.env.AI) {
-      const response = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
-        messages: [
-          { role: 'system', content: 'You are an AI that outputs exclusively raw JSON objects without markdown wrappers.' },
-          { role: 'user', content: `${systemPrompt}\n\nConversa:\n${conversationText}\n\nJSON:` }
-        ]
-      });
-
-      let resultStr = '';
-      if (typeof response === 'string') {
-        resultStr = response;
-      } else if (response && 'response' in response) {
-        resultStr = (response as any).response;
-      }
-
-      const jsonMatch = resultStr.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return c.json({
-          has_intent: !!parsed.has_intent,
-          category: parsed.category || null
+      try {
+        const response = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
+          messages: [
+            { role: 'system', content: 'You are an AI that outputs exclusively raw JSON objects without markdown wrappers.' },
+            { role: 'user', content: `${systemPrompt}\n\nConversa:\n${conversationText}\n\nJSON:` }
+          ]
         });
+
+        let resultStr = '';
+        if (typeof response === 'string') {
+          resultStr = response;
+        } else if (response && 'response' in response) {
+          resultStr = (response as any).response;
+        }
+
+        const jsonMatch = resultStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return c.json({
+            has_intent: !!parsed.has_intent,
+            category: parsed.category || null
+          });
+        }
+      } catch (cfAiErr) {
+        console.warn('[conversas-classify-lead] Cloudflare Workers AI falhou:', cfAiErr);
       }
+    }
+
+    // 3. Fallback Heurístico (Resiliência Máxima por Palavras-Chave de Intenção e Categorias)
+    const lowerConv = conversationText.toLowerCase();
+    const intentKeywords = ['quanto', 'valor', 'preco', 'preço', 'pacote', 'orcamento', 'orçamento', 'data', 'agend', 'ensaio', 'foto'];
+    const hasIntentKeyword = intentKeywords.some(kw => lowerConv.includes(kw));
+
+    let detectedCategory: string | null = null;
+    for (const cat of availableCategories) {
+      if (lowerConv.includes(cat.toLowerCase().trim())) {
+        detectedCategory = cat;
+        break;
+      }
+    }
+
+    if (detectedCategory || hasIntentKeyword) {
+      return c.json({
+        has_intent: true,
+        category: detectedCategory
+      });
     }
 
     return c.json({ has_intent: false, category: null });

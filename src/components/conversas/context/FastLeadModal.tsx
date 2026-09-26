@@ -46,35 +46,33 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
   const [valorEstimado, setValorEstimado] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sincroniza nome quando o modal abre
+  // Sincroniza campos e categoria quando o modal abre ou os dados mudam
   useEffect(() => {
     if (isOpen) {
       setNome(chat.contato_nome || '');
       setValorEstimado('');
-    }
-  }, [isOpen, chat.contato_nome]);
 
-  // Inteligência de Correspondência (Exata e Parcial/Fuzzy) com as categorias do estúdio
-  useEffect(() => {
-    if (isOpen && defaultCategory && categorias.length > 0) {
-      const target = defaultCategory.toLowerCase().trim();
-      
-      // 1. Tenta correspondência exata
-      let matched = categorias.find(c => c.nome.toLowerCase().trim() === target);
-      
-      // 2. Tenta correspondência parcial (ex: "Ensaio Gestante" contendo "Gestante")
-      if (!matched) {
-        matched = categorias.find(c => {
-          const catName = c.nome.toLowerCase().trim();
-          return catName.includes(target) || target.includes(catName);
-        });
-      }
-
-      if (matched) {
-        setCategoria(matched.id);
+      if (defaultCategory && categorias.length > 0) {
+        const target = defaultCategory.toLowerCase().trim();
+        // 1. Tenta correspondência exata
+        let matched = categorias.find(c => c.nome.toLowerCase().trim() === target);
+        // 2. Tenta correspondência parcial (ex: "Ensaio Gestante" contendo "Gestante")
+        if (!matched) {
+          matched = categorias.find(c => {
+            const catName = c.nome.toLowerCase().trim();
+            return catName.includes(target) || target.includes(catName);
+          });
+        }
+        if (matched) {
+          setCategoria(matched.id);
+        } else {
+          setCategoria('');
+        }
+      } else {
+        setCategoria('');
       }
     }
-  }, [isOpen, defaultCategory, categorias]);
+  }, [isOpen, chat.contato_nome, defaultCategory, categorias]);
 
   // Status inicial padrão é o primeiro da fila (ex: "novo_interessado")
   const statusInicial = getDefaultOpenKey() || 'novo_interessado';
@@ -117,7 +115,7 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
       }
 
       // 3. Converte para Cliente (cria no CRM e vincula ao Lead)
-      const cliente = await convertToClient(newLead.id);
+      const cliente = await convertToClient(newLead.id, newLead);
 
       // 4. Retorna os IDs para vincular à conversa
       await onLeadCreated(newLead.id, cliente?.id);
@@ -198,7 +196,7 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
               </Label>
               <Select value={categoria} onValueChange={setCategoria}>
                 <SelectTrigger className="h-9 rounded-xl text-xs">
-                  <SelectValue placeholder="Selecione o ensaio..." />
+                  <SelectValue placeholder="Selecione a categoria..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
                   {categorias.map((cat) => (
