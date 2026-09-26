@@ -7,6 +7,7 @@ export interface ConversasTemplate {
   user_id: string;
   nome: string;
   conteudo: string;
+  categoria?: string | null;
   variaveis?: string[] | null;
   created_at: string;
   updated_at: string;
@@ -44,14 +45,17 @@ export function renderTemplateText(templateText: string, context?: TemplateConte
 export const DEFAULT_TEMPLATES_SUGGESTIONS = [
   {
     nome: 'Chave Pix / Pagamento',
+    categoria: 'Financeiro',
     conteudo: 'Olá {nome}, tudo bem?\n\nSeguem os dados para pagamento via Pix:\nChave: {pix}\n\nAssim que realizar o pagamento, por favor envie o comprovante por aqui. Muito obrigado!',
   },
   {
     nome: 'Orientações Pré-Ensaio',
+    categoria: 'Pré-Ensaio',
     conteudo: '{saudacao}, {nome}!\n\nPassando para lembrar das recomendações para o nosso ensaio fotográfico:\n- Chegue com 15 minutos de antecedência;\n- Traga as opções de looks combinadas;\n- Venha com maquiagem/cabelo já preparados conforme alinhado.\n\nQualquer dúvida estou à disposição!',
   },
   {
     nome: 'Fotos Prontas / Envio de Galeria',
+    categoria: 'Pós-Venda',
     conteudo: 'Olá {nome}! Boas notícias! 🎉\n\nAs fotos do seu ensaio já estão disponíveis na sua galeria online exclusiva.\n\nAcesse o link para conferir e selecionar suas fotos favoritas. Espero que você ame o resultado tanto quanto eu!',
   },
 ];
@@ -84,10 +88,12 @@ export function useConversasTemplates() {
     mutationFn: async ({
       nome,
       conteudo,
+      categoria,
       variaveis,
     }: {
       nome: string;
       conteudo: string;
+      categoria?: string | null;
       variaveis?: string[];
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,6 +105,7 @@ export function useConversasTemplates() {
           user_id: user.id,
           nome: nome.trim(),
           conteudo: conteudo.trim(),
+          categoria: categoria || null,
           variaveis: (variaveis || []) as any,
         })
         .select()
@@ -121,11 +128,13 @@ export function useConversasTemplates() {
       id,
       nome,
       conteudo,
+      categoria,
       variaveis,
     }: {
       id: string;
       nome: string;
       conteudo: string;
+      categoria?: string | null;
       variaveis?: string[];
     }) => {
       const { error } = await supabase
@@ -133,6 +142,7 @@ export function useConversasTemplates() {
         .update({
           nome: nome.trim(),
           conteudo: conteudo.trim(),
+          categoria: categoria || null,
           variaveis: (variaveis || []) as any,
           updated_at: new Date().toISOString(),
         })
@@ -176,6 +186,7 @@ export function useConversasTemplates() {
         user_id: user.id,
         nome: t.nome,
         conteudo: t.conteudo,
+        categoria: t.categoria || null,
         variaveis: [] as any,
       }));
 

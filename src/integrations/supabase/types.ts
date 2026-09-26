@@ -3837,6 +3837,7 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          categoria: string | null
           updated_at: string
           user_id: string
           variaveis: Json | null
@@ -3846,6 +3847,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
+          categoria?: string | null
           updated_at?: string
           user_id: string
           variaveis?: Json | null
@@ -3855,6 +3857,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+          categoria?: string | null
           updated_at?: string
           user_id?: string
           variaveis?: Json | null

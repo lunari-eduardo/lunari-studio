@@ -16,7 +16,7 @@ export interface TemplateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateToEdit?: ConversasTemplate | null;
-  onSave: (data: { nome: string; conteudo: string }) => Promise<void>;
+  onSave: (data: { nome: string; conteudo: string; categoria?: string }) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -28,6 +28,8 @@ const AVAILABLE_VARIABLES = [
   { tag: '{nome_completo}', label: 'Nome Completo', desc: 'Nome completo' },
 ];
 
+import { useCategorias } from '@/hooks/useCategorias';
+
 export function TemplateModal({
   open,
   onOpenChange,
@@ -37,15 +39,19 @@ export function TemplateModal({
 }: TemplateModalProps) {
   const [nome, setNome] = useState('');
   const [conteudo, setConteudo] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const { categorias = [] } = useCategorias();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (templateToEdit) {
       setNome(templateToEdit.nome);
       setConteudo(templateToEdit.conteudo);
+      setCategoria(templateToEdit.categoria || '');
     } else {
       setNome('');
       setConteudo('');
+      setCategoria('');
     }
   }, [templateToEdit, open]);
 
@@ -71,7 +77,11 @@ export function TemplateModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nome.trim() || !conteudo.trim() || isLoading) return;
-    await onSave({ nome: nome.trim(), conteudo: conteudo.trim() });
+    await onSave({ 
+      nome: nome.trim(), 
+      conteudo: conteudo.trim(),
+      categoria: categoria || undefined
+    });
     onOpenChange(false);
   };
 
@@ -98,6 +108,27 @@ export function TemplateModal({
               required
               autoFocus
             />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 block mb-1">
+              Categoria / Contexto <span className="text-zinc-400 font-normal">(Opcional)</span>
+            </label>
+            <select
+              value={categoria}
+              onChange={e => setCategoria(e.target.value)}
+              className="w-full text-xs h-9 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-black/[0.06] dark:border-white/[0.08] px-3 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10"
+            >
+              <option value="">Geral / Sem Categoria</option>
+              <option value="Financeiro">Financeiro / Pagamentos</option>
+              <option value="Pré-Ensaio">Pré-Ensaio / Recomendações</option>
+              <option value="Pós-Venda">Pós-Venda / Entregas</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.nome}>
+                  {cat.nome}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

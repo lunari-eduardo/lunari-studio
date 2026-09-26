@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,12 +31,14 @@ import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 
 export interface TemplatesListTabProps {
   chat: Chat | EnrichedChat;
+  suggestedCategory?: string;
   onInsertToComposer: (text: string) => void;
   onSendDirectly: (text: string) => Promise<void> | void;
 }
 
 export function TemplatesListTab({
   chat,
+  suggestedCategory,
   onInsertToComposer,
   onSendDirectly,
 }: TemplatesListTabProps) {
@@ -70,12 +73,26 @@ export function TemplatesListTab({
   );
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return templates;
-    const q = search.toLowerCase();
-    return templates.filter(
-      t => t.nome.toLowerCase().includes(q) || t.conteudo.toLowerCase().includes(q)
-    );
-  }, [templates, search]);
+    let result = templates;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        t => t.nome.toLowerCase().includes(q) || t.conteudo.toLowerCase().includes(q) || (t.categoria && t.categoria.toLowerCase().includes(q))
+      );
+    }
+    
+    // Sort logic: exact match with suggestedCategory comes first
+    if (suggestedCategory) {
+      result = [...result].sort((a, b) => {
+        const aMatch = a.categoria === suggestedCategory;
+        const bMatch = b.categoria === suggestedCategory;
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+        return 0;
+      });
+    }
+    return result;
+  }, [templates, search, suggestedCategory]);
 
   const handleEdit = (template: ConversasTemplate) => {
     setEditingTemplate(template);
@@ -87,7 +104,7 @@ export function TemplatesListTab({
     setModalOpen(true);
   };
 
-  const handleSaveModal = async (data: { nome: string; conteudo: string }) => {
+  const handleSaveModal = async (data: { nome: string; conteudo: string; categoria?: string }) => {
     if (editingTemplate) {
       await updateTemplate({ id: editingTemplate.id, ...data });
     } else {
@@ -187,14 +204,27 @@ export function TemplatesListTab({
             return (
               <div
                 key={template.id}
-                className="group rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:border-black/[0.12] dark:hover:border-white/[0.15] transition-all"
+                className={cn(
+                  "group rounded-xl border bg-white dark:bg-[#1A1A1A] p-3 transition-all",
+                  template.categoria === suggestedCategory && suggestedCategory
+                    ? "border-[#D4AF37]/40 shadow-[0_2px_8px_rgba(212,175,55,0.1)] dark:border-[#D4AF37]/30"
+                    : "border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:border-black/[0.12] dark:hover:border-white/[0.15]"
+                )}
               >
                 {/* Header do Card */}
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                    {template.nome}
-                  </h4>
-                  <div className="flex items-center gap-1">
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div>
+                    <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                      {template.nome}
+                    </h4>
+                    {template.categoria && (
+                      <span className="inline-block mt-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                        {template.categoria}
+                        {template.categoria === suggestedCategory && ' (Sugerido)'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button

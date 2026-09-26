@@ -382,6 +382,7 @@ export interface DbConversasTemplate {
     user_id: string;
     nome: string;
     conteudo: string;
+    categoria: string | null;
     variaveis: Json;
     created_at: string;
     updated_at: string;
@@ -391,6 +392,7 @@ export interface DbConversasTemplate {
     user_id: string;
     nome: string;
     conteudo: string;
+    categoria?: string | null;
     variaveis?: Json;
     created_at?: string;
     updated_at?: string;
@@ -400,6 +402,7 @@ export interface DbConversasTemplate {
     user_id?: string;
     nome?: string;
     conteudo?: string;
+    categoria?: string | null;
     variaveis?: Json;
     created_at?: string;
     updated_at?: string;

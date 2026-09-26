@@ -36,8 +36,15 @@ import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { Zap } from 'lucide-react';
 import { useCategorias } from '@/hooks/useCategorias';
 import { FastLeadModal } from './FastLeadModal';
-import { SuggestionCard } from './SuggestionCard';
 
+import { useChatStateResolver } from '@/hooks/useChatStateResolver';
+import { InterestCard } from './cards/InterestCard';
+import { LeadContextCard } from './cards/LeadContextCard';
+import { WorkflowContextCard } from './cards/WorkflowContextCard';
+import { HistoryCard } from './cards/HistoryCard';
+import { QuickActionsCard } from './cards/QuickActionsCard';
+import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
+import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
   notas: Nota[];
@@ -76,31 +83,33 @@ export function ChatContextPanel({
   const navigate = useNavigate();
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
-  const [taskDraft, setTaskDraft] = useState('');
-  const [submittingTask, setSubmittingTask] = useState(false);
 
   const {
     cliente,
     lead,
     sessoes,
-    tarefas,
-    orcamentos,
     cobrancas,
-    leadsPerdidos,
-    isLoading,
-    isLinkedToCliente,
-    isLinkedToLead,
-    vincularCliente,
-    vincularLead,
     vincularAmbos,
-    criarTarefaRapida,
-    concluirTarefa,
   } = useConversasContactContext(chat);
+
+  const chatState = useChatStateResolver({ cliente, lead, sessoes });
 
   const { categorias } = useCategorias();
   const [isFastLeadModalOpen, setIsFastLeadModalOpen] = useState(false);
-  const [suggestedCategory, setSuggestedCategory] = useState<string | undefined>();
-  const isUnknownContact = !isLinkedToCliente && !isLinkedToLead;
+  const [manualSuggestedCategory, setManualSuggestedCategory] = useState<string | undefined>();
+  const isUnknownContact = chatState === 'UNKNOWN';
+
+  const { suggestedCategory: aiSuggestedCategory, analyzing } = useLeadIntentAnalyzer({
+    isUnknownContact,
+    messages,
+    availableCategories: categorias?.map(c => c.nome) || [],
+  });
+
+  const resolvedCategoryForTemplates = (() => {
+    if (chatState === 'UNKNOWN') return aiSuggestedCategory;
+    if (chatState === 'SESSION') return sessoes?.[0]?.categoria; // ContextSessao tem categoria (string)
+    return undefined;
+  })();
 
   const handleAddNota = async () => {
     if (!notaDraft.trim() || submittingNota) return;
@@ -113,18 +122,78 @@ export function ChatContextPanel({
     }
   };
 
-  const handleCreateTask = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!taskDraft.trim() || submittingTask) return;
-    try {
-      setSubmittingTask(true);
-      await criarTarefaRapida(taskDraft.trim());
-      setTaskDraft('');
-      toast.success('Tarefa adicionada!');
-    } catch {
-      // toast já tratado
-    } finally {
-      setSubmittingTask(false);
+  const renderStateCards = () => {
+    switch (chatState) {
+      case 'UNKNOWN':
+        return (
+          <>
+            <InterestCard 
+              suggestedCategory={aiSuggestedCategory} 
+              onCreateLead={(cat) => {
+                setManualSuggestedCategory(cat);
+                setIsFastLeadModalOpen(true);
+              }}
+            />
+            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <TemplatesListTab
+                chat={chat}
+                suggestedCategory={resolvedCategoryForTemplates}
+                onInsertToComposer={onInsertToComposer ?? (() => {})}
+                onSendDirectly={onSendDirectly ?? (() => {})}
+              />
+            </div>
+            <QuickActionsCard state={chatState} hasCliente={false} onNavigate={navigate} />
+          </>
+        );
+      
+      case 'LEAD':
+        return (
+          <>
+            <LeadContextCard lead={lead} onOpenCRM={() => navigate('/leads')} />
+            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <TemplatesListTab
+                chat={chat}
+                suggestedCategory={resolvedCategoryForTemplates}
+                onInsertToComposer={onInsertToComposer ?? (() => {})}
+                onSendDirectly={onSendDirectly ?? (() => {})}
+              />
+            </div>
+            <QuickActionsCard state={chatState} hasCliente={!!cliente?.id} onNavigate={navigate} />
+          </>
+        );
+
+      case 'SESSION':
+        return (
+          <>
+            <WorkflowContextCard sessao={sessoes?.[0]} onOpenWorkflow={() => navigate('/workflow')} />
+            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <TemplatesListTab
+                chat={chat}
+                suggestedCategory={resolvedCategoryForTemplates}
+                onInsertToComposer={onInsertToComposer ?? (() => {})}
+                onSendDirectly={onSendDirectly ?? (() => {})}
+              />
+            </div>
+            <FinancialSummaryCard cobrancas={cobrancas} onNavigate={navigate} />
+            <QuickActionsCard state={chatState} hasCliente={!!cliente?.id} onNavigate={navigate} />
+          </>
+        );
+
+      case 'POST_SALE':
+        return (
+          <>
+            <HistoryCard cliente={cliente} onNavigate={navigate} />
+            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+              <TemplatesListTab
+                chat={chat}
+                suggestedCategory={resolvedCategoryForTemplates}
+                onInsertToComposer={onInsertToComposer ?? (() => {})}
+                onSendDirectly={onSendDirectly ?? (() => {})}
+              />
+            </div>
+            <QuickActionsCard state={chatState} hasCliente={true} onNavigate={navigate} />
+          </>
+        );
     }
   };
 
@@ -162,282 +231,7 @@ export function ChatContextPanel({
         className="flex-1 overflow-y-auto p-3.5 space-y-4"
         style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
       >
-            <SuggestionCard 
-              isUnknownContact={isUnknownContact} 
-              messages={messages}
-              availableCategories={categorias.map(c => c.nome)}
-              onCreateLead={(cat) => {
-                setSuggestedCategory(cat);
-                setIsFastLeadModalOpen(true);
-              }}
-            />
-
-            {/* 1. Modelos (Temporário na stack para Fase 1) */}
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <TemplatesListTab
-                chat={chat}
-                onInsertToComposer={onInsertToComposer ?? (() => {})}
-                onSendDirectly={onSendDirectly ?? (() => {})}
-              />
-            </div>
-
-            {/* 2. Contexto Comercial / Oportunidade */}
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <Briefcase className="h-3.5 w-3.5 text-[#C9A87C]" />
-                  <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                    Oportunidade Comercial
-                  </span>
-                </div>
-                {isLinkedToLead && (
-                  <button
-                    type="button"
-                    onClick={() => navigate('/leads')}
-                    className="text-[11px] text-[#B8925F] dark:text-[#D4AF37] hover:underline flex items-center gap-0.5"
-                  >
-                    Ver CRM <ChevronRight className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-
-              {isLinkedToLead && lead ? (
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between py-1 border-b border-black/[0.04] dark:border-white/[0.04]">
-                    <span className="text-zinc-500 dark:text-zinc-400">Estágio:</span>
-                    <span className="font-medium text-zinc-800 dark:text-zinc-200 capitalize">
-                      {lead.status.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  {lead.valor_estimado != null && (
-                    <div className="flex items-center justify-between py-1 border-b border-black/[0.04] dark:border-white/[0.04]">
-                      <span className="text-zinc-500 dark:text-zinc-400">Valor Estimado:</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(lead.valor_estimado)}
-                      </span>
-                    </div>
-                  )}
-                  {lead.origem && (
-                    <div className="flex items-center justify-between py-1 border-b border-black/[0.04] dark:border-white/[0.04]">
-                      <span className="text-zinc-500 dark:text-zinc-400">Origem:</span>
-                      <span className="text-zinc-700 dark:text-zinc-300">{lead.origem}</span>
-                    </div>
-                  )}
-                  {lead.needs_follow_up && (
-                    <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-1.5">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>Follow-up pendente para este contato!</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-2.5">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                    Nenhum lead ou proposta em aberto para este contato.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/leads')}
-                    className="w-full text-xs h-8 border-dashed hover:border-solid hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    <Plus className="h-3 w-3 mr-1 text-[#C9A87C]" /> Criar Lead no CRM
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* 2. Sessões & Workflow */}
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-[#C9A87C]" />
-                  <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                    Sessões & Workflow
-                  </span>
-                </div>
-                {isLinkedToCliente && (
-                  <button
-                    type="button"
-                    onClick={() => navigate('/workflow')}
-                    className="text-[11px] text-[#B8925F] dark:text-[#D4AF37] hover:underline flex items-center gap-0.5"
-                  >
-                    Workflow <ChevronRight className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-
-              {sessoes.length > 0 ? (
-                <div className="space-y-2">
-                  {sessoes.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => navigate('/workflow')}
-                      className="p-2.5 rounded-lg border border-black/[0.04] dark:border-white/[0.04] hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-medium text-zinc-800 dark:text-zinc-200 truncate">
-                          {s.categoria ? `${s.categoria}${s.pacote ? ` • ${s.pacote}` : ''}` : 'Sessão Fotográfica'}
-                        </span>
-                        <span className="text-[11px] font-mono text-zinc-500">
-                          {formatDate(s.data_sessao)}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500">
-                        <span className="capitalize">
-                          {s.status_workflow?.replace(/_/g, ' ') || 'Em andamento'}
-                        </span>
-                        {s.valor_total != null && (
-                          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                            {formatCurrency(s.valor_total)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/agenda')}
-                    className="w-full text-xs h-7 text-[#B8925F] dark:text-[#D4AF37] hover:bg-amber-50 dark:hover:bg-amber-950/20"
-                  >
-                    + Agendar Nova Sessão
-                  </Button>
-                </div>
-              ) : isLinkedToCliente ? (
-                <div className="text-center py-2.5">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                    Nenhuma sessão agendada para este cliente.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/agenda')}
-                    className="w-full text-xs h-8 border-dashed hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    <Plus className="h-3 w-3 mr-1 text-[#C9A87C]" /> Agendar Sessão
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-2.5">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
-                    Vincule a um cliente para acompanhar histórico de sessões.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/clientes')}
-                    className="w-full text-xs h-8 border-dashed hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    <User className="h-3 w-3 mr-1 text-[#C9A87C]" /> Acessar Clientes
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* 3. Tarefas Rápidas */}
-            {isLinkedToCliente && (
-              <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-[#C9A87C]" />
-                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                      Tarefas Pendentes
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 font-mono">{tarefas.length}</span>
-                </div>
-
-                <div className="space-y-1.5 mb-2.5">
-                  {tarefas.length === 0 ? (
-                    <p className="text-xs text-zinc-400 italic py-1 text-center">Nenhuma tarefa pendente.</p>
-                  ) : (
-                    tarefas.map(t => (
-                      <div
-                        key={t.id}
-                        className="flex items-center justify-between p-1.5 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800/50 group text-xs"
-                      >
-                        <span className="text-zinc-700 dark:text-zinc-300 truncate max-w-[190px]">
-                          {t.title}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => concluirTarefa(t.id)}
-                          className="text-zinc-400 hover:text-emerald-600 transition-colors p-0.5"
-                          title="Concluir tarefa"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <form onSubmit={handleCreateTask} className="flex gap-1.5">
-                  <Input
-                    value={taskDraft}
-                    onChange={e => setTaskDraft(e.target.value)}
-                    placeholder="Adicionar tarefa rápida..."
-                    className="h-7 text-xs bg-zinc-50 dark:bg-zinc-800/50 border-black/[0.06] dark:border-white/[0.06]"
-                  />
-                  <Button
-                    type="submit"
-                    disabled={!taskDraft.trim() || submittingTask}
-                    size="sm"
-                    className="h-7 px-2.5 bg-[#C9A87C] hover:bg-[#b89567] text-white text-xs shrink-0"
-                  >
-                    {submittingTask ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                  </Button>
-                </form>
-              </div>
-            )}
-
-            {/* 4. Ações Rápidas Lunari */}
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 block mb-2">
-                Ações Rápidas
-              </span>
-              <div className="grid grid-cols-1 gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/propostas')}
-                  className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                >
-                  <span className="flex items-center gap-2">
-                    <DollarSign className="h-3.5 w-3.5 text-[#C9A87C]" />
-                    Enviar Orçamento / Proposta
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-zinc-400" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/agenda')}
-                  className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                >
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 text-[#C9A87C]" />
-                    Abrir Agenda
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-zinc-400" />
-                </Button>
-                {cliente?.id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/clientes/${cliente.id}`)}
-                    className="w-full justify-between text-xs h-8 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                  >
-                    <span className="flex items-center gap-2">
-                      <User className="h-3.5 w-3.5 text-[#C9A87C]" />
-                      Ver Ficha Completa do Cliente
-                    </span>
-                    <ExternalLink className="h-3 w-3 text-zinc-400" />
-                  </Button>
-                )}
-              </div>
-          </div>
+        {renderStateCards()}
 
         {/* ─── Notas Internas e Rodapé Fixo ───────────────────────────────── */}
         <div className="mt-6 border-t border-black/[0.05] dark:border-white/[0.06] pt-4">
@@ -506,9 +300,9 @@ export function ChatContextPanel({
         isOpen={isFastLeadModalOpen}
         onClose={() => {
           setIsFastLeadModalOpen(false);
-          setSuggestedCategory(undefined);
+          setManualSuggestedCategory(undefined);
         }}
-        defaultCategory={suggestedCategory}
+        defaultCategory={manualSuggestedCategory}
         chat={chat}
         onLeadCreated={async (leadId, clienteId) => {
           await vincularAmbos({ leadId, clienteId });
