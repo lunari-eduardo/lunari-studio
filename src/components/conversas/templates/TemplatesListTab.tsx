@@ -37,14 +37,12 @@ export interface TemplatesListTabProps {
   chat: Chat | EnrichedChat;
   suggestedCategory?: string;
   onInsertToComposer: (text: string) => void;
-  onSendDirectly: (text: string) => Promise<void> | void;
 }
 
 export function TemplatesListTab({
   chat,
   suggestedCategory,
   onInsertToComposer,
-  onSendDirectly,
 }: TemplatesListTabProps) {
   const { profile } = useUserProfile();
   const {
@@ -62,7 +60,6 @@ export function TemplatesListTab({
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ConversasTemplate | null>(null);
-  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const studioName = profile?.empresa?.trim() || profile?.nome?.trim() || 'Estúdio';
   const pixKey = (profile as any)?.pix_key || '';
@@ -116,15 +113,6 @@ export function TemplatesListTab({
     }
   };
 
-  const handleSend = async (template: ConversasTemplate) => {
-    const rendered = renderTemplateText(template.conteudo, templateContext);
-    try {
-      setSendingId(template.id);
-      await onSendDirectly(rendered);
-    } finally {
-      setSendingId(null);
-    }
-  };
 
   const handleInsert = (template: ConversasTemplate) => {
     const rendered = renderTemplateText(template.conteudo, templateContext);

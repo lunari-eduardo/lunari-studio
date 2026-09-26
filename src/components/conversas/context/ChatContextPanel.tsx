@@ -57,7 +57,6 @@ export interface ChatContextPanelProps {
   onClose: () => void;
   isDrawer?: boolean;
   onInsertToComposer?: (text: string) => void;
-  onSendDirectly?: (text: string) => Promise<void> | void;
 }
 
 function formatCurrency(val: number | null | undefined): string {
@@ -80,7 +79,6 @@ export function ChatContextPanel({
   onClose,
   isDrawer = false,
   onInsertToComposer,
-  onSendDirectly,
   messages = [],
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
@@ -93,6 +91,7 @@ export function ChatContextPanel({
     sessoes,
     cobrancas,
     vincularAmbos,
+    isLoading,
   } = useConversasContactContext(chat);
 
   const chatState = useChatStateResolver({ cliente, lead, sessoes });
@@ -129,6 +128,16 @@ export function ChatContextPanel({
   };
 
   const renderStateCards = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col gap-3 animate-pulse">
+          <div className="h-28 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
+          <div className="h-40 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
+          <div className="h-20 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
+        </div>
+      );
+    }
+
     switch (chatState) {
       case 'UNKNOWN':
         return (
@@ -145,7 +154,6 @@ export function ChatContextPanel({
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
-                onSendDirectly={onSendDirectly ?? (() => {})}
               />
             </div>
             <QuickActionsCard state={chatState} hasCliente={false} onNavigate={navigate} />
@@ -162,7 +170,6 @@ export function ChatContextPanel({
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
-                onSendDirectly={onSendDirectly ?? (() => {})}
               />
             </div>
             <QuickActionsCard state={chatState} hasCliente={!!cliente?.id} onNavigate={navigate} />
@@ -178,7 +185,6 @@ export function ChatContextPanel({
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
-                onSendDirectly={onSendDirectly ?? (() => {})}
               />
             </div>
             <FinancialSummaryCard cobrancas={cobrancas} onNavigate={navigate} />
@@ -195,7 +201,6 @@ export function ChatContextPanel({
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
-                onSendDirectly={onSendDirectly ?? (() => {})}
               />
             </div>
             <QuickActionsCard state={chatState} hasCliente={true} onNavigate={navigate} />
@@ -232,8 +237,8 @@ export function ChatContextPanel({
 
       {/* ─── Corpo do Painel ────────────────────────────────────────────── */}
       <div
-        className="flex-1 overflow-y-auto px-3.5 pb-4 space-y-3"
-        style={isDrawer ? { paddingBottom: 'calc(2rem + env(safe-area-inset-bottom))' } : undefined}
+        className="flex-1 overflow-y-auto px-3.5 space-y-3"
+        style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}
       >
         <ContactHeaderCard chat={chat} state={chatState} />
         {renderStateCards()}

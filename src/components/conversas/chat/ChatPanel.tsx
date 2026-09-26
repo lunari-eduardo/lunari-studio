@@ -435,7 +435,6 @@ export function ChatPanel({
               onClose={() => setSidePanelOpen(false)}
               isDrawer
               onInsertToComposer={handleInsertTemplate}
-              onSendDirectly={handleSendDirectly}
             />
           </SheetContent>
         </Sheet>
@@ -451,7 +450,6 @@ export function ChatPanel({
             localStorage.setItem('lunari_conversas_sidepanel_open', 'false');
           }}
           onInsertToComposer={handleInsertTemplate}
-          onSendDirectly={handleSendDirectly}
         />
       ) : null}
 
