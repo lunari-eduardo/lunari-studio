@@ -3,22 +3,20 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import {
-  formatDateForInput,
   safeParseInputDate,
 } from "@/utils/dateUtils";
-import { buildPaymentShareUrl } from "@/utils/domainUtils";
 import { useOrcamentos } from "@/hooks/useOrcamentos";
 import { useClientesRealtime } from "@/hooks/useClientesRealtime";
 import { useAgendaConflict } from "@/hooks/useAgendaConflict";
 import { useAppointmentWorkflowInfo } from "@/hooks/useAppointmentWorkflowInfo";
-import { useCobranca } from "@/hooks/useCobranca";
 import { useNumberInput } from "@/hooks/useNumberInput";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { extractAgendaErrorMessage } from "@/utils/agendaSlotGuard";
 import type { Appointment, AppointmentStatus } from "@/modules/agenda/presentation";
 import { PanelFormState, STATUS_META } from "../types";
 import { buildSessionPayload, ensureSessionStub } from "./sessionPanelUtils";
+import { useSessionPanelCharges } from "./useSessionPanelCharges";
+import { useSessionPanelDateTime } from "./useSessionPanelDateTime";
 
 interface UseSessionPanelFormParams {
   open: boolean;
@@ -95,26 +93,30 @@ export function useSessionPanelForm({
   }, [appointment, initialDate, initialTime, preselectedClienteId, clientes]);
 
   const [form, setForm] = useState<PanelFormState>(buildInitialState);
-  const [dateInput, setDateInput] = useState(() =>
-    formatDateForInput(form.date),
-  );
-  const [timeInput, setTimeInput] = useState(form.time);
-
   const [selectedPackageData, setSelectedPackageData] = useState<any>(null);
+
+  const {
+    dateInput,
+    setDateInput,
+    timeInput,
+    setTimeInput,
+    commitDate,
+    commitTime,
+    syncInputs,
+  } = useSessionPanelDateTime(form.date, form.time, setForm);
 
   useEffect(() => {
     if (!open) return;
     const next = buildInitialState();
     setForm(next);
-    setDateInput(formatDateForInput(next.date));
-    setTimeInput(next.time);
+    syncInputs(next.date, next.time);
     setNewClientMode(false);
     setNewClient({ nome: "", telefone: "", contatoIdToLink: "" });
     setCobrarAoSalvar(false);
     setChargeSessionId(null);
     setShowHistory(false);
     setSelectedPackageData(null);
-  }, [open, appointment?.id, buildInitialState]);
+  }, [open, appointment?.id, buildInitialState, syncInputs]);
 
   const selectedPackage = useMemo(
     () =>
@@ -163,52 +165,24 @@ export function useSessionPanelForm({
     },
   });
 
-  const { cobrancas, cancelCharge } = useCobranca({
+  const {
+    cobrancas,
+    pagoCobrancas,
+    pendenteCobrancas,
+    totalPagoCobrancas,
+    cobrancaPendente,
+    cobrancaPendenteLink,
+    cobranca,
+    cobrancaLink,
+    handleCancelCharge,
+    confirmDialogState,
+    handleConfirmDialog,
+    handleCancelDialog,
+    handleCloseDialog,
+  } = useSessionPanelCharges({
+    isEdit,
     sessionId: isEdit ? appointment?.sessionId : undefined,
   });
-
-  const {
-    dialogState: confirmDialogState,
-    confirm: confirmDialog,
-    handleConfirm: handleConfirmDialog,
-    handleCancel: handleCancelDialog,
-    handleClose: handleCloseDialog,
-  } = useConfirmDialog();
-
-  const handleCancelCharge = async (chargeId: string) => {
-    const ok = await confirmDialog({
-      title: "Cancelar cobrança pendente",
-      description:
-        "Deseja realmente cancelar esta cobrança pendente? O link de pagamento deixará de ser válido.",
-      confirmText: "Cancelar cobrança",
-      cancelText: "Voltar",
-      variant: "destructive",
-    });
-    if (ok) {
-      await cancelCharge(chargeId);
-    }
-  };
-
-  const pagoCobrancas = useMemo(
-    () => cobrancas.filter((c) => ["pago", "pago_manual"].includes(c.status)),
-    [cobrancas],
-  );
-  const pendenteCobrancas = useMemo(
-    () => cobrancas.filter((c) => c.status === "pendente"),
-    [cobrancas],
-  );
-  const totalPagoCobrancas = useMemo(
-    () =>
-      pagoCobrancas.reduce(
-        (acc, c) =>
-          acc +
-          (c.valor_principal != null
-            ? Number(c.valor_principal)
-            : Number(c.valor) || 0),
-        0,
-      ),
-    [pagoCobrancas],
-  );
 
   const isConfirmedWithDeposit = useMemo(
     () =>
@@ -217,21 +191,6 @@ export function useSessionPanelForm({
       (pagoCobrancas.length > 0 || (workflowInfo.totalPaid ?? 0) > 0),
     [isEdit, form.status, pagoCobrancas.length, workflowInfo.totalPaid],
   );
-
-  const cobrancaPendente = pendenteCobrancas[0] || null;
-  const cobrancaPendenteLink = cobrancaPendente
-    ? cobrancaPendente.id
-      ? buildPaymentShareUrl(cobrancaPendente.id)
-      : cobrancaPendente.mpPaymentLink || cobrancaPendente.ipCheckoutUrl || ""
-    : "";
-
-  const cobranca =
-    pagoCobrancas[0] || pendenteCobrancas[0] || cobrancas[0] || null;
-  const cobrancaLink = cobranca
-    ? cobranca.id
-      ? buildPaymentShareUrl(cobranca.id)
-      : cobranca.mpPaymentLink || cobranca.ipCheckoutUrl || ""
-    : "";
 
   const handlePackageSelect = (packageId: string, packageData?: any) => {
     if (!packageId) {
@@ -253,35 +212,6 @@ export function useSessionPanelForm({
     }));
   };
 
-  const handleDateInputChange = (val: string) => {
-    setDateInput(val);
-    const parsed = safeParseInputDate(val);
-    if (parsed) {
-      setForm((prev) => ({ ...prev, date: parsed }));
-    }
-  };
-
-  const handleTimeInputChange = (val: string) => {
-    setTimeInput(val);
-    if (val && val.length === 5) {
-      setForm((prev) => ({ ...prev, time: val }));
-    }
-  };
-
-  const commitDate = () => {
-    const parsed = safeParseInputDate(dateInput);
-    if (parsed) setForm((prev) => ({ ...prev, date: parsed }));
-    else setDateInput(formatDateForInput(form.date));
-  };
-
-  const commitTime = () => {
-    if (!timeInput) {
-      setTimeInput(form.time);
-      return;
-    }
-    setForm((prev) => ({ ...prev, time: timeInput }));
-  };
-
   const resolveClient = async (): Promise<{
     clienteId: string;
     nome: string;
@@ -289,7 +219,7 @@ export function useSessionPanelForm({
     if (form.clienteId) {
       return { clienteId: form.clienteId, nome: clientDisplayName };
     }
-        if (newClientMode && newClient.nome.trim()) {
+    if (newClientMode && newClient.nome.trim()) {
       const criado = await adicionarCliente({
         nome: newClient.nome.trim(),
         telefone: newClient.telefone || "",
@@ -533,9 +463,9 @@ export function useSessionPanelForm({
     form,
     setForm,
     dateInput,
-    setDateInput: handleDateInputChange,
+    setDateInput,
     timeInput,
-    setTimeInput: handleTimeInputChange,
+    setTimeInput,
     selectedPackage,
     valorPacote,
     packageCategoryName,

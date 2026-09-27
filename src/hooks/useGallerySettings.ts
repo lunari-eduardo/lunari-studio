@@ -2,284 +2,143 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { GlobalSettings, CustomTheme, EmailTemplate, WatermarkSettings, DiscountPreset, ThemeType } from '@/types/gallery';
+import { GlobalSettings, CustomTheme, EmailTemplate, DiscountPreset, ThemeType } from '@/types/gallery';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
+import { defaultSettings, defaultEmailTemplates, rowsToSettings } from './gallery-settings/defaultSettings';
+import { useGallerySettingsMutations } from './gallery-settings/useGallerySettingsMutations';
+
 export interface UpdateSettingsOptions {
   successMessage?: string;
-}
-
-// Default settings for new users
-const defaultSettings: Omit<GlobalSettings, 'customTheme' | 'emailTemplates' | 'discountPresets'> = {
-  defaultGalleryPermission: 'private',
-  clientTheme: 'system',
-  defaultExpirationDays: 10,
-  studioName: 'Meu Estúdio',
-  studioLogo: undefined,
-  themeType: 'system',
-  activeThemeId: undefined,
-  defaultWatermark: {
-    type: 'standard',
-    opacity: 40,
-    position: 'center',
-  },
-  faviconUrl: undefined,
-  defaultSaleMode: 'sale_without_payment',
-  defaultImageResize: 1920,
-  defaultChargeType: 'only_extras',
-  defaultPricingModel: 'fixed',
-  defaultPaymentMethod: undefined,
-  defaultAllowComments: true,
-  defaultAllowDownload: false,
-  defaultAllowExtraPhotos: true,
-  defaultWatermarkDisplay: 'all',
-  emailSendingEnabled: false,
-  emailOnGallerySent: false,
-  emailOnGalleryReactivated: false,
-  emailOnPaymentConfirmed: false,
-  emailOnSelectionReminder: false,
-  emailOnSelectionConfirmed: false,
-  emailSummaryToPhotographer: true,
-  reminderDaysBeforeExpiration: 2,
-  defaultPhotoSpacing: 6,
-  defaultThemeId: 'lunari',
-  themeOverrides: {},
-  defaultCoverId: 'fullscreen',
-};
-
-const defaultEmailTemplates: Omit<EmailTemplate, 'id'>[] = [
-  {
-    name: 'Galeria Enviada',
-    type: 'gallery_sent',
-    subject: 'Suas fotos estão prontas! - {galeria}',
-    body: 'Olá {cliente}!\n\nSuas fotos da sessão "{galeria}" estão prontas para visualização.\n\nAcesse o link abaixo para ver suas fotos e fazer sua seleção:\n{link}\n\nVocê tem até {prazo} para fazer sua seleção.\n\nCom carinho,\n{estudio}',
-  },
-  {
-    name: 'Lembrete de Prazo',
-    type: 'selection_reminder',
-    subject: 'Lembrete: Sua seleção expira em breve - {galeria}',
-    body: 'Olá {cliente}!\n\nEste é um lembrete amigável de que sua seleção da galeria "{galeria}" expira em {dias_restantes} dias.\n\nNão perca o prazo! Acesse o link abaixo:\n{link}\n\nCom carinho,\n{estudio}',
-  },
-  {
-    name: 'Seleção Confirmada',
-    type: 'selection_confirmed',
-    subject: 'Seleção confirmada! - {galeria}',
-    body: 'Olá {cliente}!\n\nSua seleção da galeria "{galeria}" foi confirmada com sucesso!\n\nTotal de fotos selecionadas: {total_fotos}\nFotos extras: {fotos_extras}\nValor adicional: {valor_extra}\n\nEm breve entraremos em contato com mais informações.\n\nCom carinho,\n{estudio}',
-  },
-  {
-    name: 'Galeria Reativada',
-    type: 'gallery_reactivated',
-    subject: 'Sua galeria foi reaberta - {galeria}',
-    body: 'Olá {cliente}!\n\nBoas notícias: a galeria "{galeria}" foi reaberta para você concluir sua seleção de fotos.\n\nVocê tem até {prazo} para escolher suas favoritas.\n\nAcesse: {link}\n\nCom carinho,\n{estudio}',
-  },
-  {
-    name: 'Confirmação de Pagamento',
-    type: 'payment_confirmed',
-    subject: 'Pagamento confirmado! - {galeria}',
-    body: 'Olá {cliente}!\n\nRecebemos a confirmação do seu pagamento referente à galeria "{galeria}".\n\nEm breve entraremos em contato com os próximos passos.\n\nAcesse sua galeria: {link}\n\nCom carinho,\n{estudio}',
-  },
-];
-
-// Helper to parse watermark from JSON
-function parseWatermark(json: Json | null): WatermarkSettings {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) {
-    return defaultSettings.defaultWatermark;
-  }
-  const obj = json as Record<string, unknown>;
-  let type = (obj.type as WatermarkSettings['type']) || 'standard';
-  if (type !== 'none' && type !== 'standard' && type !== 'custom') {
-    type = 'standard';
-  }
-  
-  return {
-    type,
-    opacity: (obj.opacity as number) || 40,
-    position: 'center',
-    // Campos opcionais para watermark customizada (futuro)
-    customHorizontalUrl: obj.customHorizontalUrl as string | undefined,
-    customVerticalUrl: obj.customVerticalUrl as string | undefined,
-  };
-}
-
-// Convert database rows to GlobalSettings (simplified for single theme)
-function rowsToSettings(
-  settingsRow: any | null,
-  theme: any | null,
-  emailTemplates: any[],
-  discountPresets: any[],
-  hasEmailEntitlement: boolean = true
-): GlobalSettings {
-  const baseSettings = settingsRow ? {
-    defaultGalleryPermission: (settingsRow.default_gallery_permission as 'public' | 'private') ?? 'private',
-    clientTheme: (settingsRow.client_theme as 'light' | 'dark' | 'system') ?? 'system',
-    defaultExpirationDays: settingsRow.default_expiration_days ?? 10,
-    studioName: settingsRow.studio_name ?? 'Meu Estúdio',
-    studioLogo: settingsRow.studio_logo_url || undefined,
-    themeType: (settingsRow.theme_type as ThemeType) ?? 'system',
-    activeThemeId: settingsRow.active_theme_id || undefined,
-    defaultWatermark: parseWatermark(settingsRow.default_watermark),
-    faviconUrl: settingsRow.favicon_url || undefined,
-    lastSessionFont: settingsRow.last_session_font || undefined,
-    defaultWelcomeMessage: settingsRow.default_welcome_message || undefined,
-    welcomeMessageEnabled: settingsRow.welcome_message_enabled ?? true,
-    defaultSaleMode: (settingsRow.default_sale_mode as GlobalSettings['defaultSaleMode']) ?? 'sale_without_payment',
-    defaultImageResize: (settingsRow.default_image_resize as GlobalSettings['defaultImageResize']) ?? 1920,
-    defaultChargeType: (settingsRow.default_charge_type as GlobalSettings['defaultChargeType']) ?? 'only_extras',
-    defaultPricingModel: (settingsRow.default_pricing_model as GlobalSettings['defaultPricingModel']) ?? 'fixed',
-    defaultPaymentMethod: (settingsRow.default_payment_method as GlobalSettings['defaultPaymentMethod']) ?? undefined,
-    defaultAllowComments: settingsRow.default_allow_comments ?? true,
-    defaultAllowDownload: settingsRow.default_allow_download ?? false,
-    defaultAllowExtraPhotos: settingsRow.default_allow_extra_photos ?? true,
-    defaultWatermarkDisplay: (settingsRow.default_watermark_display as GlobalSettings['defaultWatermarkDisplay']) ?? 'all',
-    emailSendingEnabled: hasEmailEntitlement ? (settingsRow.email_sending_enabled ?? false) : false,
-    emailOnGallerySent: hasEmailEntitlement ? (settingsRow.email_on_gallery_sent ?? false) : false,
-    emailOnGalleryReactivated: hasEmailEntitlement ? (settingsRow.email_on_gallery_reactivated ?? false) : false,
-    emailOnPaymentConfirmed: hasEmailEntitlement ? (settingsRow.email_on_payment_confirmed ?? false) : false,
-    emailOnSelectionReminder: hasEmailEntitlement ? (settingsRow.email_on_selection_reminder ?? false) : false,
-    emailOnSelectionConfirmed: hasEmailEntitlement ? (settingsRow.email_on_selection_confirmed ?? false) : false,
-    emailSummaryToPhotographer: settingsRow.email_summary_to_photographer ?? true,
-    reminderDaysBeforeExpiration: settingsRow.reminder_days_before_expiration ?? 2,
-    defaultPhotoSpacing: settingsRow.default_photo_spacing ?? 8,
-    defaultThemeId: settingsRow.default_theme_id ?? 'lunari',
-    themeOverrides: settingsRow.theme_overrides || {},
-    defaultCoverId: settingsRow.default_cover_id ?? 'fullscreen',
-  } : defaultSettings;
-
-  // Single custom theme (if exists)
-  const customTheme: CustomTheme | undefined = theme ? {
-    id: theme.id,
-    name: theme.name,
-    backgroundMode: (theme.background_mode as 'light' | 'dark') || 'light',
-    primaryColor: theme.primary_color,
-    accentColor: theme.accent_color,
-    emphasisColor: theme.emphasis_color,
-  } : undefined;
-
-  return {
-    ...baseSettings,
-    customTheme,
-    emailTemplates: emailTemplates.map(e => ({
-      id: e.id,
-      name: e.name,
-      type: e.type as EmailTemplate['type'],
-      subject: e.subject,
-      body: e.body,
-    })),
-    discountPresets: discountPresets.map(d => ({
-      id: d.id,
-      name: d.name,
-      packages: Array.isArray(d.packages) ? d.packages : [],
-      createdAt: new Date(d.created_at),
-    })),
-  };
 }
 
 export function useGallerySettings() {
   const { user } = useAuth();
   const { hasEntitlement } = useEntitlements();
   const queryClient = useQueryClient();
-  const hasEmailEntitlement = hasEntitlement('email_automations');
 
-  // Fetch all settings data
+  // Query to fetch settings
   const { data: settings, isLoading } = useQuery({
-    queryKey: ['gallery-settings', user?.id, hasEmailEntitlement],
+    queryKey: ['gallery-settings', user?.id],
     queryFn: async (): Promise<GlobalSettings> => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Fetch all data in parallel (single theme now, not array)
-      const [settingsRes, themeRes, templatesRes, presetsRes] = await Promise.all([
-        supabase.from('gallery_settings').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('gallery_themes').select('*').eq('user_id', user.id).maybeSingle(),
-        supabase.from('gallery_email_templates').select('*').eq('user_id', user.id).order('type'),
-        supabase.from('gallery_discount_presets').select('*').eq('user_id', user.id).order('created_at'),
+      // Check entitlement for email sending
+      const hasEmailEntitlement = hasEntitlement('email_automations');
+
+      // Fetch all required data in parallel
+      const [
+        settingsResult,
+        themeResult,
+        emailTemplatesResult,
+        discountPresetsResult,
+      ] = await Promise.all([
+        supabase
+          .from('gallery_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('gallery_themes')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('gallery_email_templates')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('name'),
+        supabase
+          .from('gallery_discount_presets')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at'),
       ]);
 
-      if (settingsRes.error) throw settingsRes.error;
-      if (themeRes.error && themeRes.error.code !== 'PGRST116') throw themeRes.error;
-      if (templatesRes.error) throw templatesRes.error;
-      if (presetsRes.error) throw presetsRes.error;
+      if (settingsResult.error) throw settingsResult.error;
+      if (themeResult.error) throw themeResult.error;
+      if (emailTemplatesResult.error) throw emailTemplatesResult.error;
+      if (discountPresetsResult.error) throw discountPresetsResult.error;
 
-      // Seed any missing default templates for existing users (idempotent)
-      let templatesData = templatesRes.data || [];
-      if (templatesData.length > 0) {
-        const existingTypes = new Set(templatesData.map((t: any) => t.type));
-        const missing = defaultEmailTemplates.filter((t) => !existingTypes.has(t.type));
-        if (missing.length > 0) {
-          const { data: inserted } = await supabase
-            .from('gallery_email_templates')
-            .insert(missing.map((t) => ({
-              user_id: user.id,
-              name: t.name,
-              type: t.type,
-              subject: t.subject,
-              body: t.body,
-            })))
-            .select('*');
-          if (inserted) templatesData = [...templatesData, ...inserted];
-        }
+      // If user has no settings, return defaults (don't auto-create until needed)
+      if (!settingsResult.data) {
+        return {
+          ...defaultSettings,
+          emailTemplates: defaultEmailTemplates.map((t, i) => ({ ...t, id: `default-${i}` })),
+          discountPresets: [],
+        };
       }
 
       return rowsToSettings(
-        settingsRes.data,
-        themeRes.data,
-        templatesData,
-        presetsRes.data || [],
+        settingsResult.data,
+        themeResult.data,
+        emailTemplatesResult.data || [],
+        discountPresetsResult.data || [],
         hasEmailEntitlement
       );
     },
     enabled: !!user?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Initialize settings for new user
+  // Mutation to initialize settings for a new user
   const initializeSettings = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      // Create base settings
+      // 1. Create gallery_settings
       const { error: settingsError } = await supabase
         .from('gallery_settings')
-        .upsert({
+        .insert({
           user_id: user.id,
-          studio_name: defaultSettings.studioName,
           default_gallery_permission: defaultSettings.defaultGalleryPermission,
           client_theme: defaultSettings.clientTheme,
           default_expiration_days: defaultSettings.defaultExpirationDays,
-          default_watermark: defaultSettings.defaultWatermark as unknown as Json,
+          studio_name: defaultSettings.studioName,
           theme_type: 'system',
-          email_sending_enabled: false,
-          email_on_gallery_sent: false,
-          email_on_gallery_reactivated: false,
-          email_on_payment_confirmed: false,
-          email_on_selection_reminder: false,
-          email_on_selection_confirmed: false,
-          email_summary_to_photographer: true,
-          reminder_days_before_expiration: 2,
-          default_photo_spacing: 8,
-          default_theme_id: 'lunari',
-          theme_overrides: {}
+          default_watermark: defaultSettings.defaultWatermark as unknown as Json,
+          default_sale_mode: defaultSettings.defaultSaleMode,
+          default_image_resize: defaultSettings.defaultImageResize,
+          default_charge_type: defaultSettings.defaultChargeType,
+          default_pricing_model: defaultSettings.defaultPricingModel,
+          default_allow_comments: defaultSettings.defaultAllowComments,
+          default_allow_download: defaultSettings.defaultAllowDownload,
+          default_allow_extra_photos: defaultSettings.defaultAllowExtraPhotos,
+          default_watermark_display: defaultSettings.defaultWatermarkDisplay,
+          email_sending_enabled: defaultSettings.emailSendingEnabled,
+          email_on_gallery_sent: defaultSettings.emailOnGallerySent,
+          email_on_gallery_reactivated: defaultSettings.emailOnGalleryReactivated,
+          email_on_payment_confirmed: defaultSettings.emailOnPaymentConfirmed,
+          email_on_selection_reminder: defaultSettings.emailOnSelectionReminder,
+          email_on_selection_confirmed: defaultSettings.emailOnSelectionConfirmed,
+          email_summary_to_photographer: defaultSettings.emailSummaryToPhotographer,
+          reminder_days_before_expiration: defaultSettings.reminderDaysBeforeExpiration,
+          default_photo_spacing: defaultSettings.defaultPhotoSpacing,
+          default_theme_id: defaultSettings.defaultThemeId,
+          theme_overrides: defaultSettings.themeOverrides,
+          default_cover_id: defaultSettings.defaultCoverId,
         });
 
-      if (settingsError) throw settingsError;
+      if (settingsError && settingsError.code !== '23505') { // Ignore unique constraint violation
+        throw settingsError;
+      }
 
-      // Check if templates exist
-      const { data: existingTemplates } = await supabase
+      // 2. Create default email templates
+      const templatesToInsert = defaultEmailTemplates.map(t => ({
+        user_id: user.id,
+        name: t.name,
+        type: t.type,
+        subject: t.subject,
+        body: t.body,
+      }));
+
+      const { error: templatesError } = await supabase
         .from('gallery_email_templates')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
+        .insert(templatesToInsert);
 
-      if (!existingTemplates || existingTemplates.length === 0) {
-        // Create default email templates
-        for (const template of defaultEmailTemplates) {
-          await supabase.from('gallery_email_templates').insert({
-            user_id: user.id,
-            name: template.name,
-            type: template.type,
-            subject: template.subject,
-            body: template.body,
-          });
-        }
+      if (templatesError && templatesError.code !== '23505') {
+        console.error('Error inserting default templates:', templatesError);
       }
     },
     onSuccess: () => {
@@ -287,142 +146,68 @@ export function useGallerySettings() {
     },
   });
 
-  // Update base settings - only updates fields that are explicitly provided
+  // Mutation to update settings
   const updateSettings = useMutation({
     mutationFn: async (data: Partial<GlobalSettings>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
-      if (!hasEmailEntitlement && (data.emailSendingEnabled || data.emailOnGallerySent || data.emailOnGalleryReactivated || data.emailOnPaymentConfirmed || data.emailOnSelectionReminder || data.emailOnSelectionConfirmed)) {
-        throw new Error('Automação de e-mails é um recurso exclusivo do Plano Studio.');
-      }
-
-      // First check if record exists
       const { data: existing } = await supabase
         .from('gallery_settings')
         .select('user_id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Build update object only with provided fields (explicit undefined check)
       const updateData: Record<string, unknown> = {};
       
-      if (data.studioName !== undefined) {
-        updateData.studio_name = data.studioName;
-      }
-      if (data.studioLogo !== undefined) {
-        updateData.studio_logo_url = data.studioLogo || null;
-      }
-      if (data.faviconUrl !== undefined) {
-        updateData.favicon_url = data.faviconUrl || null;
-      }
-      if (data.defaultGalleryPermission !== undefined) {
-        updateData.default_gallery_permission = data.defaultGalleryPermission;
-      }
-      if (data.clientTheme !== undefined) {
-        updateData.client_theme = data.clientTheme;
-      }
-      if (data.defaultExpirationDays !== undefined) {
-        updateData.default_expiration_days = data.defaultExpirationDays;
-      }
-      if (data.activeThemeId !== undefined) {
-        updateData.active_theme_id = data.activeThemeId || null;
-      }
-      if (data.themeType !== undefined) {
-        updateData.theme_type = data.themeType;
-      }
-      if (data.defaultWatermark !== undefined) {
-        updateData.default_watermark = data.defaultWatermark as unknown as Json;
-      }
-      if (data.lastSessionFont !== undefined) {
-        updateData.last_session_font = data.lastSessionFont || null;
-      }
-      if (data.defaultWelcomeMessage !== undefined) {
-        updateData.default_welcome_message = data.defaultWelcomeMessage || null;
-      }
-      if (data.welcomeMessageEnabled !== undefined) {
-        updateData.welcome_message_enabled = data.welcomeMessageEnabled;
-      }
-      if (data.defaultSaleMode !== undefined) {
-        updateData.default_sale_mode = data.defaultSaleMode;
-      }
-      if (data.defaultImageResize !== undefined) {
-        updateData.default_image_resize = data.defaultImageResize;
-      }
-      if (data.defaultChargeType !== undefined) {
-        updateData.default_charge_type = data.defaultChargeType;
-      }
-      if (data.defaultPricingModel !== undefined) {
-        updateData.default_pricing_model = data.defaultPricingModel;
-      }
-      if (data.defaultPaymentMethod !== undefined) {
-        updateData.default_payment_method = data.defaultPaymentMethod || null;
-      }
-      if (data.defaultAllowComments !== undefined) {
-        updateData.default_allow_comments = data.defaultAllowComments;
-      }
-      if (data.defaultAllowDownload !== undefined) {
-        updateData.default_allow_download = data.defaultAllowDownload;
-      }
-      if (data.defaultAllowExtraPhotos !== undefined) {
-        updateData.default_allow_extra_photos = data.defaultAllowExtraPhotos;
-      }
-      if (data.defaultWatermarkDisplay !== undefined) {
-        updateData.default_watermark_display = data.defaultWatermarkDisplay;
-      }
-      if (data.emailSendingEnabled !== undefined) {
-        updateData.email_sending_enabled = data.emailSendingEnabled;
-      }
-      if (data.emailOnGallerySent !== undefined) {
-        updateData.email_on_gallery_sent = data.emailOnGallerySent;
-      }
-      if (data.emailOnGalleryReactivated !== undefined) {
-        updateData.email_on_gallery_reactivated = data.emailOnGalleryReactivated;
-      }
-      if (data.emailOnPaymentConfirmed !== undefined) {
-        updateData.email_on_payment_confirmed = data.emailOnPaymentConfirmed;
-      }
-      if (data.emailOnSelectionReminder !== undefined) {
-        updateData.email_on_selection_reminder = data.emailOnSelectionReminder;
-      }
-      if (data.emailOnSelectionConfirmed !== undefined) {
-        updateData.email_on_selection_confirmed = data.emailOnSelectionConfirmed;
-      }
-      if (data.emailSummaryToPhotographer !== undefined) {
-        updateData.email_summary_to_photographer = data.emailSummaryToPhotographer;
-      }
-      if (data.reminderDaysBeforeExpiration !== undefined) {
-        updateData.reminder_days_before_expiration = data.reminderDaysBeforeExpiration;
-      }
-      if (data.defaultPhotoSpacing !== undefined) {
-        updateData.default_photo_spacing = data.defaultPhotoSpacing;
-      }
-      if (data.defaultThemeId !== undefined) {
-        updateData.default_theme_id = data.defaultThemeId;
-      }
-      if (data.themeOverrides !== undefined) {
-        updateData.theme_overrides = data.themeOverrides;
-      }
-      if (data.defaultCoverId !== undefined) {
-        updateData.default_cover_id = data.defaultCoverId || 'fullscreen';
-      }
+      if (data.studioName !== undefined) updateData.studio_name = data.studioName;
+      if (data.studioLogo !== undefined) updateData.studio_logo_url = data.studioLogo || null;
+      if (data.faviconUrl !== undefined) updateData.favicon_url = data.faviconUrl || null;
+      if (data.defaultGalleryPermission !== undefined) updateData.default_gallery_permission = data.defaultGalleryPermission;
+      if (data.clientTheme !== undefined) updateData.client_theme = data.clientTheme;
+      if (data.defaultExpirationDays !== undefined) updateData.default_expiration_days = data.defaultExpirationDays;
+      if (data.activeThemeId !== undefined) updateData.active_theme_id = data.activeThemeId || null;
+      if (data.themeType !== undefined) updateData.theme_type = data.themeType;
+      if (data.defaultWatermark !== undefined) updateData.default_watermark = data.defaultWatermark as unknown as Json;
+      if (data.lastSessionFont !== undefined) updateData.last_session_font = data.lastSessionFont || null;
+      if (data.defaultWelcomeMessage !== undefined) updateData.default_welcome_message = data.defaultWelcomeMessage || null;
+      if (data.welcomeMessageEnabled !== undefined) updateData.welcome_message_enabled = data.welcomeMessageEnabled;
+      if (data.defaultSaleMode !== undefined) updateData.default_sale_mode = data.defaultSaleMode;
+      if (data.defaultImageResize !== undefined) updateData.default_image_resize = data.defaultImageResize;
+      if (data.defaultChargeType !== undefined) updateData.default_charge_type = data.defaultChargeType;
+      if (data.defaultPricingModel !== undefined) updateData.default_pricing_model = data.defaultPricingModel;
+      if (data.defaultPaymentMethod !== undefined) updateData.default_payment_method = data.defaultPaymentMethod || null;
+      if (data.defaultAllowComments !== undefined) updateData.default_allow_comments = data.defaultAllowComments;
+      if (data.defaultAllowDownload !== undefined) updateData.default_allow_download = data.defaultAllowDownload;
+      if (data.defaultAllowExtraPhotos !== undefined) updateData.default_allow_extra_photos = data.defaultAllowExtraPhotos;
+      if (data.defaultWatermarkDisplay !== undefined) updateData.default_watermark_display = data.defaultWatermarkDisplay;
+      if (data.emailSendingEnabled !== undefined) updateData.email_sending_enabled = data.emailSendingEnabled;
+      if (data.emailOnGallerySent !== undefined) updateData.email_on_gallery_sent = data.emailOnGallerySent;
+      if (data.emailOnGalleryReactivated !== undefined) updateData.email_on_gallery_reactivated = data.emailOnGalleryReactivated;
+      if (data.emailOnPaymentConfirmed !== undefined) updateData.email_on_payment_confirmed = data.emailOnPaymentConfirmed;
+      if (data.emailOnSelectionReminder !== undefined) updateData.email_on_selection_reminder = data.emailOnSelectionReminder;
+      if (data.emailOnSelectionConfirmed !== undefined) updateData.email_on_selection_confirmed = data.emailOnSelectionConfirmed;
+      if (data.emailSummaryToPhotographer !== undefined) updateData.email_summary_to_photographer = data.emailSummaryToPhotographer;
+      if (data.reminderDaysBeforeExpiration !== undefined) updateData.reminder_days_before_expiration = data.reminderDaysBeforeExpiration;
+      if (data.defaultPhotoSpacing !== undefined) updateData.default_photo_spacing = data.defaultPhotoSpacing;
+      if (data.defaultThemeId !== undefined) updateData.default_theme_id = data.defaultThemeId;
+      if (data.themeOverrides !== undefined) updateData.theme_overrides = data.themeOverrides;
+      if (data.defaultCoverId !== undefined) updateData.default_cover_id = data.defaultCoverId || 'fullscreen';
 
-      // Nothing to update in gallery_settings
       if (Object.keys(updateData).length > 0) {
         if (existing) {
           const { error } = await supabase
             .from('gallery_settings')
-            .update(updateData)
+            .update(updateData as any)
             .eq('user_id', user.id);
           if (error) throw error;
         } else {
           const { error } = await supabase
             .from('gallery_settings')
-            .insert({ user_id: user.id, ...updateData });
+            .insert({ user_id: user.id, ...updateData } as any);
           if (error) throw error;
         }
       }
 
-      // If customTheme was provided, save it to gallery_themes as well
       if (data.customTheme) {
         const t = data.customTheme;
         const { data: savedTheme, error: themeError } = await supabase
@@ -451,13 +236,9 @@ export function useGallerySettings() {
       }
     },
     onMutate: async (newData: Partial<GlobalSettings>) => {
-      // Cancel any in-flight queries
       await queryClient.cancelQueries({ queryKey: ['gallery-settings', user?.id] });
-
-      // Snapshot the previous value
       const previousSettings = queryClient.getQueryData<GlobalSettings>(['gallery-settings', user?.id]);
 
-      // Optimistically update the cache with the new values
       if (previousSettings) {
         queryClient.setQueryData<GlobalSettings>(['gallery-settings', user?.id], {
           ...previousSettings,
@@ -465,14 +246,12 @@ export function useGallerySettings() {
         });
       }
 
-      // Return context object with the snapshotted value
       return { previousSettings };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
     },
     onError: (error, _newData, context) => {
-      // Rollback to the previous value on error
       if (context?.previousSettings) {
         queryClient.setQueryData(['gallery-settings', user?.id], context.previousSettings);
       }
@@ -481,207 +260,7 @@ export function useGallerySettings() {
     },
   });
 
-  // Save or update single custom theme
-  const saveCustomTheme = useMutation({
-    mutationFn: async (theme: Omit<CustomTheme, 'id'> & { id?: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      if (theme.id) {
-        // Update existing theme
-        const { error } = await supabase
-          .from('gallery_themes')
-          .update({
-            name: theme.name,
-            background_mode: theme.backgroundMode,
-            primary_color: theme.primaryColor,
-            accent_color: theme.accentColor,
-            emphasis_color: theme.emphasisColor,
-          })
-          .eq('id', theme.id)
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-
-        // Ensure settings are also set to custom and point to this theme
-        await supabase
-          .from('gallery_settings')
-          .update({ 
-            theme_type: 'custom',
-            active_theme_id: theme.id 
-          })
-          .eq('user_id', user.id);
-      } else {
-        // Create new theme (upsert to handle unique constraint)
-        const { data, error } = await supabase
-          .from('gallery_themes')
-          .upsert({
-            user_id: user.id,
-            name: theme.name,
-            background_mode: theme.backgroundMode,
-            primary_color: theme.primaryColor,
-            accent_color: theme.accentColor,
-            emphasis_color: theme.emphasisColor,
-          }, { onConflict: 'user_id' })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        // Update settings to use custom theme
-        await supabase
-          .from('gallery_settings')
-          .update({ 
-            theme_type: 'custom',
-            active_theme_id: data.id 
-          })
-          .eq('user_id', user.id);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-    onError: (error) => {
-      toast.error('Erro ao salvar tema');
-      console.error('Save theme error:', error);
-    },
-  });
-
-  // Delete custom theme (revert to system)
-  const deleteCustomTheme = useMutation({
-    mutationFn: async () => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      // Delete theme
-      const { error: deleteError } = await supabase
-        .from('gallery_themes')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (deleteError) throw deleteError;
-
-      // Update settings to use system theme
-      const { error: updateError } = await supabase
-        .from('gallery_settings')
-        .update({ 
-          theme_type: 'system',
-          active_theme_id: null 
-        })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-    onError: (error) => {
-      toast.error('Erro ao remover tema');
-      console.error('Delete theme error:', error);
-    },
-  });
-
-  // Set theme type (system or custom)
-  const setThemeType = useMutation({
-    mutationFn: async (themeType: ThemeType) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('gallery_settings')
-        .upsert({
-          user_id: user.id,
-          theme_type: themeType,
-          active_theme_id: themeType === 'system' ? null : settings?.customTheme?.id || null,
-        }, { onConflict: 'user_id' });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-    onError: (error) => {
-      toast.error('Erro ao alterar tipo de tema');
-      console.error('Set theme type error:', error);
-    },
-  });
-
-  // Email template mutations
-  const updateEmailTemplate = useMutation({
-    mutationFn: async (template: EmailTemplate) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('gallery_email_templates')
-        .update({
-          name: template.name,
-          subject: template.subject,
-          body: template.body,
-        })
-        .eq('id', template.id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-    onError: (error) => {
-      console.error('Email template update error:', error);
-    },
-  });
-
-  // Discount preset mutations
-  const createDiscountPreset = useMutation({
-    mutationFn: async (preset: Omit<DiscountPreset, 'id' | 'createdAt'>) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase.from('gallery_discount_presets').insert({
-        user_id: user.id,
-        name: preset.name,
-        packages: preset.packages as unknown as Json,
-      });
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-  });
-
-  const updateDiscountPreset = useMutation({
-    mutationFn: async (preset: DiscountPreset) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('gallery_discount_presets')
-        .update({
-          name: preset.name,
-          packages: preset.packages as unknown as Json,
-        })
-        .eq('id', preset.id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-  });
-
-  const deleteDiscountPreset = useMutation({
-    mutationFn: async (presetId: string) => {
-      if (!user?.id) throw new Error('User not authenticated');
-
-      const { error } = await supabase
-        .from('gallery_discount_presets')
-        .delete()
-        .eq('id', presetId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gallery-settings', user?.id] });
-    },
-  });
+  const mutations = useGallerySettingsMutations({ userId: user?.id, settings });
 
   const updateSettingsWithFeedback = (data: Partial<GlobalSettings>, options?: UpdateSettingsOptions) => {
     updateSettings.mutate(data, {
@@ -703,22 +282,6 @@ export function useGallerySettings() {
     updateSettings: updateSettingsWithFeedback,
     updateSettingsAsync,
     isUpdating: updateSettings.isPending,
-    // Theme operations (simplified)
-    saveCustomTheme: (theme: Omit<CustomTheme, 'id'> & { id?: string }) => saveCustomTheme.mutate(theme, {
-      onSuccess: () => toast.success('Tema salvo com sucesso.'),
-    }),
-    deleteCustomTheme: () => deleteCustomTheme.mutate(undefined, {
-      onSuccess: () => toast.success('Tema do sistema restaurado.'),
-    }),
-    setThemeType: (themeType: ThemeType) => setThemeType.mutate(themeType, {
-      onSuccess: () => toast.success('Tema atualizado.'),
-    }),
-    // Email template operations
-    updateEmailTemplate: updateEmailTemplate.mutateAsync,
-    isUpdatingEmailTemplate: updateEmailTemplate.isPending,
-    // Discount preset operations
-    createDiscountPreset: createDiscountPreset.mutate,
-    updateDiscountPreset: updateDiscountPreset.mutate,
-    deleteDiscountPreset: deleteDiscountPreset.mutate,
+    ...mutations,
   };
 }
