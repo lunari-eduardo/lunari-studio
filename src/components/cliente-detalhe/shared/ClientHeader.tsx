@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, MessageCircle, Mail } from "lucide-react";
 import { OriginBadge } from '@/components/shared/OriginBadge';
 import { ClienteCompleto } from '@/types/cliente-supabase';
@@ -33,6 +33,7 @@ export function ClientHeader({ cliente, onBack }: ClientHeaderProps) {
         </Button>
 
         <Avatar className="h-9 w-9 shrink-0">
+          {cliente.avatar_url && <AvatarImage src={cliente.avatar_url} />}
           <AvatarFallback className="text-xs">{getInitials(cliente.nome)}</AvatarFallback>
         </Avatar>
 

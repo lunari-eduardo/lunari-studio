@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { Search, ChevronLeft, ChevronRight, Filter, ChevronDown, Check, ArrowDown, ArrowUp, X, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -65,9 +65,11 @@ interface WorkflowMobileViewProps {
     forceRefresh: () => void;
   };
   onOpenVendaAvulsa?: () => void;
+  initialExpandedId?: string | null;
 }
 
 export function WorkflowMobileView({
+  initialExpandedId,
   sessions,
   currentMonth,
   financials,
@@ -85,7 +87,28 @@ export function WorkflowMobileView({
   onOpenVendaAvulsa,
 }: WorkflowMobileViewProps) {
   // Apenas 1 card expandido por vez
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(initialExpandedId || null);
+
+  useEffect(() => {
+    if (initialExpandedId) {
+      const match = sessions.find((s) => s.id === initialExpandedId || s.sessionId === initialExpandedId);
+      if (match) {
+        setExpandedCardId(match.id);
+      }
+    }
+  }, [initialExpandedId, sessions]);
+
+  useEffect(() => {
+    if (expandedCardId) {
+      const cardElement = document.querySelector(`[data-card-id="${expandedCardId}"]`);
+      if (cardElement) {
+        const timer = setTimeout(() => {
+          cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [expandedCardId]);
 
   const handleToggleExpand = useCallback((cardId: string) => {
     setExpandedCardId((prev) => (prev === cardId ? null : cardId));

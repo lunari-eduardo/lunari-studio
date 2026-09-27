@@ -91,7 +91,7 @@ export function useConversasState(realtime: boolean) {
         const [chatsResult, instanciasResult, tipoMap] = await Promise.all([
           supabase
             .from('conversas_chats')
-            .select('*')
+            .select('*, clientes(nome)')
             .eq('user_id', userId)
             .order('ultima_mensagem_data', { ascending: false, nullsFirst: false }),
           supabase
@@ -163,6 +163,20 @@ export function useConversasState(realtime: boolean) {
                     payload.new.ultima_mensagem || undefined
                   );
                 }
+                
+                // Se o cliente_id mudou (ex: foi vinculado), buscamos o nome no DB de forma assíncrona
+                if (oldChat && oldChat.cliente_id !== payload.new.cliente_id) {
+                  if (payload.new.cliente_id) {
+                    supabase.from('clientes').select('nome').eq('id', payload.new.cliente_id).single().then(({ data }) => {
+                      if (data) {
+                        setChats(curr => curr.map(c => c.id === payload.new.id ? { ...c, clientes: { nome: data.nome } } as EnrichedChat : c));
+                      }
+                    });
+                  } else {
+                    setChats(curr => curr.map(c => c.id === payload.new.id ? { ...c, clientes: null } as EnrichedChat : c));
+                  }
+                }
+
                 return prev.map(c => (c.id === payload.new.id ? { ...c, ...payload.new } as EnrichedChat : c));
               });
             } else if (payload.eventType === 'DELETE') {

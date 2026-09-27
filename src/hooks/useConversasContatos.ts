@@ -60,7 +60,7 @@ export function useConversasContatos(): UseConversasContatosReturn {
           .order('ultima_mensagem_data', { ascending: false });
 
         if (error) throw error;
-        if (!cancelled) setContatos(data ?? []);
+        if (!cancelled) setContatos((data as Contato[]) ?? []);
       } catch (err) {
         console.error('[ConversasContatos] Load error:', err);
       } finally {
@@ -174,6 +174,16 @@ export function useConversasContatos(): UseConversasContatosReturn {
         cliente_id: clienteId,
         lead_id: null,
       });
+
+      // Atualiza também o(s) chat(s) associado(s) a esse contato
+      const { error } = await supabase
+        .from('conversas_chats')
+        .update({ cliente_id: clienteId, updated_at: new Date().toISOString() })
+        .eq('contato_id', contatoId);
+
+      if (error) {
+        console.error('[ConversasContatos] Link chat error:', error);
+      }
     },
     [updateContato],
   );
@@ -185,6 +195,16 @@ export function useConversasContatos(): UseConversasContatosReturn {
         cliente_id: null,
         lead_id: null,
       });
+
+      // Remove a vinculação também do(s) chat(s)
+      const { error } = await supabase
+        .from('conversas_chats')
+        .update({ cliente_id: null, updated_at: new Date().toISOString() })
+        .eq('contato_id', contatoId);
+
+      if (error) {
+        console.error('[ConversasContatos] Unlink chat error:', error);
+      }
     },
     [updateContato],
   );

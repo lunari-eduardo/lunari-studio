@@ -166,7 +166,17 @@ export function ChatPanel({
     });
 
     if (index !== -1) {
-      rowVirtualizer.scrollToIndex(index, { align: 'center' });
+      rowVirtualizer.scrollToIndex(index, { align: 'start' });
+      
+      // Delay pequeno para dar tempo de o virtualizador renderizar o item
+      setTimeout(() => {
+        const el = document.getElementById(`msg-${messageId}`);
+        if (el) {
+          // block: 'center' assegura que o topo e a base da mensagem fiquem confortáveis
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
+
       setHighlightedMessageId(messageId);
       setTimeout(() => setHighlightedMessageId(null), 2000);
     } else {
@@ -220,6 +230,25 @@ export function ChatPanel({
       rowVirtualizer.scrollToIndex(items.length - 1, { align: 'end' });
     }
   }, [totalSize, items.length, rowVirtualizer]);
+
+  // 3. Manter a rolagem estável ao fazer loadMore de histórico (Issue 3)
+  const previousFirstItemIdRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (items.length === 0) return;
+    const currentFirstId = items[0].id;
+    const prevFirstId = previousFirstItemIdRef.current;
+
+    // Se o ID do primeiro item mudou, e nós já tínhamos itens, significa que adicionamos itens no TOPO (prepend)
+    if (prevFirstId && currentFirstId !== prevFirstId) {
+      const newIndexOfOldFirstItem = items.findIndex(item => item.id === prevFirstId);
+      if (newIndexOfOldFirstItem !== -1) {
+        // Ancora no primeiro item antigo para o scroll não "pular" pro topo
+        rowVirtualizer.scrollToIndex(newIndexOfOldFirstItem, { align: 'start' });
+      }
+    }
+
+    previousFirstItemIdRef.current = currentFirstId;
+  }, [items, rowVirtualizer]);
 
   // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {

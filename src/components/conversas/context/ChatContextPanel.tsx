@@ -132,22 +132,38 @@ export function ChatContextPanel({
 
   const chatState = useChatStateResolver({ cliente, lead, sessoes });
   const handleOpenWorkflow = (id?: string) => {
-    if (!id && sessoes?.[0]?.id) {
-      id = sessoes[0].id;
+    let targetSession = id ? sessoes?.find((s) => s.id === id) : undefined;
+
+    if (!targetSession && sessoes && sessoes.length > 0) {
+      const today = new Date();
+      const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      const future = sessoes
+        .filter((s) => s.data_sessao && s.data_sessao.slice(0, 10) >= todayIso)
+        .sort((a, b) => a.data_sessao.slice(0, 10).localeCompare(b.data_sessao.slice(0, 10)));
+
+      targetSession = future[0] || sessoes[0];
     }
-    if (!id) {
+
+    const targetId = id || targetSession?.id;
+
+    if (!targetId) {
       navigate('/app/workflow');
       return;
     }
-    const sessao = sessoes?.find((s) => s.id === id);
-    if (sessao?.data_sessao) {
-      const dataObj = new Date(sessao.data_sessao);
-      const month = dataObj.getMonth();
-      const year = dataObj.getFullYear();
-      navigate(`/app/workflow?open_session=${id}&month=${month}&year=${year}`);
-    } else {
-      navigate(`/app/workflow?open_session=${id}`);
+
+    if (targetSession?.data_sessao) {
+      const datePart = targetSession.data_sessao.slice(0, 10);
+      const [yearStr, monthStr] = datePart.split('-');
+      const year = parseInt(yearStr, 10);
+      const month = parseInt(monthStr, 10); // 1 a 12 (Workflow utiliza meses base 1)
+      if (!isNaN(month) && !isNaN(year)) {
+        navigate(`/app/workflow?open_session=${targetId}&month=${month}&year=${year}`);
+        return;
+      }
     }
+
+    navigate(`/app/workflow?open_session=${targetId}`);
   };
 
   const getActiveSessionData = (): SessionData | null => {

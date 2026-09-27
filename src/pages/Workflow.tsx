@@ -63,7 +63,8 @@ function WorkflowContent() {
   useEffect(() => {
     const qsMonth = searchParams.get("month");
     const qsYear = searchParams.get("year");
-    if (initialOpenSession && qsMonth && qsYear) {
+    const openSession = searchParams.get("open_session");
+    if (openSession && qsMonth && qsYear) {
       const m = parseInt(qsMonth, 10);
       const y = parseInt(qsYear, 10);
       if (!isNaN(m) && !isNaN(y)) {
@@ -74,7 +75,7 @@ function WorkflowContent() {
       newParams.delete("year");
       setSearchParams(newParams, { replace: true });
     }
-  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const sessionsData = useMemo(
     () => month.workflowSessions.map((s) => convertSessionToData(s)),
@@ -232,6 +233,7 @@ function WorkflowContent() {
         sessionUuids={monthSessionUuids}
       >
         <WorkflowMobileView
+          initialExpandedId={initialOpenSession}
           sessions={filters.sortedSessions}
           monthSessions={month.workflowSessions}
           currentMonth={month.currentMonth}

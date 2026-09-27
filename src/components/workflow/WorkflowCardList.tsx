@@ -34,8 +34,11 @@ export function WorkflowCardList({ initialExpandedId,
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialExpandedId && sessions.some(s => s.id === initialExpandedId)) {
-      setExpandedCardId(initialExpandedId);
+    if (initialExpandedId) {
+      const match = sessions.find((s) => s.id === initialExpandedId || s.sessionId === initialExpandedId);
+      if (match) {
+        setExpandedCardId(match.id);
+      }
     }
   }, [initialExpandedId, sessions]);
 
@@ -49,8 +52,8 @@ export function WorkflowCardList({ initialExpandedId,
       const cardElement = containerRef.current.querySelector(`[data-card-id="${expandedCardId}"]`);
       if (cardElement) {
         setTimeout(() => {
-          cardElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
+          cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
       }
     }
   }, [expandedCardId]);

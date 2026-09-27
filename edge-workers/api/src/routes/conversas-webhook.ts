@@ -561,17 +561,34 @@ async function processSingleMessage(
   const quotedInfo = extractQuotedInfo(msg);
   let replyToId: string | null = null;
   let quotedSender = quotedInfo?.participant || null;
+  let quotedContent = quotedInfo?.content || null;
+  let quotedType = quotedInfo?.type || null;
 
   if (quotedInfo?.stanzaId) {
     const { data: quotedRow } = await supabase
       .from('conversas_mensagens')
-      .select('id, direction')
+      .select('id, direction, content, type')
       .eq('user_id', instance.user_id)
       .eq('evolution_msg_id', quotedInfo.stanzaId)
       .maybeSingle();
 
     if (quotedRow) {
       replyToId = quotedRow.id;
+      
+      // Se não veio pelo webhook (comum no outbound pelo app nativo), busca do banco
+      if (!quotedContent) {
+        if (quotedRow.type === 'image') quotedContent = 'Foto';
+        else if (quotedRow.type === 'video') quotedContent = 'Vídeo';
+        else if (quotedRow.type === 'audio') quotedContent = 'Áudio';
+        else if (quotedRow.type === 'document') quotedContent = 'Documento';
+        else if (quotedRow.type === 'sticker') quotedContent = 'Figurinha';
+        else quotedContent = quotedRow.content;
+      }
+      
+      if (!quotedType) {
+        quotedType = quotedRow.type;
+      }
+
       if (!quotedSender) {
         quotedSender = quotedRow.direction === 'outbound' ? 'Você' : (contactPushName || 'Contato');
       }
@@ -610,9 +627,9 @@ async function processSingleMessage(
         media_size_bytes: finalSizeBytes,
         status: initialStatus,
         reply_to_id: replyToId,
-        quoted_content: quotedInfo?.content || null,
+        quoted_content: quotedContent,
         quoted_sender: quotedSender,
-        quoted_type: quotedInfo?.type || null,
+        quoted_type: quotedType,
         timestamp,
       },
       { onConflict: 'user_id,evolution_msg_id' },

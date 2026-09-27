@@ -300,6 +300,7 @@ export function MessageBubble({
 
   return (
     <div
+      id={`msg-${mensagem.id}`}
       className={cn(
         'group w-full flex items-center gap-1.5 px-3 mb-0.5',
         isOwn ? 'justify-end' : 'justify-start'

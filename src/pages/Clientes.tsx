@@ -8,6 +8,8 @@ import { AniversariantesModal } from '@/components/crm/AniversariantesModal';
 import { ClientFiltersBar } from '@/components/crm/ClientFiltersBar';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DuplicateWarningDialog } from '@/components/clientes/DuplicateWarningDialog';
+import { WhatsAppBatchLinkModal } from './clientes/components/WhatsAppBatchLinkModal';
+import { Link as LinkIcon } from 'lucide-react';
 
 import { ViewMode } from './clientes/types';
 import { useClientesPageData } from './clientes/hooks/useClientesPageData';
@@ -20,6 +22,7 @@ import { ClienteFormDrawer } from './clientes/components/ClienteFormDrawer';
 export default function Clientes() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showAniversariantesModal, setShowAniversariantesModal] = useState(false);
+  const [showBatchLinkModal, setShowBatchLinkModal] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
   const {
@@ -120,6 +123,15 @@ export default function Clientes() {
               </Button>
             </div>
 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBatchLinkModal(true)}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              Vincular WhatsApps
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -238,6 +250,11 @@ export default function Clientes() {
           open={showAniversariantesModal}
           onOpenChange={setShowAniversariantesModal}
           clientes={clientesLegacy}
+        />
+
+        <WhatsAppBatchLinkModal 
+          open={showBatchLinkModal} 
+          onOpenChange={setShowBatchLinkModal} 
         />
 
         {/* Confirm Dialog */}

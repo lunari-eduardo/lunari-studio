@@ -6,6 +6,7 @@ export interface Cliente {
   telefone: string;
   whatsapp?: string;
   endereco?: string;
+  avatar_url?: string | null;
   observacoes?: string;
   origem?: string;
   // Novos campos opcionais para perfil completo

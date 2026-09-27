@@ -14,6 +14,7 @@ export interface ClienteSupabase {
   uf?: string | null;
   cep?: string | null;
   cpf_cnpj?: string | null;
+  avatar_url?: string | null;
   observacoes?: string;
   origem?: string;
   data_nascimento?: string;
