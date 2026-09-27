@@ -132,6 +132,9 @@ export function ChatPanel({
   const lastBottomMessageIdRef = useRef<string | null>(null);
   const isAtBottomRef = useRef(true);
   const hasUserScrolledUpRef = useRef(false);
+  const lastScrollSnapshotRef = useRef<{ scrollHeight: number; scrollTop: number }>({ scrollHeight: 0, scrollTop: 0 });
+  const firstMessageIdRef = useRef<string | null>(null);
+  const prevMessageCountRef = useRef(0);
 
   const grouped = useMemo(() => groupByDay(mensagens), [mensagens]);
 
@@ -141,9 +144,9 @@ export function ChatPanel({
       result.push({ type: 'date', date: g.items[0].timestamp, id: `date-${g.day}` });
       const adjacent = groupAdjacent(g.items);
       adjacent.forEach((group) => {
-        const firstId = group[0]?.id || 'unknown';
-        const lastId = group[group.length - 1]?.id || firstId;
-        result.push({ type: 'message_group', group, id: `msg-group-${firstId}-${lastId}` });
+        // lastId é imutável quando novas mensagens antigas são adicionadas no topo do grupo
+        const lastId = group[group.length - 1]?.id || group[0]?.id || 'unknown';
+        result.push({ type: 'message_group', group, id: `msg-group-${lastId}` });
       });
     });
     return result;
@@ -155,6 +158,7 @@ export function ChatPanel({
     estimateSize: () => 80,
     overscan: 20,
     getItemKey: (index) => items[index].id,
+    anchorTo: 'end',
   });
 
   const handleScrollToMessage = (messageId: string) => {
@@ -195,6 +199,9 @@ export function ChatPanel({
     lastBottomMessageIdRef.current = null;
     isAtBottomRef.current = true;
     hasUserScrolledUpRef.current = false;
+    firstMessageIdRef.current = null;
+    prevMessageCountRef.current = 0;
+    lastScrollSnapshotRef.current = { scrollHeight: 0, scrollTop: 0 };
   }, [chat.id]);
 
   // 1. Manter rolagem no fim na abertura inicial e quando chegam mensagens novas no fim
@@ -231,24 +238,46 @@ export function ChatPanel({
     }
   }, [totalSize, items.length, rowVirtualizer]);
 
-  // 3. Manter a rolagem estável ao fazer loadMore de histórico (Issue 3)
-  const previousFirstItemIdRef = useRef<string | null>(null);
+  // 3. Manter a rolagem 100% estável (zero pulo) ao fazer loadMore de histórico (Issue 3)
   useLayoutEffect(() => {
-    if (items.length === 0) return;
-    const currentFirstId = items[0].id;
-    const prevFirstId = previousFirstItemIdRef.current;
+    if (mensagens.length === 0 || !scrollRef.current) return;
 
-    // Se o ID do primeiro item mudou, e nós já tínhamos itens, significa que adicionamos itens no TOPO (prepend)
-    if (prevFirstId && currentFirstId !== prevFirstId) {
-      const newIndexOfOldFirstItem = items.findIndex(item => item.id === prevFirstId);
-      if (newIndexOfOldFirstItem !== -1) {
-        // Ancora no primeiro item antigo para o scroll não "pular" pro topo
-        rowVirtualizer.scrollToIndex(newIndexOfOldFirstItem, { align: 'start' });
+    const currentFirstMessageId = mensagens[0]?.id ?? null;
+    const prevFirstMessageId = firstMessageIdRef.current;
+    const prevCount = prevMessageCountRef.current;
+
+    // Se mensagens mais antigas foram adicionadas no topo (prepend de histórico)
+    if (
+      prevFirstMessageId &&
+      currentFirstMessageId &&
+      currentFirstMessageId !== prevFirstMessageId &&
+      mensagens.length > prevCount
+    ) {
+      const el = scrollRef.current;
+      const prevSnapshot = lastScrollSnapshotRef.current;
+
+      if (prevSnapshot.scrollHeight > 0) {
+        // A distância da viewport em relação ao fundo da conversa é preservada com exatidão matemática
+        const prevDistanceFromBottom = prevSnapshot.scrollHeight - prevSnapshot.scrollTop;
+        const targetScrollTop = el.scrollHeight - prevDistanceFromBottom;
+
+        if (targetScrollTop > 0 && Math.abs(el.scrollTop - targetScrollTop) > 1) {
+          el.scrollTop = targetScrollTop;
+          rowVirtualizer.scrollToOffset(targetScrollTop);
+        }
       }
     }
 
-    previousFirstItemIdRef.current = currentFirstId;
-  }, [items, rowVirtualizer]);
+    firstMessageIdRef.current = currentFirstMessageId;
+    prevMessageCountRef.current = mensagens.length;
+
+    if (scrollRef.current) {
+      lastScrollSnapshotRef.current = {
+        scrollHeight: scrollRef.current.scrollHeight,
+        scrollTop: scrollRef.current.scrollTop,
+      };
+    }
+  }, [mensagens, rowVirtualizer]);
 
   // IntersectionObserver para loadMore (scroll-up).
   useEffect(() => {
@@ -322,6 +351,11 @@ export function ChatPanel({
             } else {
               hasUserScrolledUpRef.current = false;
             }
+
+            lastScrollSnapshotRef.current = {
+              scrollHeight: target.scrollHeight,
+              scrollTop: target.scrollTop,
+            };
 
             // Mostra o botão se o usuário subiu mais de 300px da base
             const isScrolledUp = distanceToBottom > 300;
