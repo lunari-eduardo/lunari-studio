@@ -44,8 +44,7 @@ import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactMo
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { LeadContextCard } from './cards/LeadContextCard';
-import { WorkflowContextCard } from './cards/WorkflowContextCard';
-import { HistoryCard } from './cards/HistoryCard';
+import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
@@ -210,7 +209,10 @@ export function ChatContextPanel({
       case 'SESSION':
         return (
           <>
-            <WorkflowContextCard sessao={sessoes?.[0]} onOpenWorkflow={() => navigate('/workflow')} />
+            <SmartSessionCard 
+              sessoes={sessoes} 
+              onOpenWorkflow={(id) => navigate(id ? `/app/workflow?open_session=${id}` : '/app/workflow')} 
+            />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}
@@ -226,7 +228,10 @@ export function ChatContextPanel({
       case 'POST_SALE':
         return (
           <>
-            <HistoryCard cliente={cliente} onNavigate={navigate} />
+            <SmartSessionCard 
+              sessoes={sessoes} 
+              onOpenWorkflow={(id) => navigate(id ? `/app/workflow?open_session=${id}` : '/app/workflow')} 
+            />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}

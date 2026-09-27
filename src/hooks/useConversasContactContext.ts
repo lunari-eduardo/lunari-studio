@@ -30,6 +30,7 @@ export interface ContextSessao {
   status_workflow: string | null;
   valor_total: number | null;
   valor_pago: number | null;
+  local_ensaio: string | null;
 }
 
 export interface ContextLead {
@@ -180,7 +181,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       if (!cliente?.id || !userId) return [];
       const { data, error } = await supabase
         .from('clientes_sessoes')
-        .select('id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago')
+        .select('id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
         .eq('cliente_id', cliente.id)
         .eq('user_id', userId)
         .order('data_sessao', { ascending: false })
