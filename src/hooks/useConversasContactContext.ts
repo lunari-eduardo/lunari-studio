@@ -22,6 +22,7 @@ export interface ContextCliente {
 
 export interface ContextSessao {
   id: string;
+  session_id: string | null;
   categoria: string;
   pacote: string | null;
   data_sessao: string;
@@ -179,19 +180,56 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     queryKey: ['conversas-context-sessoes', cliente?.id, userId],
     queryFn: async () => {
       if (!cliente?.id || !userId) return [];
-      const { data, error } = await supabase
-        .from('clientes_sessoes')
-        .select('id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
-        .eq('cliente_id', cliente.id)
-        .eq('user_id', userId)
-        .order('data_sessao', { ascending: false })
-        .limit(5);
+      const [sessoesResult, appointmentsResult] = await Promise.all([
+        supabase
+          .from('clientes_sessoes')
+          .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
+          .eq('cliente_id', cliente.id)
+          .eq('user_id', userId)
+          .order('data_sessao', { ascending: false })
+          .limit(5),
+        supabase
+          .from('appointments')
+          .select('id, type, date, time, title, status')
+          .eq('cliente_id', cliente.id)
+          .eq('user_id', userId)
+          .eq('status', 'confirmado')
+          .limit(5)
+      ]);
 
-      if (error) {
-        console.warn('[useConversasContactContext] Erro ao carregar sessoes:', error);
-        return [];
+      let allSessoes: ContextSessao[] = (sessoesResult.data || []) as unknown as ContextSessao[];
+
+      if (appointmentsResult.data) {
+        const agendaSessoes = appointmentsResult.data.map(app => ({
+          id: app.id,
+          session_id: `agenda-${app.id}`,
+          categoria: app.type || 'Agendamento',
+          pacote: app.title || 'Sessão Agendada',
+          data_sessao: app.date || '',
+          hora_sessao: app.time || '',
+          status: app.status,
+          status_workflow: 'agendado',
+          valor_total: 0,
+          valor_pago: 0,
+          local_ensaio: null
+        }));
+        
+        // Adiciona apenas as que não existem no banco (evita duplicação caso RPC já tenha rodado)
+        agendaSessoes.forEach(ag => {
+          if (!allSessoes.some(s => s.session_id === ag.session_id)) {
+            allSessoes.push(ag as ContextSessao);
+          }
+        });
       }
-      return (data || []) as unknown as ContextSessao[];
+
+      // Ordenar novamente
+      allSessoes.sort((a, b) => {
+        const dateA = a.data_sessao ? new Date(a.data_sessao).getTime() : 0;
+        const dateB = b.data_sessao ? new Date(b.data_sessao).getTime() : 0;
+        return dateB - dateA;
+      });
+
+      return allSessoes.slice(0, 5);
     },
     enabled: !!cliente?.id && !!userId,
     staleTime: 1000 * 60 * 2,

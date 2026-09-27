@@ -276,7 +276,7 @@ export function ChatContextPanel({
         className="flex-1 overflow-y-auto px-3.5 space-y-3"
         style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}
       >
-        <ContactHeaderCard chat={chat} state={chatState} />
+        <ContactHeaderCard chat={chat} state={chatState} cliente={cliente} />
         {renderStateCards()}
 
         {/* ─── Notas Internas e Rodapé Fixo ───────────────────────────────── */}

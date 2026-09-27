@@ -5,11 +5,13 @@ import type { ChatState } from '@/hooks/useChatStateResolver';
 interface ContactHeaderCardProps {
   chat: any;
   state: ChatState;
+  cliente?: any;
 }
 
-export function ContactHeaderCard({ chat, state }: ContactHeaderCardProps) {
+export function ContactHeaderCard({ chat, state, cliente }: ContactHeaderCardProps) {
   const navigate = useNavigate();
-  const name = chat?.contato_nome || chat?.contato_phone_normalized || 'Desconhecido';
+  // Prioriza o nome salvo no CRM. Se não existir, cai pro nome do zap.
+  const name = cliente?.nome || chat?.contato_nome || chat?.contato_phone_normalized || 'Desconhecido';
   
   return (
     <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col gap-3">

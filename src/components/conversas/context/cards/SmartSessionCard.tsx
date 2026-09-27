@@ -12,8 +12,18 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const futureSessions = sessoes.filter(s => new Date(s.data_sessao) >= today);
-  const pastSessions = sessoes.filter(s => new Date(s.data_sessao) < today);
+  const futureSessions = sessoes.filter(s => {
+    if (!s.data_sessao) return false;
+    const d = new Date(s.data_sessao);
+    if (isNaN(d.getTime())) return false;
+    return d >= today;
+  });
+  const pastSessions = sessoes.filter(s => {
+    if (!s.data_sessao) return true; // Fallback para colocar sem data no passado
+    const d = new Date(s.data_sessao);
+    if (isNaN(d.getTime())) return true;
+    return d < today;
+  });
 
   // A mais próxima do futuro é a última do array de futuras (já que vem DESC do banco)
   const nextSession = futureSessions.length > 0 ? futureSessions[futureSessions.length - 1] : null;
@@ -30,15 +40,18 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
     .filter(s => s.id !== mainSession.id)
     .slice(0, 3);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR');
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'Sem data';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Sem data';
+    return d.toLocaleDateString('pt-BR');
   };
 
   return (
     <div className="flex flex-col gap-2">
       {/* ─── Main Session (Próxima ou Última) ─── */}
       <div 
-        onClick={() => onOpenWorkflow(mainSession.id)}
+        onClick={() => onOpenWorkflow(mainSession.session_id || mainSession.id)}
         className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] cursor-pointer hover:border-black/[0.12] dark:hover:border-white/[0.12] transition-colors group"
       >
         <div className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 mb-2">
@@ -92,7 +105,7 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
             {historySessions.map(sessao => (
               <div 
                 key={sessao.id}
-                onClick={() => onOpenWorkflow(sessao.id)}
+                onClick={() => onOpenWorkflow(sessao.session_id || sessao.id)}
                 className="flex items-center justify-between p-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer"
               >
                 <div className="flex flex-col gap-0.5">
