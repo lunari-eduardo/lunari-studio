@@ -14,6 +14,9 @@ import { CpfCnpjInlineField } from '../shared/CpfCnpjInlineField';
 import { AddressFieldsBlock } from '../shared/AddressFieldsBlock';
 import { ClienteCompleto } from '@/types/cliente-supabase';
 import { useState, useEffect } from 'react';
+import { WhatsAppLinkSection } from '../shared/WhatsAppLinkSection';
+import { MessageCircle } from 'lucide-react';
+
 
 
 interface ContactoTabProps {
@@ -291,6 +294,30 @@ export function ContactoTab({ cliente, onUpdate }: ContactoTabProps) {
         </AccordionItem>
 
         {/* SEÇÃO 2b: Documentação fiscal */}
+        
+        {/* SE??O VINCULO WHATSAPP */}
+        <AccordionItem value="whatsapp" className="rounded-lg border border-border/20 bg-card/60 px-4">
+          <AccordionTrigger className="hover:no-underline py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
+                <MessageCircle className="h-4 w-4 text-[#10B981]" />
+              </div>
+              <div className="text-left">
+                <span className="font-medium">WhatsApp (Conversas)</span>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-4">
+            <WhatsAppLinkSection 
+              clienteId={cliente.id} 
+              clientePhone={cliente.telefone || cliente.whatsapp}
+              onUpdatePhone={(digits) => {
+                onUpdate(cliente.id, { telefone: digits, whatsapp: digits });
+              }}
+            />
+          </AccordionContent>
+        </AccordionItem>
+
         <AccordionItem value="fiscal" className="rounded-lg border border-border/20 bg-card/60 px-4">
           <AccordionTrigger className="hover:no-underline py-3">
             <div className="flex items-center gap-3">

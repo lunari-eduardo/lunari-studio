@@ -50,7 +50,7 @@ export function useSessionPanelForm({
   const [showCharge, setShowCharge] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [newClientMode, setNewClientMode] = useState(false);
-  const [newClient, setNewClient] = useState({ nome: "", telefone: "" });
+  const [newClient, setNewClient] = useState({ nome: "", telefone: "", contatoIdToLink: "" });
   const [saving, setSaving] = useState(false);
   const [cobrarAoSalvar, setCobrarAoSalvar] = useState(false);
   const [chargeSessionId, setChargeSessionId] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export function useSessionPanelForm({
     setDateInput(formatDateForInput(next.date));
     setTimeInput(next.time);
     setNewClientMode(false);
-    setNewClient({ nome: "", telefone: "" });
+    setNewClient({ nome: "", telefone: "", contatoIdToLink: "" });
     setCobrarAoSalvar(false);
     setChargeSessionId(null);
     setShowHistory(false);
@@ -289,12 +289,15 @@ export function useSessionPanelForm({
     if (form.clienteId) {
       return { clienteId: form.clienteId, nome: clientDisplayName };
     }
-    if (newClientMode && newClient.nome.trim()) {
+        if (newClientMode && newClient.nome.trim()) {
       const criado = await adicionarCliente({
         nome: newClient.nome.trim(),
         telefone: newClient.telefone || "",
         email: "",
       });
+      if (criado && newClient.contatoIdToLink) {
+        await supabase.from('conversas_contatos').update({ cliente_id: criado.id, tipo: 'cliente' }).eq('id', newClient.contatoIdToLink);
+      }
       return { clienteId: criado.id, nome: newClient.nome.trim() };
     }
     if (isEdit) {

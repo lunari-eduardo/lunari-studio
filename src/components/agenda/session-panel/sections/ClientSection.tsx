@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { toTitleCase } from "@/hooks/useTitleCase";
 import { PanelSection } from "../PanelSection";
 import ClientSearchCombobox from "../../ClientSearchCombobox";
+import ContactSearchCombobox from "@/components/cliente-detalhe/shared/ContactSearchCombobox";
+import { useConversasContatos } from "@/hooks/useConversasContatos";
 import type { PanelFormState } from "../types";
 
 interface ClientSectionProps {
@@ -14,8 +16,8 @@ interface ClientSectionProps {
   cliente?: { telefone?: string; email?: string };
   newClientMode: boolean;
   setNewClientMode: (v: boolean) => void;
-  newClient: { nome: string; telefone: string };
-  setNewClient: React.Dispatch<React.SetStateAction<{ nome: string; telefone: string }>>;
+  newClient: { nome: string; telefone: string; contatoIdToLink?: string };
+  setNewClient: React.Dispatch<React.SetStateAction<{ nome: string; telefone: string; contatoIdToLink?: string }>>;
   clientes: Array<{ id: string; nome: string; telefone?: string; email?: string }>;
   setShowClientEdit: (v: boolean) => void;
 }
@@ -32,6 +34,24 @@ export const ClientSection: React.FC<ClientSectionProps> = ({
   clientes,
   setShowClientEdit,
 }) => {
+  const { contatos } = useConversasContatos();
+
+  const handleSelectContact = (contatoId: string) => {
+    if (!contatoId) {
+      setNewClient((p) => ({ ...p, contatoIdToLink: "" }));
+      return;
+    }
+    const contact = contatos.find((c) => c.id === contatoId);
+    if (contact) {
+      setNewClient((p) => ({
+        ...p,
+        contatoIdToLink: contatoId,
+        nome: contact.nome || contact.nome || p.nome,
+        telefone: contact.phone_normalized ? contact.phone_normalized.replace(/\D/g, '') : p.telefone,
+      }));
+    }
+  };
+
   return (
     <PanelSection icon={User} title="Cliente">
       {form.clienteId ? (
@@ -97,13 +117,27 @@ export const ClientSection: React.FC<ClientSectionProps> = ({
               size="sm"
               onClick={() => {
                 setNewClientMode(false);
-                setNewClient({ nome: "", telefone: "" });
+                setNewClient({ nome: "", telefone: "", contatoIdToLink: "" });
               }}
               className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
             >
               Buscar no CRM
             </Button>
           </div>
+
+          <div className="bg-muted/30 p-2 rounded-lg border border-border/40">
+            <ContactSearchCombobox 
+              placeholder="Vincular ou importar do WhatsApp..." 
+              value={newClient.contatoIdToLink}
+              onSelect={handleSelectContact}
+            />
+            {newClient.contatoIdToLink && (
+              <p className="text-[10px] text-[#10B981] mt-1.5 ml-1">
+                ✔ Contato do WhatsApp importado. O novo cadastro será vinculado.
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input
               value={newClient.nome}

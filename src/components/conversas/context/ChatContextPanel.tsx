@@ -35,10 +35,14 @@ import { toast } from 'sonner';
 import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { Zap } from 'lucide-react';
 import { useCategorias } from '@/hooks/useCategorias';
-import { FastLeadModal } from './FastLeadModal';
+
 
 import { useChatStateResolver } from '@/hooks/useChatStateResolver';
-import { InterestCard } from './cards/InterestCard';
+import { UnknownContactCard } from './cards/UnknownContactCard';
+import { ClientLinkModal } from './modals/ClientLinkModal';
+import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
+import { useClientesRealtime } from '@/hooks/useClientesRealtime';
+import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { LeadContextCard } from './cards/LeadContextCard';
 import { WorkflowContextCard } from './cards/WorkflowContextCard';
 import { HistoryCard } from './cards/HistoryCard';
@@ -85,6 +89,33 @@ export function ChatContextPanel({
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
 
+  const handleCreateClient = async (data: { nome: string; telefone: string }) => {
+    if (!chat.contato_id) return;
+    try {
+      const novoCliente = await adicionarCliente({
+        nome: data.nome,
+        telefone: data.telefone,
+        whatsapp: data.telefone
+      });
+      if (novoCliente) {
+        await linkToCliente(chat.contato_id, novoCliente.id);
+        await vincularAmbos({ clienteId: novoCliente.id });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleLinkClient = async (clienteId: string) => {
+    if (!chat.contato_id) return;
+    try {
+      await linkToCliente(chat.contato_id, clienteId);
+      await vincularAmbos({ clienteId });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const {
     cliente,
     lead,
@@ -97,7 +128,10 @@ export function ChatContextPanel({
   const chatState = useChatStateResolver({ cliente, lead, sessoes });
 
   const { categorias } = useCategorias();
-  const [isFastLeadModalOpen, setIsFastLeadModalOpen] = useState(false);
+  const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
+  const [isClientCreateModalOpen, setIsClientCreateModalOpen] = useState(false);
+  const { adicionarCliente } = useClientesRealtime();
+  const { linkToCliente } = useConversasContatos();
   const [manualSuggestedCategory, setManualSuggestedCategory] = useState<string | undefined>();
   const isUnknownContact = chatState === 'UNKNOWN';
 
@@ -142,12 +176,9 @@ export function ChatContextPanel({
       case 'UNKNOWN':
         return (
           <>
-            <InterestCard 
-              suggestedCategory={aiSuggestedCategory} 
-              onCreateLead={(cat) => {
-                setManualSuggestedCategory(cat);
-                setIsFastLeadModalOpen(true);
-              }}
+            <UnknownContactCard 
+              onCreateClient={() => setIsClientCreateModalOpen(true)}
+              onLinkClient={() => setIsClientLinkModalOpen(true)}
             />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
@@ -318,17 +349,19 @@ export function ChatContextPanel({
         </div>
       </div>
         
-      <FastLeadModal 
-        isOpen={isFastLeadModalOpen}
-        onClose={() => {
-          setIsFastLeadModalOpen(false);
-          setManualSuggestedCategory(undefined);
-        }}
-        defaultCategory={manualSuggestedCategory}
-        chat={chat}
-        onLeadCreated={async (leadId, clienteId) => {
-          await vincularAmbos({ leadId, clienteId });
-        }}
+      <ClientCreateFromContactModal 
+        isOpen={isClientCreateModalOpen}
+        onClose={() => setIsClientCreateModalOpen(false)}
+        onCreate={handleCreateClient}
+        initialName={chat.contato_nome || chat.contato_nome}
+        initialPhone={chat.contato_phone_normalized || ''}
+      />
+      <ClientLinkModal
+        isOpen={isClientLinkModalOpen}
+        onClose={() => setIsClientLinkModalOpen(false)}
+        onLink={handleLinkClient}
+        contatoName={chat.contato_nome || chat.contato_nome}
+        contatoPhone={chat.contato_phone_normalized || ''}
       />
     </Container>
   );
