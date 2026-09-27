@@ -175,65 +175,31 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 3. Carregar Sessões / Workflow do Cliente
-  const { data: sessoes = [], isLoading: isLoadingSessoes } = useQuery({
-    queryKey: ['conversas-context-sessoes', cliente?.id, userId],
+  // 3. Carregar Contexto Completo via RPC
+  const { data: rpcContext, isLoading: isLoadingRpc } = useQuery({
+    queryKey: ['conversas-context-rpc', cliente?.id, userId],
     queryFn: async () => {
-      if (!cliente?.id || !userId) return [];
-      const [sessoesResult, appointmentsResult] = await Promise.all([
-        supabase
-          .from('clientes_sessoes')
-          .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
-          .eq('cliente_id', cliente.id)
-          .eq('user_id', userId)
-          .order('data_sessao', { ascending: false })
-          .limit(5),
-        supabase
-          .from('appointments')
-          .select('id, type, date, time, title, status')
-          .eq('cliente_id', cliente.id)
-          .eq('user_id', userId)
-          .eq('status', 'confirmado')
-          .limit(5)
-      ]);
-
-      let allSessoes: ContextSessao[] = (sessoesResult.data || []) as unknown as ContextSessao[];
-
-      if (appointmentsResult.data) {
-        const agendaSessoes = appointmentsResult.data.map(app => ({
-          id: app.id,
-          session_id: `agenda-${app.id}`,
-          categoria: app.type || 'Agendamento',
-          pacote: app.title || 'Sessão Agendada',
-          data_sessao: app.date || '',
-          hora_sessao: app.time || '',
-          status: app.status,
-          status_workflow: 'agendado',
-          valor_total: 0,
-          valor_pago: 0,
-          local_ensaio: null
-        }));
-        
-        // Adiciona apenas as que não existem no banco (evita duplicação caso RPC já tenha rodado)
-        agendaSessoes.forEach(ag => {
-          if (!allSessoes.some(s => s.session_id === ag.session_id)) {
-            allSessoes.push(ag as ContextSessao);
-          }
-        });
-      }
-
-      // Ordenar novamente
-      allSessoes.sort((a, b) => {
-        const dateA = a.data_sessao ? new Date(a.data_sessao).getTime() : 0;
-        const dateB = b.data_sessao ? new Date(b.data_sessao).getTime() : 0;
-        return dateB - dateA;
+      if (!cliente?.id || !userId) return null;
+      const { data, error } = await (supabase as any).rpc('get_conversas_cliente_context', {
+        p_cliente_id: cliente.id,
+        p_user_id: userId
       });
 
-      return allSessoes.slice(0, 5);
+      if (error) {
+        console.warn('[useConversasContactContext] Erro no RPC:', error);
+        return null;
+      }
+      return data as any;
     },
     enabled: !!cliente?.id && !!userId,
     staleTime: 1000 * 60 * 2,
   });
+
+  const sessoes = (rpcContext?.sessoes || []) as ContextSessao[];
+  const tarefas = (rpcContext?.tarefas || []) as ContextTask[];
+  const orcamentos = (rpcContext?.orcamentos || []) as ContextOrcamento[];
+  const cobrancas = (rpcContext?.cobrancas || []) as ContextCobranca[];
+  const leadsPerdidos = (rpcContext?.leads_perdidos || []) as ContextLeadPerdido[];
 
   // 4. Carregar Lead / Oportunidade
   const { data: lead, isLoading: isLoadingLead } = useQuery({
@@ -293,93 +259,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 5. Carregar Tarefas Pendentes
-  const { data: tarefas = [] } = useQuery({
-    queryKey: ['conversas-context-tasks', cliente?.id, userId],
-    queryFn: async () => {
-      if (!cliente?.id || !userId) return [];
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, title, status, due_date, created_at')
-        .eq('related_cliente_id', cliente.id)
-        .eq('user_id', userId)
-        .neq('status', 'done')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) return [];
-      return (data || []) as ContextTask[];
-    },
-    enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 2,
-  });
-
-  // 6. Carregar Orçamentos Abertos
-  const { data: orcamentos = [] } = useQuery({
-    queryKey: ['conversas-context-orcamentos', cliente?.id, userId],
-    queryFn: async () => {
-      if (!cliente?.id || !userId) return [];
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id, type, status, date, time, title')
-        .eq('cliente_id', cliente.id)
-        .eq('user_id', userId)
-        .eq('type', 'budget')
-        .eq('status', 'a confirmar')
-        .limit(5);
-
-      if (error) return [];
-      return data as ContextOrcamento[];
-    },
-    enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 2,
-  });
-
-  // 7. Carregar Cobranças Pendentes
-  const { data: cobrancas = [] } = useQuery({
-    queryKey: ['conversas-context-cobrancas', cliente?.id, userId],
-    queryFn: async () => {
-      if (!cliente?.id || !userId) return [];
-      const { data, error } = await supabase
-        .from('cobrancas')
-        .select('id, status, valor, created_at, descricao')
-        .eq('cliente_id', cliente.id)
-        .eq('user_id', userId)
-        .eq('status', 'pendente')
-        .limit(5);
-
-      if (error) return [];
-      return data as ContextCobranca[];
-    },
-    enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 2,
-  });
-
-  // 8. Carregar Leads Perdidos Recentes (Últimos 30 dias)
-  const { data: leadsPerdidos = [] } = useQuery({
-    queryKey: ['conversas-context-leads-perdidos', cliente?.id, userId],
-    queryFn: async () => {
-      if (!cliente?.id || !userId) return [];
-      
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      const { data, error } = await (supabase as any)
-        .from('leads')
-        .select('id, nome, status, perdido_em, motivo_perda')
-        .eq('cliente_id', cliente.id)
-        .eq('user_id', userId)
-        .eq('status', 'perdido')
-        .gte('perdido_em', thirtyDaysAgo.toISOString())
-        .limit(5);
-
-      if (error) return [];
-      return data as ContextLeadPerdido[];
-    },
-    enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 5,
-  });
-
+  
   // Mutations de Vinculação
   const linkClienteMutation = useMutation({
     mutationFn: async (clienteIdToLink: string) => {
@@ -506,7 +386,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: () => {
       toast.error('Erro ao adicionar tarefa.');
@@ -529,7 +409,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
   });
 
@@ -541,7 +421,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     orcamentos,
     cobrancas,
     leadsPerdidos,
-    isLoading: isLoadingCliente || isLoadingSessoes || isLoadingLead,
+    isLoading: isLoadingCliente || isLoadingRpc || isLoadingLead,
     isLinkedToCliente: !!cliente?.id,
     isLinkedToLead: !!lead?.id,
     vincularCliente: linkClienteMutation.mutateAsync,

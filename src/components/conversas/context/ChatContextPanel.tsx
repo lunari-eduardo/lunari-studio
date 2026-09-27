@@ -211,7 +211,21 @@ export function ChatContextPanel({
           <>
             <SmartSessionCard 
               sessoes={sessoes} 
-              onOpenWorkflow={(id) => navigate(id ? `/app/workflow?open_session=${id}` : '/app/workflow')} 
+              onOpenWorkflow={(id) => {
+                if (!id) {
+                  navigate('/app/workflow');
+                  return;
+                }
+                const sessao = sessoes.find(s => s.id === id);
+                if (sessao && sessao.data_sessao) {
+                  const d = new Date(sessao.data_sessao);
+                  if (!isNaN(d.getTime())) {
+                    navigate(`/app/workflow?open_session=${id}&month=${d.getMonth() + 1}&year=${d.getFullYear()}`);
+                    return;
+                  }
+                }
+                navigate(`/app/workflow?open_session=${id}`);
+              }} 
             />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
@@ -230,7 +244,21 @@ export function ChatContextPanel({
           <>
             <SmartSessionCard 
               sessoes={sessoes} 
-              onOpenWorkflow={(id) => navigate(id ? `/app/workflow?open_session=${id}` : '/app/workflow')} 
+              onOpenWorkflow={(id) => {
+                if (!id) {
+                  navigate('/app/workflow');
+                  return;
+                }
+                const sessao = sessoes.find(s => s.id === id);
+                if (sessao && sessao.data_sessao) {
+                  const d = new Date(sessao.data_sessao);
+                  if (!isNaN(d.getTime())) {
+                    navigate(`/app/workflow?open_session=${id}&month=${d.getMonth() + 1}&year=${d.getFullYear()}`);
+                    return;
+                  }
+                }
+                navigate(`/app/workflow?open_session=${id}`);
+              }} 
             />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab

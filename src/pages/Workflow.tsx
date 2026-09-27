@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
@@ -46,6 +47,8 @@ export default function Workflow() {
 }
 
 function WorkflowContent() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialOpenSession = searchParams.get("open_session");
   // ── Dados de referência ─────────────────────────────────────────────
   const { getStatusOptions } = useWorkflowStatus();
   const { user } = useAuth();
@@ -56,6 +59,23 @@ function WorkflowContent() {
 
   // ── Sessões do mês + navegação ──────────────────────────────────────
   const month = useWorkflowMonthSessions();
+
+  useEffect(() => {
+    const qsMonth = searchParams.get("month");
+    const qsYear = searchParams.get("year");
+    if (initialOpenSession && qsMonth && qsYear) {
+      const m = parseInt(qsMonth, 10);
+      const y = parseInt(qsYear, 10);
+      if (!isNaN(m) && !isNaN(y)) {
+        month.setCurrentMonth({ month: m, year: y });
+      }
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("month");
+      newParams.delete("year");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, []); // eslint-disable-next-line react-hooks/exhaustive-deps
+
   const sessionsData = useMemo(
     () => month.workflowSessions.map((s) => convertSessionToData(s)),
     [month.workflowSessions, convertSessionToData],
@@ -361,6 +381,7 @@ function WorkflowContent() {
                 sessionUuids={monthSessionUuids}
               >
                 <WorkflowTable
+                  initialExpandedId={initialOpenSession}
                   sessions={filters.sortedSessions}
                   statusOptions={getStatusOptions}
                   categoryOptions={categoryOptions}

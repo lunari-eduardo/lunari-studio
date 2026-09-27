@@ -51,7 +51,7 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
     <div className="flex flex-col gap-2">
       {/* ─── Main Session (Próxima ou Última) ─── */}
       <div 
-        onClick={() => onOpenWorkflow(mainSession.session_id || mainSession.id)}
+        onClick={() => onOpenWorkflow(mainSession.id)}
         className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] cursor-pointer hover:border-black/[0.12] dark:hover:border-white/[0.12] transition-colors group"
       >
         <div className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 mb-2">
@@ -105,7 +105,7 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
             {historySessions.map(sessao => (
               <div 
                 key={sessao.id}
-                onClick={() => onOpenWorkflow(sessao.session_id || sessao.id)}
+                onClick={() => onOpenWorkflow(sessao.id)}
                 className="flex items-center justify-between p-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer"
               >
                 <div className="flex flex-col gap-0.5">

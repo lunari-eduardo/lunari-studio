@@ -4,6 +4,7 @@ import type { SessionData } from "@/types/workflow";
 import type { DeleteAction } from "./WorkflowDeleteConfirmModal";
 
 interface WorkflowCardListProps {
+  initialExpandedId?: string | null;
   sessions: SessionData[];
   statusOptions: string[];
   categoryOptions: any[];
@@ -16,7 +17,7 @@ interface WorkflowCardListProps {
   onFieldUpdate: (id: string, field: string, value: any, silent?: boolean) => void;
 }
 
-export function WorkflowCardList({
+export function WorkflowCardList({ initialExpandedId, 
   sessions,
   statusOptions,
   categoryOptions,
@@ -29,8 +30,14 @@ export function WorkflowCardList({
   onFieldUpdate,
 }: WorkflowCardListProps) {
   // Apenas 1 card pode ficar expandido por vez (modo solitário)
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(initialExpandedId || null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (initialExpandedId && sessions.some(s => s.id === initialExpandedId)) {
+      setExpandedCardId(initialExpandedId);
+    }
+  }, [initialExpandedId, sessions]);
 
   const handleToggleExpand = useCallback((cardId: string) => {
     setExpandedCardId(prev => prev === cardId ? null : cardId);
@@ -82,3 +89,4 @@ export function WorkflowCardList({
     </div>
   );
 }
+

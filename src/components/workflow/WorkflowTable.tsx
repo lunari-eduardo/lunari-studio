@@ -19,6 +19,7 @@ import type { SessionData } from "@/types/workflow";
 import type { DeleteAction } from "./WorkflowDeleteConfirmModal";
 
 interface WorkflowTableProps {
+  initialExpandedId?: string | null;
   sessions: SessionData[];
   statusOptions: string[];
   categoryOptions: any[];
@@ -46,6 +47,7 @@ interface WorkflowTableProps {
 }
 
 export function WorkflowTable({
+  initialExpandedId,
   sessions,
   statusOptions,
   categoryOptions,
@@ -59,6 +61,7 @@ export function WorkflowTable({
 }: WorkflowTableProps) {
   return (
     <WorkflowCardList
+      initialExpandedId={initialExpandedId}
       sessions={sessions}
       statusOptions={statusOptions}
       categoryOptions={categoryOptions}
