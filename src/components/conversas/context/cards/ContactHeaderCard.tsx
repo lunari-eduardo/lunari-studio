@@ -17,6 +17,7 @@ export function ContactHeaderCard({ chat, state, cliente, lead }: ContactHeaderC
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const name = cliente?.nome || chat?.contato_nome || chat?.contato_phone_normalized || 'Desconhecido';
+  const clienteId = cliente?.id || chat?.cliente_id;
   
   const handleStatusChange = async (newStatus: string) => {
     if (!lead?.id) return;
@@ -61,9 +62,9 @@ export function ContactHeaderCard({ chat, state, cliente, lead }: ContactHeaderC
           )}
         </div>
         
-        {chat?.cliente_id && (
+        {clienteId && (
           <button
-            onClick={() => navigate(`/app/clientes/${chat.cliente_id}`)}
+            onClick={() => navigate(`/app/clientes/${clienteId}`)}
             className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
           >
             <span className="text-[10px] font-medium">Ver Cliente</span>
