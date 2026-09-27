@@ -73,7 +73,7 @@ export function ChatHeader({
       >
         <ContactAvatar
           phone={chat.contato_phone_normalized}
-          name={chat.contato_nome}
+          name={(chat as any).clientes?.nome ?? chat.contato_nome}
           src={chat.contato_avatar}
           size="md"
         />
@@ -81,7 +81,7 @@ export function ChatHeader({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-[#1C1C1C] dark:text-[#EFEFEF] truncate group-hover/header:text-[#B8925F] dark:group-hover/header:text-[#D4AF37] transition-colors">
-              {chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
+              {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
             {contatoTipo === 'cliente' ? (
               <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0">

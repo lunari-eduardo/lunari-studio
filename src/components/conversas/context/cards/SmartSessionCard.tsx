@@ -78,7 +78,21 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
             </span>
           </div>
           
-          <div className="flex items-center pl-2">
+          <div className="flex flex-col items-end pl-2">
+            {typeof mainSession.valor_total === 'number' && mainSession.valor_total > 0 && (
+              <div className="flex flex-col items-end mb-1 text-[10px]">
+                <span className="text-zinc-600 dark:text-zinc-400 font-medium">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mainSession.valor_total)}
+                </span>
+                {mainSession.valor_pago !== null && mainSession.valor_pago < mainSession.valor_total ? (
+                  <span className="text-amber-600 dark:text-amber-500 font-semibold">
+                    Falta {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mainSession.valor_total - mainSession.valor_pago)}
+                  </span>
+                ) : mainSession.valor_pago !== null && mainSession.valor_pago >= mainSession.valor_total ? (
+                  <span className="text-emerald-600 dark:text-emerald-500 font-semibold">Pago</span>
+                ) : null}
+              </div>
+            )}
             <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
           </div>
         </div>

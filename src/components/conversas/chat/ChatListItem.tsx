@@ -112,7 +112,7 @@ export const ChatListItem = React.memo(function ChatListItem({
       {/* Avatar — permanece limpo, sem nenhum indicador sobreposto */}
       <ContactAvatar
         phone={chat.contato_phone_normalized}
-        name={chat.contato_nome}
+        name={(chat as any).clientes?.nome ?? chat.contato_nome}
         src={avatar}
         size="lg"
       />
@@ -131,7 +131,7 @@ export const ChatListItem = React.memo(function ChatListItem({
                 isUnread ? 'font-semibold text-zinc-800 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-200',
               )}
             >
-              {chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
+              {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
             {leadStatus ? (
               <span

@@ -151,6 +151,7 @@ export interface ChatWithContato extends Chat {
  */
 export interface EnrichedChat extends Chat {
   contato_tipo: ContactType;
+  clientes?: { nome: string | null } | null;
 }
 
 // ─── Estado UI ────────────────────────────────────────────────────────────────
