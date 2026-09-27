@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
+import { supabase } from '@/integrations/supabase/client';
 import { MessageCircle, Link as LinkIcon, Unlink, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -7,14 +8,16 @@ import ContactSearchCombobox from './ContactSearchCombobox';
 
 interface WhatsAppLinkSectionProps {
   clienteId: string;
+  clienteName?: string;
   clientePhone?: string;
   onUpdatePhone?: (newPhone: string) => void;
 }
 
-export function WhatsAppLinkSection({ clienteId, clientePhone, onUpdatePhone }: WhatsAppLinkSectionProps) {
+export function WhatsAppLinkSection({ clienteId, clienteName, clientePhone, onUpdatePhone }: WhatsAppLinkSectionProps) {
   const { contatos, linkToCliente, unlinkCliente } = useConversasContatos();
   const navigate = useNavigate();
   const [isLinking, setIsLinking] = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
   
   // Encontra contato vinculado a este cliente
   const linkedContact = contatos.find(c => c.cliente_id === clienteId);
@@ -45,6 +48,31 @@ export function WhatsAppLinkSection({ clienteId, clientePhone, onUpdatePhone }: 
     }
   };
 
+  const handleOpenChat = async () => {
+    if (!linkedContact) return;
+    setOpeningChat(true);
+    try {
+      const { data, error } = await supabase
+        .from('conversas_chats')
+        .select('id')
+        .eq('contato_id', linkedContact.id)
+        .order('ultima_mensagem_data', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.id) {
+        navigate(`/app/conversas?chat=${data.id}`);
+      } else {
+        navigate('/app/conversas');
+      }
+    } catch (err) {
+      console.error('[WhatsAppLinkSection] Erro ao buscar chat:', err);
+      navigate('/app/conversas');
+    } finally {
+      setOpeningChat(false);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {linkedContact ? (
@@ -59,7 +87,7 @@ export function WhatsAppLinkSection({ clienteId, clientePhone, onUpdatePhone }: 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                {linkedContact.nome || linkedContact.nome || 'Sem Nome'}
+                {clienteName || linkedContact.nome || 'Sem Nome'}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {linkedContact.phone_normalized}
@@ -70,11 +98,12 @@ export function WhatsAppLinkSection({ clienteId, clientePhone, onUpdatePhone }: 
             <Button
               variant="outline"
               size="sm"
+              disabled={openingChat}
               className="flex-1 h-8 text-xs border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10 hover:text-[#10B981]"
-              onClick={() => navigate(`/conversas?chatId=${linkedContact.id}`)}
+              onClick={handleOpenChat}
             >
               <ExternalLink className="h-3 w-3 mr-1.5" />
-              Abrir Conversa
+              {openingChat ? 'Abrindo...' : 'Abrir Conversa'}
             </Button>
             <Button
               variant="ghost"

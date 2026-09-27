@@ -250,12 +250,22 @@ export function ContactoTab({ cliente, onUpdate }: ContactoTabProps) {
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             {/* WhatsApp — canal único (grava em whatsapp + telefone para compat) */}
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">WhatsApp</label>
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground block">WhatsApp</label>
               <PhoneInputSmart
                 value={(cliente as any).whatsapp || cliente.telefone || ''}
                 onSave={async (v) => onUpdate(cliente.id, { whatsapp: v, telefone: v })}
               />
+              <div className="pt-1">
+                <WhatsAppLinkSection 
+                  clienteId={cliente.id} 
+                  clienteName={cliente.nome}
+                  clientePhone={cliente.telefone || (cliente as any).whatsapp}
+                  onUpdatePhone={(digits) => {
+                    onUpdate(cliente.id, { telefone: digits, whatsapp: digits });
+                  }}
+                />
+              </div>
             </div>
 
 
@@ -294,29 +304,6 @@ export function ContactoTab({ cliente, onUpdate }: ContactoTabProps) {
         </AccordionItem>
 
         {/* SEÇÃO 2b: Documentação fiscal */}
-        
-        {/* SE??O VINCULO WHATSAPP */}
-        <AccordionItem value="whatsapp" className="rounded-lg border border-border/20 bg-card/60 px-4">
-          <AccordionTrigger className="hover:no-underline py-3">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
-                <MessageCircle className="h-4 w-4 text-[#10B981]" />
-              </div>
-              <div className="text-left">
-                <span className="font-medium">WhatsApp (Conversas)</span>
-              </div>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent className="pb-4">
-            <WhatsAppLinkSection 
-              clienteId={cliente.id} 
-              clientePhone={cliente.telefone || cliente.whatsapp}
-              onUpdatePhone={(digits) => {
-                onUpdate(cliente.id, { telefone: digits, whatsapp: digits });
-              }}
-            />
-          </AccordionContent>
-        </AccordionItem>
 
         <AccordionItem value="fiscal" className="rounded-lg border border-border/20 bg-card/60 px-4">
           <AccordionTrigger className="hover:no-underline py-3">
