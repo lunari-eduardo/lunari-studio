@@ -1,13 +1,15 @@
-import { Calendar, Camera, ChevronRight, Clock, MapPin } from 'lucide-react';
-import type { ContextSessao } from '@/hooks/useConversasContactContext';
+import { Calendar, FileText, ChevronRight, User, AlignLeft, CreditCard, Clock, MoreVertical, Star, MoreHorizontal } from 'lucide-react';
+import type { ContextSessao, ContextOrcamento } from '@/hooks/useConversasContactContext';
 
 interface SmartSessionCardProps {
   sessoes: ContextSessao[];
+  orcamentos?: ContextOrcamento[];
   onOpenWorkflow: (sessionId?: string) => void;
+  onNavigate?: (path: string) => void;
 }
 
-export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardProps) {
-  if (!sessoes || sessoes.length === 0) return null;
+export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onNavigate }: SmartSessionCardProps) {
+  if ((!sessoes || sessoes.length === 0) && (!orcamentos || orcamentos.length === 0)) return null;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -18,27 +20,17 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
     if (isNaN(d.getTime())) return false;
     return d >= today;
   });
+  
   const pastSessions = sessoes.filter(s => {
-    if (!s.data_sessao) return true; // Fallback para colocar sem data no passado
+    if (!s.data_sessao) return true;
     const d = new Date(s.data_sessao);
     if (isNaN(d.getTime())) return true;
     return d < today;
   });
 
-  // A mais próxima do futuro é a última do array de futuras (já que vem DESC do banco)
   const nextSession = futureSessions.length > 0 ? futureSessions[futureSessions.length - 1] : null;
-  // A mais recente do passado é a primeira do array de passadas
   const lastSession = pastSessions.length > 0 ? pastSessions[0] : null;
-
-  const mainSession = nextSession || lastSession;
-  const isFuture = !!nextSession;
-
-  if (!mainSession) return null;
-
-  // Histórico exclui a sessão principal e pega as 3 mais recentes
-  const historySessions = sessoes
-    .filter(s => s.id !== mainSession.id)
-    .slice(0, 3);
+  const mainOrcamento = orcamentos.length > 0 ? orcamentos[0] : null;
 
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return 'Sem data';
@@ -47,95 +39,161 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow }: SmartSessionCardPr
     return d.toLocaleDateString('pt-BR');
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      {/* ─── Main Session (Próxima ou Última) ─── */}
+  const isPaid = (total: number | null, pago: number | null) => {
+    return pago !== null && total !== null && pago >= total && total > 0;
+  };
+
+  // 1. Mostrar Próxima Sessão
+  if (nextSession) {
+    return (
       <div 
-        onClick={() => onOpenWorkflow(mainSession.id)}
-        className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)] cursor-pointer hover:border-black/[0.12] dark:hover:border-white/[0.12] transition-colors group"
+        onClick={() => onOpenWorkflow(nextSession.id)}
+        className="rounded-2xl bg-[#131718] border border-white/5 p-4 shadow-sm cursor-pointer hover:border-white/10 transition-colors group flex flex-col gap-3"
       >
-        <div className="flex items-center gap-1.5 text-zinc-900 dark:text-zinc-100 mb-2">
-          {isFuture ? (
-            <Camera className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
-          ) : (
-            <Calendar className="h-3.5 w-3.5 text-[#3B82F6]" />
-          )}
-          <span className="text-[11px] font-semibold">
-            {isFuture ? 'Próxima sessão' : 'Última sessão'} • {mainSession.pacote || mainSession.categoria || 'Sessão'}
-          </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-[#0EA5E9]/10">
+              <Calendar className="h-4 w-4 text-[#38BDF8]" />
+            </div>
+            <span className="text-sm font-semibold text-zinc-100">Próxima sessão</span>
+          </div>
+          <button className="text-zinc-500 hover:text-zinc-300">
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex-1 flex flex-col gap-1.5">
-            <span className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <Calendar className="h-3 w-3" /> 
-              {formatDate(mainSession.data_sessao)}
-              {isFuture && mainSession.hora_sessao && ` às ${mainSession.hora_sessao.slice(0, 5)}`}
-            </span>
-            <span className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <MapPin className="h-3 w-3" /> 
-              {mainSession.local_ensaio || 'Estúdio'}
-            </span>
-          </div>
+        <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-2 text-xs">
+          <span className="text-zinc-500 flex items-center gap-1.5"><User className="h-3 w-3" /> Categoria</span>
+          <span className="text-zinc-300">{nextSession.categoria || 'Não definida'}</span>
           
-          <div className="flex flex-col items-end pl-2">
-            {typeof mainSession.valor_total === 'number' && mainSession.valor_total > 0 && (
-              <div className="flex flex-col items-end mb-1 text-[10px]">
-                <span className="text-zinc-600 dark:text-zinc-400 font-medium">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mainSession.valor_total)}
-                </span>
-                {mainSession.valor_pago !== null && mainSession.valor_pago < mainSession.valor_total ? (
-                  <span className="text-amber-600 dark:text-amber-500 font-semibold">
-                    Falta {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(mainSession.valor_total - mainSession.valor_pago)}
-                  </span>
-                ) : mainSession.valor_pago !== null && mainSession.valor_pago >= mainSession.valor_total ? (
-                  <span className="text-emerald-600 dark:text-emerald-500 font-semibold">Pago</span>
-                ) : null}
-              </div>
-            )}
-            <ChevronRight className="h-4 w-4 text-zinc-300 group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400 transition-colors" />
+          <span className="text-zinc-500 flex items-center gap-1.5">Pacote</span>
+          <span className="text-zinc-300">{nextSession.pacote || 'Não definido'}</span>
+          
+          <span className="text-zinc-500 flex items-center gap-1.5"><AlignLeft className="h-3 w-3" /> Descrição</span>
+          <span className="text-zinc-300 line-clamp-2">{nextSession.local_ensaio || 'Ensaio fotográfico'}</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-zinc-400 text-xs mt-1">
+          <Calendar className="h-3.5 w-3.5" />
+          <span>{formatDate(nextSession.data_sessao)}{nextSession.hora_sessao ? ` · ${nextSession.hora_sessao.slice(0, 5)}` : ''}</span>
+        </div>
+
+        <div className="pt-2 border-t border-white/5 flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1.5 bg-[#10B981]/10 text-[#10B981] px-2.5 py-1 rounded-full text-xs font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+            Agendada
           </div>
+          <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
         </div>
       </div>
+    );
+  }
 
-      {/* ─── Histórico Recente ─── */}
-      {historySessions.length > 0 && (
-        <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-zinc-400" />
-              Histórico recente
-            </span>
-            <button
-              type="button"
-              onClick={() => onOpenWorkflow()}
-              className="text-[10px] text-[#B8925F] font-medium hover:underline"
-            >
-              Ver Workflow
-            </button>
+  // 2. Mostrar Orçamento (Se não tem próxima sessão)
+  if (mainOrcamento) {
+    return (
+      <div className="rounded-2xl bg-[#171410] border border-[#F59E0B]/10 p-4 shadow-sm cursor-pointer hover:border-[#F59E0B]/20 transition-colors flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-[#F59E0B]/10">
+              <FileText className="h-4 w-4 text-[#FBBF24]" />
+            </div>
+            <span className="text-sm font-semibold text-zinc-100">Orçamento enviado</span>
           </div>
+          <button className="text-zinc-500 hover:text-zinc-300">
+            <MoreVertical className="h-4 w-4" />
+          </button>
+        </div>
 
-          <div className="flex flex-col gap-1">
-            {historySessions.map(sessao => (
-              <div 
-                key={sessao.id}
-                onClick={() => onOpenWorkflow(sessao.id)}
-                className="flex items-center justify-between p-1.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 cursor-pointer"
-              >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[11px] font-semibold text-zinc-900 dark:text-zinc-100">
-                    {sessao.pacote || sessao.categoria || 'Sessão'}
-                  </span>
-                  <span className="text-[9px] text-zinc-500 flex items-center gap-1">
-                    {formatDate(sessao.data_sessao)} • {sessao.local_ensaio || 'Estúdio'}
-                  </span>
-                </div>
-                <ChevronRight className="h-3.5 w-3.5 text-zinc-400" />
-              </div>
-            ))}
+        <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-2 text-xs">
+          <span className="text-zinc-500 flex items-center gap-1.5"><User className="h-3 w-3" /> Categoria</span>
+          <span className="text-zinc-300">Geral</span>
+          
+          <span className="text-zinc-500 flex items-center gap-1.5">Pacote</span>
+          <span className="text-zinc-300">{mainOrcamento.title || 'Orçamento Base'}</span>
+          
+          <span className="text-zinc-500 flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Enviado em</span>
+          <span className="text-zinc-300">{formatDate(mainOrcamento.date)}</span>
+        </div>
+
+        <div className="flex flex-col gap-2 mt-1">
+          <div className="flex items-center gap-1.5 bg-[#8B5CF6]/10 text-[#A78BFA] px-2.5 py-1 rounded-md text-xs font-medium w-fit">
+            <Star className="h-3 w-3 fill-current" />
+            Orçamento enviado
+          </div>
+          <div className="flex items-center gap-1.5 text-[#F59E0B] text-xs font-medium">
+            <Clock className="h-3.5 w-3.5" />
+            Follow-up pendente
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        <button 
+          onClick={() => onNavigate?.('/propostas')}
+          className="mt-2 w-full py-2 rounded-lg bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 text-[#FBBF24] border border-[#F59E0B]/20 text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+        >
+          Ver orçamento
+        </button>
+      </div>
+    );
+  }
+
+  // 3. Mostrar Última Sessão
+  if (lastSession) {
+    const isSessionPaid = isPaid(lastSession.valor_total, lastSession.valor_pago);
+    
+    return (
+      <div 
+        onClick={() => onOpenWorkflow(lastSession.id)}
+        className="rounded-2xl bg-[#11141A] border border-white/5 p-4 shadow-sm cursor-pointer hover:border-white/10 transition-colors group flex flex-col gap-3"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-[#3B82F6]/10">
+              <Calendar className="h-4 w-4 text-[#60A5FA]" />
+            </div>
+            <span className="text-sm font-semibold text-zinc-100">Última sessão</span>
+          </div>
+          <button className="text-zinc-500 hover:text-zinc-300">
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-[80px_1fr] gap-x-2 gap-y-2 text-xs">
+          <span className="text-zinc-500 flex items-center gap-1.5"><User className="h-3 w-3" /> Categoria</span>
+          <span className="text-zinc-300">{lastSession.categoria || 'Não definida'}</span>
+          
+          <span className="text-zinc-500 flex items-center gap-1.5">Pacote</span>
+          <span className="text-zinc-300">{lastSession.pacote || 'Não definido'}</span>
+          
+          <span className="text-zinc-500 flex items-center gap-1.5"><AlignLeft className="h-3 w-3" /> Descrição</span>
+          <span className="text-zinc-300 line-clamp-2">{lastSession.local_ensaio || 'Ensaio fotográfico concluído'}</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-zinc-400 text-xs mt-1">
+          <Calendar className="h-3.5 w-3.5" />
+          <span>{formatDate(lastSession.data_sessao)}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-xs py-2 border-y border-white/5 mt-1">
+          <span className="text-zinc-500 flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Pagamento</span>
+          {isSessionPaid ? (
+            <span className="text-[#10B981] font-semibold">Pago</span>
+          ) : (
+            <span className="text-[#F59E0B] font-semibold">Pendente</span>
+          )}
+        </div>
+
+        <div className="pt-1 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 bg-[#10B981]/10 text-[#10B981] px-2.5 py-1 rounded-full text-xs font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+            Concluída
+          </div>
+          <ChevronRight className="h-4 w-4 text-zinc-600 group-hover:text-zinc-400" />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
+

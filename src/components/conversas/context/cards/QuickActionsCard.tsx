@@ -1,35 +1,33 @@
-import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, Plus, User, Briefcase, Sparkles } from 'lucide-react';
+import { Calendar, DollarSign, Briefcase, Sparkles, User, Link } from 'lucide-react';
 import type { ChatState } from '@/hooks/useChatStateResolver';
 
 interface QuickActionsCardProps {
   state: ChatState;
   hasCliente: boolean;
   onNavigate: (path: string) => void;
+  onOpenWorkflow?: () => void;
+  onOpenPayment?: () => void;
+  onOpenChargeLink?: () => void;
 }
 
-export function QuickActionsCard({ state, hasCliente, onNavigate }: QuickActionsCardProps) {
-  // Configurar as ações baseado no estado
+export function QuickActionsCard({ state, hasCliente, onNavigate, onOpenWorkflow, onOpenPayment, onOpenChargeLink }: QuickActionsCardProps) {
   const actions = [];
 
   if (state === 'UNKNOWN') {
-    actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, path: '/leads' });
-    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, path: '/agenda' });
-    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, path: '/propostas' });
+    actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/leads') });
+    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/agenda') });
+    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/propostas') });
   } else if (state === 'LEAD') {
-    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, path: '/agenda' });
-    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/agenda') });
+    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/propostas') });
   } else if (state === 'SESSION') {
-    actions.push({ id: 'pagamento', label: 'Registrar Pagamento', icon: <DollarSign className="h-4 w-4" />, path: '/financas' });
-    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, path: '/workflow' });
-    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+    actions.push({ id: 'pagamento', label: 'Registrar Pagamento', icon: <DollarSign className="h-4 w-4" />, onClick: onOpenPayment });
+    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
+    actions.push({ id: 'charge', label: 'Cobrar via link', icon: <Link className="h-4 w-4" />, onClick: onOpenChargeLink });
   } else if (state === 'POST_SALE') {
-    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, path: '/workflow' });
-    actions.push({ id: 'tarefa', label: 'Criar Tarefa', icon: <Plus className="h-4 w-4" />, path: '/tarefas' });
+    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
+    actions.push({ id: 'agenda', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/agenda') });
   }
-
-  // Sempre tem botão "Mais" no final
-  actions.push({ id: 'mais', label: 'Mais', icon: <span className="font-serif tracking-widest leading-none mb-1 text-lg">...</span>, path: '/clientes' });
 
   return (
     <div className="mt-2 mb-2">
@@ -40,7 +38,7 @@ export function QuickActionsCard({ state, hasCliente, onNavigate }: QuickActions
         {actions.map((act) => (
           <button
             key={act.id}
-            onClick={() => onNavigate(act.path)}
+            onClick={act.onClick}
             className="flex flex-col items-center justify-center gap-1.5 flex-1 min-w-[76px] py-2.5 px-1 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.03] hover:bg-[#D4AF37]/10 transition-colors text-[#A87E43] dark:text-[#D4AF37]"
           >
             {act.icon}

@@ -47,6 +47,9 @@ import { LeadContextCard } from './cards/LeadContextCard';
 import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
+import { WorkflowPaymentsModal } from '@/components/workflow/WorkflowPaymentsModal';
+import { ChargeModal } from '@/components/cobranca/ChargeModal';
+import type { SessionData } from '@/types/workflow';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
@@ -85,6 +88,8 @@ export function ChatContextPanel({
   messages = [],
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isChargeLinkModalOpen, setIsChargeLinkModalOpen] = useState(false);
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
 
@@ -120,11 +125,42 @@ export function ChatContextPanel({
     lead,
     sessoes,
     cobrancas,
+    orcamentos,
     vincularAmbos,
     isLoading,
   } = useConversasContactContext(chat);
 
   const chatState = useChatStateResolver({ cliente, lead, sessoes });
+  const handleOpenWorkflow = (id?: string) => {
+    if (!id && sessoes?.[0]?.id) {
+      id = sessoes[0].id;
+    }
+    if (!id) {
+      navigate('/app/workflow');
+      return;
+    }
+    const sessao = sessoes?.find((s) => s.id === id);
+    if (sessao?.data_sessao) {
+      const dataObj = new Date(sessao.data_sessao);
+      const month = dataObj.getMonth();
+      const year = dataObj.getFullYear();
+      navigate(`/app/workflow?open_session=${id}&month=${month}&year=${year}`);
+    } else {
+      navigate(`/app/workflow?open_session=${id}`);
+    }
+  };
+
+  const getActiveSessionData = (): SessionData | null => {
+    if (!sessoes || sessoes.length === 0) return null;
+    const sess = sessoes[0];
+    return {
+      id: sess.id,
+      sessionId: sess.session_id,
+      valorTotal: sess.valor_total,
+      clienteId: cliente?.id,
+    } as unknown as SessionData;
+  };
+
 
   const { categorias } = useCategorias();
   const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
@@ -186,7 +222,14 @@ export function ChatContextPanel({
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
-            <QuickActionsCard state={chatState} hasCliente={false} onNavigate={navigate} />
+            <QuickActionsCard 
+              state={chatState} 
+              hasCliente={!!cliente?.id} 
+              onNavigate={navigate} 
+              onOpenWorkflow={() => handleOpenWorkflow()}
+              onOpenPayment={() => setIsPaymentModalOpen(true)}
+              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
+            />
           </>
         );
       
@@ -202,31 +245,21 @@ export function ChatContextPanel({
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
-            <QuickActionsCard state={chatState} hasCliente={!!cliente?.id} onNavigate={navigate} />
+            <QuickActionsCard 
+              state={chatState} 
+              hasCliente={!!cliente?.id} 
+              onNavigate={navigate} 
+              onOpenWorkflow={() => handleOpenWorkflow()}
+              onOpenPayment={() => setIsPaymentModalOpen(true)}
+              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
+            />
           </>
         );
 
       case 'SESSION':
         return (
           <>
-            <SmartSessionCard 
-              sessoes={sessoes} 
-              onOpenWorkflow={(id) => {
-                if (!id) {
-                  navigate('/app/workflow');
-                  return;
-                }
-                const sessao = sessoes.find(s => s.id === id);
-                if (sessao && sessao.data_sessao) {
-                  const d = new Date(sessao.data_sessao);
-                  if (!isNaN(d.getTime())) {
-                    navigate(`/app/workflow?open_session=${id}&month=${d.getMonth() + 1}&year=${d.getFullYear()}`);
-                    return;
-                  }
-                }
-                navigate(`/app/workflow?open_session=${id}`);
-              }} 
-            />
+            <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}
@@ -234,32 +267,22 @@ export function ChatContextPanel({
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
-            <FinancialSummaryCard cobrancas={cobrancas} onNavigate={navigate} />
-            <QuickActionsCard state={chatState} hasCliente={!!cliente?.id} onNavigate={navigate} />
+            <FinancialSummaryCard sessao={sessoes?.[0] || null} onNavigate={navigate} />
+            <QuickActionsCard 
+              state={chatState} 
+              hasCliente={!!cliente?.id} 
+              onNavigate={navigate} 
+              onOpenWorkflow={() => handleOpenWorkflow()}
+              onOpenPayment={() => setIsPaymentModalOpen(true)}
+              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
+            />
           </>
         );
 
       case 'POST_SALE':
         return (
           <>
-            <SmartSessionCard 
-              sessoes={sessoes} 
-              onOpenWorkflow={(id) => {
-                if (!id) {
-                  navigate('/app/workflow');
-                  return;
-                }
-                const sessao = sessoes.find(s => s.id === id);
-                if (sessao && sessao.data_sessao) {
-                  const d = new Date(sessao.data_sessao);
-                  if (!isNaN(d.getTime())) {
-                    navigate(`/app/workflow?open_session=${id}&month=${d.getMonth() + 1}&year=${d.getFullYear()}`);
-                    return;
-                  }
-                }
-                navigate(`/app/workflow?open_session=${id}`);
-              }} 
-            />
+            <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}
@@ -267,7 +290,14 @@ export function ChatContextPanel({
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
-            <QuickActionsCard state={chatState} hasCliente={true} onNavigate={navigate} />
+            <QuickActionsCard 
+              state={chatState} 
+              hasCliente={!!cliente?.id} 
+              onNavigate={navigate} 
+              onOpenWorkflow={() => handleOpenWorkflow()}
+              onOpenPayment={() => setIsPaymentModalOpen(true)}
+              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
+            />
           </>
         );
     }
@@ -396,6 +426,30 @@ export function ChatContextPanel({
         contatoName={chat.contato_nome || chat.contato_nome}
         contatoPhone={chat.contato_phone_normalized || ''}
       />
+
+      {/* --- Modais --- */}
+      {isPaymentModalOpen && getActiveSessionData() && (
+        <WorkflowPaymentsModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          sessionData={getActiveSessionData()!}
+          onPaymentUpdate={() => {}}
+        />
+      )}
+      {isChargeLinkModalOpen && getActiveSessionData() && (
+        <ChargeModal
+          isOpen={isChargeLinkModalOpen}
+          onClose={() => setIsChargeLinkModalOpen(false)}
+          clienteId={getActiveSessionData()!.clienteId || ''}
+          clienteNome={cliente?.nome || ''}
+          sessionId={getActiveSessionData()!.id}
+          valorSugerido={(sessoes?.[0]?.valor_total || 0) - (sessoes?.[0]?.valor_pago || 0)}
+        />
+      )}
     </Container>
+
   );
 }
+
+
+

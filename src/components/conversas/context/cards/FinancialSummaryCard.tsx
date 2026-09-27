@@ -1,7 +1,8 @@
 import { DollarSign } from 'lucide-react';
+import type { ContextSessao } from '@/hooks/useConversasContactContext';
 
 interface FinancialSummaryCardProps {
-  cobrancas: any[];
+  sessao: ContextSessao | null;
   onNavigate: (path: string) => void;
 }
 
@@ -10,16 +11,13 @@ function formatCurrency(val: number | null | undefined): string {
   return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-export function FinancialSummaryCard({ cobrancas, onNavigate }: FinancialSummaryCardProps) {
-  const totalPendente = cobrancas
-    .filter(c => c.status === 'pendente' || c.status === 'vencida')
-    .reduce((acc, curr) => acc + (curr.valor || 0), 0);
+export function FinancialSummaryCard({ sessao, onNavigate }: FinancialSummaryCardProps) {
+  // Só deve ser mostrado se existir sessão e sempre mostrar a última ou agendada
+  if (!sessao) return null;
 
-  const totalRecebido = cobrancas
-    .filter(c => c.status === 'paga')
-    .reduce((acc, curr) => acc + (curr.valor || 0), 0);
-
-  const total = totalPendente + totalRecebido;
+  const total = sessao.valor_total || 0;
+  const totalRecebido = sessao.valor_pago || 0;
+  const totalPendente = Math.max(0, total - totalRecebido);
 
   return (
     <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
@@ -31,7 +29,7 @@ export function FinancialSummaryCard({ cobrancas, onNavigate }: FinancialSummary
         <button
           type="button"
           onClick={() => onNavigate('/financas')}
-          className="text-[10px] text-[#B8925F] font-medium"
+          className="text-[10px] text-[#B8925F] font-medium hover:underline"
         >
           Ver detalhes
         </button>
