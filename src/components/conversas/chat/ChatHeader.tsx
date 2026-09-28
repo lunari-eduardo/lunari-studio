@@ -2,7 +2,7 @@
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
-import { ArrowLeft, MoreVertical, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ContactAvatar } from '../shared/ContactAvatar';
-import { LuAssistantPopover } from './LuAssistantPopover';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 
 export interface ChatHeaderProps {
@@ -49,8 +48,8 @@ export function ChatHeader({
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 bg-[#F8F8F8] dark:bg-[#181818] border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] shrink-0"
-      style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top))' }}
+      className="flex items-center gap-3 px-2 sm:px-3 bg-[#F8F8F8] dark:bg-[#181818] border-b border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] shrink-0 h-[60px] min-h-[60px]"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       {onBack ? (
         <button
@@ -75,47 +74,44 @@ export function ChatHeader({
           phone={chat.contato_phone_normalized}
           name={(chat as any).clientes?.nome ?? chat.contato_nome}
           src={chat.contato_avatar}
-          size="md"
+          className="h-11 w-11 text-base shadow-sm"
         />
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-[#1C1C1C] dark:text-[#EFEFEF] truncate group-hover/header:text-[#B8925F] dark:group-hover/header:text-[#D4AF37] transition-colors">
+            <span className="text-base font-semibold text-[#1C1C1C] dark:text-[#EFEFEF] truncate tracking-tight group-hover/header:text-[#B8925F] dark:group-hover/header:text-[#D4AF37] transition-colors leading-none">
               {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
             {contatoTipo === 'cliente' ? (
-              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#C9A87C]/15 text-[#A58253] dark:bg-[#C9A87C]/20 dark:text-[#D4AF37] border border-[#C9A87C]/20 shrink-0 uppercase tracking-wider">
                 Cliente
               </span>
             ) : contatoTipo === 'lead' ? (
-              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0 uppercase tracking-wider">
                 Lead
               </span>
             ) : null}
           </div>
-          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate h-[16px]">
+          <div className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate mt-1 leading-none">
             {chat.contato_phone_normalized}
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <LuAssistantPopover chatId={chat.id} />
-
+      <div className="flex items-center gap-1 shrink-0">
         {onTogglePanel && (
           <button
             type="button"
             aria-label="Painel do Contato"
             onClick={onTogglePanel}
             className={cn(
-              'h-9 w-9 flex items-center justify-center rounded-full transition-colors',
+              'hidden md:flex h-9 w-9 items-center justify-center rounded-full transition-colors',
               isPanelOpen
                 ? 'text-[#C9A87C] bg-[#C9A87C]/15 dark:bg-[#C9A87C]/20'
                 : 'text-zinc-500 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5'
             )}
             title="Ver Painel do Contato"
           >
-            {/* Ícone representando painel lateral */}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
           </button>
         )}

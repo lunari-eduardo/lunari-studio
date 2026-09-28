@@ -279,7 +279,7 @@ export function ChatPanel({
     }
   }, [mensagens, rowVirtualizer]);
 
-  // IntersectionObserver para loadMore (scroll-up).
+  // IntersectionObserver para loadMore antecipado (scroll-up).
   useEffect(() => {
     const sentinel = sentinelRef.current;
     const root = scrollRef.current;
@@ -287,10 +287,13 @@ export function ChatPanel({
     const obs = new IntersectionObserver(
       entries => {
         if (entries[0].isIntersecting) {
-          void loadMore();
+          // Só dispara se o chat já fez a abertura inicial na base e o usuário subiu
+          if (lastMessageCount.current > 0 && hasUserScrolledUpRef.current) {
+            void loadMore();
+          }
         }
       },
-      { root, rootMargin: '150px' },
+      { root, rootMargin: '800px 0px 0px 0px' },
     );
     obs.observe(sentinel);
     return () => obs.disconnect();
@@ -360,8 +363,24 @@ export function ChatPanel({
             // Mostra o botão se o usuário subiu mais de 300px da base
             const isScrolledUp = distanceToBottom > 300;
             setShowScrollButton((prev) => (prev !== isScrolledUp ? isScrolledUp : prev));
+
+            // Carregamento antecipado (aos 80% - 90% da subida da barra):
+            // Dispara quando restam menos de 20% a 25% de rolagem para o topo (ou menos de 800px)
+            // Isso evita que a barra atinja o topo físico e "tranque com soco"
+            const maxScroll = target.scrollHeight - target.clientHeight;
+            if (
+              hasMore &&
+              hasUserScrolledUpRef.current &&
+              lastMessageCount.current > 0 &&
+              maxScroll > 0
+            ) {
+              const remainingToTopRatio = target.scrollTop / maxScroll;
+              if (remainingToTopRatio <= 0.25 || target.scrollTop <= 800) {
+                void loadMore();
+              }
+            }
           }}
-          className="flex-1 overflow-y-auto relative z-10 dark:[color-scheme:dark]"
+          className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 dark:[color-scheme:dark] [&::-webkit-scrollbar]:hidden scrollbar-none"
         >
           <div ref={sentinelRef} className="h-px" />
           

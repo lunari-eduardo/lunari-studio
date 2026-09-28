@@ -186,7 +186,6 @@ const DesktopNavItem = ({
         <NavLink
           to={to}
           end={end || isComercial}
-          onClick={() => onNavigate?.()}
           className={({ isActive }) =>
             cn(
               'nav-item-lunar flex items-center h-9 rounded-md transition-colors duration-200 overflow-hidden hover:bg-white/5 flex-1',
@@ -406,7 +405,11 @@ const TabletLandscapeNavItem = ({
   );
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+  hideBottomNav?: boolean;
+}
+
+export default function Sidebar({ hideBottomNav }: SidebarProps = {}) {
   const responsiveMode = useResponsiveMode();
   const { accessState } = useAccessControl();
   const { activeModule } = useActiveModule();
@@ -532,7 +535,10 @@ export default function Sidebar() {
   if (mode === 'mobile') {
     return <>
         <div
-          className="fixed bottom-0 left-0 right-0 z-40 border-t"
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-40 border-t transition-transform duration-[180ms] ease-out",
+            hideBottomNav ? "translate-y-full pointer-events-none" : "translate-y-0"
+          )}
           style={{
             backgroundColor: 'hsl(var(--sidebar-bg))',
             borderColor: 'hsl(var(--sidebar-border))',

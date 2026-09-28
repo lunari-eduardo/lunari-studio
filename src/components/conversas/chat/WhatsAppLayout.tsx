@@ -11,7 +11,8 @@ import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
 import { MessagesSkeleton } from './skeletons';
-import { useConversas, type UseConversasReturn } from '@/hooks/useConversasRealtime';
+import { useConversas } from '@/hooks/useConversasRealtime';
+import type { UseConversasReturn } from '@/hooks/conversas/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { EnrichedChat } from '@/modules/conversas/types';
 
@@ -96,7 +97,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
       <div
         className={`${
           mobileShowChat ? 'hidden' : 'flex'
-        } md:flex w-full md:w-auto flex-shrink-0 animate-in fade-in-50 duration-150`}
+        } md:flex flex-col h-full min-h-0 overflow-hidden w-full md:w-auto flex-shrink-0 animate-in fade-in-50 duration-150`}
       >
         <ChatListSidebar
           chats={chats}
@@ -176,7 +177,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
       <div
         className={`${
           mobileShowChat ? 'flex' : 'hidden'
-        } md:flex flex-1 min-w-0 animate-in fade-in-50 duration-150`}
+        } md:flex flex-1 flex-col h-full min-h-0 overflow-hidden animate-in fade-in-50 duration-150`}
       >
         {selectedChat ? (
           <ChatPanel

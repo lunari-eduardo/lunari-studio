@@ -117,9 +117,11 @@ export function MessageComposer({
     el.style.height = `${Math.min(el.scrollHeight, MAX_HEIGHT)}px`;
   }, [text]);
 
-  // Foco ao montar ou ao citar uma mensagem
+  // Foco apenas ao citar uma mensagem, anexar ou editar
   useEffect(() => {
-    textareaRef.current?.focus();
+    if (replyingTo || pendingAttachment || editingMessage) {
+      textareaRef.current?.focus();
+    }
   }, [replyingTo, pendingAttachment, editingMessage]);
 
   const handleClearAttachment = () => {
@@ -347,11 +349,11 @@ export function MessageComposer({
 
       <div className="w-full max-w-5xl px-3 sm:px-6 py-2.5 flex items-end gap-2">
         {!isRecording && !editingMessage && (
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0 mb-[4px]">
             <StickerPickerPopover onSendSticker={(url) => onAttach(url as any, 'sticker')}>
               <button
                 type="button"
-                className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400"
+                className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors text-zinc-500 dark:text-zinc-400"
                 title="Figurinhas"
               >
                 <StickerIcon className="w-5 h-5" />
@@ -361,7 +363,7 @@ export function MessageComposer({
           </div>
         )}
 
-        <div className="flex-1 bg-white dark:bg-[#1E1E1E] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex items-center min-h-[42px] overflow-hidden">
+        <div className="flex-1 bg-white dark:bg-[#1E1E1E] rounded-[28px] border border-black/[0.06] dark:border-white/[0.08] focus-within:border-black/20 dark:focus-within:border-white/20 transition-colors duration-150 shadow-[0_1px_2px_rgba(0,0,0,0.03)] flex items-center min-h-[48px] overflow-hidden">
           {isRecording ? (
             <div className="flex items-center gap-3 w-full px-4 text-red-500 dark:text-red-400 animate-in fade-in">
               <Mic className="h-5 w-5 animate-pulse" />
@@ -377,36 +379,36 @@ export function MessageComposer({
               placeholder={editingMessage ? 'Edite a mensagem...' : pendingAttachment ? 'Adicione uma legenda (opcional)...' : 'Mensagem'}
               rows={1}
               disabled={disabled}
-              className="w-full resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50 focus:ring-1 focus:ring-[#C9A87C] rounded-2xl"
+              className="w-full resize-none bg-transparent px-4 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500 disabled:opacity-50 [&::-webkit-scrollbar]:hidden self-center m-0 leading-[20px]"
               style={{ maxHeight: MAX_HEIGHT }}
             />
           )}
         </div>
 
         {isRecording ? (
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1 shrink-0 mb-[6px]">
             <button
               type="button"
               onClick={cancelRecording}
-              className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 transition-colors"
+              className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 dark:text-red-400 transition-colors"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-5 w-5" />
             </button>
             {onSaveAudio && (
               <button
                 type="button"
                 onClick={handleSaveOnly}
-                className="h-9 px-3 flex items-center gap-1.5 rounded-full bg-white dark:bg-[#181818] border border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs font-medium"
+                className="h-10 px-4 flex items-center gap-1.5 rounded-full bg-white dark:bg-[#181818] border border-[rgba(0,0,0,0.06)] dark:border-[rgba(255,255,255,0.06)] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs font-medium"
                 title="Salvar na biblioteca sem enviar"
               >
-                <Mic className="h-3.5 w-3.5" />
+                <Mic className="h-4 w-4" />
                 <span>Salvar</span>
               </button>
             )}
             <button
               type="button"
               onClick={handleStopAndSendAudio}
-              className="h-9 w-9 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm"
+              className="h-10 w-10 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm"
             >
               <Send className="h-4 w-4" />
             </button>
@@ -416,26 +418,26 @@ export function MessageComposer({
             type="button"
             onClick={handleSend}
             aria-label={editingMessage ? 'Salvar edição' : 'Enviar'}
-            className="h-9 w-9 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm"
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-[#C9A87C] text-white hover:bg-[#b89567] active:scale-95 transition-transform shadow-sm mb-[4px]"
           >
-            {editingMessage ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            {editingMessage ? <Check className="h-5 w-5" /> : <Send className="h-[18px] w-[18px] ml-0.5" />}
           </button>
         ) : editingMessage ? (
           <button
             type="button"
             disabled
-            className="h-9 w-9 flex items-center justify-center rounded-full text-zinc-300 dark:text-zinc-600 opacity-50 cursor-not-allowed"
+            className="h-10 w-10 flex items-center justify-center rounded-full text-zinc-300 dark:text-zinc-600 opacity-50 cursor-not-allowed mb-[4px]"
           >
-            <Check className="h-4 w-4" />
+            <Check className="h-5 w-5" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleStartRecording}
             aria-label="Gravar áudio"
-            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-zinc-600"
+            className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-200 active:bg-zinc-300 transition-colors text-zinc-600 mb-[4px]"
           >
-            <Mic className="h-5 w-5" />
+            <Mic className="h-[22px] w-[22px]" />
           </button>
         )}
       </div>

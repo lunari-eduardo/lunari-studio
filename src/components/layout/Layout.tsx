@@ -31,7 +31,7 @@ export default function Layout() {
   const hasBottomNav = (isMobile || responsiveMode === 'tablet-portrait') && !isEditor && !isConversasChatMobile;
 
   return <div className="flex bg-background" style={{ height: '100dvh' }}>
-      <Sidebar />
+      <Sidebar hideBottomNav={isConversasChatMobile} />
       
       <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
 

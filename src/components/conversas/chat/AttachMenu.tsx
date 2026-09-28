@@ -48,7 +48,7 @@ export function AttachMenu({ onAttach, onOpenAudiosSalvos }: AttachMenuProps) {
           <button
             type="button"
             aria-label="Anexar"
-            className="h-9 w-9 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition-colors text-zinc-600 dark:text-zinc-400"
+            className="h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 active:bg-zinc-300 dark:active:bg-zinc-600 transition-colors text-zinc-600 dark:text-zinc-400"
           >
             <Paperclip className="h-5 w-5" />
           </button>
