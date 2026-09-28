@@ -61,7 +61,8 @@ export async function performSyncChats(
 
   // 1. Chamar Evolution API — listar todas as conversas disponíveis
   let rawChats: any[] = [];
-  const contactNameByJid = new Map<string, string>();
+  const contactSavedNameByJid = new Map<string, string>();
+  const contactPushNameByJid = new Map<string, string>();
   const contactAvatarByJid = new Map<string, string>();
 
   try {
@@ -97,11 +98,12 @@ export async function performSyncChats(
       const rawContacts: any = await contactsRes.json();
       const contactsList = Array.isArray(rawContacts) ? rawContacts : [];
       for (const c of contactsList) {
-        if (c.remoteJid && c.pushName) {
-          contactNameByJid.set(c.remoteJid, c.pushName);
-        }
-        if (c.remoteJid && c.profilePicUrl) {
-          contactAvatarByJid.set(c.remoteJid, c.profilePicUrl);
+        const saved = c.name?.trim() || c.displayName?.trim() || null;
+        const push = c.pushName?.trim() || null;
+        if (c.remoteJid) {
+          if (saved) contactSavedNameByJid.set(c.remoteJid, saved);
+          if (push) contactPushNameByJid.set(c.remoteJid, push);
+          if (c.profilePicUrl) contactAvatarByJid.set(c.remoteJid, c.profilePicUrl);
         }
       }
     }
@@ -120,6 +122,11 @@ export async function performSyncChats(
     }
 
     const jidDigits = rawJid.split('@')[0];
+    // Ignorar JIDs internos de dispositivos (LID > 13 dígitos) ou inválidos
+    if (jidDigits.length > 13 || jidDigits.length < 10) {
+      continue;
+    }
+
     const normalized = normalizeBrPhone(jidDigits);
     const phoneNormalized = normalized
       ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
@@ -127,7 +134,12 @@ export async function performSyncChats(
 
     if (!phoneNormalized) continue;
 
-    const realName = contactNameByJid.get(rawJid) ?? chat.pushName ?? chat.name ?? chat.contact?.displayName ?? null;
+    // Prioridade de exibição:
+    // 1. Nome salvo pelo usuário no celular / agenda do WhatsApp
+    // 2. Nome do perfil do cliente no WhatsApp (pushName)
+    const savedName = (rawJid ? contactSavedNameByJid.get(rawJid) : null) || chat.name?.trim() || chat.contact?.displayName?.trim() || null;
+    const pushName = (rawJid ? contactPushNameByJid.get(rawJid) : null) || chat.pushName?.trim() || (chat.lastMessage?.key?.fromMe ? null : chat.lastMessage?.pushName?.trim()) || null;
+    const realName = savedName || pushName || null;
     const realAvatar = contactAvatarByJid.get(rawJid) ?? chat.profilePicUrl ?? null;
 
     if (!uniqueChatsByPhone.has(phoneNormalized)) {

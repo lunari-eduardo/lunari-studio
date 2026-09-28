@@ -34,7 +34,7 @@ import { pageFromRoute } from "../runtime/pageFromRoute";
 import { selectToolsForPage, MAX_TOOLS_PER_TURN } from "../runtime/selectToolsForPage";
 import { useVoiceRecorder } from "../runtime/useVoiceRecorder";
 
-const ASSISTANT_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/assistant-chat`;
+const ASSISTANT_ENDPOINT = `${import.meta.env.VITE_EDGE_API_URL}/api/assistant/chat`;
 
 // ---------------------------------------------------------------------------
 // Mapa de rótulos amigáveis por tool ID (namespace com __).

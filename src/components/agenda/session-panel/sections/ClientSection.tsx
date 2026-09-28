@@ -7,6 +7,7 @@ import { PanelSection } from "../PanelSection";
 import ClientSearchCombobox from "../../ClientSearchCombobox";
 import ContactSearchCombobox from "@/components/cliente-detalhe/shared/ContactSearchCombobox";
 import { useConversasContatos } from "@/hooks/useConversasContatos";
+import { formatPhone } from "@/components/conversas/shared/format";
 import type { PanelFormState } from "../types";
 
 interface ClientSectionProps {
@@ -46,8 +47,8 @@ export const ClientSection: React.FC<ClientSectionProps> = ({
       setNewClient((p) => ({
         ...p,
         contatoIdToLink: contatoId,
-        nome: contact.nome || contact.nome || p.nome,
-        telefone: contact.phone_normalized ? contact.phone_normalized.replace(/\D/g, '') : p.telefone,
+        nome: contact.nome?.trim() || p.nome,
+        telefone: contact.phone_normalized ? formatPhone(contact.phone_normalized) : p.telefone,
       }));
     }
   };

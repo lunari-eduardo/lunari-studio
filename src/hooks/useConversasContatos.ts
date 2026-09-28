@@ -55,12 +55,38 @@ export function useConversasContatos(): UseConversasContatosReturn {
 
         const { data, error } = await supabase
           .from('conversas_contatos')
-          .select('*')
+          .select('*, conversas_chats(contato_nome, ultima_mensagem_data)')
           .eq('user_id', userId)
-          .order('ultima_mensagem_data', { ascending: false });
+          .order('ultima_mensagem_data', { ascending: false, nullsFirst: false });
 
         if (error) throw error;
-        if (!cancelled) setContatos((data as Contato[]) ?? []);
+        
+        const validContatos = (data ?? [])
+          .filter((c: any) => {
+            if (!c || c.nome === 'Você') return false;
+            const digits = (c.phone_normalized || c.phone_raw || '').replace(/\D/g, '');
+            return digits.length >= 10 && digits.length <= 13;
+          })
+          .map((c: any) => {
+            const chat = Array.isArray(c.conversas_chats) ? c.conversas_chats[0] : c.conversas_chats;
+            const resolvedName = c.nome?.trim() || chat?.contato_nome?.trim() || null;
+            const resolvedDate = chat?.ultima_mensagem_data && (!c.ultima_mensagem_data || new Date(chat.ultima_mensagem_data) > new Date(c.ultima_mensagem_data))
+              ? chat.ultima_mensagem_data
+              : c.ultima_mensagem_data;
+
+            return {
+              ...c,
+              nome: resolvedName,
+              ultima_mensagem_data: resolvedDate,
+            } as Contato;
+          })
+          .sort((a, b) => {
+            const timeA = a.ultima_mensagem_data ? new Date(a.ultima_mensagem_data).getTime() : 0;
+            const timeB = b.ultima_mensagem_data ? new Date(b.ultima_mensagem_data).getTime() : 0;
+            return timeB - timeA;
+          });
+
+        if (!cancelled) setContatos(validContatos);
       } catch (err) {
         console.error('[ConversasContatos] Load error:', err);
       } finally {
@@ -95,15 +121,28 @@ export function useConversasContatos(): UseConversasContatosReturn {
           (payload) => {
             if (DEBUG) console.log('[ConversasContatos] Change:', payload.eventType, payload);
             if (payload.eventType === 'INSERT') {
+              const newC = payload.new as Contato;
+              const digits = (newC.phone_normalized || newC.phone_raw || '').replace(/\D/g, '');
+              if (newC.nome === 'Você' || digits.length < 10 || digits.length > 13) return;
+
               setContatos(prev => {
-                if (prev.some(c => c.id === (payload.new as Contato).id)) return prev;
-                return [...prev, payload.new as Contato];
+                if (prev.some(c => c.id === newC.id)) return prev;
+                return [newC, ...prev].sort((a, b) => {
+                  const timeA = a.ultima_mensagem_data ? new Date(a.ultima_mensagem_data).getTime() : 0;
+                  const timeB = b.ultima_mensagem_data ? new Date(b.ultima_mensagem_data).getTime() : 0;
+                  return timeB - timeA;
+                });
               });
             } else if (payload.eventType === 'UPDATE') {
+              const updC = payload.new as Contato;
               setContatos(prev =>
-                prev.map(c =>
-                  c.id === payload.new.id ? { ...c, ...payload.new } as Contato : c,
-                ),
+                prev
+                  .map(c => (c.id === updC.id ? { ...c, ...updC } as Contato : c))
+                  .sort((a, b) => {
+                    const timeA = a.ultima_mensagem_data ? new Date(a.ultima_mensagem_data).getTime() : 0;
+                    const timeB = b.ultima_mensagem_data ? new Date(b.ultima_mensagem_data).getTime() : 0;
+                    return timeB - timeA;
+                  }),
               );
             } else if (payload.eventType === 'DELETE') {
               setContatos(prev => prev.filter(c => c.id !== payload.old.id));

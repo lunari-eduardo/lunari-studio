@@ -4,6 +4,7 @@ import { Check, ChevronDown, User, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { DROPDOWN_PANEL, DROPDOWN_ITEM } from '@/lib/dialogTokens';
+import { formatPhone } from '@/components/conversas/shared/format';
 
 // Função para normalizar texto
 const normalizeText = (text: string): string => {
@@ -41,21 +42,21 @@ export default function ContactSearchCombobox({
 
   useEffect(() => {
     if (!searchTerm.trim()) {
-      // Por padrão mostrar os 15 mais recentes
-      setFilteredContatos(availableContatos.slice(0, 15));
+      // Por padrão mostrar os 30 mais recentes na ordem real do WhatsApp
+      setFilteredContatos(availableContatos.slice(0, 30));
     } else {
       const normalizedSearch = normalizeText(searchTerm);
+      const numericSearch = searchTerm.replace(/[^0-9]/g, '');
       const filtered = availableContatos.filter(contato => {
-        const normalizedName = normalizeText(contato.nome || contato.nome || '');
+        const normalizedName = normalizeText(contato.nome || '');
         const normalizedPhone = (contato.phone_normalized || '').replace(/[^0-9]/g, '');
-        const numericSearch = searchTerm.replace(/[^0-9]/g, '');
         const matchesPhone = numericSearch.length > 0 && normalizedPhone.includes(numericSearch);
         
         return normalizedName.includes(normalizedSearch) || matchesPhone;
       });
-      setFilteredContatos(filtered);
+      setFilteredContatos(filtered.slice(0, 30));
     }
-  }, [searchTerm, availableContatos.length]);
+  }, [searchTerm, availableContatos]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,7 +95,9 @@ export default function ContactSearchCombobox({
     setIsOpen(false);
   };
 
-  const displayValue = (isEditing || !selectedContato) ? searchTerm : (selectedContato.nome || selectedContato.nome || selectedContato.phone_normalized);
+  const displayValue = (isEditing || !selectedContato) 
+    ? searchTerm 
+    : (selectedContato.nome?.trim() || formatPhone(selectedContato.phone_normalized));
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -133,16 +136,18 @@ export default function ContactSearchCombobox({
                 className={DROPDOWN_ITEM}
               >
                 <div className="flex items-center">
-                  <MessageCircle className="h-3 w-3 mr-2 text-[#10B981]" />
-                  <div className="flex-1">
-                    <div className="flex items-center">
-                      <span className="font-medium text-popover-foreground">{contato.nome || contato.nome || "Sem Nome"}</span>
+                  <MessageCircle className="h-3.5 w-3.5 mr-2.5 text-[#10B981] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-popover-foreground truncate text-xs">
+                        {contato.nome?.trim() || formatPhone(contato.phone_normalized)}
+                      </span>
                       {value === contato.id && (
-                        <Check className="ml-2 h-3 w-3 text-lunar-success" />
+                        <Check className="ml-2 h-3.5 w-3.5 text-lunar-success shrink-0" />
                       )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {contato.phone_normalized}
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      {formatPhone(contato.phone_normalized)}
                     </div>
                   </div>
                 </div>

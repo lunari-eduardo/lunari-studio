@@ -35,7 +35,7 @@ export function useLuaGenerate() {
         return null;
       }
 
-      const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/lua-generate-reply`;
+      const endpoint = `${import.meta.env.VITE_EDGE_API_URL}/api/lua/generate-reply`;
 
       const response = await fetch(endpoint, {
         method: 'POST',

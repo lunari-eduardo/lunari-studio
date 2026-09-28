@@ -149,27 +149,56 @@ async function getOrCreateContato(
   phoneRaw: string,
   pushName?: string,
 ): Promise<string | null> {
+  // Ignorar IDs com comprimento inválido para telefone (LIDs internos têm 14+ dígitos)
+  const digits = (phoneNormalized || phoneRaw).replace(/\D/g, '');
+  if (digits.length > 13 || digits.length < 10) {
+    return null;
+  }
+
+  // 1. Busca se o contato já existe para preservar nome salvo na agenda / CRM
+  const { data: existing } = await supabase
+    .from('conversas_contatos')
+    .select('id, nome')
+    .eq('user_id', userId)
+    .eq('phone_normalized', phoneNormalized)
+    .maybeSingle();
+
+  if (existing) {
+    // Se já tem nome preenchido (nome salvo ou CRM), NUNCA sobrescreve com pushName
+    // Só preenche se o contato ainda não tinha nome
+    if ((!existing.nome || existing.nome.trim() === '') && pushName && pushName.trim().length > 0) {
+      await supabase
+        .from('conversas_contatos')
+        .update({ nome: pushName.trim(), updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    }
+    return existing.id;
+  }
+
   const payload: Record<string, any> = {
     user_id: userId,
     phone_normalized: phoneNormalized,
     phone_raw: phoneRaw,
     tipo: 'unknown',
   };
-  // Apenas grava o nome se tiver um pushName real (evita sobrescrever com null)
   if (pushName && pushName.trim().length > 0) {
     payload.nome = pushName.trim();
   }
 
-  // Tenta upsert pelo user_id + phone_normalized
   const { data, error } = await supabase
     .from('conversas_contatos')
-    .upsert(payload, { onConflict: 'user_id,phone_normalized' })
+    .insert(payload)
     .select('id')
     .single();
 
   if (error) {
-    console.error('[conversas-webhook] getOrCreateContato error:', error.message);
-    return null;
+    const { data: retryData } = await supabase
+      .from('conversas_contatos')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('phone_normalized', phoneNormalized)
+      .maybeSingle();
+    return retryData?.id ?? null;
   }
 
   return data?.id ?? null;
@@ -254,26 +283,47 @@ async function getOrCreateChat(
   phoneNormalized: string,
   pushName?: string,
 ): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from('conversas_chats')
+    .select('id, contato_nome')
+    .eq('contato_id', contatoId)
+    .eq('instance_id', instanceId)
+    .maybeSingle();
+
+  if (existing) {
+    if ((!existing.contato_nome || existing.contato_nome.trim() === '') && pushName && pushName.trim().length > 0) {
+      await supabase
+        .from('conversas_chats')
+        .update({ contato_nome: pushName.trim(), updated_at: new Date().toISOString() })
+        .eq('id', existing.id);
+    }
+    return existing.id;
+  }
+
   const payload: Record<string, any> = {
     user_id: userId,
     contato_id: contatoId,
     instance_id: instanceId,
     contato_phone_normalized: phoneNormalized,
   };
-  // Apenas grava o contato_nome se tiver um pushName real (evita sobrescrever com null)
   if (pushName && pushName.trim().length > 0) {
     payload.contato_nome = pushName.trim();
   }
 
   const { data, error } = await supabase
     .from('conversas_chats')
-    .upsert(payload, { onConflict: 'contato_id,instance_id' })
+    .insert(payload)
     .select('id')
     .single();
 
   if (error) {
-    console.error('[conversas-webhook] getOrCreateChat error:', error.message);
-    return null;
+    const { data: retryData } = await supabase
+      .from('conversas_chats')
+      .select('id')
+      .eq('contato_id', contatoId)
+      .eq('instance_id', instanceId)
+      .maybeSingle();
+    return retryData?.id ?? null;
   }
 
   return data?.id ?? null;

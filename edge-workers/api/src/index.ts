@@ -37,6 +37,8 @@ import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasS
 import { getAudiosSalvosRoute, saveAudiosSalvosRoute, patchAudiosSalvosRoute, deleteAudiosSalvosRoute } from './routes/conversas-audios-savos.js';
 import { conversasClassifyLeadRoute } from './routes/conversas-classify-lead.js';
 import { luaProcessSourceRoute } from './routes/lua-process-dna.js';
+import { luaGenerateReplyRoute } from './routes/lua-generate-reply.js';
+import { assistantChatRoute } from './routes/assistant/assistant-chat.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -138,5 +140,7 @@ app.post('/api/conversas/classify-lead', conversasClassifyLeadRoute);
 
 // Lua AI
 app.post('/api/lua/process-dna', luaProcessSourceRoute);
+app.post('/api/lua/generate-reply', luaGenerateReplyRoute);
+app.post('/api/assistant/chat', assistantChatRoute);
 
 export default app;
