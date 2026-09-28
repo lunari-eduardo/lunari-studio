@@ -80,6 +80,7 @@ const Index = React.lazy(() => import("@/pages/Index"));
 const Agenda = React.lazy(() => import("@/pages/Agenda"));
 const Clientes = React.lazy(() => import("@/pages/Clientes"));
 const Configuracoes = React.lazy(() => import("@/pages/Configuracoes"));
+const LuaSettingsPage = React.lazy(() => import("@/pages/configuracoes/LuaSettingsPage"));
 const ClienteDetalhe = React.lazy(() => import("@/pages/ClienteDetalhe"));
 const Workflow = React.lazy(() => import("@/pages/Workflow"));
 const MinhaConta = React.lazy(() => import("@/pages/MinhaConta"));
@@ -364,6 +365,7 @@ export default function PhotographerApp() {
                   <PlanRestrictionGuard entitlement="sales_analysis"><AnaliseVendas /></PlanRestrictionGuard>
                 } />
                 <Route path="configuracoes" element={<Configuracoes />} />
+                <Route path="configuracoes/lua" element={<LuaSettingsPage />} />
                 <Route path="configuracoes/assistente-mcp" element={<RequireAdmin><RequireAssistantAccess><AssistenteMcpTokens /></RequireAssistantAccess></RequireAdmin>} />
                 <Route path="assistente/mcp" element={<RequireAdmin><RequireAssistantAccess><AssistenteMcpTokens /></RequireAssistantAccess></RequireAdmin>} />
                 <Route path="assistente/aprovacoes" element={<RequireAdmin><RequireAssistantAccess><AssistenteAprovacoes /></RequireAssistantAccess></RequireAdmin>} />

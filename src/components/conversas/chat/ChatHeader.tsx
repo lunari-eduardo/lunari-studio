@@ -24,6 +24,7 @@ export interface ChatHeaderProps {
   onPin?: () => void;
   onDelete?: () => void;
   onMarkUnread?: () => void;
+  onFeedDna?: () => void;
 }
 
 export function ChatHeader({
@@ -36,6 +37,7 @@ export function ChatHeader({
   onPin,
   onDelete,
   onMarkUnread,
+  onFeedDna,
 }: ChatHeaderProps) {
   const contatoTipo =
     'contato_tipo' in chat && (chat as EnrichedChat).contato_tipo
@@ -141,6 +143,17 @@ export function ChatHeader({
             <DropdownMenuItem onSelect={onBlock} className="dark:hover:bg-white/[0.07]">
               {chat.status === 'blocked' ? 'Desbloquear' : 'Bloquear'}
             </DropdownMenuItem>
+            
+            {onFeedDna && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={onFeedDna} className="text-emerald-600 dark:text-emerald-400 dark:hover:bg-white/[0.07]">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 12c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9 9-4.03 9-9z"></path><path d="M12 8v4l3 3"></path></svg>
+                  Alimentar DNA da Lua
+                </DropdownMenuItem>
+              </>
+            )}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onDelete} className="text-red-600 dark:text-red-400 dark:hover:bg-white/[0.07]">
               Excluir conversa

@@ -22,6 +22,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatImagePreviewModal } from './ChatImagePreviewModal';
+import { FeedDnaModal } from '../../lua/FeedDnaModal';
+import { LuAssistantPopover } from './LuAssistantPopover';
 
 export interface ChatPanelProps {
   chat: Chat | EnrichedChat;
@@ -70,6 +72,7 @@ export function ChatPanel({
   onDelete,
   onMarkUnread,
 }: ChatPanelProps) {
+  const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
   const {
     mensagens,
     notas,
@@ -305,6 +308,7 @@ export function ChatPanel({
     return (
       <div className="flex-1 flex flex-col bg-[#F6F5F2] dark:bg-[#0E0E10]">
         <ChatHeader
+          onFeedDna={() => setIsFeedModalOpen(true)}
           chat={chat}
           onBack={onBack}
           onTogglePanel={handleTogglePanel}
@@ -331,6 +335,7 @@ export function ChatPanel({
         </div>
 
         <ChatHeader
+          onFeedDna={() => setIsFeedModalOpen(true)}
           chat={chat}
           onBack={onBack}
           onTogglePanel={handleTogglePanel}
@@ -478,6 +483,14 @@ export function ChatPanel({
           )}
         </div>
 
+        <div className="flex items-center justify-end px-3 sm:px-6 pt-1 shrink-0">
+          <LuAssistantPopover
+            chatId={chat.id}
+            messages={mensagens}
+            onInjectText={(text) => setInjectedText(text)}
+          />
+        </div>
+
         <MessageComposer
           onSend={async content => {
             await sendMessage({ content, replyToId: replyingTo?.id });
@@ -573,6 +586,13 @@ export function ChatPanel({
           onClose={() => setPreviewImageId(null)}
         />
       )}
+
+      <FeedDnaModal
+        isOpen={isFeedModalOpen}
+        onClose={() => setIsFeedModalOpen(false)}
+        chatId={chat.id}
+        messages={mensagens}
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Json } from '@/integrations/supabase/types';
 
 export interface ConversasTemplate {
   id: string;
@@ -9,6 +10,11 @@ export interface ConversasTemplate {
   conteudo: string;
   categoria?: string | null;
   variaveis?: string[] | null;
+  categoria_id?: string | null;
+  etapa?: string | null;
+  palavras_chave?: Json | null;
+  ativo?: boolean;
+  ordem?: number;
   created_at: string;
   updated_at: string;
 }
@@ -46,16 +52,19 @@ export const DEFAULT_TEMPLATES_SUGGESTIONS = [
   {
     nome: 'Chave Pix / Pagamento',
     categoria: 'Financeiro',
+    etapa: 'financeiro',
     conteudo: 'Olá {nome}, tudo bem?\n\nSeguem os dados para pagamento via Pix:\nChave: {pix}\n\nAssim que realizar o pagamento, por favor envie o comprovante por aqui. Muito obrigado!',
   },
   {
     nome: 'Orientações Pré-Ensaio',
     categoria: 'Pré-Ensaio',
+    etapa: 'pre_ensaio',
     conteudo: '{saudacao}, {nome}!\n\nPassando para lembrar das recomendações para o nosso ensaio fotográfico:\n- Chegue com 15 minutos de antecedência;\n- Traga as opções de looks combinadas;\n- Venha com maquiagem/cabelo já preparados conforme alinhado.\n\nQualquer dúvida estou à disposição!',
   },
   {
     nome: 'Fotos Prontas / Envio de Galeria',
     categoria: 'Pós-Venda',
+    etapa: 'entrega',
     conteudo: 'Olá {nome}! Boas notícias! 🎉\n\nAs fotos do seu ensaio já estão disponíveis na sua galeria online exclusiva.\n\nAcesse o link para conferir e selecionar suas fotos favoritas. Espero que você ame o resultado tanto quanto eu!',
   },
 ];
@@ -73,6 +82,7 @@ export function useConversasTemplates() {
         .from('conversas_templates')
         .select('*')
         .eq('user_id', user.id)
+        .order('ordem', { ascending: true })
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -90,11 +100,21 @@ export function useConversasTemplates() {
       conteudo,
       categoria,
       variaveis,
+      categoria_id,
+      etapa,
+      palavras_chave,
+      ativo,
+      ordem,
     }: {
       nome: string;
       conteudo: string;
       categoria?: string | null;
       variaveis?: string[];
+      categoria_id?: string | null;
+      etapa?: string | null;
+      palavras_chave?: Json | null;
+      ativo?: boolean;
+      ordem?: number;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
@@ -107,6 +127,11 @@ export function useConversasTemplates() {
           conteudo: conteudo.trim(),
           categoria: categoria || null,
           variaveis: (variaveis || []) as any,
+          categoria_id: categoria_id || null,
+          etapa: etapa || null,
+          palavras_chave: palavras_chave || [],
+          ativo: ativo !== undefined ? ativo : true,
+          ordem: ordem || 0,
         })
         .select()
         .single();
@@ -116,7 +141,6 @@ export function useConversasTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas_templates'] });
-      toast.success('Modelo criado com sucesso!');
     },
     onError: (err: any) => {
       toast.error('Erro ao criar modelo: ' + (err.message || 'Tente novamente'));
@@ -130,29 +154,44 @@ export function useConversasTemplates() {
       conteudo,
       categoria,
       variaveis,
+      categoria_id,
+      etapa,
+      palavras_chave,
+      ativo,
+      ordem,
     }: {
       id: string;
-      nome: string;
-      conteudo: string;
+      nome?: string;
+      conteudo?: string;
       categoria?: string | null;
       variaveis?: string[];
+      categoria_id?: string | null;
+      etapa?: string | null;
+      palavras_chave?: Json | null;
+      ativo?: boolean;
+      ordem?: number;
     }) => {
+      const updateData: any = { updated_at: new Date().toISOString() };
+      
+      if (nome !== undefined) updateData.nome = nome.trim();
+      if (conteudo !== undefined) updateData.conteudo = conteudo.trim();
+      if (categoria !== undefined) updateData.categoria = categoria || null;
+      if (variaveis !== undefined) updateData.variaveis = (variaveis || []) as any;
+      if (categoria_id !== undefined) updateData.categoria_id = categoria_id || null;
+      if (etapa !== undefined) updateData.etapa = etapa || null;
+      if (palavras_chave !== undefined) updateData.palavras_chave = palavras_chave || null;
+      if (ativo !== undefined) updateData.ativo = ativo;
+      if (ordem !== undefined) updateData.ordem = ordem;
+
       const { error } = await supabase
         .from('conversas_templates')
-        .update({
-          nome: nome.trim(),
-          conteudo: conteudo.trim(),
-          categoria: categoria || null,
-          variaveis: (variaveis || []) as any,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas_templates'] });
-      toast.success('Modelo atualizado!');
     },
     onError: (err: any) => {
       toast.error('Erro ao atualizar modelo: ' + (err.message || 'Tente novamente'));
@@ -187,7 +226,11 @@ export function useConversasTemplates() {
         nome: t.nome,
         conteudo: t.conteudo,
         categoria: t.categoria || null,
+        etapa: t.etapa || null,
         variaveis: [] as any,
+        palavras_chave: [] as any,
+        ativo: true,
+        ordem: 0,
       }));
 
       const { error } = await supabase.from('conversas_templates').insert(toInsert);

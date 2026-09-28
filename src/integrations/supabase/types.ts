@@ -14,6 +14,250 @@ export type Database = {
   }
   public: {
     Tables: {
+      lua_dna_artifacts: {
+        Row: {
+          content: string | null
+          content_hash: string | null
+          created_at: string
+          extraction_status: string
+          id: string
+          kind: string
+          message_id: string
+          metadata: Json
+          source_id: string
+        }
+        Insert: {
+          content?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extraction_status?: string
+          id?: string
+          kind: string
+          message_id: string
+          metadata?: Json
+          source_id: string
+        }
+        Update: {
+          content?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extraction_status?: string
+          id?: string
+          kind?: string
+          message_id?: string
+          metadata?: Json
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_dna_artifacts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lua_dna_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lua_dna_profiles: {
+        Row: {
+          attributes: Json
+          created_at: string
+          derived_from: Json
+          id: string
+          learning_metrics: Json
+          status: string
+          updated_at: string
+          user_id: string
+          version: number
+          voice_summary: string | null
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          derived_from?: Json
+          id?: string
+          learning_metrics?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+          voice_summary?: string | null
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          derived_from?: Json
+          id?: string
+          learning_metrics?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+          voice_summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_dna_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lua_dna_sources: {
+        Row: {
+          chat_id: string
+          created_at: string
+          error_details: string | null
+          id: string
+          processed_at: string | null
+          retention_until: string
+          snapshot: Json
+          source_hash: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          error_details?: string | null
+          id?: string
+          processed_at?: string | null
+          retention_until: string
+          snapshot: Json
+          source_hash: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          error_details?: string | null
+          id?: string
+          processed_at?: string | null
+          retention_until?: string
+          snapshot?: Json
+          source_hash?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_dna_sources_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lua_generation_audit: {
+        Row: {
+          chat_id: string | null
+          context_hash: string | null
+          created_at: string
+          dna_version: number | null
+          id: string
+          latency_ms: number | null
+          model: string
+          output_hash: string | null
+          status: string
+          tokens_usage: Json | null
+          user_id: string
+        }
+        Insert: {
+          chat_id?: string | null
+          context_hash?: string | null
+          created_at?: string
+          dna_version?: number | null
+          id?: string
+          latency_ms?: number | null
+          model: string
+          output_hash?: string | null
+          status: string
+          tokens_usage?: Json | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: string | null
+          context_hash?: string | null
+          created_at?: string
+          dna_version?: number | null
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          output_hash?: string | null
+          status?: string
+          tokens_usage?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_generation_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lua_studio_knowledge: {
+        Row: {
+          created_at: string
+          hours: string | null
+          id: string
+          notes: string | null
+          pix_reference: string | null
+          policies: string | null
+          services: string | null
+          socials: string | null
+          updated_at: string
+          user_id: string
+          version: number
+          websites: string | null
+        }
+        Insert: {
+          created_at?: string
+          hours?: string | null
+          id?: string
+          notes?: string | null
+          pix_reference?: string | null
+          policies?: string | null
+          services?: string | null
+          socials?: string | null
+          updated_at?: string
+          user_id: string
+          version?: number
+          websites?: string | null
+        }
+        Update: {
+          created_at?: string
+          hours?: string | null
+          id?: string
+          notes?: string | null
+          pix_reference?: string | null
+          policies?: string | null
+          services?: string | null
+          socials?: string | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+          websites?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_studio_knowledge_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       account_fingerprints: {
         Row: {
           created_at: string
@@ -3841,6 +4085,11 @@ export type Database = {
           updated_at: string
           user_id: string
           variaveis: Json | null
+                  categoria_id: string | null
+          etapa: string | null
+          palavras_chave: Json | null
+          ativo: boolean
+          ordem: number
         }
         Insert: {
           conteudo: string
@@ -3851,6 +4100,11 @@ export type Database = {
           updated_at?: string
           user_id: string
           variaveis?: Json | null
+                  categoria_id?: string | null
+          etapa?: string | null
+          palavras_chave?: Json | null
+          ativo?: boolean
+          ordem?: number
         }
         Update: {
           conteudo?: string
@@ -3861,8 +4115,21 @@ export type Database = {
           updated_at?: string
           user_id?: string
           variaveis?: Json | null
+                  categoria_id?: string | null
+          etapa?: string | null
+          palavras_chave?: Json | null
+          ativo?: boolean
+          ordem?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversas_templates_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       conversas_webhook_events: {
         Row: {

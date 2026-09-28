@@ -36,6 +36,7 @@ import { conversasMessageReactRoute } from './routes/conversas-message-react.js'
 import { getConversasStickersRoute, saveConversasStickersRoute, deleteConversasStickersRoute, proxyConversasStickersRoute } from './routes/conversas-stickers.js';
 import { getAudiosSalvosRoute, saveAudiosSalvosRoute, patchAudiosSalvosRoute, deleteAudiosSalvosRoute } from './routes/conversas-audios-savos.js';
 import { conversasClassifyLeadRoute } from './routes/conversas-classify-lead.js';
+import { luaProcessSourceRoute } from './routes/lua-process-dna.js';
 
 export type Bindings = {
   SUPABASE_URL: string;
@@ -134,5 +135,8 @@ app.delete('/api/conversas/message/delete/:id', conversasMessageDeleteRoute);
 app.post('/api/conversas/message/update/:id', conversasMessageUpdateRoute);
 app.post('/api/conversas/message/react/:id', conversasMessageReactRoute);
 app.post('/api/conversas/classify-lead', conversasClassifyLeadRoute);
+
+// Lua AI
+app.post('/api/lua/process-dna', luaProcessSourceRoute);
 
 export default app;
