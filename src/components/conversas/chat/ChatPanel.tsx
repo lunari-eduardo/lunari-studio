@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import type { Chat, EnrichedChat, Mensagem, Nota } from '@/modules/conversas/types';
 import { ChatHeader } from './ChatHeader';
 import { MessageComposer } from './MessageComposer';
@@ -87,6 +87,8 @@ export function ChatPanel({
     markAllRead,
     hasMore,
     loadMore,
+    isSyncingHistory,
+    syncOlderMessages,
   } = useConversasChat(chat.id, { autoMarkRead: true });
 
   const { save: saveAudio } = useAudiosSalvos();
@@ -384,6 +386,25 @@ export function ChatPanel({
         >
           <div ref={sentinelRef} className="h-px" />
           
+          {!hasMore && items.length > 0 && (
+            <div className="w-full flex justify-center py-4">
+              <button
+                onClick={syncOlderMessages}
+                disabled={isSyncingHistory}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                {isSyncingHistory ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Buscando mensagens...
+                  </>
+                ) : (
+                  'Carregar mensagens antigas do celular'
+                )}
+              </button>
+            </div>
+          )}
+
           {items.length === 0 ? (
             <EmptyChatState />
           ) : (

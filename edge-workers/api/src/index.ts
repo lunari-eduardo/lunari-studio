@@ -25,6 +25,7 @@ import { conversasInstanceStatusRoute } from './routes/conversas-instance-status
 import { conversasInstanceDisconnectRoute } from './routes/conversas-instance-disconnect.js';
 import { conversasInstanceDeleteRoute } from './routes/conversas-instance-delete.js';
 import { conversasSyncChatsRoute } from './routes/conversas-sync-chats.js';
+import { conversasSyncHistoryRoute } from './routes/conversas-sync-history.js';
 import { conversasMessageRetryRoute } from './routes/conversas-message-retry.js';
 import { conversasFetchAvatarRoute } from './routes/conversas-fetch-avatar.js';
 import { conversasMarkReadRoute } from './routes/conversas-mark-read.js';
@@ -125,6 +126,7 @@ app.post('/api/conversas/instance/disconnect/:id', conversasInstanceDisconnectRo
 app.delete('/api/conversas/instance/:id', conversasInstanceDeleteRoute);
 app.get('/api/conversas/instance/status/:id', conversasInstanceStatusRoute);
 app.post('/api/conversas/sync-chats', conversasSyncChatsRoute);
+app.post('/api/conversas/chat/sync-history', conversasSyncHistoryRoute);
 app.post('/api/conversas/fetch-avatar', conversasFetchAvatarRoute);
 app.post('/api/conversas/mark-read/:chatId', conversasMarkReadRoute);
 app.post('/api/conversas/mark-unread/:chatId', conversasMarkUnreadRoute);

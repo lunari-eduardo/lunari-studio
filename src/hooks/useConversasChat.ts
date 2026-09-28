@@ -64,6 +64,9 @@ export interface UseConversasChatReturn {
   hasMore: boolean;
   loadMore: () => Promise<void>;
   presenceStatus: string | null;
+
+  isSyncingHistory: boolean;
+  syncOlderMessages: () => Promise<void>;
 }
 
 export function useConversasChat(
@@ -80,6 +83,7 @@ export function useConversasChat(
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [presenceStatus, setPresenceStatus] = useState<string | null>(null);
+  const [isSyncingHistory, setIsSyncingHistory] = useState(false);
 
   const PAGE_SIZE = 50;
   // P0-05 / Fase 2 — primeira página reduzida para combinar com WhatsApp (carrega
@@ -1045,6 +1049,54 @@ export function useConversasChat(
     return unique.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   }, [mensagens]);
 
+  const syncOlderMessages = useCallback(async () => {
+    if (!chatId || isSyncingHistory) return;
+    try {
+      setIsSyncingHistory(true);
+      const currentUserId = userIdRef.current;
+      const currentInstanceId = instanceIdRef.current;
+      if (!currentUserId || !currentInstanceId) return;
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      const remoteJid = chat?.contato_phone_normalized ? `${chat.contato_phone_normalized}@s.whatsapp.net` : null;
+      if (!remoteJid) return;
+
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+      const response = await fetch(`${workerUrl}/api/conversas/chat/sync-history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          instanceId: currentInstanceId,
+          chatId,
+          remoteJid
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao solicitar histórico do provedor');
+      }
+
+      toast.success('Solicitação de histórico enviada com sucesso! As mensagens aparecerão em breve.');
+      
+      // Attempt to load more in case they are already saved (or will be soon via Realtime)
+      // wait a bit for worker to process
+      setTimeout(() => {
+        void loadMore();
+      }, 2500);
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error('Erro ao buscar histórico: ' + (err.message || 'Falha na operação'));
+    } finally {
+      setIsSyncingHistory(false);
+    }
+  }, [chatId, chat?.contato_phone_normalized, isSyncingHistory, loadMore]);
+
   return {
     chat,
     mensagens,
@@ -1067,5 +1119,7 @@ export function useConversasChat(
     hasMore,
     loadMore,
     presenceStatus,
+    isSyncingHistory,
+    syncOlderMessages,
   };
 }
