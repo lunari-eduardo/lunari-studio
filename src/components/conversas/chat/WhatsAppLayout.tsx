@@ -177,7 +177,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
       <div
         className={`${
           mobileShowChat ? 'flex' : 'hidden'
-        } md:flex flex-1 flex-col h-full min-h-0 overflow-hidden animate-in fade-in-50 duration-150`}
+        } md:flex flex-1 flex-row h-full min-h-0 overflow-hidden animate-in fade-in-50 duration-150`}
       >
         {selectedChat ? (
           <ChatPanel
