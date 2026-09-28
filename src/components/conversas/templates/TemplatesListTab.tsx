@@ -19,47 +19,39 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   useConversasTemplates,
   renderTemplateText,
   type ConversasTemplate,
 } from '@/hooks/useConversasTemplates';
-import { TemplateModal } from './TemplateModal';
+import { LibraryPanel } from './LibraryPanel';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useCategorias } from '@/hooks/useCategorias';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 
 export interface TemplatesListTabProps {
   chat: Chat | EnrichedChat;
   suggestedCategory?: string;
+  suggestedStep?: string;
   onInsertToComposer: (text: string) => void;
 }
 
 export function TemplatesListTab({
   chat,
   suggestedCategory,
+  suggestedStep,
   onInsertToComposer,
 }: TemplatesListTabProps) {
   const { profile } = useUserProfile();
+  const { categorias = [] } = useCategorias();
   const {
     templates,
     isLoading,
-    createTemplate,
-    isCreating,
-    updateTemplate,
-    isUpdating,
-    deleteTemplate,
     seedDefaultTemplates,
     isSeeding,
   } = useConversasTemplates();
 
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<ConversasTemplate | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   const studioName = profile?.empresa?.trim() || profile?.nome?.trim() || 'Estúdio';
   const pixKey = (profile as any)?.pix_key || '';
@@ -82,37 +74,35 @@ export function TemplatesListTab({
       );
     }
     
-    // Sort logic: exact match with suggestedCategory comes first
-    if (suggestedCategory) {
+    // Auto order based on suggested category and step
+    if (!search && (suggestedCategory || suggestedStep)) {
+      const suggestedCatLower = suggestedCategory?.toLowerCase() || '';
+      const matchedCat = categorias.find(c => c.nome.toLowerCase() === suggestedCatLower);
+      
       result = [...result].sort((a, b) => {
-        const aMatch = a.categoria === suggestedCategory;
-        const bMatch = b.categoria === suggestedCategory;
-        if (aMatch && !bMatch) return -1;
-        if (!aMatch && bMatch) return 1;
-        return 0;
+        let scoreA = 0;
+        let scoreB = 0;
+        
+        // Exact category match gets +2
+        if (suggestedCategory && ((a.categoria_id === matchedCat?.id) || (a.categoria?.toLowerCase() === suggestedCatLower))) scoreA += 2;
+        if (suggestedCategory && ((b.categoria_id === matchedCat?.id) || (b.categoria?.toLowerCase() === suggestedCatLower))) scoreB += 2;
+        
+        // Exact step match gets +1
+        if (suggestedStep && a.etapa === suggestedStep) scoreA += 1;
+        if (suggestedStep && b.etapa === suggestedStep) scoreB += 1;
+        
+        if (scoreA !== scoreB) return scoreB - scoreA;
+        return (a.ordem || 0) - (b.ordem || 0);
       });
     }
-    return result;
-  }, [templates, search, suggestedCategory]);
+    
+    // Quick panel only shows top 5
+    return result.slice(0, 5);
+  }, [templates, search, suggestedCategory, suggestedStep, categorias]);
 
-  const handleEdit = (template: ConversasTemplate) => {
-    setEditingTemplate(template);
-    setModalOpen(true);
+  const handleOpenLibrary = () => {
+    setLibraryOpen(true);
   };
-
-  const handleNew = () => {
-    setEditingTemplate(null);
-    setModalOpen(true);
-  };
-
-  const handleSaveModal = async (data: { nome: string; conteudo: string; categoria?: string }) => {
-    if (editingTemplate) {
-      await updateTemplate({ id: editingTemplate.id, ...data });
-    } else {
-      await createTemplate(data);
-    }
-  };
-
 
   const handleInsert = (template: ConversasTemplate) => {
     const rendered = renderTemplateText(template.conteudo, templateContext);
@@ -121,13 +111,13 @@ export function TemplatesListTab({
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      {/* ─── Header: Sugestões de mensagens ─────────────────────────────────── */}
+      {/* Header: Sugestões de mensagens */}
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">
           Sugestões de mensagens
         </h3>
         <button 
-          onClick={handleNew}
+          onClick={handleOpenLibrary}
           className="text-[11px] font-medium text-[#B8925F] hover:text-[#C9A87C] transition-colors"
         >
           Ver todos
@@ -144,7 +134,7 @@ export function TemplatesListTab({
         />
       </div>
 
-      {/* ─── Lista Compacta de Templates ─────────────────────────────────── */}
+      {/* Lista Compacta de Templates */}
       <div className="flex flex-col gap-2 overflow-y-auto max-h-[260px] px-1 pb-1">
         {isLoading ? (
           <div className="py-8 flex flex-col items-center justify-center text-zinc-400">
@@ -167,8 +157,10 @@ export function TemplatesListTab({
           </div>
         ) : (
           filtered.map((template, idx) => {
-            const preview = renderTemplateText(template.conteudo, templateContext);
-            const isSuggested = template.categoria === suggestedCategory && suggestedCategory;
+            const isSuggested = suggestedCategory && (
+              template.categoria_id === categorias.find(c => c.nome.toLowerCase() === suggestedCategory.toLowerCase())?.id ||
+              template.categoria?.toLowerCase() === suggestedCategory.toLowerCase()
+            );
             
             // Ícones aleatórios limpos baseados no ID ou index para a UI
             const icons = [
@@ -188,7 +180,7 @@ export function TemplatesListTab({
                     ? "border-[#D4AF37]/40 shadow-[0_2px_8px_rgba(212,175,55,0.08)] bg-gradient-to-r from-[#D4AF37]/[0.02] to-transparent"
                     : "border-black/[0.04] dark:border-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:border-black/[0.1] dark:hover:border-white/[0.1]"
                 )}
-                onClick={() => handleEdit(template)}
+                onClick={() => handleInsert(template)}
               >
                 <div className="flex items-center gap-3 min-w-0 pl-1">
                   <div className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 border", visual.bg)}>
@@ -198,28 +190,28 @@ export function TemplatesListTab({
                     <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
                       {template.nome}
                       {isSuggested && (
-                        <span className="text-[9px] font-bold text-[#A87E43] uppercase tracking-wider">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-[#D4AF37]/20 text-[#B8925F] rounded-md">
                           Sugerido
                         </span>
                       )}
                     </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate">
-                      {preview}
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[180px]">
+                      {template.conteudo}
                     </span>
                   </div>
                 </div>
-
-                <div className="pr-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
+                
+                <div className="flex items-center pr-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-6 w-6 text-zinc-400 hover:text-[#C9A87C]"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleInsert(template);
                     }}
-                    className="h-6 px-3 text-[10px] font-medium border-[#C9A87C]/30 text-[#A87E43] dark:text-[#D4AF37] hover:bg-[#C9A87C]/10 dark:hover:bg-[#C9A87C]/20 bg-transparent shrink-0 shadow-none rounded-full"
                   >
-                    Inserir
+                    <Send className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
@@ -228,12 +220,13 @@ export function TemplatesListTab({
         )}
       </div>
 
-      <TemplateModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        templateToEdit={editingTemplate}
-        onSave={handleSaveModal}
-        isLoading={isCreating || isUpdating}
+      <LibraryPanel 
+        open={libraryOpen} 
+        onOpenChange={setLibraryOpen}
+        chat={chat}
+        suggestedCategory={suggestedCategory}
+        suggestedStep={suggestedStep}
+        onInsertToComposer={onInsertToComposer}
       />
     </div>
   );

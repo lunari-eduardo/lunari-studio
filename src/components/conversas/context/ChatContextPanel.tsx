@@ -38,7 +38,7 @@ import { useCategorias } from '@/hooks/useCategorias';
 
 
 import { useChatStateResolver } from '@/hooks/useChatStateResolver';
-import { UnknownContactCard } from './cards/UnknownContactCard';
+import { ContactLeadOpportunityCard } from './cards/ContactLeadOpportunityCard';
 import { ClientLinkModal } from './modals/ClientLinkModal';
 import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
@@ -207,6 +207,21 @@ export function ChatContextPanel({
     return undefined;
   })();
 
+  const resolvedStepForTemplates = (() => {
+    if (chatState === 'UNKNOWN') return 'primeiro_contato';
+    if (chatState === 'LEAD') return needsFollowUp ? 'follow_up' : 'orcamento';
+    if (chatState === 'SESSION') {
+      const s = sessoes?.[0];
+      if (!s) return 'geral';
+      if ((s.valor_total || 0) > (s.valor_pago || 0)) return 'financeiro';
+      if (s.status_workflow === 'entregue') return 'pos_venda';
+      if (s.status_workflow === 'fotografado' || s.status_workflow === 'edicao') return 'entrega';
+      return 'pre_ensaio';
+    }
+    if (chatState === 'POST_SALE') return 'pos_venda';
+    return 'geral';
+  })();
+
   const handleAddNota = async () => {
     if (!notaDraft.trim() || submittingNota) return;
     try {
@@ -233,14 +248,16 @@ export function ChatContextPanel({
       case 'UNKNOWN':
         return (
           <>
-            <UnknownContactCard 
-              onCreateClient={() => setIsClientCreateModalOpen(true)}
+            <ContactLeadOpportunityCard 
+              onCreateLead={() => setIsLeadModalOpen(true)}
               onLinkClient={() => setIsClientLinkModalOpen(true)}
+              detectedCategory={aiSuggestedCategory}
             />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
+                suggestedStep={resolvedStepForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
@@ -265,6 +282,7 @@ export function ChatContextPanel({
               <TemplatesListTab
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
+                suggestedStep={resolvedStepForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
@@ -288,6 +306,7 @@ export function ChatContextPanel({
               <TemplatesListTab
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
+                suggestedStep={resolvedStepForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>
@@ -312,6 +331,7 @@ export function ChatContextPanel({
               <TemplatesListTab
                 chat={chat}
                 suggestedCategory={resolvedCategoryForTemplates}
+                suggestedStep={resolvedStepForTemplates}
                 onInsertToComposer={onInsertToComposer ?? (() => {})}
               />
             </div>

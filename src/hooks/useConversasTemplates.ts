@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
 
+export type TemplateStep = 'primeiro_contato' | 'orcamento' | 'follow_up' | 'pre_ensaio' | 'financeiro' | 'pos_venda' | 'entrega' | 'geral';
+
 export interface ConversasTemplate {
   id: string;
   user_id: string;
@@ -11,7 +13,7 @@ export interface ConversasTemplate {
   categoria?: string | null;
   variaveis?: string[] | null;
   categoria_id?: string | null;
-  etapa?: string | null;
+  etapa?: TemplateStep | null;
   palavras_chave?: Json | null;
   ativo?: boolean;
   ordem?: number;
@@ -69,7 +71,51 @@ export const DEFAULT_TEMPLATES_SUGGESTIONS = [
   },
 ];
 
+
+async function migrateTemplatesInBackground(templates: ConversasTemplate[], userId: string) {
+  try {
+    const { data: categorias } = await supabase
+      .from('categorias')
+      .select('id, nome')
+      .eq('user_id', userId);
+
+    const catMap = new Map<string, string>();
+    if (categorias) {
+      categorias.forEach(c => catMap.set(c.nome.toLowerCase().trim(), c.id));
+    }
+
+    const updates = templates.filter(t => (!t.categoria_id && t.categoria) || !t.etapa).map(t => {
+      let catId = t.categoria_id;
+      if (!catId && t.categoria) {
+        const matchingId = catMap.get(t.categoria.toLowerCase().trim());
+        if (matchingId) catId = matchingId;
+      }
+      return {
+        id: t.id,
+        categoria_id: catId || null,
+        etapa: (t.etapa as TemplateStep) || 'geral',
+        ordem: t.ordem || 0
+      };
+    });
+
+    for (const up of updates) {
+      await supabase
+        .from('conversas_templates')
+        .update({
+          categoria_id: up.categoria_id,
+          etapa: up.etapa,
+          ordem: up.ordem
+        })
+        .eq('id', up.id)
+        .eq('user_id', userId);
+    }
+  } catch (err) {
+    console.error('Falha ao migrar templates no background', err);
+  }
+}
+
 export function useConversasTemplates() {
+
   const queryClient = useQueryClient();
 
   const query = useQuery({
@@ -90,7 +136,17 @@ export function useConversasTemplates() {
         throw error;
       }
 
-      return (data || []) as ConversasTemplate[];
+      const items = (data || []) as ConversasTemplate[];
+      const needsMigration = items.some(t => (!t.categoria_id && t.categoria) || !t.etapa);
+      
+      if (needsMigration) {
+        migrateTemplatesInBackground(items, user.id);
+        items.forEach(t => {
+          if (!t.etapa) t.etapa = 'geral';
+        });
+      }
+
+      return items;
     },
   });
 
@@ -136,7 +192,7 @@ export function useConversasTemplates() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
@@ -166,7 +222,7 @@ export function useConversasTemplates() {
       categoria?: string | null;
       variaveis?: string[];
       categoria_id?: string | null;
-      etapa?: string | null;
+      etapa?: TemplateStep | null;
       palavras_chave?: Json | null;
       ativo?: boolean;
       ordem?: number;
@@ -188,7 +244,7 @@ export function useConversasTemplates() {
         .update(updateData)
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas_templates'] });

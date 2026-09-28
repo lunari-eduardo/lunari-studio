@@ -22,8 +22,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatImagePreviewModal } from './ChatImagePreviewModal';
+import { useLuaGenerate } from '@/hooks/lua/useLuaGenerate';
 import { FeedDnaModal } from '../../lua/FeedDnaModal';
-import { LuAssistantPopover } from './LuAssistantPopover';
+
 
 export interface ChatPanelProps {
   chat: Chat | EnrichedChat;
@@ -96,6 +97,29 @@ export function ChatPanel({
 
   const { save: saveAudio } = useAudiosSalvos();
   const isMobile = useIsMobile();
+  const { generate: generateLua, isGenerating: isGeneratingWithLua } = useLuaGenerate();
+
+  const handleSuggestReply = async () => {
+    const recentMessages = mensagens
+      .slice(-15)
+      .map(m => ({
+        direction: m.direction,
+        content: m.content || '',
+      }));
+
+    const lastInbound = [...mensagens].reverse().find(m => m.direction === 'inbound');
+    const prompt = lastInbound?.content || 'Olá, gostaria de informações.';
+
+    const reply = await generateLua({
+      prompt,
+      chatId: chat.id,
+      recentMessages,
+    });
+
+    if (reply) {
+      setInjectedText(reply);
+    }
+  };
 
   const [sidePanelOpen, setSidePanelOpen] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -484,11 +508,7 @@ export function ChatPanel({
         </div>
 
         <div className="flex items-center justify-end px-3 sm:px-6 pt-1 shrink-0">
-          <LuAssistantPopover
-            chatId={chat.id}
-            messages={mensagens}
-            onInjectText={(text) => setInjectedText(text)}
-          />
+
         </div>
 
         <MessageComposer
@@ -507,6 +527,8 @@ export function ChatPanel({
           }}
           injectedText={injectedText}
           onClearInjectedText={() => setInjectedText(null)}
+          onGenerateWithLua={handleSuggestReply}
+          isGeneratingWithLua={isGeneratingWithLua}
           onAttach={async (file, kind, isPtt, caption) => {
             if (kind === 'contact') {
               toast.info('Envio de contato em breve');

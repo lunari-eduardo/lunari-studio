@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Mic, Send, X, Square, Trash2, Sticker as StickerIcon, Pencil, Check } from 'lucide-react';
+import { Mic, Send, X, Square, Trash2, Sticker as StickerIcon, Pencil, Check, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Mensagem } from '@/modules/conversas/types';
 import { AttachMenu } from './AttachMenu';
@@ -34,6 +34,8 @@ export interface MessageComposerProps {
   onSaveAudio?: (file: File, duration: number) => void;
   injectedText?: string | null;
   onClearInjectedText?: () => void;
+  onGenerateWithLua?: () => void;
+  isGeneratingWithLua?: boolean;
 }
 
 export interface PendingAttachment {
@@ -85,6 +87,8 @@ export function MessageComposer({
   onSaveAudio,
   injectedText,
   onClearInjectedText,
+  onGenerateWithLua,
+  isGeneratingWithLua,
 }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -360,6 +364,19 @@ export function MessageComposer({
               </button>
             </StickerPickerPopover>
             <AttachMenu onAttach={handleSelectAttachment} onOpenAudiosSalvos={onOpenAudiosSalvos} />
+            
+            {onGenerateWithLua && (
+              <button
+                type="button"
+                onClick={onGenerateWithLua}
+                disabled={isGeneratingWithLua}
+                className="h-10 px-3 ml-1 flex items-center gap-1.5 rounded-full text-[11px] font-semibold text-[#D4AF37] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 transition-colors border border-[#D4AF37]/20 disabled:opacity-50"
+                title="Inteligência Lunari"
+              >
+                {isGeneratingWithLua ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span className="hidden sm:inline">{isGeneratingWithLua ? 'Pensando...' : 'Lua'}</span>
+              </button>
+            )}
           </div>
         )}
 
