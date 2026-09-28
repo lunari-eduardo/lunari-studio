@@ -54,6 +54,10 @@ import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
+import LeadFormModal from '@/components/leads/LeadFormModal';
+import { useLeads } from '@/hooks/useLeads';
+import type { Lead } from '@/types/leads';
+
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
   notas: Nota[];
@@ -181,6 +185,8 @@ export function ChatContextPanel({
   const { categorias } = useCategorias();
   const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
   const [isClientCreateModalOpen, setIsClientCreateModalOpen] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const { addLead, convertToClient } = useLeads();
   const { adicionarCliente } = useClientesRealtime();
   const { linkToCliente } = useConversasContatos();
   const [manualSuggestedCategory, setManualSuggestedCategory] = useState<string | undefined>();
@@ -242,6 +248,7 @@ export function ChatContextPanel({
               state={chatState} 
               hasCliente={!!cliente?.id} 
               onNavigate={navigate} 
+              onCreateLead={() => setIsLeadModalOpen(true)}
               onOpenWorkflow={() => handleOpenWorkflow()}
               onOpenPayment={() => setIsPaymentModalOpen(true)}
               onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
@@ -265,6 +272,7 @@ export function ChatContextPanel({
               state={chatState} 
               hasCliente={!!cliente?.id} 
               onNavigate={navigate} 
+              onCreateLead={() => setIsLeadModalOpen(true)}
               onOpenWorkflow={() => handleOpenWorkflow()}
               onOpenPayment={() => setIsPaymentModalOpen(true)}
               onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
@@ -288,6 +296,7 @@ export function ChatContextPanel({
               state={chatState} 
               hasCliente={!!cliente?.id} 
               onNavigate={navigate} 
+              onCreateLead={() => setIsLeadModalOpen(true)}
               onOpenWorkflow={() => handleOpenWorkflow()}
               onOpenPayment={() => setIsPaymentModalOpen(true)}
               onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
@@ -310,6 +319,7 @@ export function ChatContextPanel({
               state={chatState} 
               hasCliente={!!cliente?.id} 
               onNavigate={navigate} 
+              onCreateLead={() => setIsLeadModalOpen(true)}
               onOpenWorkflow={() => handleOpenWorkflow()}
               onOpenPayment={() => setIsPaymentModalOpen(true)}
               onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
@@ -460,6 +470,41 @@ export function ChatContextPanel({
           clienteNome={cliente?.nome || ''}
           sessionId={getActiveSessionData()!.id}
           valorSugerido={(sessoes?.[0]?.valor_total || 0) - (sessoes?.[0]?.valor_pago || 0)}
+        />
+      )}
+
+      {isLeadModalOpen && (
+        <LeadFormModal
+          open={isLeadModalOpen}
+          onOpenChange={setIsLeadModalOpen}
+          mode="create"
+          initial={{
+            nome: cliente?.nome || chat.contato_nome || '',
+            telefone: cliente?.telefone || chat.contato_phone_normalized || chat.id.split('@')[0] || '',
+            clienteId: cliente?.id,
+            origem: 'WhatsApp',
+          } as unknown as Lead}
+          onSubmit={async (data) => {
+            try {
+              if (cliente?.id) {
+                data.clienteId = cliente.id;
+              }
+              const newLead = await addLead(data);
+              
+              if (!cliente?.id) {
+                const newClient = await convertToClient(newLead.id);
+                if (newClient && chat.contato_id) {
+                  await linkToCliente(chat.contato_id, newClient.id);
+                }
+              }
+              
+              toast.success("Lead criado com sucesso!");
+              setIsLeadModalOpen(false);
+            } catch (error) {
+              console.error("Erro ao criar lead:", error);
+              toast.error("Erro ao criar lead");
+            }
+          }}
         />
       )}
     </Container>
