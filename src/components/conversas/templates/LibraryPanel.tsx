@@ -22,7 +22,7 @@ export interface LibraryPanelProps {
 export function LibraryPanel({ open, onOpenChange, chat, suggestedCategory, suggestedStep, onInsertToComposer }: LibraryPanelProps) {
   const { profile } = useUserProfile();
   const { categorias = [] } = useCategorias();
-  const { templates, isLoading, createTemplate, updateTemplate } = useConversasTemplates();
+  const { templates, isLoading, createTemplate, updateTemplate, isCreating, isUpdating } = useConversasTemplates();
 
   const [search, setSearch] = useState('');
   const [editingTemplate, setEditingTemplate] = useState<ConversasTemplate | null>(null);
@@ -133,6 +133,7 @@ export function LibraryPanel({ open, onOpenChange, chat, suggestedCategory, sugg
             template={editingTemplate}
             onSave={handleSaveEditor}
             onCancel={() => setIsEditorOpen(false)}
+            isLoading={isCreating || isUpdating}
           />
         ) : (
           <div className="flex flex-col h-full overflow-hidden">

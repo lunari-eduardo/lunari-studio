@@ -93,11 +93,13 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
     chat_id: 'preview',
     direction: 'outbound',
     status: 'sent',
+    type: 'text',
     content: renderTemplateText(conteudo || 'Digite algo para pré-visualizar', {
       contactName: 'Mariana Silva',
       studioName: 'Lunari Studio',
       pixKey: 'pix@lunaristudio.com'
     }),
+    timestamp: new Date().toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   } as unknown as Mensagem), [conteudo]);

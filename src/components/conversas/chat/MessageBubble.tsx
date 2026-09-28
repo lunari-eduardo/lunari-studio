@@ -27,7 +27,8 @@ import {
 const MONTHS_PT_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 /** Data completa em pt-BR: "12 de set de 2024 • 14:32" */
-function formatFullDate(date: Date | string): string {
+function formatFullDate(date: Date | string | null | undefined): string {
+  if (!date) return '';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return '';
   const day = d.getDate();
