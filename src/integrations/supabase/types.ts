@@ -4090,6 +4090,8 @@ export type Database = {
           palavras_chave: Json | null
           ativo: boolean
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
         }
         Insert: {
           conteudo: string
@@ -4105,6 +4107,8 @@ export type Database = {
           palavras_chave?: Json | null
           ativo?: boolean
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
         }
         Update: {
           conteudo?: string
@@ -4120,6 +4124,8 @@ export type Database = {
           palavras_chave?: Json | null
           ativo?: boolean
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
         }
         Relationships: [
           {
@@ -4538,6 +4544,8 @@ export type Database = {
           is_system_status: boolean | null
           nome: string
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -4549,6 +4557,8 @@ export type Database = {
           is_system_status?: boolean | null
           nome: string
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           updated_at?: string
           user_id: string
         }
@@ -4560,6 +4570,8 @@ export type Database = {
           is_system_status?: boolean | null
           nome?: string
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -4644,7 +4656,9 @@ export type Database = {
           id: string
           is_system: boolean | null
           nome: string
-          ordem: number | null
+          ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -4652,7 +4666,9 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           nome: string
-          ordem?: number | null
+          ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -4660,7 +4676,9 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           nome?: string
-          ordem?: number | null
+          ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean | null
         }
         Relationships: []
       }
@@ -5327,6 +5345,8 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -5337,6 +5357,8 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           updated_at?: string
           user_id: string
         }
@@ -5347,6 +5369,8 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -7571,6 +7595,8 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -7580,6 +7606,8 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           updated_at?: string
           user_id: string
         }
@@ -7589,6 +7617,8 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -8115,6 +8145,8 @@ export type Database = {
           media: Json
           not_helpful_count: number
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           pergunta: string
           published: boolean
           resposta: string
@@ -8134,6 +8166,8 @@ export type Database = {
           media?: Json
           not_helpful_count?: number
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           pergunta: string
           published?: boolean
           resposta: string
@@ -8153,6 +8187,8 @@ export type Database = {
           media?: Json
           not_helpful_count?: number
           ordem?: number
+          emojis_sugeridos?: boolean
+          uso_interno?: boolean
           pergunta?: string
           published?: boolean
           resposta?: string
@@ -9834,6 +9870,8 @@ export type Database = {
           media: Json
           not_helpful_count: number
           ordem: number
+          emojis_sugeridos: boolean
+          uso_interno: boolean
           pergunta: string
           published: boolean
           resposta: string

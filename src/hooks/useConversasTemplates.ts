@@ -16,6 +16,8 @@ export interface ConversasTemplate {
   etapa?: TemplateStep | null;
   palavras_chave?: Json | null;
   ativo?: boolean;
+  emojis_sugeridos?: boolean;
+  uso_interno?: boolean;
   ordem?: number;
   created_at: string;
   updated_at: string;
@@ -42,12 +44,12 @@ export function renderTemplateText(templateText: string, context?: TemplateConte
   const firstName = rawName.split(' ')[0] || '';
 
   return templateText
-    .replace(/\{nome\}/gi, firstName || 'Cliente')
-    .replace(/\{nome_completo\}/gi, rawName || 'Cliente')
-    .replace(/\{saudacao\}/gi, saudacao)
-    .replace(/\{estudio\}/gi, context?.studioName || 'Estúdio')
-    .replace(/\{empresa\}/gi, context?.studioName || 'Estúdio')
-    .replace(/\{pix\}/gi, context?.pixKey || '');
+    .replace(/\{\{?nome\}\}?/gi, firstName || 'Cliente')
+    .replace(/\{\{?nome_completo\}\}?/gi, rawName || 'Cliente')
+    .replace(/\{\{?saudacao\}\}?/gi, saudacao)
+    .replace(/\{\{?estudio\}\}?/gi, context?.studioName || 'Estúdio')
+    .replace(/\{\{?empresa\}\}?/gi, context?.studioName || 'Estúdio')
+    .replace(/\{\{?pix\}\}?/gi, context?.pixKey || '');
 }
 
 export const DEFAULT_TEMPLATES_SUGGESTIONS = [
@@ -159,7 +161,7 @@ export function useConversasTemplates() {
       categoria_id,
       etapa,
       palavras_chave,
-      ativo,
+      ativo, emojis_sugeridos, uso_interno,
       ordem,
     }: {
       nome: string;
@@ -170,6 +172,8 @@ export function useConversasTemplates() {
       etapa?: string | null;
       palavras_chave?: Json | null;
       ativo?: boolean;
+  emojis_sugeridos?: boolean;
+  uso_interno?: boolean;
       ordem?: number;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -187,6 +191,8 @@ export function useConversasTemplates() {
           etapa: etapa || null,
           palavras_chave: palavras_chave || [],
           ativo: ativo !== undefined ? ativo : true,
+          emojis_sugeridos: emojis_sugeridos !== undefined ? emojis_sugeridos : true,
+          uso_interno: uso_interno !== undefined ? uso_interno : true,
           ordem: ordem || 0,
         })
         .select()
@@ -213,7 +219,7 @@ export function useConversasTemplates() {
       categoria_id,
       etapa,
       palavras_chave,
-      ativo,
+      ativo, emojis_sugeridos, uso_interno,
       ordem,
     }: {
       id: string;
@@ -225,6 +231,8 @@ export function useConversasTemplates() {
       etapa?: TemplateStep | null;
       palavras_chave?: Json | null;
       ativo?: boolean;
+  emojis_sugeridos?: boolean;
+  uso_interno?: boolean;
       ordem?: number;
     }) => {
       const updateData: any = { updated_at: new Date().toISOString() };
@@ -237,6 +245,8 @@ export function useConversasTemplates() {
       if (etapa !== undefined) updateData.etapa = etapa || null;
       if (palavras_chave !== undefined) updateData.palavras_chave = palavras_chave || null;
       if (ativo !== undefined) updateData.ativo = ativo;
+      if (emojis_sugeridos !== undefined) updateData.emojis_sugeridos = emojis_sugeridos;
+      if (uso_interno !== undefined) updateData.uso_interno = uso_interno;
       if (ordem !== undefined) updateData.ordem = ordem;
 
       const { error } = await supabase
@@ -286,6 +296,8 @@ export function useConversasTemplates() {
         variaveis: [] as any,
         palavras_chave: [] as any,
         ativo: true,
+        emojis_sugeridos: true,
+        uso_interno: false,
         ordem: 0,
       }));
 

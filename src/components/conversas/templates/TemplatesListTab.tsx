@@ -143,7 +143,7 @@ export function TemplatesListTab({
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-6 text-center">
-            <p className="text-[11px] text-zinc-500">Nenhum modelo encontrado.</p>
+            <p className="text-[11px] text-zinc-500">Você� ainda n�o possui modelos salvos.</p>
             {!search && (
               <Button
                 variant="link"
@@ -151,7 +151,7 @@ export function TemplatesListTab({
                 disabled={isSeeding}
                 className="text-[11px] text-[#C9A87C] h-auto p-0 mt-1"
               >
-                {isSeeding ? 'Carregando...' : 'Carregar modelos sugeridos'}
+                {isSeeding ? 'Carregando...' : 'Carregar biblioteca da Lua'}
               </Button>
             )}
           </div>
@@ -162,7 +162,7 @@ export function TemplatesListTab({
               template.categoria?.toLowerCase() === suggestedCategory.toLowerCase()
             );
             
-            // Ícones aleatórios limpos baseados no ID ou index para a UI
+            // Ícones aleatórios limpos baseados não ID ou index para a UI
             const icons = [
                { icon: <MessageCircle className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />, bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30" },
                { icon: <Briefcase className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />, bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30" },
