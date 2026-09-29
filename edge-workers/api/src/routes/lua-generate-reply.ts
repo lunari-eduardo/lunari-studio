@@ -112,17 +112,28 @@ export async function luaGenerateReplyRoute(c: Context) {
     auditPayload.context_hash = simpleHash(systemPrompt);
 
     // --- 3. Montar mensagens ---
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
+    let rawMessages: Array<{ role: "user" | "assistant"; content: string }> = [];
 
     if (body.recent_messages && body.recent_messages.length > 0) {
       for (const msg of body.recent_messages.slice(-10)) {
-        messages.push({
+        rawMessages.push({
           role: msg.direction === "outbound" ? "assistant" : "user",
           content: msg.content,
         });
       }
     }
-    messages.push({ role: "user", content: body.prompt });
+    rawMessages.push({ role: "user", content: body.prompt });
+
+    // Ensure roles are alternating to prevent Gemini API from throwing 400 Bad Request
+    const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
+    for (const msg of rawMessages) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg && lastMsg.role === msg.role) {
+        lastMsg.content += `\n\n${msg.content}`;
+      } else {
+        messages.push({ ...msg });
+      }
+    }
 
     // --- 4. Gerar resposta via provider principal ---
     let reply = "";
@@ -137,16 +148,16 @@ export async function luaGenerateReplyRoute(c: Context) {
       reply = result.text?.trim() || "";
       usage = result.usage;
     } catch (err: any) {
-      console.warn(`[lua-generate-reply] Provedor principal (${aiConfig.providerName}) falhou. Tentando fallback Llama 3.`);
+      console.warn(`[lua-generate-reply] Provedor principal (${aiConfig.providerName}) falhou. Tentando fallback Llama 3.1. Error: ${err.message}`);
       if (c.env.AI) {
         const cfMessages = [
           { role: 'system', content: systemPrompt },
           ...messages
         ];
-        const response = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', { messages: cfMessages });
+        const response = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fp8', { messages: cfMessages });
         if (typeof response === 'string') reply = response.trim();
         else if (response && 'response' in response) reply = (response as any).response.trim();
-        auditPayload.model = 'cloudflare:llama-3-8b-instruct (fallback)';
+        auditPayload.model = 'cloudflare:llama-3.1-8b-instruct-fp8 (fallback)';
       } else {
         throw err;
       }

@@ -116,7 +116,7 @@ Retorne exclusivamente um JSON no seguinte formato:
     // 2. Fallback resiliente: Cloudflare Workers AI
     if (c.env.AI) {
       try {
-        const response = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        const response = await c.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fp8', {
           messages: [
             { role: 'system', content: 'You are an AI that outputs exclusively raw JSON objects without markdown wrappers.' },
             { role: 'user', content: `${systemPrompt}\n\nConversa:\n${conversationText}\n\nJSON:` }
