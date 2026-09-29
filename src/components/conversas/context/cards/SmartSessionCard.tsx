@@ -59,7 +59,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     const safeDesc = getSafeDescription(nextSession);
     return (
       <div 
-        onClick={() => onOpenWorkflow(nextSession.id)}
+        onClick={() => onOpenWorkflow(nextSession.session_id || nextSession.id)}
         className="rounded-xl md:rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#131718] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-sm cursor-pointer hover:border-black/[0.12] dark:hover:border-white/15 transition-all group flex flex-col gap-3"
       >
         <div className="flex items-center justify-between">
@@ -187,7 +187,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     
     return (
       <div 
-        onClick={() => onOpenWorkflow(lastSession.id)}
+        onClick={() => onOpenWorkflow(lastSession.session_id || lastSession.id)}
         className="rounded-xl md:rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#11141A] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] dark:shadow-sm cursor-pointer hover:border-black/[0.12] dark:hover:border-white/15 transition-all group flex flex-col gap-3"
       >
         <div className="flex items-center justify-between">
@@ -256,3 +256,4 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
 
   return null;
 }
+

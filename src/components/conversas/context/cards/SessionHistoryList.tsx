@@ -22,7 +22,7 @@ export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryLi
         {sessoes.slice(0, 3).map((sessao) => (
           <div 
             key={sessao.id}
-            onClick={() => onOpenWorkflow(sessao.id)}
+            onClick={() => onOpenWorkflow(sessao.session_id || sessao.id)}
             className="group flex flex-col gap-1 p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] border border-transparent hover:border-black/[0.05] dark:hover:border-white/[0.05] transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between">
@@ -48,3 +48,4 @@ export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryLi
     </div>
   );
 }
+
