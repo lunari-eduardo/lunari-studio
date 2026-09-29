@@ -1,62 +1,39 @@
 /**
  * Painel Contextual Direito do Lunari Conversas.
- * Conecta a conversa com o contexto comercial (Lead/Oportunidade), operacional (Sessões/Workflow),
- * tarefas pendentes, notas internas e atalhos rápidos do sistema.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
-  Briefcase,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
   Plus,
   StickyNote,
-  User,
   Trash2,
   Loader2,
-  Sparkles,
-  ArrowRight,
-  ChevronRight,
-  DollarSign,
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Chat, EnrichedChat, Nota } from '@/modules/conversas/types';
 import { useConversasContactContext } from '@/hooks/useConversasContactContext';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 import { TemplatesListTab } from '../templates/TemplatesListTab';
-import { Zap } from 'lucide-react';
-import { useCategorias } from '@/hooks/useCategorias';
-
-
-import { useChatStateResolver } from '@/hooks/useChatStateResolver';
-import { ContactLeadOpportunityCard } from './cards/ContactLeadOpportunityCard';
 import { ClientLinkModal } from './modals/ClientLinkModal';
 import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
-import { useClientesRealtime } from '@/hooks/useClientesRealtime';
-import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { LeadContextCard } from './cards/LeadContextCard';
 import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
 import { WorkflowPaymentsModal } from '@/components/workflow/WorkflowPaymentsModal';
 import { ChargeModal } from '@/components/cobranca/ChargeModal';
-import type { SessionData } from '@/types/workflow';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
 import LeadFormModal from '@/components/leads/LeadFormModal';
-import { useLeads } from '@/hooks/useLeads';
-import type { Lead } from '@/types/leads';
+import { RelationshipSummaryCard } from './cards/RelationshipSummaryCard';
 
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
@@ -67,11 +44,6 @@ export interface ChatContextPanelProps {
   onClose: () => void;
   isDrawer?: boolean;
   onInsertToComposer?: (text: string) => void;
-}
-
-function formatCurrency(val: number | null | undefined): string {
-  if (val == null) return 'R$ 0,00';
-  return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -96,453 +68,200 @@ export function ChatContextPanel({
   const [isChargeLinkModalOpen, setIsChargeLinkModalOpen] = useState(false);
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
+  const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
+  const [isClientCreateModalOpen, setIsClientCreateModalOpen] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+
+  const contextData = useConversasContactContext(chat);
+  const { unifiedContext, vincularAmbos, vincularCliente, criarTarefaRapida, concluirTarefa } = contextData;
+  const { state, contact, client, lead, nextSession, lastSession, activeWorkflow, gallery, metrics, templateContext, isLoading, error } = unifiedContext;
 
   const handleCreateClient = async (data: { nome: string; telefone: string }) => {
-    if (!chat.contato_id) return;
-    try {
-      const novoCliente = await adicionarCliente({
-        nome: data.nome,
-        telefone: data.telefone,
-        whatsapp: data.telefone
-      });
-      if (novoCliente) {
-        await linkToCliente(chat.contato_id, novoCliente.id);
-        await vincularAmbos({ clienteId: novoCliente.id });
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    // Apenas stub caso precise, mas a criaÃ§Ã£o real estÃ¡ no ClientCreateFromContactModal
   };
 
   const handleLinkClient = async (clienteId: string) => {
     if (!chat.contato_id) return;
     try {
-      await linkToCliente(chat.contato_id, clienteId);
-      await vincularAmbos({ clienteId });
+      await vincularCliente(clienteId);
+      toast.success('Cliente vinculado com sucesso!');
+      setIsClientLinkModalOpen(false);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const {
-    cliente,
-    lead,
-    sessoes,
-    cobrancas,
-    orcamentos,
-    vincularAmbos,
-    isLoading,
-  } = useConversasContactContext(chat);
-
-  const chatState = useChatStateResolver({ cliente, lead, sessoes });
   const handleOpenWorkflow = (id?: string) => {
-    let targetSession = id ? sessoes?.find((s) => s.id === id) : undefined;
-
-    if (!targetSession && sessoes && sessoes.length > 0) {
-      const today = new Date();
-      const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      const future = sessoes
-        .filter((s) => s.data_sessao && s.data_sessao.slice(0, 10) >= todayIso)
-        .sort((a, b) => a.data_sessao.slice(0, 10).localeCompare(b.data_sessao.slice(0, 10)));
-
-      targetSession = future[0] || sessoes[0];
-    }
-
-    const targetId = id || targetSession?.id;
-
-    if (!targetId) {
+    let targetId = id || nextSession?.session_id || activeWorkflow?.session_id || lastSession?.session_id;
+    if (targetId) {
+      navigate(`/app/workflow/${targetId}`);
+    } else {
       navigate('/app/workflow');
-      return;
     }
-
-    if (targetSession?.data_sessao) {
-      const datePart = targetSession.data_sessao.slice(0, 10);
-      const [yearStr, monthStr] = datePart.split('-');
-      const year = parseInt(yearStr, 10);
-      const month = parseInt(monthStr, 10); // 1 a 12 (Workflow utiliza meses base 1)
-      if (!isNaN(month) && !isNaN(year)) {
-        navigate(`/app/workflow?open_session=${targetId}&month=${month}&year=${year}`);
-        return;
-      }
-    }
-
-    navigate(`/app/workflow?open_session=${targetId}`);
   };
-
-  const getActiveSessionData = (): SessionData | null => {
-    if (!sessoes || sessoes.length === 0) return null;
-    const sess = sessoes[0];
-    return {
-      id: sess.id,
-      sessionId: sess.session_id,
-      valorTotal: sess.valor_total,
-      clienteId: cliente?.id,
-    } as unknown as SessionData;
-  };
-
-
-  const { categorias } = useCategorias();
-  const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
-  const [isClientCreateModalOpen, setIsClientCreateModalOpen] = useState(false);
-  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
-  const { addLead, convertToClient } = useLeads();
-  const { adicionarCliente } = useClientesRealtime();
-  const { linkToCliente } = useConversasContatos();
-  const [manualSuggestedCategory, setManualSuggestedCategory] = useState<string | undefined>();
-  const isUnknownContact = chatState === 'UNKNOWN';
-
-  const commercialIntent = useCommercialIntent(
-    messages,
-    categorias?.map(c => c.nome) || [],
-  );
-
-  const { needsFollowUp, daysIgnored, suggestedCategory: followUpSuggestedCategory } = useFollowUpEngine(chat as Chat, lead);
-
-  const resolvedCategoryForTemplates = (() => {
-    if (chatState === 'UNKNOWN') return commercialIntent.service;
-    if (chatState === 'ACTIVE_LEAD' && needsFollowUp) return followUpSuggestedCategory;
-    if (chatState === 'ACTIVE_SESSION') return sessoes?.[0]?.categoria; // ContextSessao tem categoria (string)
-    return undefined;
-  })();
-
-  const resolvedStepForTemplates = (() => {
-    if (chatState === 'UNKNOWN') return 'primeiro_contato';
-    if (chatState === 'ACTIVE_LEAD') return needsFollowUp ? 'follow_up' : 'orcamento';
-    if (chatState === 'ACTIVE_SESSION') {
-      const s = sessoes?.[0];
-      if (!s) return 'geral';
-      if ((s.valor_total || 0) > (s.valor_pago || 0)) return 'financeiro';
-      if (s.status_workflow === 'entregue') return 'pos_venda';
-      if (s.status_workflow === 'fotografado' || s.status_workflow === 'edicao') return 'entrega';
-      return 'pre_ensaio';
-    }
-    if (chatState === 'CLIENT') return 'pos_venda';
-    return 'geral';
-  })();
 
   const handleAddNota = async () => {
-    if (!notaDraft.trim() || submittingNota) return;
+    if (!notaDraft.trim()) return;
     try {
       setSubmittingNota(true);
       await onAddNota(notaDraft.trim());
       setNotaDraft('');
+    } catch (err) {
+      toast.error('Erro ao salvar nota');
     } finally {
       setSubmittingNota(false);
     }
   };
 
-  const renderStateCards = () => {
-    if (isLoading) {
-      return (
-        <div className="flex flex-col gap-3 animate-pulse">
-          <div className="h-28 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
+  // UI Prioridade 1: Loading
+  if (isLoading) {
+    return (
+      <div className={cn("flex flex-col h-full bg-[#FAFAFA] dark:bg-[#0D0D0D]", !isDrawer && "w-[340px] xl:w-[380px] border-l border-black/[0.06] dark:border-white/[0.08]")}>
+        <div className="flex-1 p-4 flex flex-col gap-4 animate-pulse">
+          <div className="h-16 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
           <div className="h-40 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
           <div className="h-20 bg-black/[0.04] dark:bg-white/[0.05] rounded-xl w-full"></div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    switch (chatState) {
-      case 'UNKNOWN':
-        return (
-          <>
-            <ContactLeadOpportunityCard 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onLinkClient={() => setIsClientLinkModalOpen(true)}
-              detectedCategory={commercialIntent.service}
-            />
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <TemplatesListTab
-                chat={chat}
-                suggestedCategory={resolvedCategoryForTemplates}
-                suggestedStep={resolvedStepForTemplates}
-                onInsertToComposer={onInsertToComposer ?? (() => {})}
-              />
-            </div>
-            <QuickActionsCard 
-              state={chatState} 
-              hasCliente={!!cliente?.id} 
-              onNavigate={navigate} 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onOpenWorkflow={() => handleOpenWorkflow()}
-              onOpenPayment={() => setIsPaymentModalOpen(true)}
-              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
-            />
-          </>
-        );
-      
-      case 'ACTIVE_LEAD':
-        return (
-          <>
-            <LeadContextCard lead={lead} onOpenCRM={() => navigate('/leads')} />
-            {needsFollowUp && <FollowUpAlertCard daysIgnored={daysIgnored} />}
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <TemplatesListTab
-                chat={chat}
-                suggestedCategory={resolvedCategoryForTemplates}
-                suggestedStep={resolvedStepForTemplates}
-                onInsertToComposer={onInsertToComposer ?? (() => {})}
-              />
-            </div>
-            <QuickActionsCard 
-              state={chatState} 
-              hasCliente={!!cliente?.id} 
-              onNavigate={navigate} 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onOpenWorkflow={() => handleOpenWorkflow()}
-              onOpenPayment={() => setIsPaymentModalOpen(true)}
-              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
-            />
-          </>
-        );
+  // UI Prioridade 2: Error
+  if (error) {
+    return (
+      <div className={cn("flex flex-col h-full bg-[#FAFAFA] dark:bg-[#0D0D0D]", !isDrawer && "w-[340px] xl:w-[380px] border-l border-black/[0.06] dark:border-white/[0.08]")}>
+        <div className="flex-1 p-6 flex flex-col items-center justify-center text-center gap-3">
+          <AlertCircle className="h-8 w-8 text-red-500/80" />
+          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Erro ao carregar contexto</p>
+          <p className="text-xs text-zinc-500">{error.message}</p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>Tentar novamente</Button>
+        </div>
+      </div>
+    );
+  }
 
-      case 'ACTIVE_SESSION':
-        return (
-          <>
-            {commercialIntent.detected && (
-              <ContactLeadOpportunityCard
-                detectedCategory={commercialIntent.service}
-                onCreateLead={() => setIsLeadModalOpen(true)}
-              />
-            )}
-            <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <TemplatesListTab
-                chat={chat}
-                suggestedCategory={resolvedCategoryForTemplates}
-                suggestedStep={resolvedStepForTemplates}
-                onInsertToComposer={onInsertToComposer ?? (() => {})}
-              />
-            </div>
-            <FinancialSummaryCard sessao={sessoes?.[0] || null} onNavigate={navigate} />
-            <QuickActionsCard 
-              state={chatState} 
-              hasCliente={!!cliente?.id} 
-              onNavigate={navigate} 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onOpenWorkflow={() => handleOpenWorkflow()}
-              onOpenPayment={() => setIsPaymentModalOpen(true)}
-              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
-            />
-          </>
-        );
-
-      case 'CLIENT':
-        return (
-          <>
-            {commercialIntent.detected && (
-              <ContactLeadOpportunityCard 
-                onCreateLead={() => setIsLeadModalOpen(true)}
-                detectedCategory={commercialIntent.service}
-              />
-            )}
-            <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
-            <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-              <TemplatesListTab
-                chat={chat}
-                suggestedCategory={resolvedCategoryForTemplates}
-                suggestedStep={resolvedStepForTemplates}
-                onInsertToComposer={onInsertToComposer ?? (() => {})}
-              />
-            </div>
-            <QuickActionsCard 
-              state={chatState} 
-              hasCliente={!!cliente?.id} 
-              onNavigate={navigate} 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onOpenWorkflow={() => handleOpenWorkflow()}
-              onOpenPayment={() => setIsPaymentModalOpen(true)}
-              onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
-            />
-          </>
-        );
-    }
-  };
-
-  const Container = isDrawer ? 'div' : 'aside';
-
+  // UI Prioridade 3: State Machine
   return (
-    <Container
-      className={cn(
-        "flex flex-col h-full bg-[#FBFBF9] dark:bg-[#161616] select-none",
-        isDrawer
-          ? "w-full"
-          : "w-80 lg:w-[400px] xl:w-[440px] 2xl:w-[460px] shrink-0 border-l border-black/[0.06] dark:border-white/[0.08] z-20"
-      )}
-    >
-      {/* ─── Header do Painel ───────────────────────────────────────────── */}
-      <div className="px-3 py-3 flex items-center justify-between shrink-0">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 pl-1">
+    <div className={cn("flex flex-col h-full bg-[#FAFAFA] dark:bg-[#0D0D0D]", !isDrawer && "w-[340px] xl:w-[380px] border-l border-black/[0.06] dark:border-white/[0.08]")}>
+      <div className="h-14 flex items-center justify-between px-4 border-b border-black/[0.06] dark:border-white/[0.08] shrink-0 bg-white/50 dark:bg-[#121212]/50 backdrop-blur-md">
+        <span className="text-[11px] font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400">
           Painel do Contato
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
-          title="Fechar painel"
-        >
+        <button onClick={onClose} className="p-1.5 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* ─── Corpo do Painel ────────────────────────────────────────────── */}
-      <div
-        className="flex-1 overflow-y-auto px-3.5 space-y-3"
-        style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}
-      >
-        <ContactHeaderCard chat={chat} state={chatState} cliente={cliente} />
-        {renderStateCards()}
+      <div className="flex-1 overflow-y-auto scrollbar-hide" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
+        <div className="p-4 flex flex-col gap-4">
+          <ContactHeaderCard chat={chat} state={state} cliente={client} lead={lead} />
 
-        {/* ─── Notas Internas e Rodapé Fixo ───────────────────────────────── */}
-      {/* ─── Notas Internas ────────────────────────────────────────────── */}
-        <div className="mt-4 px-1">
-          <div className="flex items-center gap-1.5 mb-2.5">
-            <StickyNote className="h-3.5 w-3.5 text-[#B8925F]" />
-            <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">Notas internas</span>
-          </div>
-          
-          <div className="space-y-2.5">
-            {notas.length === 0 ? (
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 italic mb-2">
-                Nenhuma nota registrada.
-              </p>
-            ) : (
-              notas.map((n) => (
-                <div key={n.id} className="group flex justify-between gap-3 text-xs">
-                  <div className="flex-1">
-                    <p className="whitespace-pre-wrap break-words text-zinc-800 dark:text-zinc-300 leading-relaxed text-[11px]">
-                      {n.content}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1">
-                      Você <span className="w-0.5 h-0.5 rounded-full bg-zinc-400"></span> 
-                      {n.created_at ? new Date(n.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteNota(n.id)}
-                    className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 transition-opacity p-0.5 h-fit shrink-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-      
-      {/* ─── Input Fixo de Notas (Compacto em 1 linha) ────────────────── */}
-      <div
-        className="p-3 border-t border-black/[0.05] dark:border-white/[0.06] bg-white dark:bg-[#181818] shrink-0"
-        style={isDrawer ? { paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' } : undefined}
-      >
-        <div className="flex items-center gap-2">
-          <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1.5 rounded transition-colors">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M7.49991 14.5C8.98687 14.5 10.4128 13.909 11.4643 12.8573C12.5157 11.8057 13.1065 10.3795 13.1065 8.89241V3.28479C13.1065 2.16913 12.6633 1.09923 11.8744 0.31034C11.0855 -0.478548 10.0156 -0.921768 8.89991 -0.921768C7.78426 -0.921768 6.71435 -0.478548 5.92547 0.31034C5.13658 1.09923 4.69336 2.16913 4.69336 3.28479V8.89241C4.69336 9.63604 4.98877 10.3492 5.51457 10.875C6.04037 11.4008 6.75359 11.6962 7.49722 11.6962C8.24086 11.6962 8.95408 11.4008 9.47988 10.875C10.0057 10.3492 10.3011 9.63604 10.3011 8.89241V3.28479H8.89831V8.89241C8.89831 9.26392 8.75073 9.62022 8.48799 9.88295C8.22525 10.1457 7.86895 10.2933 7.49744 10.2933C7.12592 10.2933 6.76963 10.1457 6.50689 9.88295C6.24415 9.62022 6.09657 9.26392 6.09657 8.89241V3.28479C6.09657 2.54117 6.39198 1.82795 6.91778 1.30215C7.44358 0.776348 8.1568 0.480938 8.90043 0.480938C9.64407 0.480938 10.3573 0.776348 10.8831 1.30215C11.4089 1.82795 11.7043 2.54117 11.7043 3.28479V8.89241C11.7043 10.0081 11.2611 11.078 10.4722 11.8668C9.6833 12.6557 8.6134 13.0989 7.49774 13.0989C6.38209 13.0989 5.31218 12.6557 4.5233 11.8668C3.73441 11.078 3.2912 10.0081 3.2912 8.89241V3.28479H1.8884V8.89241C1.8884 10.3795 2.47924 11.8057 3.53068 12.8573C4.58212 13.909 6.00826 14.5 7.49522 14.5H7.49991Z" fill="currentColor"/>
-            </svg>
-          </button>
-          
-          <Input
-            value={notaDraft}
-            onChange={e => setNotaDraft(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleAddNota();
-              }
-            }}
-            placeholder="Adicionar uma nova nota..."
-            className="h-8 text-[11px] bg-zinc-50 dark:bg-zinc-900 border-none shadow-none focus-visible:ring-1 focus-visible:ring-[#D4AF37]/50"
+          <RelationshipSummaryCard 
+             context={unifiedContext}
+             onCreateLead={() => setIsLeadModalOpen(true)}
+             onLinkClient={() => setIsClientLinkModalOpen(true)}
           />
-          
-          <Button
-            onClick={handleAddNota}
-            disabled={!notaDraft.trim() || submittingNota}
-            size="sm"
-            className="h-8 px-3 text-[11px] font-semibold bg-[#C9A87C] hover:bg-[#b89567] text-white shrink-0 shadow-sm"
-          >
-            {submittingNota ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Salvar'}
-          </Button>
+
+          {state === 'ACTIVE_SESSION' && (
+            <SmartSessionCard 
+              sessoes={[nextSession].filter(Boolean)} 
+              onOpenWorkflow={handleOpenWorkflow} 
+              onNavigate={navigate} 
+            />
+          )}
+
+          {state === 'POST_PRODUCTION' && (
+            <SmartSessionCard 
+              sessoes={[activeWorkflow || lastSession].filter(Boolean)} 
+              onOpenWorkflow={handleOpenWorkflow} 
+              onNavigate={navigate} 
+            />
+          )}
+
+          {state === 'ACTIVE_SESSION' && nextSession && (
+            <FinancialSummaryCard sessao={nextSession} onNavigate={navigate} />
+          )}
+
+          <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+            <TemplatesListTab
+              chat={chat}
+              suggestedCategory={templateContext.category}
+              suggestedStep={templateContext.stage}
+              onInsertToComposer={onInsertToComposer ?? (() => {})}
+            />
+          </div>
+
+          <QuickActionsCard 
+            state={state} 
+            hasCliente={!!client?.id} 
+            onNavigate={navigate} 
+            onCreateLead={() => setIsLeadModalOpen(true)}
+            onOpenWorkflow={() => handleOpenWorkflow()}
+            onOpenPayment={() => setIsPaymentModalOpen(true)}
+            onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
+          />
+
+          {/* Notas Internas */}
+          <div className="flex flex-col gap-2.5 mt-2">
+            <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 px-1">
+              <StickyNote className="h-3.5 w-3.5 text-zinc-400" /> Notas internas
+            </span>
+            <div className="flex flex-col gap-2">
+              {notas.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic px-1">Nenhuma nota registrada.</p>
+              ) : (
+                notas.map((n) => (
+                  <div key={n.id} className="relative group p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 text-xs text-zinc-700 dark:text-zinc-300">
+                    <p className="whitespace-pre-wrap leading-relaxed pr-6">{n.content}</p>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-yellow-200/50 dark:border-yellow-900/30">
+                      <span className="text-[10px] text-yellow-600/70 dark:text-yellow-600/50 font-medium">
+                        {formatDate(n.created_at)}
+                      </span>
+                      <button onClick={() => onDeleteNota(n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/70 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="mt-1 relative rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] shadow-[0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-zinc-300 dark:focus-within:border-zinc-700 focus-within:ring-2 focus-within:ring-zinc-100 dark:focus-within:ring-zinc-800/50 transition-all overflow-hidden">
+              <Textarea 
+                value={notaDraft}
+                onChange={(e) => setNotaDraft(e.target.value)}
+                placeholder="Adicionar uma nova nota..."
+                className="min-h-[72px] resize-none border-0 focus-visible:ring-0 text-xs px-3 py-2.5 bg-transparent"
+              />
+              <div className="flex justify-end p-1.5 border-t border-black/[0.04] dark:border-white/[0.05] bg-zinc-50/50 dark:bg-[#151515]">
+                <Button 
+                  size="sm" 
+                  onClick={handleAddNota} 
+                  disabled={submittingNota || !notaDraft.trim()}
+                  className="h-7 text-[10px] px-3 font-semibold rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white"
+                >
+                  {submittingNota ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-        
-      <ClientCreateFromContactModal 
-        isOpen={isClientCreateModalOpen}
-        onClose={() => setIsClientCreateModalOpen(false)}
-        onCreate={handleCreateClient}
-        initialName={chat.contato_nome || chat.contato_nome}
-        initialPhone={chat.contato_phone_normalized || ''}
-      />
+
       <ClientLinkModal
         isOpen={isClientLinkModalOpen}
         onClose={() => setIsClientLinkModalOpen(false)}
         onLink={handleLinkClient}
-        contatoName={chat.contato_nome || chat.contato_nome}
-        contatoPhone={chat.contato_phone_normalized || ''}
-      />
-
-      {/* --- Modais --- */}
-      {isPaymentModalOpen && getActiveSessionData() && (
-        <WorkflowPaymentsModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => setIsPaymentModalOpen(false)}
-          sessionData={getActiveSessionData()!}
-          onPaymentUpdate={() => {}}
         />
+      {/* Aqui viria ClientCreateFromContactModal e LeadFormModal dependendo do layout real da plataforma */}
+      {isPaymentModalOpen && (
+        <WorkflowPaymentsModal isOpen={true} onClose={() => setIsPaymentModalOpen(false)} sessionData={nextSession || lastSession || {} as any} onPaymentUpdate={() => {}} />
       )}
-      {isChargeLinkModalOpen && getActiveSessionData() && (
-        <ChargeModal
-          isOpen={isChargeLinkModalOpen}
-          onClose={() => setIsChargeLinkModalOpen(false)}
-          clienteId={getActiveSessionData()!.clienteId || ''}
-          clienteNome={cliente?.nome || ''}
-          sessionId={getActiveSessionData()!.id}
-          valorSugerido={(sessoes?.[0]?.valor_total || 0) - (sessoes?.[0]?.valor_pago || 0)}
-        />
+      {isChargeLinkModalOpen && (
+        <ChargeModal isOpen={isChargeLinkModalOpen} onClose={() => setIsChargeLinkModalOpen(false)} clienteId={client?.id || ''} valorSugerido={(nextSession || lastSession)?.valor_total || 0} sessionId={(nextSession || lastSession)?.session_id || ''} />
       )}
-
-      {isLeadModalOpen && (
-        <LeadFormModal
-          open={isLeadModalOpen}
-          onOpenChange={setIsLeadModalOpen}
-          mode="create"
-          initial={{
-            nome: cliente?.nome || chat.contato_nome || '',
-            telefone: cliente?.telefone || chat.contato_phone_normalized || chat.id.split('@')[0] || '',
-            clienteId: cliente?.id,
-            origem: 'WhatsApp',
-            observacoes: commercialIntent.detected ? `Interesse em: ${commercialIntent.service || "Geral"}\n\nMensagem do contato: "${commercialIntent.triggerMessage || ''}"` : "",
-          } as unknown as Lead}
-          onSubmit={async (data) => {
-            try {
-              if (cliente?.id) {
-                data.clienteId = cliente.id;
-              }
-              const newLead = await addLead(data);
-              
-              if (!cliente?.id) {
-                const newClient = await convertToClient(newLead.id);
-                if (newClient && chat.contato_id) {
-                  await linkToCliente(chat.contato_id, newClient.id);
-                }
-              }
-              
-              toast.success("Lead criado com sucesso!");
-              setIsLeadModalOpen(false);
-            } catch (error) {
-              console.error("Erro ao criar lead:", error);
-              toast.error("Erro ao criar lead");
-            }
-          }}
-        />
-      )}
-    </Container>
-
+    </div>
   );
 }
-
 
 

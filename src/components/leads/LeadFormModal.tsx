@@ -75,13 +75,13 @@ export default function LeadFormModal({
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
     if (open) {
-      if (mode === 'edit' && initial) {
+      if (initial) {
         setFormData({
-          nome: initial.nome,
-          email: initial.email,
-          telefone: initial.telefone,
+          nome: initial.nome || '',
+          email: initial.email || '',
+          telefone: initial.telefone || '',
           origem: initial.origem || '',
-          status: initial.status,
+          status: initial.status || getDefaultOpenKey() || 'novo_contato',
           observacoes: initial.observacoes || '',
           clienteId: initial.clienteId || ''
         });

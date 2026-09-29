@@ -1,15 +1,44 @@
-/**
- * Hook para carregar o contexto operacional e comercial do contato
- * vinculado à conversa atual (Cliente, Lead, Sessões, Tarefas e Ações Rápidas).
- */
-
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 import { toast } from 'sonner';
+import { useChatStateResolver, resolveTemplateContext, type ChatContactState, type ChatStateData } from './useChatStateResolver';
 
+export interface ContactIdentity {
+  id: string;
+  name: string;
+  phone: string;
+  avatar?: string;
+  firstContactAt: Date | null;
+  source: 'whatsapp' | 'instagram' | 'manual';
+}
+
+export interface UnifiedContactContext {
+  state: ChatContactState;
+  contact: ContactIdentity;
+  client: any | null;
+  lead: any | null;
+  nextSession: any | null;
+  lastSession: any | null;
+  activeWorkflow: any | null;
+  gallery: any | null;
+  metrics: {
+    totalSessions: number;
+    lifetimeValue: number;
+    clientSince: Date | null;
+    recurrence: "low" | "medium" | "high";
+  };
+  templateContext: {
+    category: string | null;
+    stage: string | null;
+  };
+  isLoading: boolean;
+  error: Error | null;
+}
+
+// Interfaces internas (podem ser refinadas no futuro)
 export interface ContextCliente {
   id: string;
   nome: string;
@@ -28,10 +57,12 @@ export interface ContextSessao {
   data_sessao: string;
   hora_sessao: string;
   status: string | null;
-  status_workflow: string | null;
   valor_total: number | null;
   valor_pago: number | null;
-  local_ensaio: string | null;
+  descricao: string | null;
+  detalhes: string | null;
+  galeria_id: string | null;
+  galerias: { id: string; status: string } | null;
 }
 
 export interface ContextLead {
@@ -71,25 +102,18 @@ export interface ContextCobranca {
   descricao: string | null;
 }
 
-export interface ContextLeadPerdido {
-  id: string;
-  nome: string;
-  status: string;
-  perdido_em: string | null;
-  motivo_perda: string | null;
-}
-
 export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   const { user } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
+  const [internalError, setInternalError] = useState<Error | null>(null);
 
   const chatId = chat?.id;
   const contatoId = chat?.contato_id;
   const rawPhone = chat?.contato_phone_normalized || '';
 
-  // 1. Carregar informações do Contato de Conversas
-  const { data: contatoInfo } = useQuery({
+  // 1. Carregar informaÃ§Ãµes do Contato de Conversas
+  const { data: contatoInfo, isLoading: isLoadingContato } = useQuery({
     queryKey: ['conversas-contato-info', contatoId],
     queryFn: async () => {
       if (!contatoId) return null;
@@ -113,7 +137,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   const effectiveLeadId = chat?.lead_id || contatoInfo?.lead_id;
 
   // 2. Carregar dados do Cliente (se houver clienteId vinculado ou por telefone)
-  const { data: cliente, isLoading: isLoadingCliente } = useQuery({
+  const { data: cliente, isLoading: isLoadingCliente, error: errorCliente } = useQuery({
     queryKey: ['conversas-context-cliente', effectiveClienteId, rawPhone, userId],
     queryFn: async () => {
       if (!userId) return null;
@@ -126,20 +150,17 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
           .eq('id', effectiveClienteId)
           .eq('user_id', userId)
           .maybeSingle();
-        if (error) return null;
+        if (error) throw error;
         return data as unknown as ContextCliente;
       }
 
-      // Tentativa de correspondência determinística por telefone normalizado
-      // phone_normalized de conversas vem com DDI (ex: 5511987654321)
-      // clientes.telefone é armazenado sem DDI (ex: 11987654321)
+      // Tentativa de correspondÃªncia determinÃ­stica por telefone normalizado
       if (rawPhone && rawPhone.length >= 10) {
         const cleanPhone = rawPhone.replace(/\D/g, '');
         const phoneWithoutDdi = cleanPhone.startsWith('55') && cleanPhone.length >= 12
           ? cleanPhone.slice(2)
           : cleanPhone;
 
-        // Passo 1: Match exato (formato do CRM, sem DDI)
         const { data: exactData, count: exactCount } = await supabase
           .from('clientes')
           .select('id, nome, email, telefone, whatsapp, observacoes, created_at', { count: 'exact' })
@@ -147,12 +168,10 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
           .or(`telefone.eq.${phoneWithoutDdi},whatsapp.eq.${phoneWithoutDdi}`)
           .limit(2);
 
-        // Só retorna se match for único e determinístico
         if (exactCount === 1 && exactData?.[0]) {
           return exactData[0] as unknown as ContextCliente;
         }
 
-        // Passo 2: Fallback suffix-8 (para números salvos com formatação diferente)
         if (!exactData || exactData.length === 0) {
           const suffix = cleanPhone.slice(-8);
           const { data: fallbackData, count: fallbackCount } = await supabase
@@ -162,35 +181,33 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
             .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
             .limit(2);
 
-          // Só retorna se match único (ambiguidade → null → fotógrafo resolve)
           if (fallbackCount === 1 && fallbackData?.[0]) {
             return fallbackData[0] as unknown as ContextCliente;
           }
         }
       }
-
       return null;
     },
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });
 
-  // 3. Carregar Sessões de forma direta e rápida (Query Split)
-  const { data: sessoesDiretas, isLoading: isLoadingSessoes } = useQuery({
+  // 3. Carregar SessÃµes de forma direta e rÃ¡pida (Query Split)
+  const { data: sessoesDiretas, isLoading: isLoadingSessoes, error: errorSessoes } = useQuery({
     queryKey: ['conversas-sessoes-diretas', cliente?.id, userId],
     queryFn: async () => {
       if (!cliente?.id || !userId) return [];
       
       const { data, error } = await supabase
         .from('clientes_sessoes')
-        .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
+        .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, valor_total, valor_pago, descricao, detalhes, galeria_id, galerias(id, status)')
         .eq('cliente_id', cliente.id)
         .order('data_sessao', { ascending: false })
-        .limit(5);
+        .limit(10); // Busca atÃ© 10 para o metrics e o next/last session
 
       if (error) {
-        console.warn('[useConversasContactContext] Erro ao buscar sessões diretas:', error);
-        return [];
+        console.error('[useConversasContactContext] Erro CrÃ­tico ao buscar sessÃµes:', error);
+        throw error;
       }
       return data as unknown as ContextSessao[];
     },
@@ -215,17 +232,11 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       return data as any;
     },
     enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 5, // Pode ficar mais tempo em cache
+    staleTime: 1000 * 60 * 5,
   });
 
-  const sessoes = sessoesDiretas || [];
-  const tarefas = (rpcContext?.tarefas || []) as ContextTask[];
-  const orcamentos = (rpcContext?.orcamentos || []) as ContextOrcamento[];
-  const cobrancas = (rpcContext?.cobrancas || []) as ContextCobranca[];
-  const leadsPerdidos = (rpcContext?.leads_perdidos || []) as ContextLeadPerdido[];
-
   // 5. Carregar Lead / Oportunidade
-  const { data: lead, isLoading: isLoadingLead } = useQuery({
+  const { data: lead, isLoading: isLoadingLead, error: errorLead } = useQuery({
     queryKey: ['conversas-context-lead', effectiveLeadId, rawPhone, userId],
     queryFn: async () => {
       if (!userId) return null;
@@ -237,18 +248,16 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
           .eq('id', effectiveLeadId)
           .eq('user_id', userId)
           .maybeSingle();
-        if (error) return null;
+        if (error) throw error;
         return data as unknown as ContextLead;
       }
 
-      // Tentativa de correspondência determinística por telefone normalizado
       if (rawPhone && rawPhone.length >= 10) {
         const cleanPhone = rawPhone.replace(/\D/g, '');
         const phoneWithoutDdi = cleanPhone.startsWith('55') && cleanPhone.length >= 12
           ? cleanPhone.slice(2)
           : cleanPhone;
 
-        // Passo 1: Match exato (formato do CRM, sem DDI)
         const { data: exactData, count: exactCount } = await (supabase as any)
           .from('leads')
           .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at', { count: 'exact' })
@@ -260,7 +269,6 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
           return exactData[0] as unknown as ContextLead;
         }
 
-        // Passo 2: Fallback suffix-8
         if (!exactData || exactData.length === 0) {
           const suffix = cleanPhone.slice(-8);
           const { data: fallbackData, count: fallbackCount } = await (supabase as any)
@@ -282,13 +290,85 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
+  // CÃ¡lculo do contexto
+  const sessoes = sessoesDiretas || [];
+  const validSessions = sessoes.filter(s => !!s.data_sessao);
   
-  // Mutations de Vinculação
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const futureSessions = validSessions
+    .filter(s => s.data_sessao.slice(0, 10) >= todayIso)
+    .sort((a, b) => a.data_sessao.slice(0, 10).localeCompare(b.data_sessao.slice(0, 10)));
+
+  const pastSessions = validSessions
+    .filter(s => s.data_sessao.slice(0, 10) < todayIso)
+    .sort((a, b) => b.data_sessao.slice(0, 10).localeCompare(a.data_sessao.slice(0, 10)));
+
+  const nextSession = futureSessions[0] || null;
+  const lastSession = pastSessions[0] || null;
+  
+  // Pegar galeria ativa 
+  const gallery = sessoes.find(s => s.galerias != null)?.galerias || null;
+  
+  // Active workflow (sessÃ£o que estÃ¡ em ediÃ§Ã£o/seleÃ§Ã£o)
+  const activeWorkflow = sessoes.find(s => {
+    const status = (s.status || '').toLowerCase();
+    return ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
+  }) || null;
+
+  // CÃ¡lculo de mÃ©tricas
+  const totalSessions = validSessions.length;
+  const lifetimeValue = validSessions.reduce((acc, s) => acc + (s.valor_total || 0), 0);
+  const clientSinceStr = validSessions.length > 0 ? validSessions[validSessions.length - 1].data_sessao : cliente?.created_at;
+  const clientSince = clientSinceStr ? new Date(clientSinceStr) : null;
+  const recurrence = totalSessions > 3 ? "high" : totalSessions > 1 ? "medium" : "low";
+
+  // Identidade de contato
+  const contact: ContactIdentity = {
+    id: contatoId || chat?.id || '',
+    name: chat?.contato_nome || contatoInfo?.nome || cliente?.nome || lead?.nome || 'Contato desconhecido',
+    phone: rawPhone || cliente?.telefone || lead?.telefone || '',
+    firstContactAt: contatoInfo?.created_at ? new Date(contatoInfo.created_at) : null,
+    source: 'whatsapp', // SimplificaÃ§Ã£o base
+  };
+
+  const chatState = useChatStateResolver({
+    client: cliente,
+    lead: lead,
+    sessions: sessoes,
+    gallery: gallery
+  });
+
+  const templateContext = resolveTemplateContext(chatState, sessoes);
+  const isGlobalLoading = isLoadingContato || isLoadingCliente || isLoadingSessoes || isLoadingLead;
+  const globalError = errorCliente || errorSessoes || errorLead || internalError || null;
+
+  const unifiedContext: UnifiedContactContext = {
+    state: chatState,
+    contact,
+    client: cliente,
+    lead,
+    nextSession,
+    lastSession,
+    activeWorkflow,
+    gallery,
+    metrics: {
+      totalSessions,
+      lifetimeValue,
+      clientSince,
+      recurrence
+    },
+    templateContext,
+    isLoading: isGlobalLoading,
+    error: globalError
+  };
+
+  // Mutations de VinculaÃ§Ã£o
   const linkClienteMutation = useMutation({
     mutationFn: async (clienteIdToLink: string) => {
-      if (!chatId || !userId) throw new Error('Chat não selecionado');
+      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
 
-      // Atualiza o chat
       const { error: chatError } = await supabase
         .from('conversas_chats')
         .update({ cliente_id: clienteIdToLink, updated_at: new Date().toISOString() })
@@ -296,7 +376,6 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
 
       if (chatError) throw chatError;
 
-      // Se houver contatoId, atualiza também o contato
       if (contatoId) {
         await supabase
           .from('conversas_contatos')
@@ -306,20 +385,17 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkClienteMutation] Erro:', err);
-      toast.error('Não foi possível vincular o cliente.');
+      toast.error('NÃ£o foi possÃ­vel vincular o cliente.');
     },
   });
 
   const linkLeadMutation = useMutation({
     mutationFn: async (leadIdToLink: string) => {
-      if (!chatId || !userId) throw new Error('Chat não selecionado');
+      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
 
       const { error: chatError } = await supabase
         .from('conversas_chats')
@@ -337,20 +413,16 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkLeadMutation] Erro:', err);
-      toast.error('Não foi possível vincular o lead.');
+      toast.error('NÃ£o foi possÃ­vel vincular o lead.');
     },
   });
 
   const linkAmbosMutation = useMutation({
     mutationFn: async ({ leadId, clienteId }: { leadId?: string; clienteId?: string }) => {
-      if (!chatId || !userId) throw new Error('Chat não selecionado');
+      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
 
       const chatUpdates: { cliente_id?: string; lead_id?: string; updated_at: string } = {
         updated_at: new Date().toISOString(),
@@ -386,20 +458,17 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkAmbosMutation] Erro:', err);
-      toast.error('Não foi possível vincular o lead/cliente à conversa.');
+      toast.error('NÃ£o foi possÃ­vel vincular o lead/cliente Ã  conversa.');
     },
   });
 
   const createQuickTaskMutation = useMutation({
     mutationFn: async (title: string) => {
-      if (!cliente?.id || !userId) throw new Error('Cliente não identificado');
+      if (!cliente?.id || !userId) throw new Error('Cliente nÃ£o identificado');
       const { error } = await supabase
         .from('tasks')
         .insert({
@@ -416,9 +485,6 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
-    },
-    onError: () => {
-      toast.error('Erro ao adicionar tarefa.');
     },
   });
 
@@ -443,14 +509,18 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   });
 
   return {
+    unifiedContext,
+    
+    // Mapeamento legado que continua necessÃ¡rio atÃ© as modais migrarem
     cliente,
     lead,
     sessoes,
-    tarefas,
-    orcamentos,
-    cobrancas,
-    leadsPerdidos,
-    isLoading: isLoadingCliente || isLoadingSessoes || isLoadingLead,
+    tarefas: (rpcContext?.tarefas || []) as ContextTask[],
+    orcamentos: (rpcContext?.orcamentos || []) as ContextOrcamento[],
+    cobrancas: (rpcContext?.cobrancas || []) as ContextCobranca[],
+    leadsPerdidos: (rpcContext?.leads_perdidos || []),
+    isLoading: isGlobalLoading,
+    
     isLinkedToCliente: !!cliente?.id,
     isLinkedToLead: !!lead?.id,
     vincularCliente: linkClienteMutation.mutateAsync,
@@ -460,3 +530,5 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     concluirTarefa: completeTaskMutation.mutateAsync,
   };
 }
+
+

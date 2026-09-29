@@ -82,7 +82,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
           <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
             <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
           </span>
-          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{nextSession.local_ensaio || 'Ensaio fotográfico'}</span>
+          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{nextSession.descricao || nextSession.detalhes || 'Ensaio fotográfico'}</span>
         </div>
 
         <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-xs mt-1">
@@ -205,7 +205,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
           <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
             <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
           </span>
-          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{lastSession.local_ensaio || 'Ensaio fotográfico concluído'}</span>
+          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{lastSession.descricao || lastSession.detalhes || 'Ensaio fotográfico concluído'}</span>
         </div>
 
         <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-xs mt-1">

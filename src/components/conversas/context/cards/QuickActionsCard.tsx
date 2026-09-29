@@ -1,8 +1,8 @@
-import { Calendar, DollarSign, Briefcase, Sparkles, User, Link } from 'lucide-react';
-import type { ChatState } from '@/hooks/useChatStateResolver';
+import { Calendar, DollarSign, Briefcase, Sparkles, User, Link, Image } from 'lucide-react';
+import type { ChatContactState } from '@/hooks/useChatStateResolver';
 
 interface QuickActionsCardProps {
-  state: ChatState;
+  state: ChatContactState;
   hasCliente: boolean;
   onNavigate: (path: string) => void;
   onCreateLead?: () => void;
@@ -14,21 +14,30 @@ interface QuickActionsCardProps {
 export function QuickActionsCard({ state, hasCliente, onNavigate, onCreateLead, onOpenWorkflow, onOpenPayment, onOpenChargeLink }: QuickActionsCardProps) {
   const actions = [];
 
-  if (state === 'UNKNOWN') {
-    actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
-    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
-    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
-  } else if (state === 'ACTIVE_LEAD') {
-    actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
-    actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
-  } else if (state === 'ACTIVE_SESSION') {
-    actions.push({ id: 'pagamento', label: 'Registrar Pagamento', icon: <DollarSign className="h-4 w-4" />, onClick: onOpenPayment });
-    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
-    actions.push({ id: 'charge', label: 'Cobrar via link', icon: <Link className="h-4 w-4" />, onClick: onOpenChargeLink });
-  } else if (state === 'CLIENT') {
-    actions.push({ id: 'lead', label: 'Criar Oportunidade', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
-    actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
-    actions.push({ id: 'agenda', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+  switch (state) {
+    case 'NEW_CONTACT':
+      actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
+      actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
+      actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      break;
+    case 'LEAD':
+      actions.push({ id: 'abrir_lead', label: 'Abrir Lead', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/leads') });
+      actions.push({ id: 'agenda', label: 'Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      actions.push({ id: 'orcamento', label: 'Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
+      break;
+    case 'CLIENT':
+      actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
+      actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      break;
+    case 'ACTIVE_SESSION':
+      actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
+      actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
+      actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      break;
+    case 'POST_PRODUCTION':
+      actions.push({ id: 'galeria', label: 'Abrir Galeria', icon: <Image className="h-4 w-4" />, onClick: () => onNavigate('/app/galerias') });
+      actions.push({ id: 'workflow', label: 'Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
+      break;
   }
 
   return (
