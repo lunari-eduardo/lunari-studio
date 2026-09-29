@@ -46,8 +46,17 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     return pago !== null && total !== null && pago >= total && total > 0;
   };
 
-  // 1. Mostrar Pr�xima sess�o
+  const getSafeDescription = (sessao: ContextSessao) => {
+    const desc = sessao.descricao || sessao.detalhes;
+    if (desc && desc.trim().startsWith('{')) {
+      return null;
+    }
+    return desc && desc.trim().length > 0 ? desc : null;
+  };
+
+  // 1. Mostrar Próxima Sessão
   if (nextSession) {
+    const safeDesc = getSafeDescription(nextSession);
     return (
       <div 
         onClick={() => onOpenWorkflow(nextSession.id)}
@@ -58,7 +67,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
             <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]">
               <Calendar className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Pr�xima sess�o</span>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{variant === 'next' ? 'Próxima sessão' : 'Sessão agendada'}</span>
           </div>
           <button 
             type="button"
@@ -80,10 +89,14 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
           </span>
           <span className="text-zinc-800 dark:text-zinc-200 font-medium truncate">{nextSession.pacote || 'Não definido'}</span>
           
-          <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
-          </span>
-          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{nextSession.descricao || nextSession.detalhes || 'Ensaio fotográfico'}</span>
+          {safeDesc && (
+            <>
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
+              </span>
+              <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{safeDesc}</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-xs mt-1">
@@ -102,7 +115,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     );
   }
 
-  // 2. Mostrar Orçamento (Se não tem Pr�xima sess�o)
+  // 2. Mostrar Orçamento
   if (mainOrcamento) {
     return (
       <div 
@@ -170,6 +183,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
   // 3. Mostrar Última Sessão
   if (lastSession) {
     const isSessionPaid = isPaid(lastSession.valor_total, lastSession.valor_pago);
+    const safeDesc = getSafeDescription(lastSession);
     
     return (
       <div 
@@ -181,7 +195,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
             <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-[#60A5FA]">
               <Calendar className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{variant === 'post_production' ? 'Em P�s-produ��o' : '�ltima sess�o'}</span>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{variant === 'post_production' ? 'Em Pós-produção' : 'Última sessão'}</span>
           </div>
           <button 
             type="button"
@@ -203,10 +217,14 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
           </span>
           <span className="text-zinc-800 dark:text-zinc-200 font-medium truncate">{lastSession.pacote || 'Não definido'}</span>
           
-          <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
-          </span>
-          <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{lastSession.descricao || lastSession.detalhes || 'Ensaio fotográfico concluído'}</span>
+          {safeDesc && (
+            <>
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                <AlignLeft className="h-3 w-3 text-zinc-400 dark:text-zinc-500 shrink-0" /> Descrição
+              </span>
+              <span className="text-zinc-800 dark:text-zinc-200 line-clamp-2">{safeDesc}</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 text-xs mt-1">
@@ -238,9 +256,3 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
 
   return null;
 }
-
-
-
-
-
-
