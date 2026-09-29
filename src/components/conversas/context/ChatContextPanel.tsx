@@ -23,6 +23,10 @@ import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { ClientLinkModal } from './modals/ClientLinkModal';
 import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
 import { LeadContextCard } from './cards/LeadContextCard';
+import LeadFormModal from '@/components/leads/LeadFormModal';
+import { useLeads } from '@/hooks/useLeads';
+import { useClientesRealtime } from '@/hooks/useClientesRealtime';
+import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
@@ -32,7 +36,6 @@ import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
-import LeadFormModal from '@/components/leads/LeadFormModal';
 import { RelationshipSummaryCard } from './cards/RelationshipSummaryCard';
 import { SessionHistoryList } from './cards/SessionHistoryList';
 
@@ -65,6 +68,9 @@ export function ChatContextPanel({
   messages = [],
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
+  const { addLead, convertToClient } = useLeads();
+  const { atualizarCliente } = useClientesRealtime();
+  const { updateContato } = useConversasContatos();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isChargeLinkModalOpen, setIsChargeLinkModalOpen] = useState(false);
   const [notaDraft, setNotaDraft] = useState('');
@@ -268,7 +274,54 @@ export function ChatContextPanel({
         onClose={() => setIsClientLinkModalOpen(false)}
         onLink={handleLinkClient}
         />
-      {/* Aqui viria ClientCreateFromContactModal e LeadFormModal dependendo do layout real da plataforma */}
+      {isLeadModalOpen && (
+        <LeadFormModal
+          open={isLeadModalOpen}
+          onOpenChange={setIsLeadModalOpen}
+          mode="create"
+          initial={{
+            nome: client?.nome || chat.contato_nome || '',
+            telefone: client?.telefone || chat.contato_phone_normalized || chat.id.split('@')[0] || '',
+            clienteId: client?.id,
+            origem: 'WhatsApp',
+            observacoes: '',
+          } as any}
+          onSubmit={async (data) => {
+            try {
+              if (client?.id) {
+                data.clienteId = client.id;
+                await atualizarCliente(client.id, {
+                  nome: data.nome,
+                  telefone: data.telefone || undefined,
+                  email: data.email || undefined
+                });
+              }
+              const newLead = await addLead(data);
+              
+              let finalClientId = client?.id;
+              if (!finalClientId) {
+                const newClient = await convertToClient(newLead.id);
+                if (newClient) finalClientId = newClient.id;
+              }
+              
+              await vincularAmbos({ leadId: newLead.id, clienteId: finalClientId });
+              
+              if (chat.contato_id) {
+                await updateContato(chat.contato_id, {
+                  nome: data.nome,
+                  tipo: 'cliente'
+                });
+              }
+              
+              toast.success("Lead criado com sucesso!");
+              setIsLeadModalOpen(false);
+            } catch (error) {
+              console.error("Erro ao criar lead:", error);
+              toast.error("Erro ao criar lead");
+            }
+          }}
+        />
+      )}
       {isPaymentModalOpen && (
         <WorkflowPaymentsModal isOpen={true} onClose={() => setIsPaymentModalOpen(false)} sessionData={nextSession || lastSession || {} as any} onPaymentUpdate={() => {}} />
       )}
@@ -278,6 +331,10 @@ export function ChatContextPanel({
     </div>
   );
 }
+
+
+
+
 
 
 
