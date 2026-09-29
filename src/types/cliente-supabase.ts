@@ -18,6 +18,8 @@ export interface ClienteSupabase {
   observacoes?: string;
   origem?: string;
   data_nascimento?: string;
+  categoria_manual_id?: string | null;
+  categoria_ia_id?: string | null;
   created_at: string;
   updated_at: string;
 }

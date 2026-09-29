@@ -314,6 +314,7 @@ export function useWorkflowSessionActions({
             ...cacheSafeUpdates,
             ...(uiDenormFields ?? {}),
             updated_at: nowIso,
+            _optimistic_until: Date.now() + 5000,
           } as unknown as WorkflowSession;
           mergeUpdate(deltaPayload);
           // Store SEMPRE recebe o merged completo quando produtos_incluidos
@@ -439,7 +440,8 @@ export function useWorkflowSessionActions({
           ...currentSession,
           status: normalized as any,
           updated_at: new Date().toISOString(),
-        });
+          _optimistic_until: Date.now() + 5000,
+        } as WorkflowSession);
       }
       if (USE_CAPABILITY_UPDATE_FIELDS) {
         const result = await runCapability(advanceCardCapability, {

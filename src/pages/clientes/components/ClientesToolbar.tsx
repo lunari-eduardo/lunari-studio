@@ -164,14 +164,14 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
           {/* Controles de Visão, Filtros e Novo Cliente */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Alternador Cards / Tabela */}
-            <div className="flex items-center rounded-xl border border-border/40 bg-card/60 p-1">
+            <div className="flex items-center rounded-xl border border-border/40 bg-muted/40 p-1">
               <button
                 type="button"
                 onClick={() => onViewModeChange('cards')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === 'cards'
-                    ? 'bg-zinc-800 text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground font-semibold shadow-xs border border-border/40 dark:bg-zinc-800 dark:border-transparent'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
                 }`}
                 title="Visualização em Cards"
               >
@@ -183,8 +183,8 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
                 onClick={() => onViewModeChange('list')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   viewMode === 'list'
-                    ? 'bg-zinc-800 text-foreground font-semibold shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-background text-foreground font-semibold shadow-xs border border-border/40 dark:bg-zinc-800 dark:border-transparent'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
                 }`}
                 title="Visualização em Tabela"
               >
@@ -200,8 +200,8 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
               onClick={onOpenFilterDrawer}
               className={`h-10 text-xs gap-1.5 border-border/40 rounded-xl transition-all ${
                 activeFiltersCount > 0
-                  ? 'border-accent-gold/40 bg-accent-gold/10 text-accent-gold font-semibold'
-                  : 'bg-card/60 hover:bg-muted/40 text-foreground'
+                  ? 'border-accent-gold/50 bg-accent-gold/15 text-zinc-900 dark:text-accent-gold hover:bg-accent-gold/25 font-semibold'
+                  : 'bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white'
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -217,10 +217,10 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
             <Button
               type="button"
               onClick={onNewClient}
-              className="h-10 gap-1.5 text-xs font-semibold rounded-xl bg-accent-gold hover:bg-accent-gold/90 text-zinc-950 shadow-sm"
+              className="h-10 gap-1.5 text-xs font-semibold rounded-xl bg-accent-gold hover:bg-accent-gold/90 text-zinc-950 shadow-xs active:scale-[0.98]"
             >
-              <Plus className="h-4 w-4" />
-              <span>Novo Cliente</span>
+              <Plus className="h-4 w-4 text-zinc-950" />
+              <span className="text-zinc-950 font-semibold">Novo Cliente</span>
             </Button>
           </div>
         </div>

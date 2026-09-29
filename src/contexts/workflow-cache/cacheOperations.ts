@@ -72,9 +72,22 @@ export const executeMergeUpdate = (
 
   let updatedSessions: WorkflowSession[];
   if (index >= 0) {
+    const existing = currentSessions[index];
+    const optimisticUntil = (existing as any)._optimistic_until;
+    
+    // Proteção Anti-Stale para merge pontuais
+    // Se a sessão local foi marcada como otimista e o tempo ainda não expirou,
+    // não permitimos que um evento de realtime (possivelmente velho/completando agora)
+    // sobrescreva nosso estado otimista, A MENOS QUE o payload de entrada também
+    // traga a mesma flag ou que ele seja garantidamente mais novo.
+    if (optimisticUntil && optimisticUntil > Date.now() && !(normalized as any)._optimistic_until) {
+      console.warn(`🛡️ [WorkflowCache] mergeUpdate rejeitado por anti-stale (local otimista): ${(existing as any).id}`);
+      return;
+    }
+
     updatedSessions = [...currentSessions];
     // Shallow merge preservando campos populados (normalized é Partial)
-    updatedSessions[index] = { ...updatedSessions[index], ...normalized };
+    updatedSessions[index] = { ...existing, ...normalized };
   } else {
     updatedSessions = [...currentSessions, normalized];
   }

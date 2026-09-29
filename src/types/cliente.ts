@@ -20,6 +20,8 @@ export interface Cliente {
     nome?: string;
     dataNascimento?: string;
   }>;
+  categoria_manual_id?: string | null;
+  categoria_ia_id?: string | null;
 }
 
 export interface OrigemCliente {

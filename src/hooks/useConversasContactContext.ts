@@ -4,7 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 import { toast } from 'sonner';
-import { useChatStateResolver, resolveTemplateContext, type ChatContactState, type ChatStateData } from './useChatStateResolver';
+import { 
+  useChatStateResolver, 
+  resolveTemplateContext, 
+  resolveActiveWorkflowContext,
+  resolveCategoriaPrincipal,
+  resolveEtapaVigente,
+  type ChatContactState, 
+  type ChatStateData,
+  type CategoriaPrincipalInfo
+} from './useChatStateResolver';
 
 export interface ContactIdentity {
   id: string;
@@ -17,6 +26,9 @@ export interface ContactIdentity {
 
 export interface UnifiedContactContext {
   state: ChatContactState;
+  categoriaPrincipal: CategoriaPrincipalInfo;
+  etapaVigente: string | null;
+  futureCount: number;
   contact: ContactIdentity;
   client: any | null;
   lead: any | null;
@@ -311,11 +323,12 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   // Pegar galeria ativa 
   const gallery = sessoes.find(s => s.galerias != null)?.galerias || null;
   
-  // Active workflow (sessÃ£o que estÃ¡ em ediÃ§Ã£o/seleÃ§Ã£o)
-  const activeWorkflow = sessoes.find(s => {
-    const status = (s.status || '').toLowerCase();
-    return ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
-  }) || null;
+  // NOVO MOTOR DE ETIQUETAS E WORKFLOW
+  const { activeWorkflow, futureCount } = resolveActiveWorkflowContext(validSessions);
+  const contatoBase = cliente || lead || null;
+  const categoriaPrincipal = resolveCategoriaPrincipal(contatoBase, activeWorkflow, validSessions);
+  const hasOrcamento = (rpcContext?.orcamentos || []).length > 0;
+  const etapaVigente = resolveEtapaVigente(contatoBase, activeWorkflow, hasOrcamento);
 
   // CÃ¡lculo de mÃ©tricas
   const totalSessions = validSessions.length;
@@ -340,12 +353,15 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     gallery: gallery
   });
 
-  const templateContext = resolveTemplateContext(chatState, sessoes);
+  const templateContext = resolveTemplateContext(chatState, categoriaPrincipal.id);
   const isGlobalLoading = isLoadingContato || isLoadingCliente || isLoadingSessoes || isLoadingLead;
   const globalError = errorCliente || errorSessoes || errorLead || internalError || null;
 
   const unifiedContext: UnifiedContactContext = {
     state: chatState,
+    categoriaPrincipal,
+    etapaVigente,
+    futureCount,
     contact,
     client: cliente,
     lead,

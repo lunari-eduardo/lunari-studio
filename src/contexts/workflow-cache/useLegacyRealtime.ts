@@ -28,7 +28,8 @@ export const useLegacyRealtime = ({
     }
 
     // FASE 3: Debounce para reduzir updates excessivos e flickering
-    let realtimeDebounce: NodeJS.Timeout | null = null;
+    // Modificado para usar Map por session ID, evitando que updates em sessões distintas cancelem uns aos outros
+    const realtimeDebounceMap = new Map<string, NodeJS.Timeout>();
 
     const channel = supabase
       .channel('workflow-realtime')
@@ -41,7 +42,10 @@ export const useLegacyRealtime = ({
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          console.log('📡 Realtime event (sessoes):', payload.eventType, (payload.new as any)?.id);
+          const incomingSessionId = (payload.new as any)?.id || (payload.old as any)?.id;
+          console.log('📡 Realtime event (sessoes):', payload.eventType, incomingSessionId);
+
+          if (!incomingSessionId) return;
 
           // FASE 6: Para INSERT, processar imediatamente (sem debounce)
           // Para UPDATE/DELETE, usar debounce reduzido de 150ms
@@ -73,14 +77,17 @@ export const useLegacyRealtime = ({
               mergeUpdate(session);
             }
           } else {
-            // UPDATE/DELETE com debounce reduzido
-            if (realtimeDebounce) clearTimeout(realtimeDebounce);
+            // UPDATE/DELETE com debounce reduzido isolado por sessão
+            const existingTimeout = realtimeDebounceMap.get(incomingSessionId);
+            if (existingTimeout) clearTimeout(existingTimeout);
 
-            realtimeDebounce = setTimeout(async () => {
+            const newTimeout = setTimeout(async () => {
+              realtimeDebounceMap.delete(incomingSessionId);
+
               if (payload.eventType === 'UPDATE') {
                 const session = payload.new as WorkflowSession;
 
-                console.log('🔄 [Realtime] Buscando sessão completa após UPDATE...');
+                console.log('🔄 [Realtime] Buscando sessão completa após UPDATE...', session.id);
                 const { data: fullSession } = await supabase
                   .from('clientes_sessoes')
                   .select(`*, clientes(nome)`)
@@ -98,6 +105,8 @@ export const useLegacyRealtime = ({
                 removeSession((payload.old as any).id);
               }
             }, 150);
+            
+            realtimeDebounceMap.set(incomingSessionId, newTimeout);
           }
         },
       )
@@ -145,7 +154,8 @@ export const useLegacyRealtime = ({
 
     return () => {
       console.log('🔌 [Realtime] Cleaning up subscription');
-      if (realtimeDebounce) clearTimeout(realtimeDebounce);
+      realtimeDebounceMap.forEach((timeout) => clearTimeout(timeout));
+      realtimeDebounceMap.clear();
       supabase.removeChannel(channel);
     };
   }, [userId, memoryCache, mergeUpdate, removeSession]);

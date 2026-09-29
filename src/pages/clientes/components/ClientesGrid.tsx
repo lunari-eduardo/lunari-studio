@@ -108,12 +108,12 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
           <div
             key={cliente.id}
             onClick={() => navigate(`/app/clientes/${cliente.id}`)}
-            className="group relative flex flex-col justify-between rounded-2xl border border-border/30 bg-card/70 p-5 shadow-sm transition-all duration-200 hover:border-border/60 hover:bg-card hover:shadow-md cursor-pointer"
+            className="group relative flex flex-col justify-between rounded-2xl border border-border/50 bg-card p-5 shadow-2xs transition-all duration-200 hover:border-border/80 hover:shadow-sm cursor-pointer"
           >
             {/* 1. Cabeçalho do Card */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar className="h-11 w-11 shrink-0 rounded-full border border-white/10 ring-1 ring-border/20">
+                <Avatar className="h-11 w-11 shrink-0 rounded-full border border-border/40 ring-1 ring-border/20">
                   {cliente.avatar_url ? (
                     <AvatarImage
                       src={cliente.avatar_url}
@@ -121,7 +121,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                       className="object-cover"
                     />
                   ) : null}
-                  <AvatarFallback className="bg-zinc-800 text-zinc-300 font-semibold text-xs">
+                  <AvatarFallback className="bg-zinc-100 text-zinc-700 border border-zinc-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-white/10 font-semibold text-xs">
                     {getInitials(cliente.nome)}
                   </AvatarFallback>
                 </Avatar>
@@ -141,8 +141,8 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                     isAtivo
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/40'
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      : 'bg-zinc-100 text-zinc-600 border border-zinc-200/80 dark:bg-zinc-800/80 dark:text-zinc-400 dark:border-zinc-700/40'
                   }`}
                 >
                   {isAtivo ? 'Ativo' : 'Novo'}
@@ -151,7 +151,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
             </div>
 
             {/* 2. Corpo do Card: 3 Colunas Métricas */}
-            <div className="my-4 grid grid-cols-3 gap-2 rounded-xl border border-border/15 bg-background/50 p-3">
+            <div className="my-4 grid grid-cols-3 gap-2 rounded-xl border border-border/30 bg-muted/20 dark:bg-background/50 p-3">
               {/* Total */}
               <div>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
@@ -166,10 +166,10 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
               {/* Pago */}
               <div>
                 <p className="text-[11px] text-muted-foreground flex items-center gap-1 mb-1">
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400/90" />
+                  <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400/90" />
                   Pago
                 </p>
-                <p className="text-sm font-semibold tabular-nums text-emerald-400">
+                <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(cliente.total_pago)}
                 </p>
               </div>
@@ -183,7 +183,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                 <p
                   className={`text-sm font-semibold tabular-nums ${
                     cliente.a_receber > 0
-                      ? 'text-accent-gold font-bold'
+                      ? 'text-amber-700 dark:text-accent-gold font-bold'
                       : 'text-muted-foreground/80'
                   }`}
                 >
@@ -193,10 +193,10 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
             </div>
 
             {/* 3. Rodapé do Card: Sessões + Ações */}
-            <div className="mt-1 flex items-center justify-between border-t border-border/15 pt-3">
+            <div className="mt-1 flex items-center justify-between border-t border-border/20 pt-3">
               {/* Sessões e Última data */}
               <div className="flex items-center gap-2 min-w-0 pr-2">
-                <span className="text-xs font-medium text-zinc-300 flex items-center gap-1 shrink-0">
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1 shrink-0">
                   <Camera className="h-3.5 w-3.5 text-muted-foreground" />
                   {cliente.sessoes_count}{' '}
                   {cliente.sessoes_count === 1 ? 'sessão' : 'sessões'}
@@ -206,7 +206,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                 </span>
               </div>
 
-              {/* Botões de Ação (Área de toque mínima 40x40px) */}
+              {/* Botões de Ação (Área de toque mínima 40x40px, off-white no light mode) */}
               <div
                 className="flex items-center gap-1.5 shrink-0"
                 onClick={(e) => e.stopPropagation()}
@@ -221,7 +221,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                     e.stopPropagation();
                     onWhatsApp(cliente);
                   }}
-                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-300 hover:text-white transition-colors"
+                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                 >
                   <MessageCircle className="h-4 w-4" />
                 </Button>
@@ -236,7 +236,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                     e.stopPropagation();
                     onEdit(cliente);
                   }}
-                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-300 hover:text-white transition-colors"
+                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -249,12 +249,12 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                       variant="ghost"
                       size="icon"
                       title="Mais opções"
-                      className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-800/60 hover:bg-zinc-700/80 text-zinc-300 hover:text-white transition-colors"
+                      className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-border/40">
+                  <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground border-border/40 shadow-md">
                     <DropdownMenuItem
                       onClick={() => navigate(`/app/clientes/${cliente.id}`)}
                       className="text-xs cursor-pointer gap-2"

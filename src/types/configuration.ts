@@ -59,6 +59,7 @@ export interface EtapaTrabalho {
   nome: string;
   cor: string;
   ordem: number;
+  tipo_fase?: 'INICIAL' | 'POS_PRODUCAO' | 'CONCLUIDO' | 'SISTEMA';
   is_system_status?: boolean; // Status de sistema (Gallery)
   is_hidden_in_workflow?: boolean; // Oculto dos dropdowns/filtros do workflow
   created_at?: string;

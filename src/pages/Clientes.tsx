@@ -170,7 +170,7 @@ export default function Clientes() {
             variant="outline"
             size="sm"
             onClick={() => setShowBatchLinkModal(true)}
-            className="h-8 gap-1.5 text-xs border-border/40 bg-card/60 hover:bg-muted/40"
+            className="h-8 gap-1.5 text-xs border-border/40 bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white"
           >
             <LinkIcon className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="hidden sm:inline">Vincular</span> WhatsApps
@@ -180,7 +180,7 @@ export default function Clientes() {
             variant="outline"
             size="sm"
             onClick={() => setShowAniversariantesModal(true)}
-            className="h-8 gap-1.5 text-xs border-border/40 bg-card/60 hover:bg-muted/40"
+            className="h-8 gap-1.5 text-xs border-border/40 bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white"
           >
             <Cake className="h-3.5 w-3.5 text-accent-gold" />
             <span>Aniversariantes</span>

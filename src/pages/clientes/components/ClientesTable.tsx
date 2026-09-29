@@ -244,7 +244,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                           className="object-cover"
                         />
                       ) : null}
-                      <AvatarFallback className="bg-zinc-800 text-zinc-300 font-semibold text-xs">
+                      <AvatarFallback className="bg-zinc-100 text-zinc-700 border border-zinc-200/80 dark:bg-zinc-800 dark:text-zinc-300 dark:border-white/10 font-semibold text-xs">
                         {getInitials(cliente.nome)}
                       </AvatarFallback>
                     </Avatar>
@@ -273,7 +273,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                 </TableCell>
 
                 {/* Pago */}
-                <TableCell className="py-3 text-sm font-medium tabular-nums text-emerald-400">
+                <TableCell className="py-3 text-sm font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(cliente.total_pago)}
                 </TableCell>
 
@@ -281,7 +281,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                 <TableCell
                   className={`py-3 text-sm font-medium tabular-nums ${
                     cliente.a_receber > 0
-                      ? 'text-accent-gold font-semibold'
+                      ? 'text-amber-700 dark:text-accent-gold font-semibold'
                       : 'text-muted-foreground/80'
                   }`}
                 >
@@ -303,15 +303,15 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
                       isAtivo
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/40'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'bg-zinc-100 text-zinc-600 border border-zinc-200/80 dark:bg-zinc-800/80 dark:text-zinc-400 dark:border-zinc-700/40'
                     }`}
                   >
                     {isAtivo ? 'Ativo' : 'Novo'}
                   </span>
                 </TableCell>
 
-                {/* Ações (Suaves no hover desktop) */}
+                {/* Ações (Suaves no hover desktop, off-white no light mode) */}
                 <TableCell
                   className="py-3 text-right pr-4"
                   onClick={(e) => e.stopPropagation()}
@@ -327,7 +327,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                         e.stopPropagation();
                         onWhatsApp(cliente);
                       }}
-                      className="h-8 w-8 rounded-full bg-zinc-800/40 hover:bg-zinc-700/70 text-zinc-300 hover:text-white"
+                      className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                     >
                       <MessageCircle className="h-3.5 w-3.5" />
                     </Button>
@@ -342,7 +342,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                         e.stopPropagation();
                         onEdit(cliente);
                       }}
-                      className="h-8 w-8 rounded-full bg-zinc-800/40 hover:bg-zinc-700/70 text-zinc-300 hover:text-white"
+                      className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -355,12 +355,12 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                           variant="ghost"
                           size="icon"
                           title="Mais opções"
-                          className="h-8 w-8 rounded-full bg-zinc-800/40 hover:bg-zinc-700/70 text-zinc-300 hover:text-white"
+                          className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border-border/40">
+                      <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground border-border/40 shadow-md">
                         <DropdownMenuItem
                           onClick={() => navigate(`/app/clientes/${cliente.id}`)}
                           className="text-xs cursor-pointer gap-2"

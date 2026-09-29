@@ -90,7 +90,7 @@ export const ClientesPagination: React.FC<ClientesPaginationProps> = ({
           size="icon"
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
-          className="h-8 w-8 rounded-lg border-border/30 hover:bg-muted/40 disabled:opacity-30"
+          className="h-8 w-8 rounded-lg border-border/40 bg-card hover:bg-zinc-100 dark:hover:bg-muted/40 text-foreground disabled:opacity-30"
           title="Página anterior"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -120,8 +120,8 @@ export const ClientesPagination: React.FC<ClientesPaginationProps> = ({
                 onClick={() => onPageChange(pageNum)}
                 className={`h-8 min-w-[32px] px-2 text-xs font-medium rounded-lg transition-all ${
                   isActive
-                    ? 'bg-accent-gold text-zinc-950 font-bold shadow-sm'
-                    : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground border border-transparent'
+                    ? 'bg-accent-gold text-zinc-950 font-bold shadow-xs'
+                    : 'text-zinc-700 dark:text-muted-foreground hover:bg-zinc-100 dark:hover:bg-muted/40 hover:text-foreground border border-transparent'
                 }`}
               >
                 {pageNum}
@@ -137,7 +137,7 @@ export const ClientesPagination: React.FC<ClientesPaginationProps> = ({
           size="icon"
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
-          className="h-8 w-8 rounded-lg border-border/30 hover:bg-muted/40 disabled:opacity-30"
+          className="h-8 w-8 rounded-lg border-border/40 bg-card hover:bg-zinc-100 dark:hover:bg-muted/40 text-foreground disabled:opacity-30"
           title="Próxima página"
         >
           <ChevronRight className="h-4 w-4" />
@@ -150,7 +150,7 @@ export const ClientesPagination: React.FC<ClientesPaginationProps> = ({
           value={String(pageSize)}
           onValueChange={(val) => onPageSizeChange(Number(val))}
         >
-          <SelectTrigger className="h-8 text-xs w-[130px] border-border/30 bg-card/60">
+          <SelectTrigger className="h-8 text-xs w-[130px] border-border/40 bg-card hover:bg-zinc-50 dark:hover:bg-zinc-800 text-foreground">
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="end">

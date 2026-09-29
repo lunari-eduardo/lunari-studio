@@ -163,7 +163,7 @@ export function ChatContextPanel({
 
       <div className="flex-1 overflow-y-auto scrollbar-hide" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
         <div className="p-4 flex flex-col gap-4">
-          <ContactHeaderCard chat={chat} state={state} cliente={client} lead={lead} />
+          <ContactHeaderCard chat={chat} context={unifiedContext} />
 
           <RelationshipSummaryCard 
              context={unifiedContext}

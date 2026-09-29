@@ -82,7 +82,27 @@ export const WorkflowCacheProvider: React.FC<{ children: React.ReactNode }> = ({
     (year: number, month: number, sessions: WorkflowSession[]) => {
       const key = getCacheKey(year, month);
       const normalized = normalizeWorkflowSessions(sessions);
-      memoryCache.current.set(key, normalized);
+      
+      const existingSessions = memoryCache.current.get(key);
+      let finalSessions = normalized;
+      
+      if (existingSessions && existingSessions.length > 0) {
+        finalSessions = normalized.map(incoming => {
+          const existing = existingSessions.find(s => s.id === incoming.id);
+          if (!existing) return incoming;
+          
+          const optimisticUntil = (existing as any)._optimistic_until;
+          // Se o cache local tem uma sessão marcada como otimista que ainda não expirou,
+          // preservamos ela ao invés da versão que veio do fetch (que pode ser stale).
+          if (optimisticUntil && optimisticUntil > Date.now()) {
+            console.log(`🛡️ [WorkflowCache] setMonthData preservou ${existing.id} otimista por TTL`);
+            return existing;
+          }
+          return incoming;
+        });
+      }
+
+      memoryCache.current.set(key, finalSessions);
 
       // Mantém o workflowStore global sincronizado
       try {

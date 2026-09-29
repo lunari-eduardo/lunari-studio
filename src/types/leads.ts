@@ -24,6 +24,8 @@ export interface Lead {
   scheduledAppointmentId?: string; // ID do agendamento criado
   motivoPerda?: string; // Motivo da perda do lead
   perdidoEm?: string; // Timestamp de quando foi perdido
+  categoria_manual_id?: string | null;
+  categoria_ia_id?: string | null;
   historicoStatus?: Array<{
     status: string;
     data: string; // ISO timestamp
