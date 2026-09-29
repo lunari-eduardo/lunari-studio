@@ -95,7 +95,15 @@ export function ChatContextPanel({
   const handleOpenWorkflow = (id?: string) => {
     let targetId = id || nextSession?.session_id || activeWorkflow?.session_id || lastSession?.session_id;
     if (targetId) {
-      navigate(`/app/workflow/${targetId}`);
+      const sess = sessoes.find(s => s.session_id === targetId || s.id === targetId);
+      let dateParams = '';
+      if (sess && sess.data_sessao) {
+        const d = new Date(sess.data_sessao);
+        if (!isNaN(d.getTime())) {
+          dateParams = `&month=${d.getMonth() + 1}&year=${d.getFullYear()}`;
+        }
+      }
+      navigate(`/app/workflow?open_session=${targetId}${dateParams}`);
     } else {
       navigate('/app/workflow');
     }
@@ -270,6 +278,7 @@ export function ChatContextPanel({
     </div>
   );
 }
+
 
 
 
