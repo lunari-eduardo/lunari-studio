@@ -23,14 +23,26 @@ export interface ChatStateData {
 
 export function useChatStateResolver({ cliente, lead, sessoes }: ChatStateData): ChatState {
   return useMemo(() => {
-    // Prioridade 1: Sessão ativa ou futura
-    if (sessoes && sessoes.length > 0) {
+    // Prioridade 1: Sessão ativa ou futura (data >= hoje ou workflow não finalizado)
+    const hasActiveSession = sessoes?.some(s => {
+      if (!s.data_sessao) return false;
+      const todayIso = new Date().toISOString().slice(0, 10);
+      const isFuture = s.data_sessao.slice(0, 10) >= todayIso;
+      const isPendingWorkflow = s.status_workflow && !['entregue', 'cancelado', 'arquivado'].includes(s.status_workflow.toLowerCase());
+      return isFuture || isPendingWorkflow;
+    });
+
+    if (hasActiveSession) {
       return 'ACTIVE_SESSION';
     }
 
     // Prioridade 2: Lead ativo no funil (não ganho/perdido)
     if (lead && lead.id) {
-      return 'ACTIVE_LEAD';
+      const statusLower = (lead.status || '').toLowerCase();
+      const isFinished = ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(statusLower);
+      if (!isFinished) {
+        return 'ACTIVE_LEAD';
+      }
     }
 
     // Prioridade 3: Cliente vinculado ao CRM (sem sessão nem lead ativo)

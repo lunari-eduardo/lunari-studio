@@ -175,8 +175,31 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 3. Carregar Contexto Completo via RPC
-  const { data: rpcContext, isLoading: isLoadingRpc } = useQuery({
+  // 3. Carregar Sessões de forma direta e rápida (Query Split)
+  const { data: sessoesDiretas, isLoading: isLoadingSessoes } = useQuery({
+    queryKey: ['conversas-sessoes-diretas', cliente?.id, userId],
+    queryFn: async () => {
+      if (!cliente?.id || !userId) return [];
+      
+      const { data, error } = await supabase
+        .from('clientes_sessoes')
+        .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, status_workflow, valor_total, valor_pago, local_ensaio')
+        .eq('cliente_id', cliente.id)
+        .order('data_sessao', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.warn('[useConversasContactContext] Erro ao buscar sessões diretas:', error);
+        return [];
+      }
+      return data as unknown as ContextSessao[];
+    },
+    enabled: !!cliente?.id && !!userId,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  // 4. Carregar Contexto Completo via RPC (Background)
+  const { data: rpcContext } = useQuery({
     queryKey: ['conversas-context-rpc', cliente?.id, userId],
     queryFn: async () => {
       if (!cliente?.id || !userId) return null;
@@ -192,16 +215,16 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       return data as any;
     },
     enabled: !!cliente?.id && !!userId,
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 5, // Pode ficar mais tempo em cache
   });
 
-  const sessoes = (rpcContext?.sessoes || []) as ContextSessao[];
+  const sessoes = sessoesDiretas || [];
   const tarefas = (rpcContext?.tarefas || []) as ContextTask[];
   const orcamentos = (rpcContext?.orcamentos || []) as ContextOrcamento[];
   const cobrancas = (rpcContext?.cobrancas || []) as ContextCobranca[];
   const leadsPerdidos = (rpcContext?.leads_perdidos || []) as ContextLeadPerdido[];
 
-  // 4. Carregar Lead / Oportunidade
+  // 5. Carregar Lead / Oportunidade
   const { data: lead, isLoading: isLoadingLead } = useQuery({
     queryKey: ['conversas-context-lead', effectiveLeadId, rawPhone, userId],
     queryFn: async () => {
@@ -285,6 +308,8 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkClienteMutation] Erro:', err);
@@ -314,6 +339,8 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkLeadMutation] Erro:', err);
@@ -361,6 +388,8 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-chats'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-rpc'] });
     },
     onError: (err) => {
       console.error('[linkAmbosMutation] Erro:', err);
@@ -421,7 +450,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     orcamentos,
     cobrancas,
     leadsPerdidos,
-    isLoading: isLoadingCliente || isLoadingRpc || isLoadingLead,
+    isLoading: isLoadingCliente || isLoadingSessoes || isLoadingLead,
     isLinkedToCliente: !!cliente?.id,
     isLinkedToLead: !!lead?.id,
     vincularCliente: linkClienteMutation.mutateAsync,

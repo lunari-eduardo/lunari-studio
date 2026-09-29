@@ -300,6 +300,12 @@ export function ChatContextPanel({
       case 'ACTIVE_SESSION':
         return (
           <>
+            {commercialIntent.detected && (
+              <ContactLeadOpportunityCard
+                detectedCategory={commercialIntent.service}
+                onCreateLead={() => setIsLeadModalOpen(true)}
+              />
+            )}
             <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
@@ -508,7 +514,7 @@ export function ChatContextPanel({
             telefone: cliente?.telefone || chat.contato_phone_normalized || chat.id.split('@')[0] || '',
             clienteId: cliente?.id,
             origem: 'WhatsApp',
-            observacoes: commercialIntent.detected ? `Interesse em: ${commercialIntent.service || "Geral"}\n\nMensagem do contato: "${messages.find(m => m.direction === "inbound" && m.type === "text")?.content || ""}"` : "",
+            observacoes: commercialIntent.detected ? `Interesse em: ${commercialIntent.service || "Geral"}\n\nMensagem do contato: "${commercialIntent.triggerMessage || ''}"` : "",
           } as unknown as Lead}
           onSubmit={async (data) => {
             try {

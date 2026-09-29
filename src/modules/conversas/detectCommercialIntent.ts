@@ -26,6 +26,8 @@ export interface CommercialIntent {
   matchedKeywords: string[];
   /** Score bruto (para debugging) */
   rawScore: number;
+  /** A mensagem exata que gerou a maior pontuação (para contexto do modal) */
+  triggerMessage?: string;
 }
 
 export interface IntentMessage {
@@ -240,53 +242,56 @@ export function detectCommercialIntent(
 
   if (recentInbound.length === 0) return emptyResult;
 
-  // ─── Concatenar e normalizar todo o texto ───────────────────────────
-  const rawText = recentInbound.map((m) => m.content).join(' ');
-  const normalizedText = normalizeText(rawText);
-
-  // ─── Scoring ────────────────────────────────────────────────────────
+  // ─── Scoring por Mensagem ──────────────────────────────────────────
   let totalScore = 0;
-  const matchedKeywords: string[] = [];
-  const detectedServiceLabels: string[] = [];
+  const matchedKeywords: Set<string> = new Set();
+  const detectedServiceLabels: Set<string> = new Set();
 
-  for (const term of ALL_TERMS) {
-    // Aplica o regex no texto normalizado
-    const normalizedPattern = new RegExp(
-      term.pattern.source
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, ''),
-      term.pattern.flags + (term.pattern.flags.includes('i') ? '' : 'i')
-    );
+  let highestScoreMessage: string | undefined = undefined;
+  let highestMsgScore = -999;
 
-    if (normalizedPattern.test(normalizedText)) {
-      totalScore += term.weight;
+  for (const msg of recentInbound) {
+    const normalizedText = normalizeText(msg.content);
+    let msgScore = 0;
 
-      if (term.weight > 0) {
-        matchedKeywords.push(term.label);
-      }
+    // 1. Scoring via Dicionário de Termos
+    for (const term of ALL_TERMS) {
+      const normalizedPattern = new RegExp(
+        term.pattern.source.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+        term.pattern.flags + (term.pattern.flags.includes('i') ? '' : 'i')
+      );
 
-      // Coletar labels de serviço (peso positivo + está em SERVICE_TERMS)
-      if (term.weight > 0 && SERVICE_TERMS.includes(term)) {
-        detectedServiceLabels.push(term.label);
+      if (normalizedPattern.test(normalizedText)) {
+        msgScore += term.weight;
+        totalScore += term.weight;
+        matchedKeywords.add(term.label);
+
+        if (term.weight > 0 && SERVICE_TERMS.includes(term)) {
+          detectedServiceLabels.add(term.label);
+        }
       }
     }
-  }
 
-  // ─── Também tentar match direto com categorias do estúdio ──────────
-  for (const cat of availableCategories) {
-    const normalizedCat = normalizeText(cat);
-    if (normalizedCat.length >= 3 && normalizedText.includes(normalizedCat)) {
-      if (!detectedServiceLabels.includes(cat)) {
-        detectedServiceLabels.push(cat);
-        totalScore += 1;
-        matchedKeywords.push(cat);
+    // 2. Tentar match direto com categorias do estúdio
+    for (const cat of availableCategories) {
+      const normalizedCat = normalizeText(cat);
+      if (normalizedCat.length >= 3 && normalizedText.includes(normalizedCat)) {
+        if (!detectedServiceLabels.has(cat)) {
+          detectedServiceLabels.add(cat);
+          msgScore += 1;
+          totalScore += 1;
+          matchedKeywords.add(cat);
+        }
       }
+    }
+
+    if (msgScore > 0 && msgScore > highestMsgScore) {
+      highestMsgScore = msgScore;
+      highestScoreMessage = msg.content;
     }
   }
 
   // ─── Resolver o serviço principal ───────────────────────────────────
-  // Prioriza o serviço mais específico (primeiro match), tentando
-  // corresponder ao nome exato de uma categoria do estúdio.
   let resolvedService: string | undefined;
   for (const label of detectedServiceLabels) {
     const matched = matchServiceToCategory(label, availableCategories);
@@ -295,10 +300,8 @@ export function detectCommercialIntent(
       break;
     }
   }
-  // Se não deu match com nenhuma categoria mas detectou um label de serviço,
-  // retorna o label cru mesmo (útil para categorias ainda não cadastradas)
-  if (!resolvedService && detectedServiceLabels.length > 0) {
-    resolvedService = detectedServiceLabels[0];
+  if (!resolvedService && detectedServiceLabels.size > 0) {
+    resolvedService = [...detectedServiceLabels][0];
   }
 
   // ─── Calcular confiança normalizada ─────────────────────────────────
@@ -310,7 +313,8 @@ export function detectCommercialIntent(
     detected: totalScore >= DETECTION_THRESHOLD,
     service: totalScore >= DETECTION_THRESHOLD ? resolvedService : undefined,
     confidence: Math.round(confidence * 100) / 100,
-    matchedKeywords: Array.from(new Set(matchedKeywords)),
+    matchedKeywords: Array.from(matchedKeywords),
     rawScore: totalScore,
+    triggerMessage: highestScoreMessage,
   };
 }
