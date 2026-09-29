@@ -43,7 +43,7 @@ export function FeedDnaModal({ chatId, messages, isOpen, onClose }: FeedDnaModal
       };
 
       // Create a deterministic hash based on messages count, first msg and last msg
-      const hash = `hash-${chatId}-${messages.length}-${messages[0]?.id}-${messages[messages.length - 1]?.id}`;
+      const hash = `hash-${chatId}-${messages.length}-${messages[0]?.id || 'start'}-${messages[messages.length - 1]?.id || 'end'}`;
       
       const retentionDate = new Date();
       retentionDate.setDate(retentionDate.getDate() + 90);
@@ -67,17 +67,21 @@ export function FeedDnaModal({ chatId, messages, isOpen, onClose }: FeedDnaModal
         // Trigger edge worker
         if (data) {
           const workerUrl = import.meta.env.VITE_EDGE_API_URL;
-          fetch(`${workerUrl}/api/lua/process-dna`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
-            },
-            body: JSON.stringify({
-              type: 'INSERT',
-              record: data
-            })
-          }).catch(console.error);
+          if (workerUrl) {
+            fetch(`${workerUrl}/api/lua/process-dna`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                type: 'INSERT',
+                record: data
+              })
+            }).catch(console.error);
+          } else {
+            console.warn('VITE_EDGE_API_URL não configurada. Worker não acionado automaticamente.');
+          }
         }
 
         toast.success('Conversa adicionada à fila de processamento do DNA.', {
