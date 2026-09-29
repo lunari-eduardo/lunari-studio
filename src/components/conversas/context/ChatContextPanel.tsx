@@ -34,6 +34,7 @@ import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
 import LeadFormModal from '@/components/leads/LeadFormModal';
 import { RelationshipSummaryCard } from './cards/RelationshipSummaryCard';
+import { SessionHistoryList } from './cards/SessionHistoryList';
 
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
@@ -73,7 +74,7 @@ export function ChatContextPanel({
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
   const contextData = useConversasContactContext(chat);
-  const { unifiedContext, vincularAmbos, vincularCliente, criarTarefaRapida, concluirTarefa } = contextData;
+  const { unifiedContext, sessoes, vincularAmbos, vincularCliente, criarTarefaRapida, concluirTarefa } = contextData;
   const { state, contact, client, lead, nextSession, lastSession, activeWorkflow, gallery, metrics, templateContext, isLoading, error } = unifiedContext;
 
   const handleCreateClient = async (data: { nome: string; telefone: string }) => {
@@ -162,25 +163,31 @@ export function ChatContextPanel({
              onLinkClient={() => setIsClientLinkModalOpen(true)}
           />
 
-          {state === 'ACTIVE_SESSION' && (
+          {nextSession && (
+            <>
+              <SmartSessionCard 
+                sessoes={[nextSession]} 
+                onOpenWorkflow={handleOpenWorkflow} 
+                onNavigate={navigate} 
+                variant="next"
+              />
+              <FinancialSummaryCard sessao={nextSession} onNavigate={navigate} />
+            </>
+          )}
+
+          {(activeWorkflow || state === 'POST_PRODUCTION') && (activeWorkflow || lastSession) && (activeWorkflow || lastSession)?.id !== nextSession?.id && (
             <SmartSessionCard 
-              sessoes={[nextSession].filter(Boolean)} 
+              sessoes={[activeWorkflow || lastSession]} 
               onOpenWorkflow={handleOpenWorkflow} 
               onNavigate={navigate} 
+              variant="post_production"
             />
           )}
 
-          {state === 'POST_PRODUCTION' && (
-            <SmartSessionCard 
-              sessoes={[activeWorkflow || lastSession].filter(Boolean)} 
-              onOpenWorkflow={handleOpenWorkflow} 
-              onNavigate={navigate} 
-            />
-          )}
-
-          {state === 'ACTIVE_SESSION' && nextSession && (
-            <FinancialSummaryCard sessao={nextSession} onNavigate={navigate} />
-          )}
+          <SessionHistoryList
+            sessoes={sessoes.filter(s => s.id !== nextSession?.id && s.id !== (activeWorkflow || (state === 'POST_PRODUCTION' ? lastSession : null))?.id)}
+            onOpenWorkflow={handleOpenWorkflow}
+          />
 
           <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
             <TemplatesListTab
@@ -263,5 +270,8 @@ export function ChatContextPanel({
     </div>
   );
 }
+
+
+
 
 

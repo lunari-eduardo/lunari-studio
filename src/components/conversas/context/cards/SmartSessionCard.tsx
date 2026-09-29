@@ -3,13 +3,14 @@ import type { ContextSessao, ContextOrcamento } from '@/hooks/useConversasContac
 import { formatDateForDisplay, parseDateFromStorage } from '@/utils/dateUtils';
 
 interface SmartSessionCardProps {
+  variant?: 'next' | 'post_production' | 'last';
   sessoes: ContextSessao[];
   orcamentos?: ContextOrcamento[];
   onOpenWorkflow: (sessionId?: string) => void;
   onNavigate?: (path: string) => void;
 }
 
-export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onNavigate }: SmartSessionCardProps) {
+export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onNavigate, variant }: SmartSessionCardProps) {
   if ((!sessoes || sessoes.length === 0) && (!orcamentos || orcamentos.length === 0)) return null;
 
   const today = new Date();
@@ -45,7 +46,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     return pago !== null && total !== null && pago >= total && total > 0;
   };
 
-  // 1. Mostrar PrÃ³xima SessÃ£o
+  // 1. Mostrar Próxima sessão
   if (nextSession) {
     return (
       <div 
@@ -57,7 +58,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
             <div className="p-1.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-[#38BDF8]">
               <Calendar className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">PrÃ³xima sessÃ£o</span>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Próxima sessão</span>
           </div>
           <button 
             type="button"
@@ -101,7 +102,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
     );
   }
 
-  // 2. Mostrar OrÃ§amento (Se nÃ£o tem prÃ³xima sessÃ£o)
+  // 2. Mostrar OrÃ§amento (Se nÃ£o tem Próxima sessão)
   if (mainOrcamento) {
     return (
       <div 
@@ -180,7 +181,7 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
             <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-[#60A5FA]">
               <Calendar className="h-4 w-4" />
             </div>
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Ãšltima sessÃ£o</span>
+            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{variant === 'post_production' ? 'Em Pós-produção' : 'Última sessão'}</span>
           </div>
           <button 
             type="button"
@@ -237,5 +238,9 @@ export function SmartSessionCard({ sessoes, orcamentos = [], onOpenWorkflow, onN
 
   return null;
 }
+
+
+
+
 
 
