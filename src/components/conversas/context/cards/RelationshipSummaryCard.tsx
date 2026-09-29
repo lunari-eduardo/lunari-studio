@@ -62,7 +62,7 @@ export function RelationshipSummaryCard({ context, onCreateLead, onLinkClient }:
     );
   }
 
-  if (state === 'LEAD') {
+  if (state === 'OPEN_OPPORTUNITY') {
     return (
       <div className="flex flex-col gap-2">
         <div className="rounded-xl border border-[#3B82F6]/30 bg-gradient-to-br from-[#3B82F6]/10 to-transparent p-3 flex flex-col gap-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">

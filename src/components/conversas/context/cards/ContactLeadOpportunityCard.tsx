@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface ContactLeadOpportunityCardProps {
+  isClient?: boolean;
   onCreateLead: () => void;
   onLinkClient?: () => void;
   detectedCategory?: string;
@@ -11,7 +12,8 @@ interface ContactLeadOpportunityCardProps {
 export function ContactLeadOpportunityCard({ 
   onCreateLead, 
   onLinkClient, 
-  detectedCategory 
+  detectedCategory,
+  isClient
 }: ContactLeadOpportunityCardProps) {
   return (
     <div className="flex flex-col gap-2">
@@ -37,9 +39,9 @@ export function ContactLeadOpportunityCard({
             className="w-full h-9 text-[11px] font-semibold bg-[#C9A87C] hover:bg-[#b89567] text-white rounded-lg shadow-sm transition-all"
           >
             <Target className="h-3.5 w-3.5 mr-1.5" />
-            Criar Lead / Oportunidade
+            {isClient ? 'Criar Nova Oportunidade' : 'Criar Lead / Oportunidade'}
           </Button>
-          {onLinkClient && (
+          {!isClient && onLinkClient && (
             <Button
               onClick={onLinkClient}
               variant="ghost"

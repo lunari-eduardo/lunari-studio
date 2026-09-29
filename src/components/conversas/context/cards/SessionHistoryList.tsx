@@ -1,4 +1,5 @@
-import { CalendarDays, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarDays, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import type { ContextSessao } from '@/hooks/useConversasContactContext';
 
 interface SessionHistoryListProps {
@@ -7,16 +8,27 @@ interface SessionHistoryListProps {
 }
 
 export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryListProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (!sessoes || sessoes.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <div className="flex items-center gap-2 mb-3">
-        <CalendarDays className="h-3.5 w-3.5 text-zinc-400" />
-        <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">
-          Histórico de Sessões ({sessoes.length})
-        </span>
-      </div>
+        <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between outline-none"
+      >
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-3.5 w-3.5 text-zinc-400" />
+          <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100">
+            Histórico de Trabalhos ({sessoes.length})
+          </span>
+        </div>
+        {isOpen ? <ChevronUp className="h-3.5 w-3.5 text-zinc-400" /> : <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />}
+      </button>
+      
+      {isOpen && (
+        <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-black/[0.04] dark:border-white/[0.04]">
       
       <div className="flex flex-col gap-2">
         {sessoes.slice(0, 3).map((sessao) => (
@@ -45,6 +57,8 @@ export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryLi
           </div>
         )}
       </div>
+        </div>
+      )}
     </div>
   );
 }

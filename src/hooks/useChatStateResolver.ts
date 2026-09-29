@@ -1,22 +1,22 @@
 /**
- * M√°quina de estados estrita para o contexto da conversa.
+ * M·quina de estados consolidada do Contexto Ativo.
  *
- * Prioridade inegoci√°vel (Top-Down):
- * 1. POST_PRODUCTION (Galeria pendente ou edi√ß√£o ativa)
- * 2. ACTIVE_SESSION (Sess√£o futura)
- * 3. CLIENT (Sem trabalho ativo)
- * 4. LEAD (Lead em funil)
- * 5. NEW_CONTACT (Sem v√≠nculo)
+ * Prioridade inegoci·vel (Top-Down):
+ * 1. ACTIVE_SESSION: Existe uma sess„o em andamento (pÛs-produÁ„o ou marcada para hoje).
+ * 2. NEXT_SESSION: Existe uma sess„o agendada no futuro (amanh„ em diante).
+ * 3. OPEN_OPPORTUNITY: Existe uma oportunidade (lead) aberta e n„o finalizada.
+ * 4. CLIENT: Cliente da base, sem oportunidade e sem sess„o.
+ * 5. NEW_CONTACT: Contato sem vÌnculo.
  */
 
 import { useMemo } from 'react';
 
 export type ChatContactState = 
-  | 'NEW_CONTACT'
-  | 'LEAD'
-  | 'CLIENT'
   | 'ACTIVE_SESSION'
-  | 'POST_PRODUCTION';
+  | 'NEXT_SESSION'
+  | 'OPEN_OPPORTUNITY'
+  | 'CLIENT'
+  | 'NEW_CONTACT';
 
 export interface ChatStateData {
   client: any | null;
@@ -27,46 +27,60 @@ export interface ChatStateData {
 
 export function useChatStateResolver({ client, lead, sessions, gallery }: ChatStateData): ChatContactState {
   return useMemo(() => {
-    // 1. POST_PRODUCTION: Galeria pendente ou sess√£o em edi√ß√£o
-    const hasPostProduction = sessions?.some(s => {
+    // Helper to get ISO date locally
+    const getIsoDateLocal = (dateString: string) => {
+      const parts = dateString.split('T')[0].split('-');
+      if (parts.length >= 3) {
+        return `${parts[0]}-${parts[1]}-${parts[2]}`;
+      }
+      return dateString.slice(0, 10);
+    };
+
+    const todayIso = new Date().toISOString().slice(0, 10);
+
+    // Filter valid sessions (not cancelled, finished, or delivered)
+    const validSessions = sessions?.filter(s => {
       const status = (s.status || '').toLowerCase();
-      // Retrocompatibilidade at√© uso total de tipo_fase
-      return ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
-    }) || gallery != null; 
+      return !['finalizado', 'cancelado', 'arquivado', 'entregue'].includes(status);
+    }) || [];
 
-    if (hasPostProduction) {
-      return 'POST_PRODUCTION';
-    }
+    // 1. ACTIVE_SESSION (PÛs-produÁ„o ou Hoje)
+    // Uma sess„o È ACTIVE se est· em pÛs-produÁ„o OU est· agendada exatamente para hoje.
+    const hasActiveSession = validSessions.some(s => {
+      const status = (s.status || '').toLowerCase();
+      const isPos = ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
+      const dataSessao = s.data_sessao || s.data;
+      const isToday = dataSessao && getIsoDateLocal(dataSessao) === todayIso;
+      return isPos || isToday;
+    }) || gallery != null;
 
-    // 2. ACTIVE_SESSION: Sess√£o agendada futura ou hoje
-    const hasActiveSession = sessions?.some(s => {
+    if (hasActiveSession) return 'ACTIVE_SESSION';
+
+    // 2. NEXT_SESSION (Agendada para o Futuro)
+    const hasFutureSession = validSessions.some(s => {
       const dataSessao = s.data_sessao || s.data;
       if (!dataSessao) return false;
-      const todayIso = new Date().toISOString().slice(0, 10);
-      const isFuture = dataSessao.slice(0, 10) >= todayIso;
-      
+      const isFuture = getIsoDateLocal(dataSessao) > todayIso;
       const status = (s.status || '').toLowerCase();
-      const isAgendado = !['entregue', 'cancelado', 'arquivado', 'finalizado'].includes(status);
-      
+      const isAgendado = !['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
       return isFuture && isAgendado;
     });
 
-    if (hasActiveSession) {
-      return 'ACTIVE_SESSION';
-    }
+    if (hasFutureSession) return 'NEXT_SESSION';
 
-    // 3. CLIENT: Cliente sem trabalho ativo
-    if (client && client.id) {
-      return 'CLIENT';
-    }
-
-    // 4. LEAD: Lead ativo no funil (n√£o ganho/perdido)
+    // 3. OPEN_OPPORTUNITY (Lead ativo)
+    // A oportunidade tem prioridade sobre o status genÈrico de Cliente.
     if (lead && lead.id) {
       const statusLower = (lead.status || '').toLowerCase();
       const isFinished = ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(statusLower);
       if (!isFinished) {
-        return 'LEAD';
+        return 'OPEN_OPPORTUNITY';
       }
+    }
+
+    // 4. CLIENT (Cliente base)
+    if (client && client.id) {
+      return 'CLIENT';
     }
 
     // 5. NEW_CONTACT
@@ -82,17 +96,17 @@ export function resolveTemplateContext(state: ChatContactState, categoriaPrincip
     case 'NEW_CONTACT':
       stage = 'primeiro_contato';
       break;
-    case 'LEAD':
+    case 'OPEN_OPPORTUNITY':
       stage = 'orcamento';
       break;
     case 'CLIENT':
       stage = 'relacionamento';
       break;
-    case 'ACTIVE_SESSION':
+    case 'NEXT_SESSION':
       stage = 'pre_ensaio';
       break;
-    case 'POST_PRODUCTION':
-      stage = 'pos_venda';
+    case 'ACTIVE_SESSION':
+      stage = 'pos_venda'; // Ou fotografado/pos-venda, ideal seria refinar isso
       break;
   }
 
@@ -103,13 +117,12 @@ export function resolveTemplateContext(state: ChatContactState, categoriaPrincip
 // NOVO MOTOR DE ETIQUETAS INTELIGENTES
 // ---------------------------------------------------------------------------------
 
-// Fun√ß√£o auxiliar para mapeamento do status interno
 const isPosProducao = (status: string) => {
   return ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status.toLowerCase());
 };
 
 /**
- * 1. PONTEIRO DO WORKFLOW ATIVO E CONCORR√äNCIA
+ * 1. PONTEIRO DO WORKFLOW ATIVO E CONCORR NCIA
  */
 export function resolveActiveWorkflowContext(sessions: any[] = []) {
   const activeSessions = sessions.filter(s => {
@@ -119,17 +132,32 @@ export function resolveActiveWorkflowContext(sessions: any[] = []) {
 
   if (!activeSessions.length) return { activeWorkflow: null, futureCount: 0 };
 
-  const postProdSessions = activeSessions.filter(s => isPosProducao(s.status || ''));
+  const getIsoDateLocal = (dateString: string) => {
+    const parts = dateString.split('T')[0].split('-');
+    if (parts.length >= 3) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+    return dateString.slice(0, 10);
+  };
+  const todayIso = new Date().toISOString().slice(0, 10);
 
-  if (postProdSessions.length > 0) {
-    const active = postProdSessions.sort((a, b) => {
+  // Filtra as sessıes que est„o em pÛs-produÁ„o OU s„o exatamente hoje
+  const prioritySessions = activeSessions.filter(s => {
+    const dataSessao = s.data_sessao || s.data;
+    const isToday = dataSessao && getIsoDateLocal(dataSessao) === todayIso;
+    return isPosProducao(s.status || '') || isToday;
+  });
+
+  if (prioritySessions.length > 0) {
+    // Se houver mais de uma (ex: uma de hoje e uma de 2025), a MAIS RECENTE ganha o foco principal.
+    const active = prioritySessions.sort((a, b) => {
       const dataA = a.data_sessao || a.data;
       const dataB = b.data_sessao || b.data;
-      return new Date(dataA).getTime() - new Date(dataB).getTime();
+      // OrdenaÁ„o decrescente: B - A
+      return new Date(dataB).getTime() - new Date(dataA).getTime();
     })[0];
     return { activeWorkflow: active, futureCount: activeSessions.length - 1 };
   }
 
+  // Se n„o tem pÛs nem hoje, pega a futura MAIS PR”XIMA (crescente)
   const futureSessions = activeSessions.sort((a, b) => {
     const dataA = a.data_sessao || a.data;
     const dataB = b.data_sessao || b.data;
@@ -141,7 +169,7 @@ export function resolveActiveWorkflowContext(sessions: any[] = []) {
 export type CategoriaPrincipalInfo = { id: string | null; modo: 'MANUAL' | 'AUTOMATICO' };
 
 /**
- * 2. CATEGORIA PRINCIPAL (Manual x Cascata Autom√°tica)
+ * 2. CATEGORIA PRINCIPAL (Manual x Cascata Autom·tica)
  */
 export function resolveCategoriaPrincipal(contato: any, activeWorkflow: any, allSessions: any[]): CategoriaPrincipalInfo {
   if (contato?.categoria_manual_id) return { id: contato.categoria_manual_id, modo: 'MANUAL' };
@@ -170,8 +198,8 @@ export function resolveEtapaVigente(contato: any, activeWorkflow: any, hasOrcame
   if (contato?.id && contato.status) { // Se for Lead
     const status = contato.status.toLowerCase();
     return ['convertido', 'fechado', 'perdido'].includes(status) 
-      ? null // Se j√° foi convertido ou perdido, n√£o exibe etiqueta
-      : contato.status; // Pode ser "Em Atendimento", "Or√ßamento Enviado", etc.
+      ? null
+      : contato.status; 
   }
 
   return null;

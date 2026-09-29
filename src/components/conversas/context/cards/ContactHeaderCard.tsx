@@ -17,10 +17,12 @@ export function ContactHeaderCard({ chat, context }: Props) {
 
   const getMacroStateLabel = () => {
     switch(state) {
-      case 'POST_PRODUCTION': return 'Pós-Produção';
+      
       case 'ACTIVE_SESSION': return 'Sessão Ativa';
+      case 'NEXT_SESSION': return 'Próxima Sessão';
+      case 'NEXT_SESSION': return 'Próxima Sessão';
       case 'CLIENT': return 'Cliente';
-      case 'LEAD': return 'Lead';
+      case 'OPEN_OPPORTUNITY': return 'Oportunidade';
       case 'NEW_CONTACT': return 'Novo Contato';
       default: return 'Desconhecido';
     }

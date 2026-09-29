@@ -171,13 +171,16 @@ export function ChatContextPanel({
         <div className="p-4 flex flex-col gap-4">
           <ContactHeaderCard chat={chat} context={unifiedContext} />
 
-          <RelationshipSummaryCard 
-             context={unifiedContext}
-             onCreateLead={() => setIsLeadModalOpen(true)}
-             onLinkClient={() => setIsClientLinkModalOpen(true)}
-          />
+          {/* STATE MACHINE: Apenas um contexto ativo */}
+          {state === 'NEW_CONTACT' || state === 'CLIENT' || state === 'OPEN_OPPORTUNITY' ? (
+            <RelationshipSummaryCard 
+               context={unifiedContext}
+               onCreateLead={() => setIsLeadModalOpen(true)}
+               onLinkClient={() => setIsClientLinkModalOpen(true)}
+            />
+          ) : null}
 
-          {nextSession && (
+          {state === 'NEXT_SESSION' && nextSession && (
             <>
               <SmartSessionCard 
                 sessoes={[nextSession]} 
@@ -189,17 +192,20 @@ export function ChatContextPanel({
             </>
           )}
 
-          {(activeWorkflow || state === 'POST_PRODUCTION') && (activeWorkflow || lastSession) && (activeWorkflow || lastSession)?.id !== nextSession?.id && (
-            <SmartSessionCard 
-              sessoes={[activeWorkflow || lastSession]} 
-              onOpenWorkflow={handleOpenWorkflow} 
-              onNavigate={navigate} 
-              variant="post_production"
-            />
+          {state === 'ACTIVE_SESSION' && activeWorkflow && (
+            <>
+              <SmartSessionCard 
+                sessoes={[activeWorkflow]} 
+                onOpenWorkflow={handleOpenWorkflow} 
+                onNavigate={navigate} 
+                variant="post_production"
+              />
+              <FinancialSummaryCard sessao={activeWorkflow} onNavigate={navigate} />
+            </>
           )}
 
           <SessionHistoryList
-            sessoes={sessoes.filter(s => s.id !== nextSession?.id && s.id !== (activeWorkflow || (state === 'POST_PRODUCTION' ? lastSession : null))?.id)}
+            sessoes={sessoes.filter(s => s.id !== nextSession?.id && s.id !== activeWorkflow?.id)}
             onOpenWorkflow={handleOpenWorkflow}
           />
 
