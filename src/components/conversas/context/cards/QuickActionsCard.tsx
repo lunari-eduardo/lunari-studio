@@ -18,14 +18,15 @@ export function QuickActionsCard({ state, hasCliente, onNavigate, onCreateLead, 
     actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
     actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
     actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
-  } else if (state === 'LEAD') {
+  } else if (state === 'ACTIVE_LEAD') {
     actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
     actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
-  } else if (state === 'SESSION') {
+  } else if (state === 'ACTIVE_SESSION') {
     actions.push({ id: 'pagamento', label: 'Registrar Pagamento', icon: <DollarSign className="h-4 w-4" />, onClick: onOpenPayment });
     actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
     actions.push({ id: 'charge', label: 'Cobrar via link', icon: <Link className="h-4 w-4" />, onClick: onOpenChargeLink });
-  } else if (state === 'POST_SALE') {
+  } else if (state === 'CLIENT') {
+    actions.push({ id: 'lead', label: 'Criar Oportunidade', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
     actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
     actions.push({ id: 'agenda', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
   }

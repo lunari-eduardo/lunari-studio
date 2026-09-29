@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface ContactLeadOpportunityCardProps {
   onCreateLead: () => void;
-  onLinkClient: () => void;
+  onLinkClient?: () => void;
   detectedCategory?: string;
 }
 
@@ -39,14 +39,16 @@ export function ContactLeadOpportunityCard({
             <Target className="h-3.5 w-3.5 mr-1.5" />
             Criar Lead / Oportunidade
           </Button>
-          <Button
-            onClick={onLinkClient}
-            variant="ghost"
-            className="w-full h-8 text-[11px] font-medium text-muted-foreground hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5"
-          >
-            <Link className="h-3.5 w-3.5 mr-1.5 opacity-70" />
-            Vincular Cliente Existente
-          </Button>
+          {onLinkClient && (
+            <Button
+              onClick={onLinkClient}
+              variant="ghost"
+              className="w-full h-8 text-[11px] font-medium text-muted-foreground hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/5"
+            >
+              <Link className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+              Vincular Cliente Existente
+            </Button>
+          )}
         </div>
       </div>
 

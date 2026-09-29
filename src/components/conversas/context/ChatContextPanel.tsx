@@ -51,7 +51,7 @@ import { WorkflowPaymentsModal } from '@/components/workflow/WorkflowPaymentsMod
 import { ChargeModal } from '@/components/cobranca/ChargeModal';
 import type { SessionData } from '@/types/workflow';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
-import { useLeadIntentAnalyzer } from '@/hooks/useLeadIntentAnalyzer';
+import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
 import LeadFormModal from '@/components/leads/LeadFormModal';
@@ -192,25 +192,24 @@ export function ChatContextPanel({
   const [manualSuggestedCategory, setManualSuggestedCategory] = useState<string | undefined>();
   const isUnknownContact = chatState === 'UNKNOWN';
 
-  const { suggestedCategory: aiSuggestedCategory, analyzing } = useLeadIntentAnalyzer({
-    isUnknownContact,
+  const commercialIntent = useCommercialIntent(
     messages,
-    availableCategories: categorias?.map(c => c.nome) || [],
-  });
+    categorias?.map(c => c.nome) || [],
+  );
 
   const { needsFollowUp, daysIgnored, suggestedCategory: followUpSuggestedCategory } = useFollowUpEngine(chat as Chat, lead);
 
   const resolvedCategoryForTemplates = (() => {
-    if (chatState === 'UNKNOWN') return aiSuggestedCategory;
-    if (chatState === 'LEAD' && needsFollowUp) return followUpSuggestedCategory;
-    if (chatState === 'SESSION') return sessoes?.[0]?.categoria; // ContextSessao tem categoria (string)
+    if (chatState === 'UNKNOWN') return commercialIntent.service;
+    if (chatState === 'ACTIVE_LEAD' && needsFollowUp) return followUpSuggestedCategory;
+    if (chatState === 'ACTIVE_SESSION') return sessoes?.[0]?.categoria; // ContextSessao tem categoria (string)
     return undefined;
   })();
 
   const resolvedStepForTemplates = (() => {
     if (chatState === 'UNKNOWN') return 'primeiro_contato';
-    if (chatState === 'LEAD') return needsFollowUp ? 'follow_up' : 'orcamento';
-    if (chatState === 'SESSION') {
+    if (chatState === 'ACTIVE_LEAD') return needsFollowUp ? 'follow_up' : 'orcamento';
+    if (chatState === 'ACTIVE_SESSION') {
       const s = sessoes?.[0];
       if (!s) return 'geral';
       if ((s.valor_total || 0) > (s.valor_pago || 0)) return 'financeiro';
@@ -218,7 +217,7 @@ export function ChatContextPanel({
       if (s.status_workflow === 'fotografado' || s.status_workflow === 'edicao') return 'entrega';
       return 'pre_ensaio';
     }
-    if (chatState === 'POST_SALE') return 'pos_venda';
+    if (chatState === 'CLIENT') return 'pos_venda';
     return 'geral';
   })();
 
@@ -251,7 +250,7 @@ export function ChatContextPanel({
             <ContactLeadOpportunityCard 
               onCreateLead={() => setIsLeadModalOpen(true)}
               onLinkClient={() => setIsClientLinkModalOpen(true)}
-              detectedCategory={aiSuggestedCategory}
+              detectedCategory={commercialIntent.service}
             />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
@@ -273,7 +272,7 @@ export function ChatContextPanel({
           </>
         );
       
-      case 'LEAD':
+      case 'ACTIVE_LEAD':
         return (
           <>
             <LeadContextCard lead={lead} onOpenCRM={() => navigate('/leads')} />
@@ -298,7 +297,7 @@ export function ChatContextPanel({
           </>
         );
 
-      case 'SESSION':
+      case 'ACTIVE_SESSION':
         return (
           <>
             <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
@@ -323,9 +322,15 @@ export function ChatContextPanel({
           </>
         );
 
-      case 'POST_SALE':
+      case 'CLIENT':
         return (
           <>
+            {commercialIntent.detected && (
+              <ContactLeadOpportunityCard 
+                onCreateLead={() => setIsLeadModalOpen(true)}
+                detectedCategory={commercialIntent.service}
+              />
+            )}
             <SmartSessionCard sessoes={sessoes} orcamentos={orcamentos} onOpenWorkflow={handleOpenWorkflow} onNavigate={navigate} />
             <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
               <TemplatesListTab
@@ -503,6 +508,7 @@ export function ChatContextPanel({
             telefone: cliente?.telefone || chat.contato_phone_normalized || chat.id.split('@')[0] || '',
             clienteId: cliente?.id,
             origem: 'WhatsApp',
+            observacoes: commercialIntent.detected ? `Interesse em: ${commercialIntent.service || "Geral"}\n\nMensagem do contato: "${messages.find(m => m.direction === "inbound" && m.type === "text")?.content || ""}"` : "",
           } as unknown as Lead}
           onSubmit={async (data) => {
             try {

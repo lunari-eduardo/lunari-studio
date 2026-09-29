@@ -1,6 +1,19 @@
+/**
+ * Máquina de estados simplificada para o contexto da conversa.
+ *
+ * 4 estados base — a intenção comercial NÃO é um estado,
+ * mas uma camada contextual paralela (CommercialIntent).
+ *
+ * Prioridade de resolução:
+ *   1. Sessão ativa/futura → ACTIVE_SESSION
+ *   2. Lead ativo no funil → ACTIVE_LEAD
+ *   3. Cliente existente no CRM → CLIENT
+ *   4. Nenhum vínculo → UNKNOWN
+ */
+
 import { useMemo } from 'react';
 
-export type ChatState = 'UNKNOWN' | 'LEAD' | 'SESSION' | 'POST_SALE';
+export type ChatState = 'UNKNOWN' | 'CLIENT' | 'ACTIVE_LEAD' | 'ACTIVE_SESSION';
 
 export interface ChatStateData {
   cliente: any | null;
@@ -10,22 +23,22 @@ export interface ChatStateData {
 
 export function useChatStateResolver({ cliente, lead, sessoes }: ChatStateData): ChatState {
   return useMemo(() => {
-    // ESTADO 3: Tem sessão em andamento/ativa
+    // Prioridade 1: Sessão ativa ou futura
     if (sessoes && sessoes.length > 0) {
-      return 'SESSION';
+      return 'ACTIVE_SESSION';
     }
 
-    // ESTADO 2: Tem um lead ativo (não ganho/perdido)
+    // Prioridade 2: Lead ativo no funil (não ganho/perdido)
     if (lead && lead.id) {
-      return 'LEAD';
+      return 'ACTIVE_LEAD';
     }
 
-    // ESTADO 4: Tem vínculo com cliente, mas sem sessão ativa ou lead (Pós-Venda)
+    // Prioridade 3: Cliente vinculado ao CRM (sem sessão nem lead ativo)
     if (cliente && cliente.id) {
-      return 'POST_SALE';
+      return 'CLIENT';
     }
 
-    // ESTADO 1: Sem cliente e sem lead
+    // Prioridade 4: Contato desconhecido
     return 'UNKNOWN';
   }, [cliente, lead, sessoes]);
 }

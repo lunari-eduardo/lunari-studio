@@ -45,19 +45,19 @@ export function ContactHeaderCard({ chat, state, cliente, lead }: ContactHeaderC
             {name}
           </h3>
           {/* Tag lateral */}
-          {state === 'LEAD' && (
+          {state === 'ACTIVE_LEAD' && (
             <div className="flex shrink-0 items-center gap-1 bg-[#8B5CF6]/10 text-[#8B5CF6] px-2 py-0.5 rounded-full text-[10px] font-medium border border-[#8B5CF6]/20">
               <Star className="h-2.5 w-2.5 fill-current" /> Lead
             </div>
           )}
-          {state === 'SESSION' && (
+          {state === 'ACTIVE_SESSION' && (
             <div className="flex shrink-0 items-center gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-500/20">
               <Star className="h-2.5 w-2.5 fill-current" /> Cliente
             </div>
           )}
-          {state === 'POST_SALE' && (
+          {state === 'CLIENT' && (
             <div className="flex shrink-0 items-center gap-1 bg-[#3B82F6]/10 text-[#3B82F6] px-2 py-0.5 rounded-full text-[10px] font-medium border border-[#3B82F6]/20">
-              <CalendarDays className="h-2.5 w-2.5" /> Cliente recorrente
+              <CalendarDays className="h-2.5 w-2.5" /> Cliente
             </div>
           )}
         </div>
