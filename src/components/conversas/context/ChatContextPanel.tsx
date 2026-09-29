@@ -98,10 +98,10 @@ export function ChatContextPanel({
       const sess = sessoes.find(s => s.session_id === targetId || s.id === targetId);
       let dateParams = '';
       if (sess && sess.data_sessao) {
-        const d = new Date(sess.data_sessao);
-        if (!isNaN(d.getTime())) {
-          dateParams = `&month=${d.getMonth() + 1}&year=${d.getFullYear()}`;
-        }
+        const parts = sess.data_sessao.split('T')[0].split('-');
+          if (parts.length >= 2) {
+            dateParams = `&month=${parseInt(parts[1], 10)}&year=${parseInt(parts[0], 10)}`;
+          }
       }
       navigate(`/app/workflow?open_session=${targetId}${dateParams}`);
     } else {

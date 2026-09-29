@@ -1,30 +1,32 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Cliente } from '@/types/cliente';
-import { ClientMetrics } from '@/hooks/useClientMetrics';
 import { useDialogDropdownContext } from '@/components/ui/dialog';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useClienteDuplicateCheck } from '@/hooks/useClienteDuplicateCheck';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClienteFormData } from '../types';
 
 interface UseClienteFormStateProps {
-  clientesSupabase: any[];
-  clientMetrics: ClientMetrics[];
-  adicionarClienteSupabase: (data: any) => Promise<any>;
-  adicionarClienteCompletoSupabase: (data: any) => Promise<any>;
-  atualizarClienteCompletoSupabase: (id: string, data: any) => Promise<any>;
-  removerClienteSupabase: (id: string) => Promise<any>;
-  verificarClienteTemDados: (id: string) => Promise<{ temDados: boolean; sessoes: number; pagamentos: number }>;
+  clientesSupabase?: any[];
+  clientMetrics?: any[];
+  adicionarClienteSupabase?: (data: any) => Promise<any>;
+  adicionarClienteCompletoSupabase?: (data: any) => Promise<any>;
+  atualizarClienteCompletoSupabase?: (id: string, data: any) => Promise<any>;
+  removerClienteSupabase?: (id: string) => Promise<any>;
+  verificarClienteTemDados?: (id: string) => Promise<{ temDados: boolean; sessoes: number; pagamentos: number }>;
+  onClientMutated?: () => void;
 }
 
 export const useClienteFormState = ({
-  clientesSupabase,
-  clientMetrics,
+  clientesSupabase = [],
+  clientMetrics = [],
   adicionarClienteSupabase,
   adicionarClienteCompletoSupabase,
   atualizarClienteCompletoSupabase,
   removerClienteSupabase,
   verificarClienteTemDados,
+  onClientMutated,
 }: UseClienteFormStateProps) => {
   const dropdownContext = useDialogDropdownContext();
   const [showClientForm, setShowClientForm] = useState(false);
@@ -139,55 +141,72 @@ export const useClienteFormState = ({
     setShowClientForm(true);
   };
 
-  const handleEditClient = (client: ClientMetrics) => {
+  const handleEditClient = async (client: any) => {
     setEditingClient(client as Cliente);
-    
-    // Find the full client data from Supabase list
-    const fullClient = clientesSupabase.find(c => c.id === client.id);
-    
-    // Find family members (we need to map them from familia array)
-    const conjugeData = fullClient?.familia?.find((f: any) => f.tipo === 'conjuge');
-    const filhosData = fullClient?.familia?.filter((f: any) => f.tipo === 'filho') || [];
-    
-    setFormData({
-      nome: client.nome,
-      email: client.email,
-      telefone: client.telefone,
-      origem: (client as any).origem || '',
-      whatsapp: fullClient?.whatsapp || '',
-      data_nascimento: fullClient?.data_nascimento || '',
-      cep: fullClient?.cep || '',
-      endereco: fullClient?.endereco || '',
-      endereco_numero: fullClient?.endereco_numero || '',
-      endereco_complemento: fullClient?.endereco_complemento || '',
-      bairro: fullClient?.bairro || '',
-      cidade: fullClient?.cidade || '',
-      uf: fullClient?.uf || '',
-      cpf_cnpj: fullClient?.cpf_cnpj || '',
-      observacoes: fullClient?.observacoes || '',
-      familia: {
-        conjuge: conjugeData ? { nome: conjugeData.nome, dataNascimento: conjugeData.data_nascimento } : undefined,
-        filhos: filhosData.map((f: any) => ({ id: f.id, nome: f.nome, dataNascimento: f.data_nascimento }))
-      }
-    });
+
+    // Tenta carregar dados completos e família sob demanda
+    try {
+      const { data: fullClient } = await supabase
+        .from('clientes')
+        .select('*, clientes_familia(*)')
+        .eq('id', client.id)
+        .single();
+
+      const conjugeData = fullClient?.clientes_familia?.find((f: any) => f.tipo === 'conjuge');
+      const filhosData = fullClient?.clientes_familia?.filter((f: any) => f.tipo === 'filho') || [];
+
+      setFormData({
+        nome: fullClient?.nome || client.nome,
+        email: fullClient?.email || client.email || '',
+        telefone: fullClient?.telefone || client.telefone || '',
+        origem: fullClient?.origem || client.origem || '',
+        whatsapp: fullClient?.whatsapp || client.whatsapp || '',
+        data_nascimento: fullClient?.data_nascimento || '',
+        cep: fullClient?.cep || '',
+        endereco: fullClient?.endereco || '',
+        endereco_numero: fullClient?.endereco_numero || '',
+        endereco_complemento: fullClient?.endereco_complemento || '',
+        bairro: fullClient?.bairro || '',
+        cidade: fullClient?.cidade || '',
+        uf: fullClient?.uf || '',
+        cpf_cnpj: fullClient?.cpf_cnpj || '',
+        observacoes: fullClient?.observacoes || '',
+        familia: {
+          conjuge: conjugeData ? { nome: conjugeData.nome, dataNascimento: conjugeData.data_nascimento } : undefined,
+          filhos: filhosData.map((f: any) => ({ id: f.id, nome: f.nome, dataNascimento: f.data_nascimento })),
+        },
+      });
+    } catch {
+      // Fallback
+      setFormData({
+        nome: client.nome || '',
+        email: client.email || '',
+        telefone: client.telefone || '',
+        origem: client.origem || '',
+        whatsapp: client.whatsapp || '',
+      });
+    }
+
     setShowClientForm(true);
   };
 
   const handleDeleteClient = async (clientId: string) => {
-    const { temDados, sessoes, pagamentos } = await verificarClienteTemDados(clientId);
-    if (temDados) {
-      let mensagem = 'Este cliente possui dados vinculados e não pode ser excluído:\n\n';
-      if (sessoes > 0) {
-        mensagem += `• ${sessoes} sessão/sessões no histórico\n`;
+    if (verificarClienteTemDados) {
+      const { temDados, sessoes, pagamentos } = await verificarClienteTemDados(clientId);
+      if (temDados) {
+        let mensagem = 'Este cliente possui dados vinculados e não pode ser excluído:\n\n';
+        if (sessoes > 0) {
+          mensagem += `• ${sessoes} sessão/sessões no histórico\n`;
+        }
+        if (pagamentos > 0) {
+          mensagem += `• ${pagamentos} pagamento(s) registrado(s)\n`;
+        }
+        toast.error(mensagem, {
+          duration: 6000,
+          description: 'Para manter a integridade dos dados, clientes com histórico não podem ser removidos.',
+        });
+        return;
       }
-      if (pagamentos > 0) {
-        mensagem += `• ${pagamentos} pagamento(s) registrado(s)\n`;
-      }
-      toast.error(mensagem, {
-        duration: 6000,
-        description: 'Para manter a integridade dos dados, clientes com histórico não podem ser removidos.',
-      });
-      return;
     }
 
     const confirmed = await confirm({
@@ -200,39 +219,73 @@ export const useClienteFormState = ({
 
     if (confirmed) {
       try {
-        await removerClienteSupabase(clientId);
-        toast.success('Cliente excluído com sucesso');
-      } catch {
-        // Tratar erro se necessário
+        if (removerClienteSupabase) {
+          await removerClienteSupabase(clientId);
+        } else {
+          const { error } = await supabase.from('clientes').delete().eq('id', clientId);
+          if (error) throw error;
+        }
+        toast.success('Cliente removido com sucesso');
+        onClientMutated?.();
+      } catch (error) {
+        console.error('Erro ao excluir cliente:', error);
+        toast.error('Erro ao excluir cliente');
       }
     }
   };
 
   const handleSaveClient = async () => {
-    if (!formData.nome || !formData.nome.trim()) {
-      toast.error('Nome é obrigatório');
+    if (!formData.nome.trim()) {
+      toast.error('O nome do cliente é obrigatório');
       return;
     }
 
-    if (!editingClient && !forceCreate && duplicateCheck.isDuplicata) {
+    if (duplicateCheck.isDuplicata && !forceCreate && !editingClient) {
       setShowDuplicateDialog(true);
       return;
     }
 
     try {
-      const payload = {
-        ...formData,
+      const payload: any = {
+        nome: formData.nome.trim(),
+        email: formData.email?.trim() || null,
+        telefone: formData.telefone?.trim() || '',
+        whatsapp: formData.whatsapp?.trim() || null,
+        origem: formData.origem || null,
+        data_nascimento: formData.data_nascimento || null,
+        cep: formData.cep || null,
+        endereco: formData.endereco || null,
+        endereco_numero: formData.endereco_numero || null,
+        endereco_complemento: formData.endereco_complemento || null,
+        bairro: formData.bairro || null,
+        cidade: formData.cidade || null,
+        uf: formData.uf || null,
+        cpf_cnpj: formData.cpf_cnpj || null,
+        observacoes: formData.observacoes || null,
         conjuge: formData.familia?.conjuge,
         filhos: formData.familia?.filhos,
       };
-      
+
       if (editingClient) {
-        await atualizarClienteCompletoSupabase(editingClient.id, payload);
+        if (atualizarClienteCompletoSupabase) {
+          await atualizarClienteCompletoSupabase(editingClient.id, payload);
+        } else {
+          const { error } = await supabase.from('clientes').update(payload).eq('id', editingClient.id);
+          if (error) throw error;
+        }
         toast.success('Cliente atualizado com sucesso');
       } else {
-        await adicionarClienteCompletoSupabase(payload);
+        if (adicionarClienteCompletoSupabase) {
+          await adicionarClienteCompletoSupabase(payload);
+        } else {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Usuário não autenticado');
+          const { error } = await supabase.from('clientes').insert({ ...payload, user_id: user.id });
+          if (error) throw error;
+        }
         toast.success('Cliente adicionado com sucesso');
       }
+
       setShowClientForm(false);
       setEditingClient(null);
       setFormData({
@@ -244,23 +297,22 @@ export const useClienteFormState = ({
       setShowSuggestions(true);
       setShowDuplicateDialog(false);
       setForceCreate(false);
-    } catch {
-      // Tratar erro se necessário
+      onClientMutated?.();
+    } catch (err) {
+      console.error('Erro ao salvar cliente:', err);
+      toast.error('Erro ao salvar cliente');
     }
   };
 
   const handleEditSuggestion = (cliente: Cliente) => {
-    const clienteLegacy = clientMetrics.find((c) => c.id === cliente.id);
-    if (clienteLegacy) {
-      setShowClientForm(false);
-      setShowSuggestions(true);
-      setShowDuplicateDialog(false);
-      setForceCreate(false);
+    setShowClientForm(false);
+    setShowSuggestions(true);
+    setShowDuplicateDialog(false);
+    setForceCreate(false);
 
-      setTimeout(() => {
-        handleEditClient(clienteLegacy);
-      }, 100);
-    }
+    setTimeout(() => {
+      handleEditClient(cliente);
+    }, 100);
   };
 
   const handleDismissSuggestions = () => {
@@ -291,11 +343,19 @@ export const useClienteFormState = ({
     setShowDuplicateDialog(false);
   };
 
-  const handleWhatsApp = (cliente: ClientMetrics) => {
-    const telefone = cliente.telefone.replace(/\D/g, '');
+  const handleWhatsApp = (cliente: any) => {
+    const rawNumber = cliente.whatsapp || cliente.telefone || '';
+    const cleanNumber = rawNumber.replace(/\D/g, '');
+
+    if (!cleanNumber) {
+      toast.error('Cliente não possui telefone ou WhatsApp cadastrado');
+      return;
+    }
+
     const mensagem = `Olá ${cliente.nome}! 😊\n\nComo você está? Espero que esteja tudo bem!\n\nEstou entrando em contato para...`;
     const mensagemCodificada = encodeURIComponent(mensagem);
-    const link = `https://wa.me/55${telefone}?text=${mensagemCodificada}`;
+    const ddi = cleanNumber.length <= 11 ? '55' : '';
+    const link = `https://wa.me/${ddi}${cleanNumber}?text=${mensagemCodificada}`;
     window.open(link, '_blank');
   };
 
