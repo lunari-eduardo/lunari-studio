@@ -71,8 +71,11 @@ export function ChatContextPanel({
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
   const contextData = useConversasContactContext(chat);
-  const { unifiedContext, sessoes, vincularAmbos, vincularCliente, criarTarefaRapida, concluirTarefa } = contextData;
-  const { state, contact, client, lead, nextSession, lastSession, activeWorkflow, gallery, metrics, templateContext, isLoading, error } = unifiedContext;
+  const { unifiedContext, sessoes, vincularAmbos, vincularCliente } = contextData;
+  const { state, contact, client, lead, nextSession, lastSession, activeWorkflow, gallery, templateContext, isLoading, error } = unifiedContext;
+
+  const isLeadFinished = lead?.status ? ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(lead.status.toLowerCase()) : false;
+  const hasOpenLead = !!lead?.id && !isLeadFinished;
 
   const handleLinkClient = async (clienteId: string) => {
     if (!chat.contato_id) return;
@@ -161,6 +164,7 @@ export function ChatContextPanel({
             context={unifiedContext} 
             onCreateLead={() => setIsLeadModalOpen(true)}
             onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
+            onOpenClient={client?.id ? () => navigate(`/app/clientes/${client.id}`) : undefined}
           />
 
           {/* FLUXO OPERACIONAL: Próxima Sessão ou Sessão Ativa */}
@@ -206,6 +210,7 @@ export function ChatContextPanel({
             state={state} 
             onNavigate={navigate} 
             onCreateLead={() => setIsLeadModalOpen(true)}
+            canCreateLead={!hasOpenLead}
             onOpenWorkflow={() => handleOpenWorkflow()}
           />
 

@@ -12,9 +12,10 @@ interface Props {
   context: UnifiedContactContext;
   onCreateLead?: () => void;
   onLinkClient?: () => void;
+  onOpenClient?: () => void;
 }
 
-export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }: Props) {
+export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, onOpenClient }: Props) {
   const queryClient = useQueryClient();
   const { state, categoriaPrincipal, etapaVigente, futureCount, contact, client, lead } = context;
 
@@ -36,12 +37,14 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }:
     }
   };
 
-  const isLeadActive = state === 'OPEN_OPPORTUNITY' && lead?.id;
-  const isClientBase = client?.id && !isLeadActive;
+  const isLeadFinished = lead?.status ? ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(lead.status.toLowerCase()) : false;
+  const hasOpenLead = !!lead?.id && !isLeadFinished;
+  
+  const isClientBase = !!client?.id;
   const hasFutureSession = state === 'NEXT_SESSION' || futureCount > 0;
   
-  const canCreateLead = !isLeadActive && !hasFutureSession && state !== 'ACTIVE_SESSION';
-  const showMenu = (canCreateLead && onCreateLead) || onLinkClient;
+  const canCreateLead = !hasOpenLead;
+  const showMenu = (canCreateLead && onCreateLead) || onLinkClient || isClientBase;
 
   return (
     <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col gap-3">
@@ -68,15 +71,21 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }:
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {canCreateLead && onCreateLead && (
-                    <DropdownMenuItem onClick={onCreateLead} className="gap-2 cursor-pointer">
+                    <DropdownMenuItem onClick={onCreateLead} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
                       <Plus className="h-4 w-4" />
                       Criar Lead
                     </DropdownMenuItem>
                   )}
                   {onLinkClient && (
-                    <DropdownMenuItem onClick={onLinkClient} className="gap-2 cursor-pointer">
+                    <DropdownMenuItem onClick={onLinkClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
                       <Link className="h-4 w-4" />
                       Vincular Cliente Existente
+                    </DropdownMenuItem>
+                  )}
+                  {isClientBase && onOpenClient && (
+                    <DropdownMenuItem onClick={onOpenClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
+                      <Star className="h-4 w-4" />
+                      Ver Cliente no CRM
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -84,10 +93,10 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }:
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-            {isLeadActive && (
+            {hasOpenLead && (
               <>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-[10px] font-bold">
-                  <Star className="h-3 w-3 fill-current" />
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-medium tracking-tight">
+                  <Star className="h-2.5 w-2.5 fill-current opacity-70" />
                   Lead
                 </div>
                 <LeadStatusDropdown leadId={lead.id} currentStatusKey={lead.status} />
@@ -96,13 +105,13 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }:
             
             {isClientBase && (
               <>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
-                  <Star className="h-3 w-3 fill-current" />
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">
+                  <Star className="h-2.5 w-2.5 fill-current opacity-70" />
                   Cliente
                 </div>
                 {hasFutureSession && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-600 dark:text-amber-500">
-                    <Calendar className="h-3 w-3" />
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-[10px] font-medium tracking-tight text-amber-600 dark:text-amber-500">
+                    <Calendar className="h-2.5 w-2.5 opacity-70" />
                     Sessão agendada
                   </div>
                 )}

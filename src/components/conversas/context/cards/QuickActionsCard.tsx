@@ -6,14 +6,18 @@ interface QuickActionsCardProps {
   onNavigate: (path: string) => void;
   onCreateLead?: () => void;
   onOpenWorkflow?: () => void;
+  canCreateLead?: boolean;
 }
 
-export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkflow }: QuickActionsCardProps) {
+export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkflow, canCreateLead }: QuickActionsCardProps) {
   const actions = [];
+  
+  if (canCreateLead) {
+    actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
+  }
 
   switch (state) {
     case 'NEW_CONTACT':
-      actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
       actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
       actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
       break;
@@ -23,7 +27,6 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
       actions.push({ id: 'orcamento', label: 'Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
       break;
     case 'CLIENT':
-      actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
       actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
       actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
       break;

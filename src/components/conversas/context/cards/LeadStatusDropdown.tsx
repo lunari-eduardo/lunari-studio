@@ -50,10 +50,18 @@ export function LeadStatusDropdown({ leadId, currentStatusKey }: LeadStatusDropd
       <PopoverTrigger asChild>
         <button 
           disabled={isStatusesLoading || isUpdating}
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-600 dark:text-amber-500 hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-medium tracking-tight text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
         >
-          {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : displayLabel}
-          <ChevronDown className="h-3 w-3 opacity-70" />
+          {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : (
+            <>
+              <div
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: currentStatus?.color || '#ccc' }}
+              />
+              {displayLabel}
+            </>
+          )}
+          <ChevronDown className="h-3 w-3 opacity-50 ml-0.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-48 p-0" align="start">
