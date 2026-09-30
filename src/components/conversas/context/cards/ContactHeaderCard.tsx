@@ -1,17 +1,20 @@
-import { RefreshCcw, Star, Calendar } from 'lucide-react';
+import { RefreshCcw, Star, Calendar, MoreVertical, Plus, Link } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { UnifiedContactContext } from '@/hooks/useConversasContactContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { LeadStatusDropdown } from './LeadStatusDropdown';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Props {
   chat: any;
   context: UnifiedContactContext;
+  onCreateLead?: () => void;
+  onLinkClient?: () => void;
 }
 
-export function ContactHeaderCard({ chat, context }: Props) {
+export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient }: Props) {
   const queryClient = useQueryClient();
   const { state, categoriaPrincipal, etapaVigente, futureCount, contact, client, lead } = context;
 
@@ -36,6 +39,9 @@ export function ContactHeaderCard({ chat, context }: Props) {
   const isLeadActive = state === 'OPEN_OPPORTUNITY' && lead?.id;
   const isClientBase = client?.id && !isLeadActive;
   const hasFutureSession = state === 'NEXT_SESSION' || futureCount > 0;
+  
+  const canCreateLead = !isLeadActive && !hasFutureSession && state !== 'ACTIVE_SESSION';
+  const showMenu = (canCreateLead && onCreateLead) || onLinkClient;
 
   return (
     <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col gap-3">
@@ -49,9 +55,34 @@ export function ContactHeaderCard({ chat, context }: Props) {
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col flex-1 min-w-0">
-          <h3 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight">
-            {contact.name}
-          </h3>
+          <div className="flex justify-between items-start">
+            <h3 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight pr-2">
+              {contact.name}
+            </h3>
+            {showMenu && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 outline-none flex-shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {canCreateLead && onCreateLead && (
+                    <DropdownMenuItem onClick={onCreateLead} className="gap-2 cursor-pointer">
+                      <Plus className="h-4 w-4" />
+                      Criar Lead
+                    </DropdownMenuItem>
+                  )}
+                  {onLinkClient && (
+                    <DropdownMenuItem onClick={onLinkClient} className="gap-2 cursor-pointer">
+                      <Link className="h-4 w-4" />
+                      Vincular Cliente Existente
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
             {isLeadActive && (
               <>

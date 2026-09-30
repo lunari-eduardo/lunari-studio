@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X,
-  Plus,
   StickyNote,
   Trash2,
   Loader2,
@@ -21,9 +20,6 @@ import { toast } from 'sonner';
 
 import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { ClientLinkModal } from './modals/ClientLinkModal';
-import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
-import { LeadContextCard } from './cards/LeadContextCard';
-import { ContactLeadOpportunityCard } from './cards/ContactLeadOpportunityCard';
 import LeadFormModal from '@/components/leads/LeadFormModal';
 import { useLeads } from '@/hooks/useLeads';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
@@ -31,13 +27,10 @@ import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
 import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
-import { WorkflowPaymentsModal } from '@/components/workflow/WorkflowPaymentsModal';
-import { ChargeModal } from '@/components/cobranca/ChargeModal';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
-import { RelationshipSummaryCard } from './cards/RelationshipSummaryCard';
 import { SessionHistoryList } from './cards/SessionHistoryList';
 
 export interface ChatContextPanelProps {
@@ -72,21 +65,14 @@ export function ChatContextPanel({
   const { addLead, convertToClient } = useLeads();
   const { atualizarCliente } = useClientesRealtime();
   const { updateContato } = useConversasContatos();
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isChargeLinkModalOpen, setIsChargeLinkModalOpen] = useState(false);
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
   const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
-  const [isClientCreateModalOpen, setIsClientCreateModalOpen] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
 
   const contextData = useConversasContactContext(chat);
   const { unifiedContext, sessoes, vincularAmbos, vincularCliente, criarTarefaRapida, concluirTarefa } = contextData;
   const { state, contact, client, lead, nextSession, lastSession, activeWorkflow, gallery, metrics, templateContext, isLoading, error } = unifiedContext;
-
-  const handleCreateClient = async (data: { nome: string; telefone: string }) => {
-    // Apenas stub caso precise, mas a criaÃ§Ã£o real estÃ¡ no ClientCreateFromContactModal
-  };
 
   const handleLinkClient = async (clienteId: string) => {
     if (!chat.contato_id) return;
@@ -170,18 +156,12 @@ export function ChatContextPanel({
 
       <div className="flex-1 overflow-y-auto scrollbar-hide" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
         <div className="p-4 flex flex-col gap-4">
-          <ContactHeaderCard chat={chat} context={unifiedContext} />
-
-          {/* FLUXO COMERCIAL: Oportunidade ou Botão de Criar */}
-          {lead?.id && !['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(lead.status?.toLowerCase() || '') ? (
-            <LeadContextCard lead={lead} onOpenCRM={() => navigate('/app/comercial')} />
-          ) : (
-            <ContactLeadOpportunityCard 
-              isClient={!!client?.id} 
-              onCreateLead={() => setIsLeadModalOpen(true)}
-              onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
-            />
-          )}
+          <ContactHeaderCard 
+            chat={chat} 
+            context={unifiedContext} 
+            onCreateLead={() => setIsLeadModalOpen(true)}
+            onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
+          />
 
           {/* FLUXO OPERACIONAL: Próxima Sessão ou Sessão Ativa */}
           {state === 'NEXT_SESSION' && nextSession && (
@@ -208,11 +188,6 @@ export function ChatContextPanel({
             </>
           )}
 
-          {/* RESUMO DE CLIENTE */}
-          {client?.id && (
-            <RelationshipSummaryCard context={unifiedContext} />
-          )}
-
           <SessionHistoryList
             sessoes={sessoes.filter(s => s.id !== nextSession?.id && s.id !== activeWorkflow?.id)}
             onOpenWorkflow={handleOpenWorkflow}
@@ -229,12 +204,9 @@ export function ChatContextPanel({
 
           <QuickActionsCard 
             state={state} 
-            hasCliente={!!client?.id} 
             onNavigate={navigate} 
             onCreateLead={() => setIsLeadModalOpen(true)}
             onOpenWorkflow={() => handleOpenWorkflow()}
-            onOpenPayment={() => setIsPaymentModalOpen(true)}
-            onOpenChargeLink={() => setIsChargeLinkModalOpen(true)}
           />
 
           {/* Notas Internas */}
@@ -336,12 +308,6 @@ export function ChatContextPanel({
             }
           }}
         />
-      )}
-      {isPaymentModalOpen && (
-        <WorkflowPaymentsModal isOpen={true} onClose={() => setIsPaymentModalOpen(false)} sessionData={nextSession || lastSession || {} as any} onPaymentUpdate={() => {}} />
-      )}
-      {isChargeLinkModalOpen && (
-        <ChargeModal isOpen={isChargeLinkModalOpen} onClose={() => setIsChargeLinkModalOpen(false)} clienteId={client?.id || ''} valorSugerido={(nextSession || lastSession)?.valor_total || 0} sessionId={(nextSession || lastSession)?.session_id || ''} />
       )}
     </div>
   );

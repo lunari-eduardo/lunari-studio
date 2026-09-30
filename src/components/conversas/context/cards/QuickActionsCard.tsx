@@ -1,17 +1,14 @@
-import { Calendar, DollarSign, Briefcase, Sparkles, User, Link, Image } from 'lucide-react';
+import { Calendar, DollarSign, Briefcase, Sparkles, User, Image } from 'lucide-react';
 import type { ChatContactState } from '@/hooks/useChatStateResolver';
 
 interface QuickActionsCardProps {
   state: ChatContactState;
-  hasCliente: boolean;
   onNavigate: (path: string) => void;
   onCreateLead?: () => void;
   onOpenWorkflow?: () => void;
-  onOpenPayment?: () => void;
-  onOpenChargeLink?: () => void;
 }
 
-export function QuickActionsCard({ state, hasCliente, onNavigate, onCreateLead, onOpenWorkflow, onOpenPayment, onOpenChargeLink }: QuickActionsCardProps) {
+export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkflow }: QuickActionsCardProps) {
   const actions = [];
 
   switch (state) {
@@ -26,6 +23,7 @@ export function QuickActionsCard({ state, hasCliente, onNavigate, onCreateLead, 
       actions.push({ id: 'orcamento', label: 'Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
       break;
     case 'CLIENT':
+      actions.push({ id: 'lead', label: 'Criar Lead', icon: <User className="h-4 w-4" />, onClick: onCreateLead || (() => onNavigate('/app/leads')) });
       actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
       actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
       break;
