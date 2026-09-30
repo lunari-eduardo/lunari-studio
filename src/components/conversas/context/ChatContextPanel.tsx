@@ -23,6 +23,7 @@ import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { ClientLinkModal } from './modals/ClientLinkModal';
 import { ClientCreateFromContactModal } from './modals/ClientCreateFromContactModal';
 import { LeadContextCard } from './cards/LeadContextCard';
+import { ContactLeadOpportunityCard } from './cards/ContactLeadOpportunityCard';
 import LeadFormModal from '@/components/leads/LeadFormModal';
 import { useLeads } from '@/hooks/useLeads';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
@@ -171,15 +172,19 @@ export function ChatContextPanel({
         <div className="p-4 flex flex-col gap-4">
           <ContactHeaderCard chat={chat} context={unifiedContext} />
 
-          {/* STATE MACHINE: Apenas um contexto ativo */}
-          {state === 'NEW_CONTACT' || state === 'CLIENT' || state === 'OPEN_OPPORTUNITY' ? (
-            <RelationshipSummaryCard 
-               context={unifiedContext}
-               onCreateLead={() => setIsLeadModalOpen(true)}
-               onLinkClient={() => setIsClientLinkModalOpen(true)}
+          {/* FLUXO COMERCIAL: Oportunidade ou Botão de Criar */}
+          {lead?.id && !['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(lead.status?.toLowerCase() || '') ? (
+            <LeadContextCard lead={lead} onOpenCRM={() => navigate('/app/comercial')} />
+          ) : (
+            <ContactLeadOpportunityCard 
+              isClient={!!client?.id} 
+              onCreateLead={() => setIsLeadModalOpen(true)}
+              onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
+              detectedCategory={templateContext.category || undefined}
             />
-          ) : null}
+          )}
 
+          {/* FLUXO OPERACIONAL: Próxima Sessão ou Sessão Ativa */}
           {state === 'NEXT_SESSION' && nextSession && (
             <>
               <SmartSessionCard 
@@ -202,6 +207,11 @@ export function ChatContextPanel({
               />
               <FinancialSummaryCard sessao={activeWorkflow} onNavigate={navigate} />
             </>
+          )}
+
+          {/* RESUMO DE CLIENTE */}
+          {client?.id && (
+            <RelationshipSummaryCard context={unifiedContext} />
           )}
 
           <SessionHistoryList
