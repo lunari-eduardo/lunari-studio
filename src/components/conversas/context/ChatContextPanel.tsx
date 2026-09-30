@@ -180,7 +180,6 @@ export function ChatContextPanel({
               isClient={!!client?.id} 
               onCreateLead={() => setIsLeadModalOpen(true)}
               onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
-              detectedCategory={templateContext.category || undefined}
             />
           )}
 

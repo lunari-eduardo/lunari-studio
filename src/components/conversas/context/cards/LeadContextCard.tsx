@@ -40,7 +40,7 @@ export function LeadContextCard({ lead, onOpenCRM }: LeadContextCardProps) {
 
       <div className="flex items-center justify-between">
         <span className="text-[18px] font-bold text-zinc-900 dark:text-zinc-100">
-          {formatCurrency(lead.valor || lead.valor_estimado)}
+          {formatCurrency(lead.valor)}
         </span>
         <button
           type="button"

@@ -84,7 +84,6 @@ export interface ContextLead {
   telefone: string | null;
   status: string;
   origem: string | null;
-  valor_estimado: number | null;
   needs_follow_up: boolean | null;
   created_at: string;
 }
@@ -256,7 +255,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       if (effectiveLeadId) {
         const { data, error } = await (supabase as any)
           .from('leads')
-          .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at')
+          .select('id, nome, email, telefone, status, origem, needs_follow_up, created_at')
           .eq('id', effectiveLeadId)
           .eq('user_id', userId)
           .maybeSingle();
@@ -272,7 +271,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
 
         const { data: exactData, count: exactCount } = await (supabase as any)
           .from('leads')
-          .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at', { count: 'exact' })
+          .select('id, nome, email, telefone, status, origem, needs_follow_up, created_at', { count: 'exact' })
           .eq('user_id', userId)
           .or(`telefone.eq.${phoneWithoutDdi},whatsapp.eq.${phoneWithoutDdi}`)
           .limit(2);
@@ -285,7 +284,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
           const suffix = cleanPhone.slice(-8);
           const { data: fallbackData, count: fallbackCount } = await (supabase as any)
             .from('leads')
-            .select('id, nome, email, telefone, status, origem, valor_estimado, needs_follow_up, created_at', { count: 'exact' })
+            .select('id, nome, email, telefone, status, origem, needs_follow_up, created_at', { count: 'exact' })
             .eq('user_id', userId)
             .or(`telefone.ilike.%${suffix}%,whatsapp.ilike.%${suffix}%`)
             .limit(2);
@@ -400,6 +399,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });
     },
@@ -428,6 +428,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
     },
     onError: (err) => {
@@ -472,6 +473,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-context-cliente'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-sessoes-diretas'] });

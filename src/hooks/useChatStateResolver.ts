@@ -1,12 +1,12 @@
 /**
- * Máquina de estados consolidada do Contexto Ativo.
+ * Mï¿½quina de estados consolidada do Contexto Ativo.
  *
- * Prioridade inegociável (Top-Down):
- * 1. ACTIVE_SESSION: Existe uma sessão em andamento (pós-produção ou marcada para hoje).
- * 2. NEXT_SESSION: Existe uma sessão agendada no futuro (amanhã em diante).
- * 3. OPEN_OPPORTUNITY: Existe uma oportunidade (lead) aberta e não finalizada.
- * 4. CLIENT: Cliente da base, sem oportunidade e sem sessão.
- * 5. NEW_CONTACT: Contato sem vínculo.
+ * Prioridade inegociï¿½vel (Top-Down):
+ * 1. ACTIVE_SESSION: Existe uma sessï¿½o em andamento (pï¿½s-produï¿½ï¿½o ou marcada para hoje).
+ * 2. NEXT_SESSION: Existe uma sessï¿½o agendada no futuro (amanhï¿½ em diante).
+ * 3. OPEN_OPPORTUNITY: Existe uma oportunidade (lead) aberta e nï¿½o finalizada.
+ * 4. CLIENT: Cliente da base, sem oportunidade e sem sessï¿½o.
+ * 5. NEW_CONTACT: Contato sem vï¿½nculo.
  */
 
 import { useMemo } from 'react';
@@ -44,8 +44,8 @@ export function useChatStateResolver({ client, lead, sessions, gallery }: ChatSt
       return !['finalizado', 'cancelado', 'arquivado', 'entregue'].includes(status);
     }) || [];
 
-    // 1. ACTIVE_SESSION (Pós-produção ou Hoje)
-    // Uma sessão é ACTIVE se está em pós-produção OU está agendada exatamente para hoje.
+    // 1. ACTIVE_SESSION (Pï¿½s-produï¿½ï¿½o ou Hoje)
+    // Uma sessï¿½o ï¿½ ACTIVE se estï¿½ em pï¿½s-produï¿½ï¿½o OU estï¿½ agendada exatamente para hoje.
     const hasActiveSession = validSessions.some(s => {
       const status = (s.status || '').toLowerCase();
       const isPos = ['fotografado', 'edicao', 'selecao', 'diagramacao', 'aprovacao'].includes(status);
@@ -69,7 +69,7 @@ export function useChatStateResolver({ client, lead, sessions, gallery }: ChatSt
     if (hasFutureSession) return 'NEXT_SESSION';
 
     // 3. OPEN_OPPORTUNITY (Lead ativo)
-    // A oportunidade tem prioridade sobre o status genérico de Cliente.
+    // A oportunidade tem prioridade sobre o status genï¿½rico de Cliente.
     if (lead && lead.id) {
       const statusLower = (lead.status || '').toLowerCase();
       const isFinished = ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(statusLower);
@@ -122,7 +122,7 @@ const isPosProducao = (status: string) => {
 };
 
 /**
- * 1. PONTEIRO DO WORKFLOW ATIVO E CONCORRÊNCIA
+ * 1. PONTEIRO DO WORKFLOW ATIVO E CONCORRï¿½NCIA
  */
 export function resolveActiveWorkflowContext(sessions: any[] = []) {
   const activeSessions = sessions.filter(s => {
@@ -139,7 +139,7 @@ export function resolveActiveWorkflowContext(sessions: any[] = []) {
   };
   const todayIso = new Date().toISOString().slice(0, 10);
 
-  // Filtra as sessões que estão em pós-produção OU são exatamente hoje
+  // Filtra as sessï¿½es que estï¿½o em pï¿½s-produï¿½ï¿½o OU sï¿½o exatamente hoje
   const prioritySessions = activeSessions.filter(s => {
     const dataSessao = s.data_sessao || s.data;
     const isToday = dataSessao && getIsoDateLocal(dataSessao) === todayIso;
@@ -151,25 +151,40 @@ export function resolveActiveWorkflowContext(sessions: any[] = []) {
     const active = prioritySessions.sort((a, b) => {
       const dataA = a.data_sessao || a.data;
       const dataB = b.data_sessao || b.data;
-      // Ordenação decrescente: B - A
+      // Ordenaï¿½ï¿½o decrescente: B - A
       return new Date(dataB).getTime() - new Date(dataA).getTime();
     })[0];
     return { activeWorkflow: active, futureCount: activeSessions.length - 1 };
   }
 
-  // Se não tem pós nem hoje, pega a futura MAIS PRÓXIMA (crescente)
-  const futureSessions = activeSessions.sort((a, b) => {
+  // Separar as demais ativas em Futuras e Passadas
+  const futureSessions = activeSessions.filter(s => {
+    const dataSessao = s.data_sessao || s.data;
+    return dataSessao && getIsoDateLocal(dataSessao) > todayIso;
+  }).sort((a, b) => {
     const dataA = a.data_sessao || a.data;
     const dataB = b.data_sessao || b.data;
-    return new Date(dataA).getTime() - new Date(dataB).getTime();
+    return new Date(dataA).getTime() - new Date(dataB).getTime(); // Crescente
   });
-  return { activeWorkflow: futureSessions[0], futureCount: activeSessions.length - 1 };
+
+  if (futureSessions.length > 0) {
+    return { activeWorkflow: futureSessions[0], futureCount: activeSessions.length - 1 };
+  }
+
+  // Se nao tem futura, sobrou apenas as passadas
+  const pastSessions = activeSessions.sort((a, b) => {
+    const dataA = a.data_sessao || a.data;
+    const dataB = b.data_sessao || b.data;
+    return new Date(dataB).getTime() - new Date(dataA).getTime(); // Decrescente
+  });
+
+  return { activeWorkflow: pastSessions[0], futureCount: activeSessions.length - 1 };
 }
 
 export type CategoriaPrincipalInfo = { id: string | null; modo: 'MANUAL' | 'AUTOMATICO' };
 
 /**
- * 2. CATEGORIA PRINCIPAL (Manual x Cascata Automática)
+ * 2. CATEGORIA PRINCIPAL (Manual x Cascata Automï¿½tica)
  */
 export function resolveCategoriaPrincipal(contato: any, activeWorkflow: any, allSessions: any[]): CategoriaPrincipalInfo {
   if (contato?.categoria_manual_id) return { id: contato.categoria_manual_id, modo: 'MANUAL' };

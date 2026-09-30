@@ -4,6 +4,7 @@ import { useLeadStatuses } from '@/hooks/useLeadStatuses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { useLeads } from '@/hooks/useLeads';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface LeadStatusDropdownProps {
   leadId: string;
@@ -19,6 +20,8 @@ export function LeadStatusDropdown({ leadId, currentStatusKey }: LeadStatusDropd
   const currentStatus = statuses.find((s) => s.key === currentStatusKey);
   const displayLabel = currentStatus?.name || 'Status Desconhecido';
 
+  const queryClient = useQueryClient();
+
   const handleSelect = (statusKey: string) => {
     if (statusKey === currentStatusKey) {
       setOpen(false);
@@ -28,6 +31,11 @@ export function LeadStatusDropdown({ leadId, currentStatusKey }: LeadStatusDropd
     try {
       setIsUpdating(true);
       updateLead(leadId, { status: statusKey });
+      
+      // Invalida os caches do chat para refletir a mudança instantaneamente
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
+      queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
+      
       setOpen(false);
     } catch (error) {
       console.error('Erro ao atualizar status', error);
