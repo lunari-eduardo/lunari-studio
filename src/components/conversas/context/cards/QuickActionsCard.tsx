@@ -6,10 +6,11 @@ interface QuickActionsCardProps {
   onNavigate: (path: string) => void;
   onCreateLead?: () => void;
   onOpenWorkflow?: () => void;
+  onSchedule?: () => void;
   canCreateLead?: boolean;
 }
 
-export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkflow, canCreateLead }: QuickActionsCardProps) {
+export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkflow, onSchedule, canCreateLead }: QuickActionsCardProps) {
   const actions = [];
   
   if (canCreateLead) {
@@ -28,7 +29,7 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
       break;
     case 'CLIENT':
       actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
-      actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      actions.push({ id: 'nova_sessao', label: 'Agendar', icon: <Calendar className="h-4 w-4" />, onClick: onSchedule || (() => onNavigate('/app/agenda')) });
       break;
     case 'ACTIVE_SESSION':
       actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });

@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { TemplatesListTab } from '../templates/TemplatesListTab';
 import { ClientLinkModal } from './modals/ClientLinkModal';
 import LeadFormModal from '@/components/leads/LeadFormModal';
+import { useAppContext } from '@/contexts/AppContext';
 import { useLeads } from '@/hooks/useLeads';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
@@ -63,6 +64,7 @@ export function ChatContextPanel({
 }: ChatContextPanelProps) {
   const navigate = useNavigate();
   const { addLead, convertToClient } = useLeads();
+  const { setSelectedClientForScheduling } = useAppContext();
   const { atualizarCliente } = useClientesRealtime();
   const { updateContato } = useConversasContatos();
   const [notaDraft, setNotaDraft] = useState('');
@@ -212,6 +214,12 @@ export function ChatContextPanel({
             onCreateLead={() => setIsLeadModalOpen(true)}
             canCreateLead={!hasOpenLead}
             onOpenWorkflow={() => handleOpenWorkflow()}
+            onSchedule={() => {
+              if (client?.id) {
+                setSelectedClientForScheduling(client.id);
+              }
+              navigate('/app/agenda');
+            }}
           />
 
           {/* Notas Internas */}

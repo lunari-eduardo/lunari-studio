@@ -37,6 +37,9 @@ function acquireLeadsChannel(userId: string, queryClient: QueryClient) {
       },
       () => {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY, userId] });
+        queryClient.invalidateQueries({ queryKey: ['chat-lead-statuses'] });
+        queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
+        queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       }
     )
     .subscribe();
@@ -57,6 +60,15 @@ export function useSupabaseLeads() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const userId = user?.id;
+
+  // Helper para invalidar todos os caches relacionados a leads
+  const invalidateLeadCaches = useCallback(() => {
+    if (!userId) return;
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEY, userId] });
+    queryClient.invalidateQueries({ queryKey: ['chat-lead-statuses'] });
+    queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
+    queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
+  }, [queryClient, userId]);
 
   // Fetch leads from Supabase
   const {
@@ -124,7 +136,7 @@ export function useSupabaseLeads() {
       return supabaseLeadToFrontend(data);
     },
     onSuccess: (newLead) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, userId] });
+      invalidateLeadCaches();
       toast({
         title: 'Lead criado',
         description: `Lead "${newLead.nome}" criado com sucesso`,
@@ -256,7 +268,7 @@ export function useSupabaseLeads() {
     },
     onSettled: () => {
       // Always refetch to ensure consistency with server
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, userId] });
+      invalidateLeadCaches();
     },
   });
 
@@ -274,7 +286,7 @@ export function useSupabaseLeads() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, userId] });
+      invalidateLeadCaches();
       toast({
         title: 'Lead removido',
         description: 'Lead removido com sucesso',

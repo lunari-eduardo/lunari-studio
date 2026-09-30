@@ -83,5 +83,9 @@ export function useChatLeadStatuses(chats: EnrichedChat[]) {
     };
   }, [leadStatusMap, statusDefMap]);
 
-  return { getLeadStatusForChat };
+  return {
+    getLeadStatusForChat,
+    leadStatuses: statuses,
+    leadStatusMap,
+  };
 }

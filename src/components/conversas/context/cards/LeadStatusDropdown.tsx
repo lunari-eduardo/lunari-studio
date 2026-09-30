@@ -30,17 +30,23 @@ export function LeadStatusDropdown({ leadId, currentStatusKey }: LeadStatusDropd
 
     try {
       setIsUpdating(true);
+      
+      // Atualização otimista no cache local
+      queryClient.setQueriesData({ queryKey: ['conversas-context-lead'] }, (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, status: statusKey };
+      });
+      
       updateLead(leadId, { status: statusKey });
       
-      // Invalida os caches do chat para refletir a mudança instantaneamente
-      queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
       queryClient.invalidateQueries({ queryKey: ['conversas-contato-info'] });
       
       setOpen(false);
     } catch (error) {
       console.error('Erro ao atualizar status', error);
+      // Aqui idealmente reverteríamos o cache otimista em caso de falha, mas a query vai invalidar de qualquer forma
+      queryClient.invalidateQueries({ queryKey: ['conversas-context-lead'] });
     } finally {
-      // Pequeno timeout visual
       setTimeout(() => setIsUpdating(false), 500);
     }
   };

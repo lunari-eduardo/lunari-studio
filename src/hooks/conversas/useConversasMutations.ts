@@ -79,75 +79,21 @@ export function useConversasMutations(
     }
   }, [updateChat]);
 
-  const markAsRead = useCallback(
-    async (chatId: string) => {
-      const previousChats = [...chats];
-      setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: 0 } as Chat : c));
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const workerUrl = import.meta.env.VITE_EDGE_API_URL;
-          if (workerUrl) {
-            const res = await fetch(`${workerUrl}/api/conversas/mark-read/${chatId}`, {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${session.access_token}` },
-            });
-            
-            if (!res.ok) {
-              const errData = await res.json().catch(() => ({}));
-              throw new Error(errData.details || errData.error || 'Falha na Evolution API');
-            }
-            
-            await supabase
-              .from('conversas_chats')
-              .update({ unread_count: 0, updated_at: new Date().toISOString() })
-              .eq('id', chatId);
-              
-            return;
-          }
-        }
-      } catch (error: any) {
-        console.error('[Conversas] markAsRead worker error:', error);
-        toast.error(`Falha ao marcar como lido no WhatsApp: ${error.message}`);
-        setChats(previousChats);
-      }
-    },
-    [chats, setChats],
-  );
+  const markAsRead = useCallback(async (chatId: string) => {
+    try {
+      await updateChat(chatId, { unread_count: 0 });
+    } catch (error) {
+      console.error('[Conversas] markAsRead error:', error);
+    }
+  }, [updateChat]);
 
   const markAsUnread = useCallback(async (chatId: string) => {
-    const previousChats = [...chats];
-    setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: 1 } as Chat : c));
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        const workerUrl = import.meta.env.VITE_EDGE_API_URL;
-        if (workerUrl) {
-          const res = await fetch(`${workerUrl}/api/conversas/mark-unread/${chatId}`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.details || errData.error || 'Falha no Worker');
-          }
-
-          const responseData = await res.json();
-          if (responseData.warning) {
-            toast.warning(responseData.warning);
-          }
-          return;
-        }
-      }
-    } catch (error: any) {
-      console.error('[Conversas] markAsUnread worker error:', error);
-      toast.error(`Falha ao marcar como não lido: ${error.message}`);
-      setChats(previousChats);
+      await updateChat(chatId, { unread_count: 1 });
+    } catch (error) {
+      console.error('[Conversas] markAsUnread error:', error);
     }
-  }, [chats, setChats]);
+  }, [updateChat]);
 
   const deleteChat = useCallback(async (chatId: string) => {
     let snapshot = chats;

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ContactAvatar } from '../shared/ContactAvatar';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
+import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
 
 export interface ChatHeaderProps {
   chat: Chat | EnrichedChat;
@@ -47,6 +48,9 @@ export function ChatHeader({
       : chat.lead_id
       ? 'lead'
       : 'unknown';
+
+  const { getLeadStatusForChat } = useChatLeadStatuses([chat as EnrichedChat]);
+  const leadStatus = getLeadStatusForChat(chat as EnrichedChat);
 
   return (
     <div
@@ -84,15 +88,28 @@ export function ChatHeader({
             <span className="text-base font-semibold text-[#1C1C1C] dark:text-[#EFEFEF] truncate tracking-tight group-hover/header:text-[#B8925F] dark:group-hover/header:text-[#D4AF37] transition-colors leading-none">
               {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
+            {/* Tags de tipo de contato */}
             {contatoTipo === 'cliente' ? (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#C9A87C]/15 text-[#A58253] dark:bg-[#C9A87C]/20 dark:text-[#D4AF37] border border-[#C9A87C]/20 shrink-0 uppercase tracking-wider">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#C9A87C]/15 text-[#A58253] dark:bg-[#C9A87C]/20 dark:text-[#D4AF37] border-none shrink-0 uppercase tracking-wider">
                 Cliente
               </span>
             ) : contatoTipo === 'lead' ? (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/60 dark:border-zinc-700/60 shrink-0 uppercase tracking-wider">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-none shrink-0 uppercase tracking-wider">
                 Lead
               </span>
             ) : null}
+            {/* Tag do Status do Lead */}
+            {leadStatus && (
+              <span 
+                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold border-none shrink-0 uppercase tracking-wider"
+                style={{
+                  backgroundColor: `${leadStatus.color || '#94a3b8'}20`,
+                  color: leadStatus.color || '#94a3b8'
+                }}
+              >
+                {leadStatus.label}
+              </span>
+            )}
           </div>
           <div className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate mt-1 leading-none">
             {chat.contato_phone_normalized}

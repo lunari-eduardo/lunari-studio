@@ -1,25 +1,62 @@
 /**
  * Sidebar esquerda do módulo Conversas.
  *
- * Layout: barra de instância → header com busca → filtros primários →
+ * Layout: barra de instância → header com busca → filtros primários & etapas →
  * lista de chats.
  *
- * Fase 2: filtros primários (Todas / Não lidas / Clientes / Leads)
- * com contadores dinâmicos extraídos de `chatCounts`.
+ * Filtros suportados:
+ * - Todas (conversas ativas)
+ * - Não lidas (mensagens pendentes)
+ * - Dropdown com:
+ *   - CRM & Vínculos: Clientes, Todos os Leads, Outros Contatos
+ *   - Etapas do Funil (Leads): cada status do CRM com cor oficial e contagem dinâmica
+ *   - Status & Organização: Fixadas, Arquivadas
  */
 
 import { useMemo, useState } from 'react';
-import { Plus, Search, X, MessageSquare, Users, UserCheck } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  X,
+  MessageSquare,
+  Users,
+  UserCheck,
+  Pin,
+  Archive,
+  SlidersHorizontal,
+  ChevronDown,
+  Check,
+  RotateCcw,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { ChatListItem } from './ChatListItem';
 import { ChatListSkeleton } from './skeletons';
 import { InstanceStatusBar } from '../shared/InstanceStatusBar';
 import type { Chat, EnrichedChat, InstanciaStatus } from '@/modules/conversas/types';
 import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
+import { cn } from '@/lib/utils';
 
 export type PrimaryFilter = 'all' | 'unread' | 'cliente' | 'lead';
+
+export type SidebarFilter =
+  | { type: 'all' }
+  | { type: 'unread' }
+  | { type: 'cliente' }
+  | { type: 'lead' }
+  | { type: 'lead_stage'; stageKey: string; label: string; color?: string }
+  | { type: 'unknown' }
+  | { type: 'pinned' }
+  | { type: 'archived' };
 
 export interface ChatCounts {
   all: number;
@@ -48,7 +85,7 @@ export interface ChatListSidebarProps {
   studioDisplayName?: string | null;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
   isPinLimitReached?: boolean;
-  /** Contadores dinâmicos para os filtros primários. */
+  /** Contadores dinâmicos para os filtros primários (compatibilidade retroativa). */
   chatCounts: ChatCounts;
   onArchive?: (chat: EnrichedChat) => void;
   onBlock?: (chat: EnrichedChat) => void;
@@ -56,13 +93,6 @@ export interface ChatListSidebarProps {
   onMarkRead?: (chat: EnrichedChat) => void;
   onDeleteChat?: (chat: EnrichedChat) => void;
 }
-
-const FILTER_TABS: { key: PrimaryFilter; label: string; icon?: React.ElementType }[] = [
-  { key: 'all', label: 'Todas' },
-  { key: 'unread', label: 'Não lidas' },
-  { key: 'cliente', label: 'Clientes', icon: UserCheck },
-  { key: 'lead', label: 'Leads', icon: Users },
-];
 
 export function ChatListSidebar({
   chats,
@@ -79,7 +109,7 @@ export function ChatListSidebar({
   studioDisplayName,
   onTogglePin,
   isPinLimitReached = false,
-  chatCounts,
+  chatCounts: _legacyCounts,
   onArchive,
   onBlock,
   onMarkUnread,
@@ -87,45 +117,145 @@ export function ChatListSidebar({
   onDeleteChat,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<PrimaryFilter>('all');
-  const { getLeadStatusForChat } = useChatLeadStatuses(chats);
+  const [activeFilter, setActiveFilter] = useState<SidebarFilter>({ type: 'all' });
+  const { getLeadStatusForChat, leadStatuses = [], leadStatusMap = {} } = useChatLeadStatuses(chats);
 
-  // ─── Filtro combinado: primary filter + busca ─────────────────────────────────
+  // ─── Contadores dinâmicos por categoria e etapas ──────────────────────────────
+  const counts = useMemo(() => {
+    let all = 0;
+    let unread = 0;
+    let cliente = 0;
+    let lead = 0;
+    let unknown = 0;
+    let pinned = 0;
+    let archived = 0;
+    const stageCounts: Record<string, number> = {};
 
+    for (const c of chats) {
+      if (c.status === 'archived') {
+        archived++;
+        continue;
+      }
+      if (c.status !== 'active') continue;
+
+      all++;
+      if ((c.unread_count ?? 0) > 0) unread++;
+      if (c.contato_tipo === 'cliente') cliente++;
+      else if (c.contato_tipo === 'lead') lead++;
+      else unknown++;
+
+      if (c.pin === 'pinned') pinned++;
+
+      if (c.lead_id) {
+        const stageKey = leadStatusMap[c.lead_id];
+        if (stageKey) {
+          stageCounts[stageKey] = (stageCounts[stageKey] ?? 0) + 1;
+        }
+      }
+    }
+
+    return {
+      all,
+      unread,
+      cliente,
+      lead,
+      unknown,
+      pinned,
+      archived,
+      stageCounts,
+    };
+  }, [chats, leadStatusMap]);
+
+  // ─── Filtro combinado: filtro ativo + busca textual ───────────────────────────
   const filtered = useMemo(() => {
-    // 1. Aplica filtro primário
-    let base = chats.filter(c => c.status === 'active');
-    if (activeFilter === 'unread') base = base.filter(c => (c.unread_count ?? 0) > 0);
-    else if (activeFilter === 'cliente') base = base.filter(c => c.contato_tipo === 'cliente');
-    else if (activeFilter === 'lead') base = base.filter(c => c.contato_tipo === 'lead');
+    let base: EnrichedChat[] = [];
 
-    // 2. Aplica busca (nome, telefone, última mensagem)
+    if (activeFilter.type === 'archived') {
+      base = chats.filter(c => c.status === 'archived');
+    } else {
+      base = chats.filter(c => c.status === 'active');
+
+      if (activeFilter.type === 'unread') {
+        base = base.filter(c => (c.unread_count ?? 0) > 0);
+      } else if (activeFilter.type === 'cliente') {
+        base = base.filter(c => c.contato_tipo === 'cliente');
+      } else if (activeFilter.type === 'lead') {
+        base = base.filter(c => c.contato_tipo === 'lead');
+      } else if (activeFilter.type === 'lead_stage') {
+        base = base.filter(c => c.lead_id && leadStatusMap[c.lead_id] === activeFilter.stageKey);
+      } else if (activeFilter.type === 'unknown') {
+        base = base.filter(c => c.contato_tipo !== 'cliente' && c.contato_tipo !== 'lead');
+      } else if (activeFilter.type === 'pinned') {
+        base = base.filter(c => c.pin === 'pinned');
+      }
+    }
+
+    // Busca por nome, telefone ou mensagem
     if (!search.trim()) return base;
     const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
     return base.filter(c => {
       const target = `${c.contato_nome ?? ''} ${c.contato_phone_normalized ?? ''} ${c.ultima_mensagem ?? ''}`.toLowerCase();
       return terms.every(term => target.includes(term));
     });
-  }, [chats, activeFilter, search]);
+  }, [chats, activeFilter, leadStatusMap, search]);
 
-  // ─── Ordenação: fixadas primeiro, depois por data (mais recente primeiro) ──────
-  // ISO 8601 strings são lexicograficamente ordenáveis, então localeCompare funciona.
-
+  // ─── Ordenação: fixadas primeiro (exceto em arquivadas), depois por data ─────
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      // Fixadas sempre no topo
-      if (a.pin === 'pinned' && b.pin !== 'pinned') return -1;
-      if (a.pin !== 'pinned' && b.pin === 'pinned') return 1;
-      // Depois por data decrescente (mais recente primeiro)
+      if (activeFilter.type !== 'archived') {
+        if (a.pin === 'pinned' && b.pin !== 'pinned') return -1;
+        if (a.pin !== 'pinned' && b.pin === 'pinned') return 1;
+      }
       const aDate = a.ultima_mensagem_data ?? '';
       const bDate = b.ultima_mensagem_data ?? '';
       if (aDate !== bDate) return bDate.localeCompare(aDate);
-      // Desempate estável por id (mais antigo criado primeiro)
       return a.id.localeCompare(b.id);
     });
-  }, [filtered]);
+  }, [filtered, activeFilter.type]);
 
-  const activeCount = chatCounts[activeFilter];
+  const isCustomFilterActive = activeFilter.type !== 'all' && activeFilter.type !== 'unread';
+
+  const activeFilterLabel = useMemo(() => {
+    switch (activeFilter.type) {
+      case 'cliente':
+        return 'Clientes';
+      case 'lead':
+        return 'Leads';
+      case 'lead_stage':
+        return activeFilter.label;
+      case 'unknown':
+        return 'Outros Contatos';
+      case 'pinned':
+        return 'Fixadas';
+      case 'archived':
+        return 'Arquivadas';
+      default:
+        return '';
+    }
+  }, [activeFilter]);
+
+  const footerLabel = useMemo(() => {
+    const total = filtered.length;
+    const plural = total !== 1;
+    switch (activeFilter.type) {
+      case 'all':
+        return `${total} conversa${plural ? 's' : ''}`;
+      case 'unread':
+        return `${total} não lida${plural ? 's' : ''}`;
+      case 'cliente':
+        return `${total} cliente${plural ? 's' : ''}`;
+      case 'lead':
+        return `${total} lead${plural ? 's' : ''}`;
+      case 'lead_stage':
+        return `${total} conversa${plural ? 's' : ''} em "${activeFilter.label}"`;
+      case 'unknown':
+        return `${total} contato${plural ? 's' : ''} avulso${plural ? 's' : ''}`;
+      case 'pinned':
+        return `${total} conversa${plural ? 's' : ''} fixada${plural ? 's' : ''}`;
+      case 'archived':
+        return `${total} conversa${plural ? 's' : ''} arquivada${plural ? 's' : ''}`;
+    }
+  }, [filtered.length, activeFilter]);
 
   return (
     <div className="w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col bg-background border-r border-border h-full overflow-hidden">
@@ -175,46 +305,301 @@ export function ChatListSidebar({
         </button>
       </div>
 
-      {/* ── Filtros primários ── */}
-      <div className="px-3 pb-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-          {FILTER_TABS.map(tab => {
-            const count = chatCounts[tab.key];
-            const isActive = activeFilter === tab.key;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveFilter(tab.key)}
-                className={`
-                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                  whitespace-nowrap transition-all flex-shrink-0
-                  ${isActive
-                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border border-zinc-900 dark:border-zinc-100'
-                    : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                  }
-                `}
-              >
-                {Icon && <Icon className="h-3 w-3" />}
-                {tab.label}
-                {count > 0 && (
-                  <span
-                    className={`
-                      inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full text-[10px] font-semibold
-                      ${isActive
-                        ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
-                        : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400'
-                      }
-                    `}
-                  >
-                    {count > 99 ? '99+' : count}
+      {/* ── Filtros rápidos + Dropdown de Filtros Avançados e Etapas do CRM ── */}
+      <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0">
+        {/* Aba: Todas */}
+        <button
+          type="button"
+          onClick={() => setActiveFilter({ type: 'all' })}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+            activeFilter.type === 'all'
+              ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border border-zinc-900 dark:border-zinc-100 shadow-xs'
+              : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800',
+          )}
+        >
+          Todas
+          {counts.all > 0 && (
+            <span
+              className={cn(
+                'inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full text-[10px] font-semibold',
+                activeFilter.type === 'all'
+                  ? 'bg-white/20 text-white dark:bg-zinc-900/20 dark:text-zinc-900'
+                  : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400',
+              )}
+            >
+              {counts.all > 99 ? '99+' : counts.all}
+            </span>
+          )}
+        </button>
+
+        {/* Aba: Não lidas */}
+        <button
+          type="button"
+          onClick={() => setActiveFilter({ type: 'unread' })}
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0',
+            activeFilter.type === 'unread'
+              ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border border-zinc-900 dark:border-zinc-100 shadow-xs'
+              : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800',
+          )}
+        >
+          Não lidas
+          {counts.unread > 0 && (
+            <span
+              className={cn(
+                'inline-flex items-center justify-center min-w-[18px] h-4 px-1.5 rounded-full text-[10px] font-bold',
+                activeFilter.type === 'unread'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400',
+              )}
+            >
+              {counts.unread}
+            </span>
+          )}
+        </button>
+
+        {/* Menu Dropdown de Filtros & Etapas */}
+        <DropdownMenu>
+          {isCustomFilterActive ? (
+            <div className="inline-flex items-center rounded-full border border-amber-300/80 dark:border-amber-700/60 bg-amber-50/90 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs font-medium pl-2.5 pr-1 py-1 gap-1.5 shadow-xs transition-all max-w-[170px] shrink-0 ml-auto">
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity"
+                  title="Clique para alterar o filtro"
+                >
+                  {activeFilter.type === 'lead_stage' && activeFilter.color ? (
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: activeFilter.color }}
+                    />
+                  ) : activeFilter.type === 'cliente' ? (
+                    <UserCheck className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                  ) : activeFilter.type === 'lead' ? (
+                    <Users className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                  ) : activeFilter.type === 'pinned' ? (
+                    <Pin className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                  ) : activeFilter.type === 'archived' ? (
+                    <Archive className="h-3 w-3 text-zinc-500 shrink-0" />
+                  ) : (
+                    <SlidersHorizontal className="h-3 w-3 text-amber-600 shrink-0" />
+                  )}
+
+                  <span className="truncate text-xs font-semibold">
+                    {activeFilterLabel}
                   </span>
-                )}
+                  <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                </button>
+              </DropdownMenuTrigger>
+
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  setActiveFilter({ type: 'all' });
+                }}
+                className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-amber-800 dark:text-amber-300 transition-colors shrink-0"
+                title="Limpar filtro e voltar para Todas"
+              >
+                <X className="h-3 w-3" />
               </button>
-            );
-          })}
-        </div>
+            </div>
+          ) : (
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 ml-auto"
+                title="Filtrar por etapas de leads, clientes e mais"
+              >
+                <SlidersHorizontal className="h-3 w-3" />
+                <span>Filtros</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
+            </DropdownMenuTrigger>
+          )}
+
+          <DropdownMenuContent
+            align="end"
+            className="w-64 max-h-[420px] overflow-y-auto p-1.5 shadow-xl rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md"
+          >
+            {/* Seção 1: CRM & Vínculos */}
+            <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+              CRM & Vínculos
+            </DropdownMenuLabel>
+
+            <DropdownMenuItem
+              onClick={() => setActiveFilter({ type: 'cliente' })}
+              className={cn(
+                'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                activeFilter.type === 'cliente' && 'bg-accent font-semibold text-accent-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                <span>Clientes</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-medium">
+                  {counts.cliente}
+                </span>
+                {activeFilter.type === 'cliente' && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => setActiveFilter({ type: 'lead' })}
+              className={cn(
+                'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                activeFilter.type === 'lead' && 'bg-accent font-semibold text-accent-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />
+                <span>Todos os Leads</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-medium">
+                  {counts.lead}
+                </span>
+                {activeFilter.type === 'lead' && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+              </div>
+            </DropdownMenuItem>
+
+            {counts.unknown > 0 && (
+              <DropdownMenuItem
+                onClick={() => setActiveFilter({ type: 'unknown' })}
+                className={cn(
+                  'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                  activeFilter.type === 'unknown' && 'bg-accent font-semibold text-accent-foreground',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Outros Contatos</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-medium">
+                    {counts.unknown}
+                  </span>
+                  {activeFilter.type === 'unknown' && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+                </div>
+              </DropdownMenuItem>
+            )}
+
+            {/* Seção 2: Etapas de Leads */}
+            {leadStatuses.length > 0 && (
+              <>
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                  Etapas do Lead (Funil)
+                </DropdownMenuLabel>
+
+                {leadStatuses.map(stage => {
+                  const stageCount = counts.stageCounts[stage.key] ?? 0;
+                  const isSelected = activeFilter.type === 'lead_stage' && activeFilter.stageKey === stage.key;
+
+                  return (
+                    <DropdownMenuItem
+                      key={stage.key}
+                      onClick={() =>
+                        setActiveFilter({
+                          type: 'lead_stage',
+                          stageKey: stage.key,
+                          label: stage.name,
+                          color: stage.color,
+                        })
+                      }
+                      className={cn(
+                        'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                        isSelected && 'bg-accent font-semibold text-accent-foreground',
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: stage.color || '#94a3b8' }}
+                        />
+                        <span className="truncate">{stage.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                            stageCount > 0
+                              ? 'bg-zinc-200 dark:bg-zinc-700 text-foreground'
+                              : 'bg-zinc-100 dark:bg-zinc-800 text-muted-foreground/60',
+                          )}
+                        >
+                          {stageCount}
+                        </span>
+                        {isSelected && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Seção 3: Organização & Status */}
+            <DropdownMenuSeparator className="my-1" />
+            <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+              Status & Organização
+            </DropdownMenuLabel>
+
+            <DropdownMenuItem
+              onClick={() => setActiveFilter({ type: 'pinned' })}
+              className={cn(
+                'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                activeFilter.type === 'pinned' && 'bg-accent font-semibold text-accent-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Pin className="h-3.5 w-3.5 text-amber-500 fill-amber-400/80" />
+                <span>Fixadas</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-medium">
+                  {counts.pinned}
+                </span>
+                {activeFilter.type === 'pinned' && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() => setActiveFilter({ type: 'archived' })}
+              className={cn(
+                'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                activeFilter.type === 'archived' && 'bg-accent font-semibold text-accent-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Arquivadas</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-medium">
+                  {counts.archived}
+                </span>
+                {activeFilter.type === 'archived' && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+              </div>
+            </DropdownMenuItem>
+
+            {/* Opção para Redefinir se houver filtro ativo */}
+            {activeFilter.type !== 'all' && (
+              <>
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem
+                  onClick={() => setActiveFilter({ type: 'all' })}
+                  className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Redefinir para "Todas"</span>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Separator className="shrink-0" />
@@ -247,13 +632,13 @@ export function ChatListSidebar({
         )}
       </ScrollArea>
 
-      {/* ── Rodapé com contador da aba ativa ── */}
-      {!isLoading && activeCount > 0 && (
+      {/* ── Rodapé com contador contextual ── */}
+      {!isLoading && filtered.length > 0 && (
         <>
           <Separator className="shrink-0" />
           <div className="px-4 py-2 flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">
-              {activeCount} conversa{activeCount !== 1 ? 's' : ''}
+            <span className="text-[11px] text-muted-foreground font-medium">
+              {footerLabel}
             </span>
           </div>
         </>
@@ -262,17 +647,35 @@ export function ChatListSidebar({
   );
 }
 
-function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: PrimaryFilter }) {
-  const isFiltered = filter !== 'all';
+function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: SidebarFilter }) {
+  const isFiltered = filter.type !== 'all';
+
+  const getFilterMessage = () => {
+    switch (filter.type) {
+      case 'unread':
+        return 'Nenhuma mensagem não lida';
+      case 'cliente':
+        return 'Nenhum cliente com conversa ativa';
+      case 'lead':
+        return 'Nenhum lead com conversa ativa';
+      case 'lead_stage':
+        return `Nenhuma conversa na etapa "${filter.label}"`;
+      case 'unknown':
+        return 'Nenhum contato avulso encontrado';
+      case 'pinned':
+        return 'Nenhuma conversa fixada';
+      case 'archived':
+        return 'Nenhuma conversa arquivada';
+      default:
+        return 'Nenhuma conversa neste filtro';
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-      <MessageSquare className="h-10 w-10 text-muted-foreground mb-3" />
-      <p className="text-sm text-muted-foreground">
-        {hasSearch
-          ? 'Nenhuma conversa encontrada'
-          : isFiltered
-          ? 'Nenhuma conversa neste filtro'
-          : 'Nenhuma conversa ainda'}
+      <MessageSquare className="h-10 w-10 text-muted-foreground/60 mb-3" />
+      <p className="text-sm font-medium text-muted-foreground">
+        {hasSearch ? 'Nenhuma conversa encontrada' : isFiltered ? getFilterMessage() : 'Nenhuma conversa ainda'}
       </p>
       {!hasSearch && !isFiltered && (
         <p className="text-xs text-muted-foreground mt-1">
