@@ -5,13 +5,15 @@
  */
 
 import { useState, useMemo } from 'react';
-import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download, Pencil, Ban, ZoomIn } from 'lucide-react';
+import { AlertCircle, Check, CheckCheck, Clock, RotateCw, Loader2, Reply, Trash2, SmilePlus, Star, Copy, FileText, Download, Pencil, Ban, ZoomIn, Sparkles, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreview, extractFirstUrl } from './LinkPreview';
 import { useConversasStickers } from '@/hooks/useConversasStickers';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -238,6 +240,84 @@ function StatusIcon({ status }: { status?: MessageStatus }) {
     default:
       return null;
   }
+}
+
+function AudioTranscriptBubble({ mensagemId, transcript, isOwn }: { mensagemId: string; transcript?: string | null; isOwn: boolean }) {
+  const [localTranscript, setLocalTranscript] = useState(transcript);
+  const [transcribing, setTranscribing] = useState(false);
+
+  // Sync prop se vier pelo realtime
+  if (transcript && transcript !== localTranscript && !transcribing) {
+    setLocalTranscript(transcript);
+  }
+
+  const handleTranscribe = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (transcribing || localTranscript) return;
+    setTranscribing(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const workerUrl = import.meta.env.VITE_EDGE_API_URL || '';
+      const response = await fetch(`${workerUrl}/api/conversas/ai-transcribe`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ message_id: mensagemId })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao transcrever');
+      }
+
+      setLocalTranscript(data.transcript);
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao transcrever o áudio. Tente novamente mais tarde.');
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
+  if (localTranscript) {
+    return (
+      <div className={cn("mt-1.5 p-2 rounded-lg text-[13px] leading-relaxed relative bg-black/5 dark:bg-white/5", isOwn ? "text-emerald-950 dark:text-emerald-100" : "text-zinc-800 dark:text-zinc-200")}>
+        <div className="flex items-center gap-1.5 mb-1 opacity-70">
+          <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+          <span className="text-[10px] uppercase tracking-wider font-semibold">Transcrição</span>
+        </div>
+        {localTranscript}
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      onClick={handleTranscribe}
+      disabled={transcribing}
+      className={cn(
+        "mt-1 text-[11px] flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity",
+        isOwn ? "text-emerald-800 dark:text-emerald-200 hover:text-[#D4AF37]" : "text-zinc-600 dark:text-zinc-400 hover:text-[#D4AF37]"
+      )}
+    >
+      {transcribing ? (
+        <>
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Transcrevendo áudio...
+        </>
+      ) : (
+        <>
+          <Sparkles className="w-3 h-3" />
+          Transcrever
+        </>
+      )}
+    </button>
+  );
 }
 
 export function MessageBubble({
@@ -555,7 +635,14 @@ export function MessageBubble({
             
             {mensagem.type === 'audio' && (
               mensagem.media_url ? (
-                <AudioPlayer src={mensagem.media_url} isOwn={isOwn} />
+                <div className="flex flex-col">
+                  <AudioPlayer src={mensagem.media_url} isOwn={isOwn} />
+                  <AudioTranscriptBubble 
+                    mensagemId={mensagem.id} 
+                    transcript={mensagem.audio_transcript} 
+                    isOwn={isOwn} 
+                  />
+                </div>
               ) : (
                 <div className="flex items-center gap-2 py-2 px-1 text-xs text-zinc-500 italic">
                   <RotateCw className="h-3.5 w-3.5 animate-spin text-zinc-400" />

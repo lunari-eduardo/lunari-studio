@@ -285,6 +285,7 @@ export interface DbConversasMensagem {
     is_deleted: boolean;
     is_edited: boolean;
     edited_at: string | null;
+    audio_transcript: string | null;
   };
   Insert: {
     id?: string;
@@ -311,6 +312,7 @@ export interface DbConversasMensagem {
     is_deleted?: boolean;
     is_edited?: boolean;
     edited_at?: string | null;
+    audio_transcript?: string | null;
   };
   Update: {
     id?: string;
@@ -337,6 +339,7 @@ export interface DbConversasMensagem {
     is_deleted?: boolean;
     is_edited?: boolean;
     edited_at?: string | null;
+    audio_transcript?: string | null;
   };
   Relationships: [
     { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
@@ -454,3 +457,43 @@ export type ConversasTables = {
   conversas_templates: DbConversasTemplate;
   conversas_webhook_events: DbConversasWebhookEvent;
 };
+
+export interface DbConversasAiLog {
+  Row: {
+    id: string;
+    user_id: string;
+    message_id: string | null;
+    provider: string;
+    model_used: string;
+    duration_sec: number;
+    success: boolean;
+    error_message: string | null;
+    created_at: string;
+  };
+  Insert: {
+    id?: string;
+    user_id: string;
+    message_id?: string | null;
+    provider?: string;
+    model_used: string;
+    duration_sec?: number;
+    success?: boolean;
+    error_message?: string | null;
+    created_at?: string;
+  };
+  Update: {
+    id?: string;
+    user_id?: string;
+    message_id?: string | null;
+    provider?: string;
+    model_used?: string;
+    duration_sec?: number;
+    success?: boolean;
+    error_message?: string | null;
+    created_at?: string;
+  };
+  Relationships: [
+    { schema: 'public'; table: 'auth.users'; columns: ['user_id'] },
+    { schema: 'public'; table: 'conversas_mensagens'; columns: ['message_id'] }
+  ];
+}

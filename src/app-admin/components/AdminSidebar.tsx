@@ -55,6 +55,7 @@ const infra: Item[] = [
 
 const config: Item[] = [
   { title: "Assistente Lua", url: "/assistente", icon: Sparkles },
+  { title: "Conversas IA", url: "/conversas-ai", icon: Sparkles },
   { title: "Configurações", url: "/configuracoes", icon: Settings2 },
 ];
 

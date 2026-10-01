@@ -15,6 +15,7 @@ import SistemaPage from "./modules/sistema/SistemaPage";
 import LogsPage from "./modules/audit-logs/LogsPage";
 import ConfiguracoesPage from "./modules/configuracoes/ConfiguracoesPage";
 import AssistantRolloutPage from "./modules/assistant-rollout/AssistantRolloutPage";
+import ConversasAiAdminPage from "./modules/conversas-ai/ConversasAiAdminPage";
 
 
 
@@ -85,6 +86,7 @@ export default function AdminApp() {
         <Route path="logs" element={<LogsPage />} />
         <Route path="configuracoes" element={<ConfiguracoesPage />} />
         <Route path="assistente" element={<AssistantRolloutPage />} />
+        <Route path="conversas-ai" element={<ConversasAiAdminPage />} />
 
         {/* Compat: alguém colando link antigo /app/admin/... no host admin */}
         <Route path="app/admin/usuarios" element={<Navigate to="/usuarios" replace />} />
