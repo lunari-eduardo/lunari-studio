@@ -362,7 +362,7 @@ export function ChatListSidebar({
         {/* Menu Dropdown de Filtros & Etapas */}
         <DropdownMenu>
           {isCustomFilterActive ? (
-            <div className="inline-flex items-center rounded-full border border-amber-300/80 dark:border-amber-700/60 bg-amber-50/90 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs font-medium pl-2.5 pr-1 py-1 gap-1.5 shadow-xs transition-all max-w-[170px] shrink-0 ml-auto">
+            <div className="inline-flex items-center rounded-full border border-[#D4AF37]/30 dark:border-[#D4AF37]/20 bg-[#D4AF37]/10 dark:bg-[#D4AF37]/[0.05] text-[#A87E43] dark:text-[#D4AF37] text-xs font-medium pl-2.5 pr-1 py-1 gap-1.5 shadow-xs transition-all max-w-[170px] shrink-0 ml-auto">
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
@@ -375,15 +375,15 @@ export function ChatListSidebar({
                       style={{ backgroundColor: activeFilter.color }}
                     />
                   ) : activeFilter.type === 'cliente' ? (
-                    <UserCheck className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <UserCheck className="h-3 w-3 text-[#A87E43] dark:text-[#D4AF37] shrink-0" />
                   ) : activeFilter.type === 'lead' ? (
-                    <Users className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <Users className="h-3 w-3 text-[#A87E43] dark:text-[#D4AF37] shrink-0" />
                   ) : activeFilter.type === 'pinned' ? (
-                    <Pin className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <Pin className="h-3 w-3 text-[#A87E43] dark:text-[#D4AF37] shrink-0" />
                   ) : activeFilter.type === 'archived' ? (
                     <Archive className="h-3 w-3 text-zinc-500 shrink-0" />
                   ) : (
-                    <SlidersHorizontal className="h-3 w-3 text-amber-600 shrink-0" />
+                    <SlidersHorizontal className="h-3 w-3 text-[#A87E43] shrink-0" />
                   )}
 
                   <span className="truncate text-xs font-semibold">
@@ -399,7 +399,7 @@ export function ChatListSidebar({
                   e.stopPropagation();
                   setActiveFilter({ type: 'all' });
                 }}
-                className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-amber-800 dark:text-amber-300 transition-colors shrink-0"
+                className="p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-[#A87E43] dark:text-[#D4AF37] transition-colors shrink-0"
                 title="Limpar filtro e voltar para Todas"
               >
                 <X className="h-3 w-3" />
@@ -436,7 +436,7 @@ export function ChatListSidebar({
               )}
             >
               <div className="flex items-center gap-2">
-                <UserCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                <UserCheck className="h-3.5 w-3.5 text-[#A87E43] dark:text-[#D4AF37]" />
                 <span>Clientes</span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -555,7 +555,7 @@ export function ChatListSidebar({
               )}
             >
               <div className="flex items-center gap-2">
-                <Pin className="h-3.5 w-3.5 text-amber-500 fill-amber-400/80" />
+                <Pin className="h-3.5 w-3.5 text-[#D4AF37] fill-[#D4AF37]/80" />
                 <span>Fixadas</span>
               </div>
               <div className="flex items-center gap-1.5">

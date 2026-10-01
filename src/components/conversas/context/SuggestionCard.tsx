@@ -87,24 +87,24 @@ export function SuggestionCard({
     : "Este número não possui vínculos no seu CRM. Deseja iniciar um atendimento?";
 
   return (
-    <div className="rounded-xl border border-amber-200/60 dark:border-amber-800/40 bg-gradient-to-br from-amber-50 to-orange-50/50 dark:from-amber-950/30 dark:to-orange-950/10 p-3 shadow-sm mb-4 transition-all duration-300">
+    <div className="rounded-xl border border-[#D4AF37]/30 dark:border-[#D4AF37]/20 bg-gradient-to-br from-[#D4AF37]/10 to-[#D4AF37]/5 dark:from-[#D4AF37]/[0.08] dark:to-transparent p-3 shadow-sm mb-4 transition-all duration-300">
       <div className="flex items-start gap-2.5">
-        <div className="p-1.5 rounded-full bg-amber-100 dark:bg-amber-900/50 shrink-0 relative">
+        <div className="p-1.5 rounded-full bg-[#D4AF37]/20 dark:bg-[#D4AF37]/20 shrink-0 relative">
           {analyzing ? (
-            <Loader2 className="h-4 w-4 text-amber-600 dark:text-amber-400 animate-spin" />
+            <Loader2 className="h-4 w-4 text-[#A87E43] dark:text-[#D4AF37] animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <Sparkles className="h-4 w-4 text-[#A87E43] dark:text-[#D4AF37]" />
           )}
         </div>
         <div className="flex-1 space-y-2">
           <div>
-            <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
               {title}
               {intent?.has_intent && (
-                <span className="bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wider">Lua</span>
+                <span className="bg-[#D4AF37]/20 dark:bg-[#D4AF37]/30 text-[#A87E43] dark:text-[#D4AF37] text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wider">Lua</span>
               )}
             </h4>
-            <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5 leading-snug">
+            <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5 leading-snug">
               {desc}
             </p>
           </div>

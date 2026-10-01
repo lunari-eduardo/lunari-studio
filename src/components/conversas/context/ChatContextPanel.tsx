@@ -242,7 +242,7 @@ export function ChatContextPanel({
                 <StickyNote className="h-4 w-4 text-zinc-400" />
                 <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                   Notas internas
-                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-yellow-500/10 text-[#A87E43] dark:text-[#D4AF37] text-[10px] font-bold">
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D4AF37]/10 text-[#A87E43] dark:text-[#D4AF37] text-[10px] font-bold">
                     {notas.length}
                   </span>
                 </span>
@@ -253,16 +253,16 @@ export function ChatContextPanel({
             </div>
 
             {notasExpanded && (
-              <div className="px-3 flex flex-col gap-3">
+              <div className="px-3 flex flex-col gap-3 pb-3">
                 <div className="flex flex-col gap-2">
                   {notas.length === 0 ? (
                     <p className="text-xs text-zinc-400 italic">Nenhuma nota registrada.</p>
                   ) : (
                     notas.map((n) => (
-                      <div key={n.id} className="relative group p-2.5 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 text-xs text-zinc-700 dark:text-zinc-300">
+                      <div key={n.id} className="relative group p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-800/40 text-xs text-zinc-700 dark:text-zinc-300">
                         <p className="whitespace-pre-wrap leading-relaxed pr-6">{n.content}</p>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-yellow-200/50 dark:border-yellow-900/30">
-                          <span className="text-[10px] text-yellow-600/70 dark:text-yellow-600/50 font-medium">
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800/40">
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
                             {formatDate(n.created_at)}
                           </span>
                           <button onClick={() => onDeleteNota(n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/70 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all">

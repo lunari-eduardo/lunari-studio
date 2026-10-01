@@ -355,7 +355,7 @@ export function ChatPanel({
         <div className="pointer-events-none absolute inset-0 overflow-hidden select-none z-0">
           <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-[#E8DCB8]/25 dark:bg-[#D4AF37]/[0.035] blur-[100px]" />
           <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-[#DCE4EC]/30 dark:bg-[#161D2A]/30 blur-[110px]" />
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-radial from-amber-500/[0.015] dark:from-white/[0.01] to-transparent blur-3xl" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-radial from-[#D4AF37]/[0.015] dark:from-white/[0.01] to-transparent blur-3xl" />
         </div>
 
         <ChatHeader

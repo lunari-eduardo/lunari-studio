@@ -196,7 +196,7 @@ export function LibraryPanel({ open, onOpenChange, chat, suggestedCategory, sugg
                     
                     const icons = [
                       { icon: <MessageCircle className="h-4 w-4 text-blue-500" />, bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30" },
-                      { icon: <Briefcase className="h-4 w-4 text-amber-500" />, bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30" },
+                      { icon: <Briefcase className="h-4 w-4 text-[#A87E43]" />, bg: "bg-[#D4AF37]/10 border-[#D4AF37]/20" },
                       { icon: <Calendar className="h-4 w-4 text-emerald-500" />, bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30" },
                       { icon: <Zap className="h-4 w-4 text-purple-500" />, bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30" }
                     ];

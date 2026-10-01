@@ -94,7 +94,7 @@ export function ConnectLandingScreen() {
       {/* Tip Strip Inferior (Dica e Guia Completo) */}
       <div className="rounded-2xl border border-border/50 bg-card/40 dark:bg-card/25 backdrop-blur-sm px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-amber-500/10 border border-amber-500/25 text-[#C9A87C] flex items-center justify-center flex-shrink-0">
+          <div className="h-8 w-8 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/25 text-[#C9A87C] flex items-center justify-center flex-shrink-0">
             <Lightbulb className="h-4 w-4 text-[#C9A87C]" />
           </div>
           <p className="text-sm text-muted-foreground">

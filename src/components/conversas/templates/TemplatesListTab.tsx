@@ -141,7 +141,7 @@ export function TemplatesListTab({
       {/* Header: Sugestões de mensagens */}
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-500" />
+          <Sparkles className="h-4 w-4 text-[#D4AF37]" />
           Sugestões de mensagens
         </h3>
         <button 
@@ -193,7 +193,7 @@ export function TemplatesListTab({
             // Ícones aleatórios limpos baseados não ID ou index para a UI
             const icons = [
                { icon: <MessageCircle className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />, bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30" },
-               { icon: <Briefcase className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />, bg: "bg-amber-50 dark:bg-amber-900/20 border-amber-100 dark:border-amber-800/30" },
+               { icon: <Briefcase className="h-3.5 w-3.5 text-[#D4AF37]" />, bg: "bg-[#D4AF37]/10 border-[#D4AF37]/20" },
                { icon: <Calendar className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />, bg: "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800/30" },
                { icon: <Zap className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400" />, bg: "bg-purple-50 dark:bg-purple-900/20 border-purple-100 dark:border-purple-800/30" }
             ];

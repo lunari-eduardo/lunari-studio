@@ -45,7 +45,7 @@ export interface ChatListItemProps {
 
 const CONTEXT_BADGE: Record<EnrichedChat['contato_tipo'], { label: string; className: string } | null> = {
   lead: { label: 'Lead', className: 'bg-zinc-50/80 text-zinc-600 border border-zinc-200/80 dark:bg-zinc-800/40 dark:border-zinc-700/80 dark:text-zinc-400' },
-  cliente: { label: 'Cliente', className: 'bg-amber-50/80 text-amber-700 border border-amber-200/80 dark:bg-amber-900/20 dark:border-amber-800/80 dark:text-amber-400' },
+  cliente: { label: 'Cliente', className: 'bg-[#D4AF37]/10 text-[#A87E43] border border-[#D4AF37]/20 dark:bg-[#D4AF37]/[0.05] dark:border-[#D4AF37]/20 dark:text-[#D4AF37]' },
   unknown: null,
 };
 
@@ -92,7 +92,7 @@ export const ChatListItem = React.memo(function ChatListItem({
         // Em ativo, a borda esquerda dourada vira o marcador de seleção.
         'flex items-center gap-3.5 pr-3 py-3',
         isActive
-          ? 'pl-6 bg-amber-50/60 dark:bg-amber-900/15 border-l-2 border-amber-400/70 dark:border-amber-500/60'
+          ? 'pl-6 bg-[#D4AF37]/5 dark:bg-[#D4AF37]/[0.02] border-l-2 border-[#D4AF37]/60 dark:border-[#D4AF37]/50'
           : isUnread
           ? 'pl-5 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
           : 'pl-5 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60',
@@ -124,7 +124,7 @@ export const ChatListItem = React.memo(function ChatListItem({
           {/* Esquerda: Nome do contato */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {isPinned && (
-              <Pin className="h-3 w-3 text-amber-500 fill-amber-400/80 flex-shrink-0" />
+              <Pin className="h-3 w-3 text-[#D4AF37] fill-[#D4AF37]/80 flex-shrink-0" />
             )}
             <span
               className={cn(
@@ -204,7 +204,7 @@ export const ChatListItem = React.memo(function ChatListItem({
                 className={cn(
                   'p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer',
                   isPinned
-                    ? 'text-amber-500'
+                    ? 'text-[#D4AF37]'
                     : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300',
                 )}
                 title={isPinned ? 'Desafixar' : 'Fixar no topo'}

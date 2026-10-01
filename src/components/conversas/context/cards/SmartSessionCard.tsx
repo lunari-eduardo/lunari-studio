@@ -77,7 +77,7 @@ export function SmartSessionCard({ sessoes, onOpenWorkflow, variant }: SmartSess
                 Pago · {formatCurrency(session.valor_pago)}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 text-amber-600 dark:text-amber-400 text-[10px] font-semibold">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-700/30 text-zinc-600 dark:text-zinc-400 text-[10px] font-semibold">
                 Pendente · {formatCurrency((session.valor_total || 0) - (session.valor_pago || 0))}
               </div>
             )}

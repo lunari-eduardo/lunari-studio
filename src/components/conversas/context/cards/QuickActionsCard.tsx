@@ -46,7 +46,7 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
   return (
     <div className="mt-2 mb-2 flex flex-col gap-2">
       <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 px-1">
-        <Zap className="h-4 w-4 text-amber-500" /> Ações rápidas
+        <Zap className="h-4 w-4 text-[#D4AF37]" /> Ações rápidas
       </span>
       <div className="flex items-stretch gap-2">
         {actions.slice(0, 3).map((act) => (

@@ -70,7 +70,7 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, o
             )}
 
             {hasFutureSession && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-[10px] font-medium tracking-tight text-amber-600 dark:text-amber-500">
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-500/10 text-[10px] font-medium tracking-tight text-sky-600 dark:text-sky-500">
                 <Calendar className="h-2.5 w-2.5 opacity-70" />
                 Sessão agendada
               </div>

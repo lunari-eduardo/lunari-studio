@@ -53,7 +53,7 @@ export function InstanceStatusBar({
   const dotColor = connected
     ? 'bg-emerald-500'
     : connecting
-      ? 'bg-amber-500'
+      ? 'bg-[#D4AF37]'
       : 'bg-red-500';
 
   // Conectado: prioriza displayName (estúdio) > telefone formatado > nome técnico da instância.

@@ -402,10 +402,10 @@ export function MessageBubble({
       {isOwn && !isDeleted && (
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
           {hasStickerMedia && !isPending && !failed && (
-            <button
+              <button
               type="button"
               onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
-              className="p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-500/20 text-zinc-400 hover:text-yellow-500 dark:dark:text-zinc-500 dark:hover:text-yellow-400"
+              className="p-1.5 rounded-full hover:bg-[#D4AF37]/10 dark:hover:bg-[#D4AF37]/20 text-zinc-400 hover:text-[#A87E43] dark:text-zinc-500 dark:hover:text-[#D4AF37]"
               title="Salvar Figurinha"
             >
               <Star className="h-3.5 w-3.5" />
@@ -716,7 +716,7 @@ export function MessageBubble({
                   content={cleanCaption!}
                   className={cn(
                     'whitespace-pre-wrap leading-relaxed mt-1 transition-all duration-200 block',
-                    isCopied && 'animate-pulse opacity-40 bg-amber-200/50 dark:bg-amber-400/20 rounded px-1 -mx-1 text-zinc-950 dark:text-zinc-50 scale-[0.99]'
+                    isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
                   )}
                 />
               </>
@@ -821,7 +821,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => saveSticker.mutate({ url: mensagem.media_url! })}
-              className="p-1.5 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-500/20 text-zinc-400 hover:text-yellow-500 dark:text-zinc-500 dark:hover:text-yellow-400"
+              className="p-1.5 rounded-full hover:bg-[#D4AF37]/10 dark:hover:bg-[#D4AF37]/20 text-zinc-400 hover:text-[#A87E43] dark:text-zinc-500 dark:hover:text-[#D4AF37]"
               title="Salvar Figurinha"
             >
               <Star className="h-3.5 w-3.5" />

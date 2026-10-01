@@ -148,7 +148,7 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
         {/* Cabeçalho Refinado */}
         <div className="px-6 pt-6 pb-4 border-b border-border/40">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+            <div className="p-2.5 rounded-xl bg-[#D4AF37]/10 text-[#A87E43] dark:text-[#D4AF37] border border-[#D4AF37]/20 shrink-0">
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
@@ -163,8 +163,8 @@ export function FastLeadModal({ isOpen, onClose, chat, onLeadCreated, defaultCat
 
           {/* Banner inteligente quando a Lua identificou a sessão */}
           {detectedCategoryName && (
-            <div className="mt-3.5 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-900/40 text-xs text-amber-900 dark:text-amber-200">
-              <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="mt-3.5 flex items-center gap-2 px-3 py-2 rounded-xl bg-[#D4AF37]/5 dark:bg-[#D4AF37]/[0.05] border border-[#D4AF37]/30 dark:border-[#D4AF37]/20 text-xs text-[#A87E43] dark:text-[#D4AF37]">
+              <Sparkles className="h-3.5 w-3.5 text-[#A87E43] dark:text-[#D4AF37] shrink-0" />
               <span>
                 A <strong>Lua</strong> identificou interesse em <strong>{detectedCategoryName}</strong>.
               </span>

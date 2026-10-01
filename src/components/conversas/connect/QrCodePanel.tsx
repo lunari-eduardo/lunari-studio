@@ -190,7 +190,7 @@ export function QrCodePanel({
                 expired
                   ? 'text-rose-400'
                   : expiringSoon
-                    ? 'text-amber-300'
+                    ? 'text-[#D4AF37]'
                     : 'text-zinc-300',
               )}
             >
