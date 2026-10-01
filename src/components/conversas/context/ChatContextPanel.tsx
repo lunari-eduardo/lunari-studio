@@ -214,6 +214,7 @@ export function ChatContextPanel({
           <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
             <TemplatesListTab
               chat={chat}
+              messages={messages}
               suggestedCategory={templateContext.category}
               suggestedStep={templateContext.stage}
               onInsertToComposer={onInsertToComposer ?? (() => {})}

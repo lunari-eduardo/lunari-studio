@@ -204,7 +204,19 @@ Exemplo de saída:
 
     if (updateError) {
       console.error('Falha ao salvar transcrição no banco:', updateError);
-      return c.json({ error: 'Transcrição feita, mas erro ao salvar no banco. Verifique se a Migration (audio_transcript) foi aplicada.' }, 500);
+      // Log failure in ai logs as well but don't crash
+      await adminClient.from('conversas_ai_logs').insert({
+        user_id: userId,
+        message_id: msgData.id,
+        provider: 'gemini',
+        model_used: targetModel,
+        duration_sec: durationSec,
+        success: false,
+        error_message: 'Update DB Error: ' + updateError.message
+      });
+      // Retorna 200 com a transcrição (para não desperdiçar o token gasto), 
+      // mas injeta o erro do DB para o front-end avisar.
+      return c.json({ transcript: cleanTranscript, warning: `Não salvo no DB: ${updateError.message}` });
     }
 
     // 6. Log success

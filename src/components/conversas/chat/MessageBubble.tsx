@@ -283,6 +283,10 @@ function AudioTranscriptBubble({ mensagemId, transcript, isOwn }: { mensagemId: 
         throw new Error(data.error || 'Erro ao transcrever');
       }
 
+      if (data.warning) {
+        toast.warning(data.warning, { duration: 10000 });
+      }
+
       setLocalTranscript(data.transcript);
     } catch (err: any) {
       toast.error(err.message || 'Falha ao transcrever o áudio. Tente novamente mais tarde.');

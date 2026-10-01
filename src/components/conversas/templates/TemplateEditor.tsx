@@ -100,6 +100,35 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
       }
     }
 
+    // Extract basic keywords from title and content
+    const combinedText = `${nome} ${conteudo}`.toLowerCase();
+    
+    if (combinedText.includes('pix') || combinedText.includes('chave')) {
+      newTags.add('pix');
+      newTags.add('pagamento');
+    }
+    if (combinedText.includes('orçament') || combinedText.includes('valor') || combinedText.includes('pacote')) {
+      newTags.add('orçamento');
+      newTags.add('valores');
+    }
+    if (combinedText.includes('agendament') || combinedText.includes('horário') || combinedText.includes('data')) {
+      newTags.add('agendamento');
+      newTags.add('data');
+    }
+    if (combinedText.includes('contrat')) {
+      newTags.add('contrato');
+    }
+    if (combinedText.includes('galeria') || combinedText.includes('fotos prontas')) {
+      newTags.add('galeria');
+      newTags.add('entrega');
+    }
+    if (combinedText.includes('dúvid')) {
+      newTags.add('dúvidas');
+    }
+    if (combinedText.includes('bom dia') || combinedText.includes('boa tarde') || combinedText.includes('olá')) {
+      newTags.add('saudação');
+    }
+
     setTags(Array.from(newTags));
   };
 

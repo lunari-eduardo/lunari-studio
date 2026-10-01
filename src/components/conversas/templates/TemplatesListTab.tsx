@@ -30,6 +30,7 @@ import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 
 export interface TemplatesListTabProps {
   chat: Chat | EnrichedChat;
+  messages?: any[];
   suggestedCategory?: string;
   suggestedStep?: string;
   onInsertToComposer: (text: string) => void;
@@ -37,6 +38,7 @@ export interface TemplatesListTabProps {
 
 export function TemplatesListTab({
   chat,
+  messages = [],
   suggestedCategory,
   suggestedStep,
   onInsertToComposer,
@@ -74,22 +76,48 @@ export function TemplatesListTab({
       );
     }
     
-    // Auto order based on suggested category and step
-    if (!search && (suggestedCategory || suggestedStep)) {
+    // Auto order based on suggested category, step, and recent message intents
+    if (!search) {
       const suggestedCatLower = suggestedCategory?.toLowerCase() || '';
       const matchedCat = categorias.find(c => c.nome.toLowerCase() === suggestedCatLower);
+      
+      // Extract intent from the last 3 user messages
+      const recentUserMessages = messages
+        .filter(m => m.direction === 'inbound')
+        .slice(-3)
+        .map(m => ((m.content || '') + ' ' + (m.audio_transcript || '')).toLowerCase())
+        .join(' ');
+        
+      const hasPixIntent = recentUserMessages.includes('pix') || recentUserMessages.includes('chave');
+      const hasBudgetIntent = recentUserMessages.includes('valor') || recentUserMessages.includes('orçament') || recentUserMessages.includes('pacote');
+      const hasDateIntent = recentUserMessages.includes('dia') || recentUserMessages.includes('data') || recentUserMessages.includes('agenda');
       
       result = [...result].sort((a, b) => {
         let scoreA = 0;
         let scoreB = 0;
         
-        // Exact category match gets +2
+        // Context Match Score (Category + Step)
         if (suggestedCategory && ((a.categoria_id === matchedCat?.id) || (a.categoria?.toLowerCase() === suggestedCatLower))) scoreA += 2;
         if (suggestedCategory && ((b.categoria_id === matchedCat?.id) || (b.categoria?.toLowerCase() === suggestedCatLower))) scoreB += 2;
         
-        // Exact step match gets +1
         if (suggestedStep && a.etapa === suggestedStep) scoreA += 1;
         if (suggestedStep && b.etapa === suggestedStep) scoreB += 1;
+        
+        // Intent Match Score (Keywords)
+        const checkTags = (template: ConversasTemplate, checkPix: boolean, checkBudget: boolean, checkDate: boolean) => {
+          let score = 0;
+          const tTags = Array.isArray(template.palavras_chave) ? template.palavras_chave as string[] : [];
+          const tText = (template.nome + ' ' + template.conteudo).toLowerCase();
+          
+          if (checkPix && (tTags.includes('pix') || tTags.includes('pagamento') || tText.includes('pix'))) score += 3;
+          if (checkBudget && (tTags.includes('orçamento') || tTags.includes('valores') || tText.includes('orçament'))) score += 3;
+          if (checkDate && (tTags.includes('agendamento') || tTags.includes('data') || tText.includes('agendament'))) score += 3;
+          
+          return score;
+        };
+        
+        scoreA += checkTags(a, hasPixIntent, hasBudgetIntent, hasDateIntent);
+        scoreB += checkTags(b, hasPixIntent, hasBudgetIntent, hasDateIntent);
         
         if (scoreA !== scoreB) return scoreB - scoreA;
         return (a.ordem || 0) - (b.ordem || 0);
@@ -98,7 +126,7 @@ export function TemplatesListTab({
     
     // Quick panel only shows top 5
     return result.slice(0, 5);
-  }, [templates, search, suggestedCategory, suggestedStep, categorias]);
+  }, [templates, search, suggestedCategory, suggestedStep, categorias, messages]);
 
   const handleOpenLibrary = () => {
     setLibraryOpen(true);
