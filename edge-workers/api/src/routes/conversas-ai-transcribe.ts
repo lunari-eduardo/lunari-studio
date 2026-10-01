@@ -100,11 +100,12 @@ export async function conversasAiTranscribeRoute(c: Context) {
     }
     const audioBuffer = await audioRes.arrayBuffer();
     
-    // Convert ArrayBuffer to Base64 safely
+    // OTIMIZAÇÃO CRÍTICA: Conversão em chunks (Evita Error 502 Bad Gateway de Timeout de CPU no Cloudflare)
     let binary = '';
     const bytes = new Uint8Array(audioBuffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+    const chunkSize = 0x8000; // 32KB chunk (seguro para a call stack)
+    for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
     }
     const base64Audio = btoa(binary);
 
@@ -126,7 +127,7 @@ Formato OBRIGATÓRIO de saída:
 - **Pontos Principais**: ...
 - **Ações Definidas**: ...`;
     
-    const mimeType = msgData.media_mime_type?.includes('audio') ? msgData.media_mime_type : 'audio/ogg';
+    const mimeType = (msgData.media_mime_type?.includes('audio') ? msgData.media_mime_type : 'audio/ogg').split(';')[0];
 
     // Forçar modelo para o solicitado se necessário ou manter o targetModel dinâmico,
     // mas vamos sobrescrever o default para o que o usuário exigiu, caso não venha da DB
@@ -135,29 +136,44 @@ Formato OBRIGATÓRIO de saída:
     }
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${rawApiKey.trim()}`;
-    const geminiRes = await fetch(geminiUrl, {
+    
+    // Estrutura do payload (com thinkingConfig pedido pelo usuário)
+    const payload: any = {
+      systemInstruction: {
+        parts: [{ text: systemPrompt }]
+      },
+      contents: [
+        {
+          parts: [
+            { inlineData: { mimeType: mimeType, data: base64Audio } },
+            { text: "Transcreva este áudio seguindo as regras." }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        thinkingConfig: {
+          thinkingBudget: 0
+        }
+      }
+    };
+
+    let geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: systemPrompt }]
-        },
-        contents: [
-          {
-            parts: [
-              { inlineData: { mimeType: mimeType, data: base64Audio } },
-              { text: "Transcreva este áudio seguindo as regras." }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          thinkingConfig: {
-            thinkingBudget: 0
-          }
-        }
-      })
+      body: JSON.stringify(payload)
     });
+
+    // AUTO-CORREÇÃO: Alguns modelos Lite na API v1beta estrita rejeitam campos de "Thinking" (HTTP 400).
+    // O SDK moderno lida com isso silenciando, mas no REST cru nós fazemos o fallback automático.
+    if (geminiRes.status === 400) {
+       delete payload.generationConfig.thinkingConfig;
+       geminiRes = await fetch(geminiUrl, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(payload)
+       });
+    }
 
     const durationSec = (Date.now() - startMs) / 1000;
     const jsonResult = await geminiRes.json();

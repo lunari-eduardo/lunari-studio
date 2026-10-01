@@ -270,7 +270,14 @@ function AudioTranscriptBubble({ mensagemId, transcript, isOwn }: { mensagemId: 
         body: JSON.stringify({ message_id: mensagemId })
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const textData = await response.text();
+        throw new Error(`O servidor retornou um erro inesperado (Status ${response.status}). Verifique se o Worker foi atualizado.`);
+      }
       
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao transcrever');
@@ -286,12 +293,12 @@ function AudioTranscriptBubble({ mensagemId, transcript, isOwn }: { mensagemId: 
 
   if (localTranscript) {
     return (
-      <div className={cn("mt-1.5 p-2 rounded-lg text-[13px] leading-relaxed relative bg-black/5 dark:bg-white/5", isOwn ? "text-emerald-950 dark:text-emerald-100" : "text-zinc-800 dark:text-zinc-200")}>
-        <div className="flex items-center gap-1.5 mb-1 opacity-70">
-          <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+      <div className={cn("mt-1.5 p-3 rounded-xl text-[13px] leading-relaxed relative bg-black/5 dark:bg-white/5", isOwn ? "text-emerald-950 dark:text-emerald-100" : "text-zinc-800 dark:text-zinc-200")}>
+        <div className="flex items-center gap-1.5 mb-2 opacity-70">
+          <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
           <span className="text-[10px] uppercase tracking-wider font-semibold">Transcrição</span>
         </div>
-        {localTranscript}
+        <div className="whitespace-pre-wrap">{localTranscript}</div>
       </div>
     );
   }
@@ -312,7 +319,6 @@ function AudioTranscriptBubble({ mensagemId, transcript, isOwn }: { mensagemId: 
         </>
       ) : (
         <>
-          <Sparkles className="w-3 h-3" />
           Transcrever
         </>
       )}
