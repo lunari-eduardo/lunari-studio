@@ -20,11 +20,11 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
   switch (state) {
     case 'NEW_CONTACT':
       actions.push({ id: 'orcamento', label: 'Enviar Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
-      actions.push({ id: 'agenda', label: 'Abrir Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      actions.push({ id: 'agenda', label: 'Agendar', icon: <Calendar className="h-4 w-4" />, onClick: onSchedule || (() => onNavigate('/app/agenda')) });
       break;
     case 'OPEN_OPPORTUNITY':
       actions.push({ id: 'abrir_lead', label: 'Abrir Lead', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/leads') });
-      actions.push({ id: 'agenda', label: 'Agenda', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      actions.push({ id: 'agenda', label: 'Agendar', icon: <Calendar className="h-4 w-4" />, onClick: onSchedule || (() => onNavigate('/app/agenda')) });
       actions.push({ id: 'orcamento', label: 'Orçamento', icon: <DollarSign className="h-4 w-4" />, onClick: () => onNavigate('/app/comercial') });
       break;
     case 'CLIENT':
@@ -34,11 +34,12 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
     case 'ACTIVE_SESSION':
       actions.push({ id: 'workflow', label: 'Abrir Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
       actions.push({ id: 'ver_cliente', label: 'Ver Cliente', icon: <User className="h-4 w-4" />, onClick: () => onNavigate('/app/clientes') });
-      actions.push({ id: 'nova_sessao', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, onClick: () => onNavigate('/app/agenda') });
+      actions.push({ id: 'nova_sessao', label: 'Agendar', icon: <Calendar className="h-4 w-4" />, onClick: onSchedule || (() => onNavigate('/app/agenda')) });
       break;
     case 'NEXT_SESSION':
       actions.push({ id: 'galeria', label: 'Abrir Galeria', icon: <Image className="h-4 w-4" />, onClick: () => onNavigate('/app/galerias') });
       actions.push({ id: 'workflow', label: 'Workflow', icon: <Briefcase className="h-4 w-4" />, onClick: onOpenWorkflow });
+      actions.push({ id: 'nova_sessao', label: 'Agendar', icon: <Calendar className="h-4 w-4" />, onClick: onSchedule || (() => onNavigate('/app/agenda')) });
       break;
   }
 

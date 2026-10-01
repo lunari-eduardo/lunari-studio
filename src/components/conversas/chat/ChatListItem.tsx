@@ -44,8 +44,8 @@ export interface ChatListItemProps {
 }
 
 const CONTEXT_BADGE: Record<EnrichedChat['contato_tipo'], { label: string; className: string } | null> = {
-  lead: { label: 'Lead', className: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' },
-  cliente: { label: 'Cliente', className: 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800' },
+  lead: { label: 'Lead', className: 'bg-zinc-50/80 text-zinc-600 border border-zinc-200/80 dark:bg-zinc-800/40 dark:border-zinc-700/80 dark:text-zinc-400' },
+  cliente: { label: 'Cliente', className: 'bg-amber-50/80 text-amber-700 border border-amber-200/80 dark:bg-amber-900/20 dark:border-amber-800/80 dark:text-amber-400' },
   unknown: null,
 };
 
@@ -119,23 +119,28 @@ export const ChatListItem = React.memo(function ChatListItem({
 
       {/* Conteúdo: nome + preview */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        {/* Linha 1: Nome + badge contexto + timestamp */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+        {/* Linha 1: Nome + timestamp e tags (alinhadas à direita) */}
+        <div className="flex items-center justify-between gap-3">
+          {/* Esquerda: Nome do contato */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {isPinned && (
               <Pin className="h-3 w-3 text-amber-500 fill-amber-400/80 flex-shrink-0" />
             )}
             <span
               className={cn(
-                'truncate text-sm block leading-tight',
+                'truncate text-[13.5px] block leading-tight',
                 isUnread ? 'font-semibold text-zinc-800 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-200',
               )}
             >
               {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
+          </div>
+
+          {/* Direita: Tags + Timestamp */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             {leadStatus ? (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 max-w-[120px] truncate"
+                className="inline-flex items-center gap-1.5 px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 bg-zinc-50/80 border border-zinc-200/80 text-zinc-600 dark:bg-zinc-800/40 dark:border-zinc-700/80 dark:text-zinc-300 shadow-sm"
               >
                 {leadStatus.color && (
                   <span
@@ -143,22 +148,23 @@ export const ChatListItem = React.memo(function ChatListItem({
                     style={{ backgroundColor: leadStatus.color }}
                   />
                 )}
-                {leadStatus.label}
+                <span className="truncate max-w-[110px]">{leadStatus.label}</span>
               </span>
             ) : badge ? (
               <span
                 className={cn(
-                  'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0',
+                  'inline-flex items-center px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 shadow-sm',
                   badge.className,
                 )}
               >
                 {badge.label}
               </span>
             ) : null}
+
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
+              {formatChatTimestamp(chat.ultima_mensagem_data)}
+            </span>
           </div>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
-            {formatChatTimestamp(chat.ultima_mensagem_data)}
-          </span>
         </div>
 
         {/* Linha 2: Preview + ações */}

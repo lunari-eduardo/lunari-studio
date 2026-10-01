@@ -88,7 +88,7 @@ export function ActiveBudgetsCard({
                 </span>
               </div>
               <Button variant="ghost" size="icon" className="h-6 w-6" asChild>
-                <a href={`/proposal/${share.token}`} target="_blank" rel="noreferrer">
+                <a href={`/p/${share.token}`} target="_blank" rel="noreferrer">
                   <ExternalLink className="h-3 w-3 text-muted-foreground" />
                 </a>
               </Button>
