@@ -9,7 +9,9 @@ import {
   StickyNote,
   Trash2,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Chat, EnrichedChat, Nota } from '@/modules/conversas/types';
@@ -27,7 +29,6 @@ import { useClientesRealtime } from '@/hooks/useClientesRealtime';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { SmartSessionCard } from './cards/SmartSessionCard';
 import { QuickActionsCard } from './cards/QuickActionsCard';
-import { FinancialSummaryCard } from './cards/FinancialSummaryCard';
 import { ContactHeaderCard } from './cards/ContactHeaderCard';
 import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
@@ -71,6 +72,7 @@ export function ChatContextPanel({
   const { updateContato } = useConversasContatos();
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
+  const [notasExpanded, setNotasExpanded] = useState(false);
   const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isBudgetDrawerOpen, setIsBudgetDrawerOpen] = useState(false);
@@ -183,27 +185,21 @@ export function ChatContextPanel({
 
           {/* FLUXO OPERACIONAL: Próxima Sessão ou Sessão Ativa */}
           {state === 'NEXT_SESSION' && nextSession && (
-            <>
-              <SmartSessionCard 
-                sessoes={[nextSession]} 
-                onOpenWorkflow={handleOpenWorkflow} 
-                onNavigate={navigate} 
-                variant="next"
-              />
-              <FinancialSummaryCard sessao={nextSession} onNavigate={navigate} />
-            </>
+            <SmartSessionCard 
+              sessoes={[nextSession]} 
+              onOpenWorkflow={handleOpenWorkflow} 
+              onNavigate={navigate} 
+              variant="next"
+            />
           )}
 
           {state === 'ACTIVE_SESSION' && activeWorkflow && (
-            <>
-              <SmartSessionCard 
-                sessoes={[activeWorkflow]} 
-                onOpenWorkflow={handleOpenWorkflow} 
-                onNavigate={navigate} 
-                variant="post_production"
-              />
-              <FinancialSummaryCard sessao={activeWorkflow} onNavigate={navigate} />
-            </>
+            <SmartSessionCard 
+              sessoes={[activeWorkflow]} 
+              onOpenWorkflow={handleOpenWorkflow} 
+              onNavigate={navigate} 
+              variant="post_production"
+            />
           )}
 
           <SessionHistoryList
@@ -211,15 +207,13 @@ export function ChatContextPanel({
             onOpenWorkflow={handleOpenWorkflow}
           />
 
-          <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-3 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-            <TemplatesListTab
-              chat={chat}
-              messages={messages}
-              suggestedCategory={templateContext.category}
-              suggestedStep={templateContext.stage}
-              onInsertToComposer={onInsertToComposer ?? (() => {})}
-            />
-          </div>
+          <TemplatesListTab
+            chat={chat}
+            messages={messages}
+            suggestedCategory={templateContext.category}
+            suggestedStep={templateContext.stage}
+            onInsertToComposer={onInsertToComposer ?? (() => {})}
+          />
 
           <QuickActionsCard 
             state={state} 
@@ -236,48 +230,70 @@ export function ChatContextPanel({
           />
 
           {/* Notas Internas */}
-          <div className="flex flex-col gap-2.5 mt-2">
-            <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 px-1">
-              <StickyNote className="h-3.5 w-3.5 text-zinc-400" /> Notas internas
-            </span>
-            <div className="flex flex-col gap-2">
-              {notas.length === 0 ? (
-                <p className="text-xs text-zinc-400 italic px-1">Nenhuma nota registrada.</p>
-              ) : (
-                notas.map((n) => (
-                  <div key={n.id} className="relative group p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 text-xs text-zinc-700 dark:text-zinc-300">
-                    <p className="whitespace-pre-wrap leading-relaxed pr-6">{n.content}</p>
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-yellow-200/50 dark:border-yellow-900/30">
-                      <span className="text-[10px] text-yellow-600/70 dark:text-yellow-600/50 font-medium">
-                        {formatDate(n.created_at)}
-                      </span>
-                      <button onClick={() => onDeleteNota(n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/70 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div className="mt-1 relative rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] shadow-[0_1px_2px_rgba(0,0,0,0.02)] focus-within:border-zinc-300 dark:focus-within:border-zinc-700 focus-within:ring-2 focus-within:ring-zinc-100 dark:focus-within:ring-zinc-800/50 transition-all overflow-hidden">
-              <Textarea 
-                value={notaDraft}
-                onChange={(e) => setNotaDraft(e.target.value)}
-                placeholder="Adicionar uma nova nota..."
-                className="min-h-[72px] resize-none border-0 focus-visible:ring-0 text-xs px-3 py-2.5 bg-transparent"
-              />
-              <div className="flex justify-end p-1.5 border-t border-black/[0.04] dark:border-white/[0.05] bg-zinc-50/50 dark:bg-[#151515]">
-                <Button 
-                  size="sm" 
-                  onClick={handleAddNota} 
-                  disabled={submittingNota || !notaDraft.trim()}
-                  className="h-7 text-[10px] px-3 font-semibold rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white"
-                >
-                  {submittingNota ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
-                </Button>
+          <div className={cn(
+            "flex flex-col rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all overflow-hidden",
+            notasExpanded && "pb-2"
+          )}>
+            <div 
+              onClick={() => setNotasExpanded(!notasExpanded)}
+              className="flex items-center justify-between p-3 cursor-pointer hover:bg-black/[0.01] dark:hover:bg-white/[0.01]"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <StickyNote className="h-4 w-4 text-zinc-400" />
+                <span className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  Notas internas
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-yellow-500/10 text-[#A87E43] dark:text-[#D4AF37] text-[10px] font-bold">
+                    {notas.length}
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-zinc-400">
+                {notasExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </div>
             </div>
+
+            {notasExpanded && (
+              <div className="px-3 flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
+                  {notas.length === 0 ? (
+                    <p className="text-xs text-zinc-400 italic">Nenhuma nota registrada.</p>
+                  ) : (
+                    notas.map((n) => (
+                      <div key={n.id} className="relative group p-2.5 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 text-xs text-zinc-700 dark:text-zinc-300">
+                        <p className="whitespace-pre-wrap leading-relaxed pr-6">{n.content}</p>
+                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-yellow-200/50 dark:border-yellow-900/30">
+                          <span className="text-[10px] text-yellow-600/70 dark:text-yellow-600/50 font-medium">
+                            {formatDate(n.created_at)}
+                          </span>
+                          <button onClick={() => onDeleteNota(n.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500/70 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-all">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                
+                <div className="relative rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#151515] shadow-sm focus-within:border-zinc-300 dark:focus-within:border-zinc-700 focus-within:ring-2 focus-within:ring-zinc-100 dark:focus-within:ring-zinc-800/50 transition-all overflow-hidden">
+                  <Textarea 
+                    value={notaDraft}
+                    onChange={(e) => setNotaDraft(e.target.value)}
+                    placeholder="Adicionar uma nova nota..."
+                    className="min-h-[72px] resize-none border-0 focus-visible:ring-0 text-xs px-3 py-2.5 bg-transparent"
+                  />
+                  <div className="flex justify-end p-1.5 border-t border-black/[0.04] dark:border-white/[0.05] bg-zinc-50/50 dark:bg-black/20">
+                    <Button 
+                      size="sm" 
+                      onClick={handleAddNota} 
+                      disabled={submittingNota || !notaDraft.trim()}
+                      className="h-7 text-[10px] px-3 font-semibold rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white"
+                    >
+                      {submittingNota ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

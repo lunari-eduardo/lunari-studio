@@ -47,77 +47,35 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, o
   const showMenu = (canCreateLead && onCreateLead) || onLinkClient || isClientBase;
 
   return (
-    <div className="rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1A1A1A] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col gap-3">
-      
-      {/* Camada 1: Identidade e Badges */}
-      <div className="flex items-center gap-3">
-        <Avatar className="h-10 w-10 border border-black/5 dark:border-white/5">
-          <AvatarImage src={contact.avatar || ''} />
-          <AvatarFallback className="bg-zinc-100 text-zinc-600 font-medium">
-            {contact.name.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <h3 className="text-[14px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight pr-2">
-              {contact.name}
-            </h3>
-            {showMenu && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 outline-none flex-shrink-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  {canCreateLead && onCreateLead && (
-                    <DropdownMenuItem onClick={onCreateLead} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
-                      <Plus className="h-4 w-4" />
-                      Criar Lead
-                    </DropdownMenuItem>
-                  )}
-                  {onLinkClient && (
-                    <DropdownMenuItem onClick={onLinkClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
-                      <Link className="h-4 w-4" />
-                      Vincular Cliente Existente
-                    </DropdownMenuItem>
-                  )}
-                  {isClientBase && onOpenClient && (
-                    <DropdownMenuItem onClick={onOpenClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
-                      <Star className="h-4 w-4" />
-                      Ver Cliente no CRM
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+    <div className="flex flex-col gap-2 p-3 pb-2">
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-1 min-w-0">
+          <h3 className="text-[16px] font-semibold text-zinc-900 dark:text-zinc-100 truncate leading-tight pr-2">
+            {contact.name}
+          </h3>
+          
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
             {hasOpenLead && (
-              <>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-medium tracking-tight">
-                  <Star className="h-2.5 w-2.5 fill-current opacity-70" />
-                  Lead
-                </div>
-                <LeadStatusDropdown leadId={lead.id} currentStatusKey={lead.status} />
-              </>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">
+                <Star className="h-2.5 w-2.5 fill-current opacity-70" />
+                Lead
+              </div>
             )}
             
             {isClientBase && (
-              <>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">
-                  <Star className="h-2.5 w-2.5 fill-current opacity-70" />
-                  Cliente
-                </div>
-                {hasFutureSession && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-[10px] font-medium tracking-tight text-amber-600 dark:text-amber-500">
-                    <Calendar className="h-2.5 w-2.5 opacity-70" />
-                    Sessão agendada
-                  </div>
-                )}
-              </>
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">
+                <Star className="h-2.5 w-2.5 fill-current opacity-70" />
+                Cliente
+              </div>
             )}
 
+            {hasFutureSession && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-500/10 text-[10px] font-medium tracking-tight text-amber-600 dark:text-amber-500">
+                <Calendar className="h-2.5 w-2.5 opacity-70" />
+                Sessão agendada
+              </div>
+            )}
+            
             {categoriaPrincipal?.id && categoriaPrincipal.modo === 'MANUAL' && (
               <button 
                 onClick={clearManualMode} 
@@ -129,13 +87,42 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, o
             )}
           </div>
         </div>
+
+        {showMenu && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 outline-none flex-shrink-0">
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {canCreateLead && onCreateLead && (
+                <DropdownMenuItem onClick={onCreateLead} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
+                  <Plus className="h-4 w-4" />
+                  Criar Lead
+                </DropdownMenuItem>
+              )}
+              {onLinkClient && (
+                <DropdownMenuItem onClick={onLinkClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
+                  <Link className="h-4 w-4" />
+                  Vincular Cliente Existente
+                </DropdownMenuItem>
+              )}
+              {isClientBase && onOpenClient && (
+                <DropdownMenuItem onClick={onOpenClient} className="gap-2 cursor-pointer text-zinc-700 dark:text-zinc-300">
+                  <Star className="h-4 w-4" />
+                  Ver Cliente no CRM
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
-      {/* Camada 2: Etapa do Workflow (Espelhamento Direto) */}
       {etapaVigente && (
-        <div className="pt-3 mt-1 border-t border-black/[0.04] dark:border-white/[0.04]">
-          <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium border border-black/5 dark:border-white/5">
-            <span className="opacity-60 mr-1.5 uppercase text-[9px] tracking-wider font-bold">FASE</span>
+        <div className="flex items-center gap-1.5 mt-1">
+          <div className="inline-flex items-center px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800/50 text-zinc-600 dark:text-zinc-400 text-[10px] font-medium border border-black/5 dark:border-white/5">
+            <span className="opacity-60 mr-1 uppercase text-[9px] tracking-wider font-bold">FASE</span>
             {etapaVigente}
           </div>
         </div>

@@ -3,7 +3,7 @@ import {
   Search,
   Plus,
   Send,
-  CornerDownLeft,
+  ChevronRight,
   MoreVertical,
   Pencil,
   Trash2,
@@ -123,9 +123,8 @@ export function TemplatesListTab({
         return (a.ordem || 0) - (b.ordem || 0);
       });
     }
-    
-    // Quick panel only shows top 5
-    return result.slice(0, 5);
+    // Quick panel only shows top 3
+    return result.slice(0, 3);
   }, [templates, search, suggestedCategory, suggestedStep, categorias, messages]);
 
   const handleOpenLibrary = () => {
@@ -138,10 +137,11 @@ export function TemplatesListTab({
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
+    <div className="flex flex-col h-full bg-transparent mt-2">
       {/* Header: Sugestões de mensagens */}
       <div className="flex items-center justify-between mb-2 px-1">
-        <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100">
+        <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-amber-500" />
           Sugestões de mensagens
         </h3>
         <button 
@@ -203,44 +203,29 @@ export function TemplatesListTab({
               <div
                 key={template.id}
                 className={cn(
-                  "group flex items-center justify-between gap-2 p-1.5 rounded-xl border transition-all cursor-pointer bg-white dark:bg-[#1A1A1A]",
+                  "group flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-all cursor-pointer bg-white dark:bg-[#1A1A1A]",
                   isSuggested
-                    ? "border-[#D4AF37]/40 shadow-[0_2px_8px_rgba(212,175,55,0.08)] bg-gradient-to-r from-[#D4AF37]/[0.02] to-transparent"
-                    : "border-black/[0.04] dark:border-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:border-black/[0.1] dark:hover:border-white/[0.1]"
+                    ? "border-[#D4AF37]/30 shadow-[0_1px_4px_rgba(212,175,55,0.05)] bg-gradient-to-r from-[#D4AF37]/[0.02] to-transparent"
+                    : "border-black/[0.04] dark:border-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.01)] hover:bg-black/[0.01] dark:hover:bg-white/[0.01]"
                 )}
                 onClick={() => handleInsert(template)}
               >
                 <div className="flex items-center gap-3 min-w-0 pl-1">
-                  <div className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 border", visual.bg)}>
+                  <div className="flex items-center justify-center shrink-0">
                     {visual.icon}
                   </div>
                   <div className="flex flex-col min-w-0 gap-0.5">
-                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
+                    <span className="text-[12px] font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
                       {template.nome}
-                      {isSuggested && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 bg-[#D4AF37]/20 text-[#B8925F] rounded-md">
-                          Sugerido
-                        </span>
-                      )}
                     </span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-[180px]">
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate max-w-[200px]">
                       {template.conteudo}
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center pr-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-6 w-6 text-zinc-400 hover:text-[#C9A87C]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleInsert(template);
-                    }}
-                  >
-                    <Send className="h-3 w-3" />
-                  </Button>
+                <div className="flex items-center pr-1 text-zinc-400 shrink-0">
+                  <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </div>
             );

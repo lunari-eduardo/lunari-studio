@@ -1,4 +1,4 @@
-import { Calendar, DollarSign, Briefcase, Sparkles, User, Image } from 'lucide-react';
+import { Calendar, DollarSign, Briefcase, Zap, User, Image } from 'lucide-react';
 import type { ChatContactState } from '@/hooks/useChatStateResolver';
 
 interface QuickActionsCardProps {
@@ -44,19 +44,19 @@ export function QuickActionsCard({ state, onNavigate, onCreateLead, onOpenWorkfl
   }
 
   return (
-    <div className="mt-2 mb-2">
-      <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 mb-2.5 px-1">
-        <Sparkles className="h-3.5 w-3.5 text-[#C9A87C]" /> Ações rápidas
+    <div className="mt-2 mb-2 flex flex-col gap-2">
+      <span className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 px-1">
+        <Zap className="h-4 w-4 text-amber-500" /> Ações rápidas
       </span>
-      <div className="flex items-stretch gap-2 overflow-x-auto pb-1 scrollbar-hide px-1">
-        {actions.map((act) => (
+      <div className="flex items-stretch gap-2">
+        {actions.slice(0, 3).map((act) => (
           <button
             key={act.id}
             onClick={act.onClick}
-            className="flex flex-col items-center justify-center gap-1.5 flex-1 min-w-[76px] py-2.5 px-1 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/[0.03] hover:bg-[#D4AF37]/10 transition-colors text-[#A87E43] dark:text-[#D4AF37]"
+            className="flex flex-col items-center justify-center gap-1.5 flex-1 min-w-0 py-3 px-1 rounded-xl border border-[#D4AF37]/30 bg-white dark:bg-[#1A1A1A] hover:bg-[#D4AF37]/5 transition-colors text-[#A87E43] dark:text-[#D4AF37] shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
           >
             {act.icon}
-            <span className="text-[10px] font-medium leading-tight text-center px-1">
+            <span className="text-[11px] font-medium leading-tight text-center truncate w-full px-1">
               {act.label}
             </span>
           </button>
