@@ -26,6 +26,7 @@ interface MeetingModalProps {
   event?: Appointment | null;
   initialDate?: Date;
   initialTime?: string;
+  preselectedClienteId?: string | null;
   onSave: (data: any) => void | Promise<void>;
   onDelete?: (id: string) => void | Promise<void>;
 }
@@ -45,6 +46,7 @@ export function MeetingModal({
   event = null,
   initialDate,
   initialTime,
+  preselectedClienteId,
   onSave,
   onDelete,
 }: MeetingModalProps) {
@@ -52,7 +54,7 @@ export function MeetingModal({
   const { clientes } = useClientesRealtime();
 
   const [title, setTitle] = useState('');
-  const [clienteId, setClienteId] = useState('');
+  const [clienteId, setClienteId] = useState(() => preselectedClienteId || '');
   const [dateInput, setDateInput] = useState(() => formatDateForInput(initialDate || new Date()));
   const [timeInput, setTimeInput] = useState(initialTime || '14:00');
   const [durationMinutes, setDurationMinutes] = useState('60');
@@ -81,7 +83,7 @@ export function MeetingModal({
       setStatus(event.status || 'confirmado');
     } else {
       setTitle('');
-      setClienteId('');
+      setClienteId(preselectedClienteId || '');
       setDateInput(formatDateForInput(initialDate || new Date()));
       setTimeInput(initialTime || '14:00');
       setDurationMinutes('60');
@@ -89,7 +91,7 @@ export function MeetingModal({
       setDescription('');
       setStatus('confirmado');
     }
-  }, [open, event, initialDate, initialTime]);
+  }, [open, event, initialDate, initialTime, preselectedClienteId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

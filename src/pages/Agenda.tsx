@@ -50,6 +50,7 @@ import { AgendaLegend } from '@/components/agenda/AgendaLegend';
 import { PersonalEventModal } from '@/components/agenda/PersonalEventModal';
 import { MeetingModal } from '@/components/agenda/MeetingModal';
 import { AgendaOnlinePanel } from '@/components/agenda/agenda-online-panel/AgendaOnlinePanel';
+import { useAppContext } from '@/contexts/AppContext';
 
 
 /** Shell de largura: ano usa 1600px (grade de 12 meses), demais views usam o padrão. */
@@ -59,6 +60,7 @@ function AgendaShell({ full, children }: { full: boolean; children: React.ReactN
 }
 
 export default function Agenda() {
+  const { selectedClientForScheduling } = useAppContext();
   const { addAppointment, updateAppointment, deleteAppointment } = useAppointmentMutations();
   const { availability } = useAvailability();
   const { isFromBudget, getBudgetId } = useIntegration();
@@ -534,6 +536,7 @@ export default function Agenda() {
         event={selectedMeeting}
         initialDate={newItemSlot?.date || date}
         initialTime={newItemSlot?.time || '14:00'}
+        preselectedClienteId={selectedClientForScheduling}
         onSave={handleSaveMeeting}
         onDelete={handleDeleteMeeting}
       />
@@ -576,6 +579,7 @@ export default function Agenda() {
         viewingAppointment={viewingAppointment}
         selectedBudget={selectedBudget}
         selectedBudgetAppointment={selectedBudgetAppointment}
+        preselectedClienteId={selectedClientForScheduling}
         
         // Modal setters
         setIsAppointmentDialogOpen={setIsAppointmentDialogOpen}
@@ -592,7 +596,7 @@ export default function Agenda() {
         onSaveBudgetAppointment={handleSaveBudgetAppointment}
         onViewFullBudget={handleViewFullBudget}
       />
-      <SlotConflictDialog />
+      <SlotConflictDialog {...conflictDialogProps} />
 
       {/* Agendamento Online Panel */}
       <AgendaOnlinePanel

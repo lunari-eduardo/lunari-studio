@@ -23,6 +23,7 @@ interface AgendaModalsProps {
   viewingAppointment: Appointment | null;
   selectedBudget: Orcamento | null;
   selectedBudgetAppointment: { appointment: Appointment; budget: Orcamento | null; } | null;
+  preselectedClienteId?: string | null;
   
   // Modal setters
   setIsAppointmentDialogOpen: (open: boolean) => void;
@@ -55,6 +56,7 @@ export default function AgendaModals({
   viewingAppointment,
   selectedBudget,
   selectedBudgetAppointment,
+  preselectedClienteId,
   
   // Modal setters
   setIsAppointmentDialogOpen,
@@ -81,6 +83,7 @@ export default function AgendaModals({
         appointment={editingAppointment}
         initialDate={selectedSlot?.date}
         initialTime={selectedSlot?.time}
+        preselectedClienteId={preselectedClienteId || undefined}
         onSave={onSaveAppointment}
         onPersist={onPersistAppointment}
         onDelete={onDeleteAppointment}
