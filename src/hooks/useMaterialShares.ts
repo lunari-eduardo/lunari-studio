@@ -215,3 +215,151 @@ export function useAllMaterialShares() {
     refetch: query.refetch
   };
 }
+
+export function useContactMaterialShares(leadId?: string, clienteId?: string) {
+  const queryKey = ['contact-material-shares', leadId, clienteId];
+
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!leadId && !clienteId) return [];
+
+      let queryBuilder = (supabase as any)
+        .from('material_shares')
+        .select(`
+          *,
+          material:commercial_materials(title, cover_image_url),
+          version:material_versions(version_number)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (leadId && clienteId) {
+        queryBuilder = queryBuilder.or(`lead_id.eq.${leadId},cliente_id.eq.${clienteId}`);
+      } else if (leadId) {
+        queryBuilder = queryBuilder.eq('lead_id', leadId);
+      } else if (clienteId) {
+        queryBuilder = queryBuilder.eq('cliente_id', clienteId);
+      }
+
+      const { data, error } = await queryBuilder;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!(leadId || clienteId),
+  });
+
+  return {
+    shares: query.data || [],
+    isLoading: query.isLoading,
+    refetch: query.refetch
+  };
+}
+
+export function useSendMaterialShare() {
+  const queryClient = useQueryClient();
+
+  const createShare = useMutation({
+    mutationFn: async ({ materialId, lead_id, cliente_id, custom_message }: { materialId: string; lead_id?: string; cliente_id?: string; custom_message?: string }) => {
+      if (!materialId) throw new Error('Material não informado');
+
+      const { data: material, error: matErr } = await (supabase as any)
+        .from('commercial_materials')
+        .select('active_version_id, user_id')
+        .eq('id', materialId)
+        .single();
+
+      if (matErr || !material) throw new Error('Material não encontrado');
+      
+      let versionId = material.active_version_id;
+
+      if (!versionId) {
+        const { data: lastVer } = await (supabase as any)
+          .from('material_versions')
+          .select('id')
+          .eq('material_id', materialId)
+          .not('published_at', 'is', null)
+          .order('version_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (lastVer) {
+          versionId = lastVer.id;
+        }
+      }
+
+      if (!versionId) throw new Error('O material precisa ser publicado antes de enviar.');
+
+      const token = crypto.randomUUID().replace(/-/g, '');
+
+      const { data, error } = await (supabase as any)
+        .from('material_shares')
+        .insert({
+          material_id: materialId,
+          version_id: versionId,
+          user_id: material.user_id,
+          lead_id: lead_id || null,
+          cliente_id: cliente_id || null,
+          token,
+          custom_message: custom_message || null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (lead_id) {
+        try {
+          const { data: config } = await (supabase as any)
+            .rpc('get_or_create_automation_config', { p_user_id: material.user_id })
+            .single();
+
+          if (config && config.auto_advance_stage_on_share) {
+            const targetStage = config.target_stage_key;
+
+            const { data: lead } = await (supabase as any)
+              .from('leads')
+              .select('status, historico_status')
+              .eq('id', lead_id)
+              .single();
+
+            if (lead) {
+              const currentStatusOrder = DEFAULT_LEAD_STATUSES.find(s => s.key === lead.status)?.order || 0;
+              const targetStatusOrder = DEFAULT_LEAD_STATUSES.find(s => s.key === targetStage)?.order || 0;
+
+              if (currentStatusOrder < targetStatusOrder) {
+                const now = new Date().toISOString();
+                const currentHistory = lead.historico_status || [];
+                const newHistory = [...currentHistory, { status: targetStage, data: now }];
+
+                await (supabase as any)
+                  .from('leads')
+                  .update({
+                    status: targetStage,
+                    status_timestamp: now,
+                    historico_status: newHistory
+                  })
+                  .eq('id', lead_id);
+                  
+                toast.success(`Lead movido automaticamente para "${DEFAULT_LEAD_STATUSES.find(s => s.key === targetStage)?.name}"`);
+              }
+            }
+          }
+        } catch (automationErr) {
+          console.error('Erro na automação do lead:', automationErr);
+        }
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact-material-shares'] });
+      queryClient.invalidateQueries({ queryKey: ['all-material-shares'] });
+      toast.success('Compartilhamento rastreável criado!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao enviar: ' + err.message);
+    }
+  });
+
+  return { createShare };
+}

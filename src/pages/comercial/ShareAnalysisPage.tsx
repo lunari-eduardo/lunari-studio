@@ -96,6 +96,10 @@ export default function ShareAnalysisPage() {
                   </Badge>
                 )}
               </span>
+            ) : share.cliente ? (
+              <span className="inline-flex items-center gap-2">
+                <Link to={`/app/clientes/${share.cliente_id}`} className="text-primary hover:underline">{share.cliente.nome}</Link>
+              </span>
             ) : 'Sem lead vinculado'}
           </p>
           <div className="mt-2 text-sm text-muted-foreground">

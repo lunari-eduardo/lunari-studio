@@ -16,6 +16,7 @@ export function useShareAnalysis(shareId: string | undefined) {
           *,
           material:commercial_materials(id, title),
           lead:leads(id, nome, email, whatsapp, status),
+          cliente:clientes(id, nome),
           version:material_versions(version_number)
         `)
         .eq('id', shareId)

@@ -182,20 +182,20 @@ export default function LeadFormModal({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent 
-        className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl bg-white dark:bg-[#1A1A1A] rounded-2xl"
+        className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto p-0 border-0 shadow-2xl bg-lunar-bg rounded-2xl"
         onPointerDownOutside={(e) => {
           if (isSubmitting) e.preventDefault();
         }}
       >
-        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-start gap-4 bg-zinc-50/50 dark:bg-[#1A1A1A]">
-          <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-            <User className="h-6 w-6 text-amber-700 dark:text-amber-500" />
+        <div className="p-6 border-b border-lunar-border/40 flex items-start gap-4 bg-lunar-surface/30">
+          <div className="h-12 w-12 rounded-full bg-lunar-accent/10 flex items-center justify-center shrink-0">
+            <User className="h-6 w-6 text-lunar-accent" />
           </div>
           <div>
-            <DialogTitle className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <DialogTitle className="text-xl font-semibold text-lunar-text">
               {mode === 'create' ? 'Novo Lead' : 'Editar Lead'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-zinc-500 mt-1">
+            <DialogDescription className="text-sm text-lunar-textSecondary mt-1">
               {mode === 'create' ? 'Preencha os dados para criar uma nova oportunidade' : 'Edite as informações do lead'}
             </DialogDescription>
           </div>
@@ -204,20 +204,20 @@ export default function LeadFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
           {/* Dados de Contato */}
           <div className="space-y-4">
-            <h3 className="text-[13px] font-bold text-amber-700 dark:text-amber-500 flex items-center gap-2">
+            <h3 className="text-[13px] font-bold text-lunar-accent flex items-center gap-2">
               Dados de contato
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nome" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Nome *</Label>
+                <Label htmlFor="nome" className="text-xs font-semibold text-lunar-text/90">Nome *</Label>
                 <div className="relative">
-                  <div className="absolute left-3 top-2.5 text-zinc-400"><User className="h-4 w-4" /></div>
+                  <div className="absolute left-3 top-2.5 text-lunar-textSecondary/80"><User className="h-4 w-4" /></div>
                   <Input
                     id="nome"
                     value={formData.nome}
                     onChange={(e) => handleInputChange('nome', e.target.value)}
-                    className={`pl-9 border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-amber-500/50 ${errors.nome ? 'border-red-500' : ''}`}
+                    className={`pl-9 border-lunar-border/60 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-lunar-accent/50 ${errors.nome ? 'border-red-500' : ''}`}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -225,14 +225,14 @@ export default function LeadFormModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="telefone" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Telefone</Label>
+                <Label htmlFor="telefone" className="text-xs font-semibold text-lunar-text/90">Telefone</Label>
                 <div className="relative">
-                  <div className="absolute left-3 top-2.5 text-zinc-400"><Phone className="h-4 w-4" /></div>
+                  <div className="absolute left-3 top-2.5 text-lunar-textSecondary/80"><Phone className="h-4 w-4" /></div>
                   <Input
                     id="telefone"
                     value={formData.telefone}
                     onChange={(e) => handleInputChange('telefone', e.target.value)}
-                    className="pl-9 border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-amber-500/50"
+                    className="pl-9 border-lunar-border/60 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-lunar-accent/50"
                     placeholder="(Opcional)"
                     disabled={isSubmitting}
                   />
@@ -241,15 +241,15 @@ export default function LeadFormModal({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Email</Label>
+              <Label htmlFor="email" className="text-xs font-semibold text-lunar-text/90">Email</Label>
               <div className="relative">
-                <div className="absolute left-3 top-2.5 text-zinc-400"><Mail className="h-4 w-4" /></div>
+                <div className="absolute left-3 top-2.5 text-lunar-textSecondary/80"><Mail className="h-4 w-4" /></div>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={`pl-9 border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-amber-500/50 ${errors.email ? 'border-red-500' : ''}`}
+                  className={`pl-9 border-lunar-border/60 shadow-none h-9 text-sm focus-visible:ring-1 focus-visible:ring-lunar-accent/50 ${errors.email ? 'border-red-500' : ''}`}
                   placeholder="email@exemplo.com"
                   disabled={isSubmitting}
                 />
@@ -261,23 +261,23 @@ export default function LeadFormModal({
           {/* Detalhes da oportunidade */}
           <div className="space-y-4">
             <div>
-              <h3 className="text-[13px] font-bold text-amber-700 dark:text-amber-500 flex items-center gap-2">
+              <h3 className="text-[13px] font-bold text-lunar-accent flex items-center gap-2">
                 Detalhes da oportunidade
               </h3>
-              <p className="text-[11px] text-zinc-500 mt-1">Essas informações ajudam a organizar seu funil e acompanhar o interesse do cliente.</p>
+              <p className="text-[11px] text-lunar-textSecondary mt-1">Essas informações ajudam a organizar seu funil e acompanhar o interesse do cliente.</p>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Interesse *</Label>
+                <Label className="text-xs font-semibold text-lunar-text/90">Interesse *</Label>
                 <Select 
                   value={formData.categoriaManualId} 
                   onValueChange={(value) => handleInputChange('categoriaManualId', value)}
                   onOpenChange={(open) => handleSelectOpenChange(open, 'categoriaManualId')}
                 >
-                  <SelectTrigger className={`border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus:ring-1 focus:ring-amber-500/50 ${errors.categoriaManualId ? 'border-red-500' : ''}`}>
-                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                      <Tag className="h-4 w-4 text-zinc-400" />
+                  <SelectTrigger className={`border-lunar-border/60 shadow-none h-9 text-sm focus:ring-1 focus:ring-lunar-accent/50 ${errors.categoriaManualId ? 'border-red-500' : ''}`}>
+                    <div className="flex items-center gap-2 text-lunar-text/80">
+                      <Tag className="h-4 w-4 text-lunar-textSecondary/80" />
                       <SelectValue placeholder="Selecione uma categoria" />
                     </div>
                   </SelectTrigger>
@@ -290,19 +290,19 @@ export default function LeadFormModal({
                   </SelectContent>
                 </Select>
                 {errors.categoriaManualId && <p className="text-[10px] text-red-500">{errors.categoriaManualId}</p>}
-                <p className="text-[10px] text-zinc-400 mt-1">Escolha a categoria de interesse deste lead.</p>
+                <p className="text-[10px] text-lunar-textSecondary/80 mt-1">Escolha a categoria de interesse deste lead.</p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Origem</Label>
+                <Label className="text-xs font-semibold text-lunar-text/90">Origem</Label>
                 <Select 
                   value={formData.origem} 
                   onValueChange={(value) => handleInputChange('origem', value)}
                   onOpenChange={(open) => handleSelectOpenChange(open, 'origem')}
                 >
-                  <SelectTrigger className="border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus:ring-1 focus:ring-amber-500/50">
-                    <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                      <Building className="h-4 w-4 text-zinc-400" />
+                  <SelectTrigger className="border-lunar-border/60 shadow-none h-9 text-sm focus:ring-1 focus:ring-lunar-accent/50">
+                    <div className="flex items-center gap-2 text-lunar-text/80">
+                      <Building className="h-4 w-4 text-lunar-textSecondary/80" />
                       <SelectValue placeholder="Selecionar origem" />
                     </div>
                   </SelectTrigger>
@@ -318,15 +318,15 @@ export default function LeadFormModal({
             </div>
 
             <div className="space-y-2 pt-2">
-              <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Status inicial</Label>
+              <Label className="text-xs font-semibold text-lunar-text/90">Status inicial</Label>
               <Select 
                 value={formData.status} 
                 onValueChange={(value) => handleInputChange('status', value)}
                 onOpenChange={(open) => handleSelectOpenChange(open, 'status')}
               >
-                <SelectTrigger className="border-black/10 dark:border-white/10 shadow-none h-9 text-sm focus:ring-1 focus:ring-amber-500/50">
-                  <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
-                    <Activity className="h-4 w-4 text-zinc-400" />
+                <SelectTrigger className="border-lunar-border/60 shadow-none h-9 text-sm focus:ring-1 focus:ring-lunar-accent/50">
+                  <div className="flex items-center gap-2 text-lunar-text/80">
+                    <Activity className="h-4 w-4 text-lunar-textSecondary/80" />
                     <SelectValue />
                   </div>
                 </SelectTrigger>
@@ -338,14 +338,14 @@ export default function LeadFormModal({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-zinc-400 mt-1">Define em qual etapa do funil este lead será criado.</p>
+              <p className="text-[10px] text-lunar-textSecondary/80 mt-1">Define em qual etapa do funil este lead será criado.</p>
             </div>
           </div>
 
           {/* Observações */}
           <div className="space-y-2">
-            <Label htmlFor="observacoes" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-amber-700 dark:text-amber-500" />
+            <Label htmlFor="observacoes" className="text-xs font-semibold text-lunar-text/90 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-lunar-accent" />
               Observações
             </Label>
             <Textarea
@@ -354,34 +354,34 @@ export default function LeadFormModal({
               onChange={(e) => handleInputChange('observacoes', e.target.value)}
               rows={3}
               placeholder="Adicione informações importantes sobre este lead..."
-              className="border-black/10 dark:border-white/10 shadow-none text-sm focus-visible:ring-1 focus-visible:ring-amber-500/50 resize-none"
+              className="border-lunar-border/60 shadow-none text-sm focus-visible:ring-1 focus-visible:ring-lunar-accent/50 resize-none"
               disabled={isSubmitting}
             />
             <div className="flex justify-end">
-              <span className="text-[10px] text-zinc-400">{formData.observacoes.length}/500</span>
+              <span className="text-[10px] text-lunar-textSecondary/80">{formData.observacoes.length}/500</span>
             </div>
           </div>
 
           {/* Mais detalhes (Accordion Placeholder) */}
-          <div className="rounded-lg border border-black/5 dark:border-white/5 bg-zinc-50 dark:bg-zinc-800/30 overflow-hidden">
+          <div className="rounded-lg border border-lunar-border/40 bg-lunar-surface/30 overflow-hidden">
             <button
               type="button"
               onClick={() => setShowMore(!showMore)}
-              className="w-full flex items-center justify-between p-3 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between p-3 text-left hover:bg-lunar-text/5 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="p-1 rounded-md bg-black/5 dark:bg-white/5">
-                  {showMore ? <ChevronUp className="h-4 w-4 text-zinc-500" /> : <ChevronDown className="h-4 w-4 text-zinc-500" />}
+                <div className="p-1 rounded-md bg-lunar-text/5">
+                  {showMore ? <ChevronUp className="h-4 w-4 text-lunar-textSecondary" /> : <ChevronDown className="h-4 w-4 text-lunar-textSecondary" />}
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Mais detalhes (opcional)</div>
-                  <div className="text-[10px] text-zinc-400">Data prevista, cidade, indicação, valor de interesse, tags e mais.</div>
+                  <div className="text-xs font-semibold text-lunar-text/90">Mais detalhes (opcional)</div>
+                  <div className="text-[10px] text-lunar-textSecondary/80">Data prevista, cidade, indicação, valor de interesse, tags e mais.</div>
                 </div>
               </div>
             </button>
             {showMore && (
-              <div className="p-4 border-t border-black/5 dark:border-white/5">
-                <p className="text-xs text-zinc-500 text-center italic py-2">
+              <div className="p-4 border-t border-lunar-border/40">
+                <p className="text-xs text-lunar-textSecondary text-center italic py-2">
                   Campos estendidos estarão disponíveis em breve.
                 </p>
               </div>
@@ -395,14 +395,14 @@ export default function LeadFormModal({
               variant="outline" 
               onClick={() => handleClose(false)}
               disabled={isSubmitting}
-              className="h-10 px-6 font-semibold border-black/10 dark:border-white/10 shadow-none"
+              className="h-10 px-6 font-semibold border-lunar-border/60 shadow-none"
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="h-10 px-6 font-semibold bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+              className="h-10 px-6 font-semibold bg-[#171717] text-[#F7F6F3] hover:bg-[#171717]/90 dark:bg-[#F7F6F3] dark:text-[#171717] dark:hover:bg-[#F7F6F3]/90"
             >
               {isSubmitting ? 'Salvando...' : (mode === 'create' ? 'Criar Lead →' : 'Salvar Alteraçoes')}
             </Button>
@@ -412,3 +412,4 @@ export default function LeadFormModal({
     </Dialog>
   );
 }
+

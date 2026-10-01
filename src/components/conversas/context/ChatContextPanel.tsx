@@ -33,6 +33,8 @@ import { useCommercialIntent } from '@/hooks/useCommercialIntent';
 import { useFollowUpEngine } from '@/hooks/useFollowUpEngine';
 import { FollowUpAlertCard } from './cards/FollowUpAlertCard';
 import { SessionHistoryList } from './cards/SessionHistoryList';
+import { ActiveBudgetsCard } from './cards/ActiveBudgetsCard';
+import { SendBudgetDrawer } from './modals/SendBudgetDrawer';
 
 export interface ChatContextPanelProps {
   chat: Chat | EnrichedChat;
@@ -71,6 +73,7 @@ export function ChatContextPanel({
   const [submittingNota, setSubmittingNota] = useState(false);
   const [isClientLinkModalOpen, setIsClientLinkModalOpen] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [isBudgetDrawerOpen, setIsBudgetDrawerOpen] = useState(false);
 
   const contextData = useConversasContactContext(chat);
   const { unifiedContext, sessoes, vincularAmbos, vincularCliente } = contextData;
@@ -168,6 +171,15 @@ export function ChatContextPanel({
             onLinkClient={!client?.id ? () => setIsClientLinkModalOpen(true) : undefined}
             onOpenClient={client?.id ? () => navigate(`/app/clientes/${client.id}`) : undefined}
           />
+
+          {(lead?.id || client?.id) && (
+            <ActiveBudgetsCard 
+              leadId={lead?.id}
+              clienteId={client?.id}
+              sessoes={sessoes}
+              onOpenDrawer={() => setIsBudgetDrawerOpen(true)}
+            />
+          )}
 
           {/* FLUXO OPERACIONAL: Próxima Sessão ou Sessão Ativa */}
           {state === 'NEXT_SESSION' && nextSession && (
@@ -269,6 +281,13 @@ export function ChatContextPanel({
         </div>
       </div>
 
+      <SendBudgetDrawer
+        isOpen={isBudgetDrawerOpen}
+        onClose={() => setIsBudgetDrawerOpen(false)}
+        leadId={lead?.id}
+        clienteId={client?.id}
+        onInsertToComposer={onInsertToComposer ?? (() => {})}
+      />
       <ClientLinkModal
         isOpen={isClientLinkModalOpen}
         onClose={() => setIsClientLinkModalOpen(false)}

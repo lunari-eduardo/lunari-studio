@@ -36,9 +36,10 @@ export default function CompartilhamentosComercialPage() {
 
   const filteredShares = useMemo(() => {
     return shares.filter(share => {
-      // 1. Lead Search
+      // 1. Lead/Client Search
       const leadName = share.lead?.nome?.toLowerCase() || '';
-      if (leadSearch && !leadName.includes(leadSearch.toLowerCase())) return false;
+      const clientName = share.cliente?.nome?.toLowerCase() || '';
+      if (leadSearch && !leadName.includes(leadSearch.toLowerCase()) && !clientName.includes(leadSearch.toLowerCase())) return false;
 
       // 2. Material
       if (materialFilter !== 'all' && share.material?.title !== materialFilter) return false;
@@ -181,10 +182,10 @@ export default function CompartilhamentosComercialPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col items-start gap-1">
-                          {share.lead?.nome ? (
+                          {share.lead?.nome || share.cliente?.nome ? (
                             <>
-                              <span>{share.lead.nome}</span>
-                              {share.lead.status && (
+                              <span>{share.lead?.nome || share.cliente?.nome}</span>
+                              {share.lead?.status && (
                                 <Badge
                                   variant="outline"
                                   className={`text-[10px] px-1.5 py-0 border-transparent ${
