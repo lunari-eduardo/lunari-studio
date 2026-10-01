@@ -110,23 +110,52 @@ export async function conversasAiTranscribeRoute(c: Context) {
 
     // 4. Send to Gemini for transcription
     const startMs = Date.now();
-    const systemPrompt = "Você é um transcritor de áudio em português do Brasil. Você transcreve de forma limpa e direta os áudios enviados sem adicionar comentários ou traduções ao texto transcrito.";
+    const systemPrompt = `Você é um transcritor de áudio avançado em português do Brasil (Norma Culta).
+Regras estritas de processamento:
+1. Realize a transcrição verbatim adaptada (limpa).
+2. Pontue e formate o texto corretamente de acordo com a norma culta.
+3. OMITA totalmente vícios de linguagem, hesitações e ruídos vocais (como "humm", "ééé", "né", "tipo assim", "ah").
+4. Inclua marcadores de tempo (timestamps) a cada troca de assunto ou a cada bloco de ~30 a 60 segundos no formato [mm:ss].
+5. Ao final da transcrição, gere uma seção separada de "Resumo Estruturado" contendo os tópicos (bullet points) e Próximos passos (se houver).
+
+Formato OBRIGATÓRIO de saída:
+### Transcrição
+[00:00] ...
+
+### Resumo Estruturado
+- **Pontos Principais**: ...
+- **Ações Definidas**: ...`;
     
     const mimeType = msgData.media_mime_type?.includes('audio') ? msgData.media_mime_type : 'audio/ogg';
+
+    // Forçar modelo para o solicitado se necessário ou manter o targetModel dinâmico,
+    // mas vamos sobrescrever o default para o que o usuário exigiu, caso não venha da DB
+    if (!targetModel || targetModel.includes("1.5")) {
+      targetModel = "gemini-3.5-flash-lite";
+    }
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${rawApiKey.trim()}`;
     const geminiRes = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
         contents: [
           {
             parts: [
-              { text: systemPrompt },
-              { inlineData: { mimeType: mimeType, data: base64Audio } }
+              { inlineData: { mimeType: mimeType, data: base64Audio } },
+              { text: "Transcreva este áudio seguindo as regras." }
             ]
           }
         ],
+        generationConfig: {
+          temperature: 0.1,
+          thinkingConfig: {
+            thinkingBudget: 0
+          }
+        }
       })
     });
 
