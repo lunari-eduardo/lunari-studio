@@ -117,15 +117,12 @@ Regras estritas de processamento:
 2. Pontue e formate o texto corretamente de acordo com a norma culta.
 3. OMITA totalmente vícios de linguagem, hesitações e ruídos vocais (como "humm", "ééé", "né", "tipo assim", "ah").
 4. Inclua marcadores de tempo (timestamps) a cada troca de assunto ou a cada bloco de ~30 a 60 segundos no formato [mm:ss].
-5. Ao final da transcrição, gere uma seção separada de "Resumo Estruturado" contendo os tópicos (bullet points) e Próximos passos (se houver).
+5. NÃO gere nenhum título, não use formatação markdown (como #, **, etc) e não gere resumos.
 
-Formato OBRIGATÓRIO de saída:
-### Transcrição
-[00:00] ...
-
-### Resumo Estruturado
-- **Pontos Principais**: ...
-- **Ações Definidas**: ...`;
+Retorne APENAS o texto puro da transcrição com os timestamps.
+Exemplo de saída:
+[00:00] Oi, eu queria saber quais os valores para ensaio de newborn.
+[00:15] E também se vocês têm disponibilidade para o próximo sábado.`;
     
     const mimeType = (msgData.media_mime_type?.includes('audio') ? msgData.media_mime_type : 'audio/ogg').split(';')[0];
 
@@ -200,10 +197,15 @@ Formato OBRIGATÓRIO de saída:
     const cleanTranscript = text.trim();
 
     // 5. Update message with transcription
-    await adminClient
+    const { error: updateError } = await adminClient
       .from('conversas_mensagens')
       .update({ audio_transcript: cleanTranscript })
       .eq('id', msgData.id);
+
+    if (updateError) {
+      console.error('Falha ao salvar transcrição no banco:', updateError);
+      return c.json({ error: 'Transcrição feita, mas erro ao salvar no banco. Verifique se a Migration (audio_transcript) foi aplicada.' }, 500);
+    }
 
     // 6. Log success
     await adminClient.from('conversas_ai_logs').insert({
