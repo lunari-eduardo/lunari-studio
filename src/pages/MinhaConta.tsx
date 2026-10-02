@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import PlanosTab from '@/components/account/PlanosTab';
 import ReferralsTab from '@/components/account/ReferralsTab';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Image, Shield, ArrowRight, LucideIcon, Package, Gift, Plug } from 'lucide-react';
+import { Loader2, User, Image, Shield, ArrowRight, LucideIcon, Package, Gift, Plug, Globe } from 'lucide-react';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFormValidation } from '@/hooks/user-profile/useFormValidation';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useGallerySettings } from '@/hooks/useGallerySettings';
 import { VisualIdentitySection } from '@/components/user-profile/visual-identity/VisualIdentitySection';
 import { IntegracoesTab } from '@/components/preferencias/IntegracoesTab';
+import { DomainLinksTab } from '@/components/preferencias/DomainLinksTab';
 import { PlanRestrictionGuard } from '@/components/auth/PlanRestrictionGuard';
 import { ProLockedBadge } from '@/components/access/ProLockedBadge';
 
@@ -175,6 +176,13 @@ export default function MinhaConta() {
               icon={Shield}
             />
             <SidebarItem 
+              label="Domínio e Links" 
+              value="links" 
+              active={activeTab === 'links'} 
+              onClick={handleTabChange}
+              icon={Globe}
+            />
+            <SidebarItem 
               label="Integrações e Pagamentos" 
               value="integracoes" 
               active={activeTab === 'integracoes'} 
@@ -273,6 +281,25 @@ export default function MinhaConta() {
                       <AccountDeletionFlow />
                     </div>
                   </section>
+                </div>
+              )}
+
+              {activeTab === 'links' && (
+                <div className="glass-1 p-6 bg-card/40">
+                  <DomainLinksTab 
+                    profile={formData} 
+                    onSaveProfile={(data) => {
+                      return new Promise((resolve, reject) => {
+                        saveProfile(data, {
+                          onSuccess: () => {
+                            setFormData(prev => ({ ...prev, ...data }));
+                            resolve(true);
+                          },
+                          onError: (e) => reject(e)
+                        });
+                      });
+                    }} 
+                  />
                 </div>
               )}
 

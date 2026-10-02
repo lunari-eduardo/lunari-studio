@@ -68,11 +68,22 @@ export function getCanonicalBaseUrl(): string {
 }
 
 /**
- * Obtém a URL base para links públicos compartilháveis (formulários, checkout).
- * SEMPRE usa o domínio canônico de produção, independente do ambiente atual.
- * Isso garante que links enviados a clientes funcionem em qualquer contexto.
+ * Obtém a URL base para links públicos compartilháveis (formulários, propostas, galerias).
+ * Prioriza o domínio personalizado do fotógrafo, em seguida o namespace dedicado,
+ * e por fim cai no domínio canônico padrão.
  */
-export function getPublicShareBaseUrl(): string {
+export function getPublicShareBaseUrl(profileInfo?: { namespace?: string | null, customDomain?: string | null }): string {
+  // 1. Domínio personalizado tem prioridade máxima
+  if (profileInfo?.customDomain) {
+    return `https://${profileInfo.customDomain}`;
+  }
+  
+  // 2. Namespace dedicado no subdiretório do Lunari
+  if (profileInfo?.namespace) {
+    return `${CANONICAL_PRODUCTION_URL}/@${profileInfo.namespace}`;
+  }
+  
+  // 3. Fallback seguro padrão
   return CANONICAL_PRODUCTION_URL;
 }
 
