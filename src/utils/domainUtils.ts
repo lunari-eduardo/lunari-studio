@@ -78,13 +78,13 @@ export function getPublicShareBaseUrl(profileInfo?: { namespace?: string | null,
     return `https://${profileInfo.customDomain}`;
   }
   
-  // 2. Namespace dedicado no subdiretório do Lunari
+  // 2. Namespace dedicado no subdiretório do Lunari (sempre https://lunarihub.com/@nome)
   if (profileInfo?.namespace) {
-    return `${CANONICAL_PRODUCTION_URL}/@${profileInfo.namespace}`;
+    return `https://lunarihub.com/@${profileInfo.namespace}`;
   }
   
-  // 3. Fallback seguro padrão
-  return CANONICAL_PRODUCTION_URL;
+  // 3. Fallback seguro padrão sem 'app.'
+  return 'https://lunarihub.com';
 }
 
 /**
