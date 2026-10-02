@@ -9,7 +9,22 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/payment-link-preview?id=:cobrancaId"
     },
     {
+      "source": "/@:namespace/l/:cobrancaId",
+      "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/payment-link-preview?id=:cobrancaId"
+    },
+    {
       "source": "/g/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags|axios|node|got|undici|baileys|evolution|curl).*"
+        }
+      ],
+      "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?token=:token"
+    },
+    {
+      "source": "/@:namespace/g/:token",
       "has": [
         {
           "type": "header",
@@ -31,6 +46,17 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?token=:token&type=deliver"
     },
     {
+      "source": "/@:namespace/c/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags|axios|node|got|undici|baileys|evolution|curl).*"
+        }
+      ],
+      "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?token=:token&type=deliver"
+    },
+    {
       "source": "/formulario/:token",
       "has": [
         {
@@ -42,7 +68,29 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?type=form&token=:token"
     },
     {
+      "source": "/@:namespace/formulario/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags|axios|node|got|undici|baileys|evolution|curl).*"
+        }
+      ],
+      "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?type=form&token=:token"
+    },
+    {
       "source": "/p/:token",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags|axios|node|got|undici|baileys|evolution|curl).*"
+        }
+      ],
+      "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?type=proposal&token=:token"
+    },
+    {
+      "source": "/@:namespace/p/:token",
       "has": [
         {
           "type": "header",

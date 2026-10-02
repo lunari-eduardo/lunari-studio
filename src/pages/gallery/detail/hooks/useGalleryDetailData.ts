@@ -7,6 +7,7 @@ import { GalleryPhoto, GalleryAction, WatermarkSettings, Gallery } from '@/types
 import { calcularPrecoProgressivoComCredito, RegrasCongeladas } from '@/lib/pricingUtils';
 import { getEffectiveGalleryStatus } from '@/lib/galleryStatus';
 import { getGalleryUrl } from '@/lib/galleryUrl';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { PAYMENT_POLL_INTERVAL } from '../types';
 
 interface UseGalleryDetailDataProps {
@@ -18,6 +19,7 @@ export function useGalleryDetailData({
   id,
   defaultPhotoSpacing = 6,
 }: UseGalleryDetailDataProps) {
+  const { profile } = useUserProfile();
   const queryClient = useQueryClient();
 
   const { 
@@ -274,7 +276,7 @@ export function useGalleryDetailData({
   ) : new Date();
 
   const clientLink = supabaseGallery?.publicToken
-    ? getGalleryUrl(supabaseGallery.publicToken)
+    ? getGalleryUrl(supabaseGallery.publicToken, 'select', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain })
     : null;
 
   const regrasCongeladas = supabaseGallery?.regrasCongeladas as RegrasCongeladas | null;

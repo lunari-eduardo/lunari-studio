@@ -7,6 +7,7 @@ import { ContratoEmissorSignatureModal } from './ContratoEmissorSignatureModal';
 import { useContratos } from '@/hooks/useContratos';
 import { useAutentiqueIntegration } from '@/hooks/useAutentiqueIntegration';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { downloadContratoPdf, generateContratoPdf } from '@/utils/contratoPdf';
 import { getFotografoPendente } from '@/utils/contratoSigners';
@@ -139,8 +140,11 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
 
   const getNativeSignatureLink = () => {
     if (!contrato.signature_token) return '';
-    const origin = window.location.origin;
-    return `${origin}/assinar/${contrato.signature_token}`;
+    const baseUrl = getPublicShareBaseUrl({
+      namespace: profile?.public_namespace,
+      customDomain: profile?.custom_domain
+    });
+    return `${baseUrl}/assinar/${contrato.signature_token}`;
   };
 
   const handleSave = async () => {
@@ -298,7 +302,11 @@ export function ContratoViewerModal({ open, onClose, contrato: initialContrato }
         }));
 
         // 2. Copiar automaticamente o link de assinatura para a área de transferência
-        const link = `${window.location.origin}/assinar/${token}`;
+        const baseUrl = getPublicShareBaseUrl({
+          namespace: profile?.public_namespace,
+          customDomain: profile?.custom_domain
+        });
+        const link = `${baseUrl}/assinar/${token}`;
         try {
           await navigator.clipboard.writeText(link);
           setCopiedLink(true);

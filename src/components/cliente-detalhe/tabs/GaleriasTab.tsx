@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSupabaseGalleries, Galeria } from '@/hooks/useSupabaseGalleries';
 import { useSettings } from '@/hooks/useSettings';
 import { getGalleryUrl } from '@/lib/galleryUrl';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -34,6 +35,7 @@ interface GaleriasTabProps {
 }
 
 export function GaleriasTab({ cliente }: GaleriasTabProps) {
+  const { profile } = useUserProfile();
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { settings } = useSettings();
@@ -83,7 +85,7 @@ export function GaleriasTab({ cliente }: GaleriasTabProps) {
       toast.error('Galeria não possui link público ativo');
       return;
     }
-    const url = getGalleryUrl(publicToken);
+    const url = getGalleryUrl(publicToken, 'select', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain });
     navigator.clipboard.writeText(url);
     setCopiedToken(publicToken);
     toast.success('Link da galeria copiado!');
@@ -236,7 +238,7 @@ export function GaleriasTab({ cliente }: GaleriasTabProps) {
           }}
           gallery={reactivateSuccessGallery}
           settings={settings}
-          clientLink={reactivateSuccessGallery.publicToken ? getGalleryUrl(reactivateSuccessGallery.publicToken) : null}
+          clientLink={reactivateSuccessGallery.publicToken ? getGalleryUrl(reactivateSuccessGallery.publicToken, 'select', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain }) : null}
           newDeadline={(() => {
             const d = new Date();
             d.setDate(d.getDate() + reactivateDays);

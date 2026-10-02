@@ -4,7 +4,7 @@
  */
 
 /** Domínio canônico de produção (Site Institucional) — fonte única de verdade para SEO */
-const CANONICAL_PRODUCTION_URL = import.meta.env.VITE_SITE_URL || 'https://www.lunarihub.com';
+const CANONICAL_PRODUCTION_URL = import.meta.env.VITE_SITE_URL || 'https://lunarihub.com';
 
 /**
  * Detecta se está em ambiente de produção (novos ou antigos domínios)

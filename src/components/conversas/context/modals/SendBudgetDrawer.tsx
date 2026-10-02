@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMaterials } from '@/hooks/useMaterials';
 import { useSendMaterialShare } from '@/hooks/useMaterialShares';
@@ -26,6 +28,7 @@ interface SendBudgetDrawerProps {
 }
 
 export function SendBudgetDrawer({ isOpen, onClose, leadId, clienteId, onInsertToComposer }: SendBudgetDrawerProps) {
+  const { profile } = useUserProfile();
   const { materials, isLoading } = useMaterials();
   const { createShare } = useSendMaterialShare();
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,7 +87,11 @@ export function SendBudgetDrawer({ isOpen, onClose, leadId, clienteId, onInsertT
         }
       }
       
-      const link = `${window.location.origin}/p/${result.token}`;
+      const baseUrl = getPublicShareBaseUrl({
+        namespace: profile?.public_namespace,
+        customDomain: profile?.custom_domain
+      });
+      const link = `${baseUrl}/p/${result.token}`;
       onInsertToComposer(link);
       setMaterialToConfirm(null);
       onClose();

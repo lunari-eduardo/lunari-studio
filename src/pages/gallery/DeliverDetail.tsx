@@ -3,6 +3,7 @@ import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { getGalleryUrl } from '@/lib/galleryUrl';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { SendDeliverEmailModal } from '@/components/deliver/SendDeliverEmailModal';
 
 import { getDeliverStatusInfo } from './deliver/detail/types';
@@ -15,6 +16,7 @@ import { DeliverDesignTab } from './deliver/detail/components/DeliverDesignTab';
 import { DeliverDetailsTab } from './deliver/detail/components/DeliverDetailsTab';
 
 export default function DeliverDetail() {
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
   const data = useDeliverDetailData();
   const actions = useDeliverDetailActions(data);
@@ -41,7 +43,7 @@ export default function DeliverDetail() {
   const statusInfo = getDeliverStatusInfo(data.gallery.status, data.gallery.prazoSelecao);
   const isDraft = statusInfo.label === 'Rascunho';
   const isExpired = statusInfo.label === 'Expirada';
-  const galleryUrl = data.gallery.publicToken ? getGalleryUrl(data.gallery.publicToken) : '';
+  const galleryUrl = data.gallery.publicToken ? getGalleryUrl(data.gallery.publicToken, 'deliver', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain }) : '';
 
   return (
     <div className="max-w-[79rem] mx-auto w-full bg-background px-3 sm:px-4 lg:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 pb-[max(4rem,env(safe-area-inset-bottom))] animate-fade-in">

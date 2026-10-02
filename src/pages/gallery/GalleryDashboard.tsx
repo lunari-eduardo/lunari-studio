@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSupabaseGalleries, Galeria } from '@/hooks/useSupabaseGalleries';
 import { useSettings } from '@/hooks/useSettings';
 import { GalleryStatus, Gallery } from '@/types/gallery';
@@ -159,6 +160,7 @@ function transformSupabaseToLocal(galeria: Galeria): Gallery & { tipo: 'selecao'
 }
 
 export default function Dashboard() {
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();

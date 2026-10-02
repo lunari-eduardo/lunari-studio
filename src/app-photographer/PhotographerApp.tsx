@@ -447,6 +447,19 @@ export default function PhotographerApp() {
               <Route path="/book/:slug" element={<PublicBookingPage />} />
               <Route path="/agendar/:slug" element={<PublicBookingPage />} />
               
+              {/* === Rotas Públicas com Namespace Dinâmico (@nome-do-estudio) === */}
+              <Route path="/@:namespace/formulario/:token" element={<FormularioPublico />} />
+              <Route path="/@:namespace/checkout/:cobrancaId" element={<PublicCheckout />} />
+              <Route path="/@:namespace/pay/ip/:cobrancaId" element={<PublicCheckout />} />
+              <Route path="/@:namespace/l/:cobrancaId" element={<ShareLinkFallback />} />
+              <Route path="/@:namespace/p/:token" element={<PublicProposalViewer mode="tracked" />} />
+              <Route path="/@:namespace/g/:token" element={<ClientGallery />} />
+              <Route path="/@:namespace/c/:token" element={<ClientGallery />} />
+              <Route path="/@:namespace/assinar/:token" element={<SignaturePage />} />
+              <Route path="/@:namespace/book/:slug" element={<PublicBookingPage />} />
+              <Route path="/@:namespace/agendar/:slug" element={<PublicBookingPage />} />
+              <Route path="/@:namespace/:slug" element={<PublicProposalViewer mode="public" />} />
+              
               {/* Rota Pública de Proposta por Slug (deve vir após as rotas prefixadas) */}
               <Route path="/:slug" element={<PublicProposalViewer mode="public" />} />
               

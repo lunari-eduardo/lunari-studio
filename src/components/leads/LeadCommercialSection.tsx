@@ -12,6 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { getPublicShareBaseUrl } from '@/utils/domainUtils';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface LeadCommercialSectionProps {
   leadId: string;
@@ -20,6 +21,7 @@ interface LeadCommercialSectionProps {
 }
 
 export default function LeadCommercialSection({ leadId, leadName, leadPhone }: LeadCommercialSectionProps) {
+  const { profile } = useUserProfile();
   const { shares, isLoading: isLoadingShares } = useLeadShares(leadId);
   const { materials, isLoading: isLoadingMaterials } = useMaterials();
   const { createShare } = useMaterialShares(undefined); // We'll pass materialId when mutating
@@ -83,7 +85,11 @@ export default function LeadCommercialSection({ leadId, leadName, leadPhone }: L
                   size="sm" 
                   className="h-8 text-xs text-primary"
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/p/${share.token}`);
+                    const baseUrl = getPublicShareBaseUrl({
+                      namespace: profile?.public_namespace,
+                      customDomain: profile?.custom_domain
+                    });
+                    navigator.clipboard.writeText(`${baseUrl}/p/${share.token}`);
                     toast.success('Link copiado!');
                   }}
                 >

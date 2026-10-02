@@ -17,6 +17,7 @@ import { getGalleryUrl } from '@/lib/galleryUrl';
 import { buildWhatsAppUrl } from '@/lib/whatsappUrl';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface SendGalleryModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function SendGalleryModal({
   settings,
   onSendGallery,
 }: SendGalleryModalProps) {
+  const { profile } = useUserProfile();
   const [isCopied, setIsCopied] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -95,7 +97,7 @@ export function SendGalleryModal({
   }, [isOpen, gallery.id]);
 
   const clientLink = resolvedToken
-    ? getGalleryUrl(resolvedToken)
+    ? getGalleryUrl(resolvedToken, 'select', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain })
     : null;
   const { hasEntitlement } = useEntitlements();
   const hasEmailEntitlement = hasEntitlement('email_automations');

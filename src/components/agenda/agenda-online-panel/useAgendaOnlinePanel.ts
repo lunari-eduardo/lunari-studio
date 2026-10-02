@@ -5,6 +5,8 @@ import { useConfiguration } from '@/hooks/useConfiguration';
 import type { AgendaOnlineLink, NewAgendaOnlineLink } from '@/types/agendaOnline';
 import type { SelectedProvider } from '@/components/cobranca/ProviderRow';
 import { toast } from 'sonner';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 
 export function slugify(text: string): string {
   return text
@@ -19,6 +21,7 @@ export function slugify(text: string): string {
 }
 
 export function useAgendaOnlinePanel(onClose: () => void) {
+  const { profile } = useUserProfile();
   const { links, isLoading, createLink, updateLink, toggleLinkActive, deleteLink, isSubmitting } = useAgendaOnlineLinks();
   const { availabilityTypes } = useAvailabilityTypes();
   const { categorias, pacotes } = useConfiguration();
@@ -207,7 +210,11 @@ export function useAgendaOnlinePanel(onClose: () => void) {
   };
 
   const getFullUrl = (slugPath: string) => {
-    return `${window.location.origin}/book/${slugPath}`;
+    const baseUrl = getPublicShareBaseUrl({
+      namespace: profile?.public_namespace,
+      customDomain: profile?.custom_domain
+    });
+    return `${baseUrl}/book/${slugPath}`;
   };
 
   return {

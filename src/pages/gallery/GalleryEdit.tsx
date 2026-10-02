@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGestaoPackages } from '@/hooks/useGestaoPackages';
 import { useSettings } from '@/hooks/useSettings';
 import { getGalleryUrl } from '@/lib/galleryUrl';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 import { useGalleryEditPhotos } from './edit/hooks/useGalleryEditPhotos';
 import { useGalleryEditForm } from './edit/hooks/useGalleryEditForm';
@@ -31,6 +32,7 @@ import { EditDeadlineCard } from './edit/components/EditDeadlineCard';
 import { EditPhotosCard } from './edit/components/EditPhotosCard';
 
 export default function GalleryEdit() {
+  const { profile } = useUserProfile();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -258,7 +260,7 @@ export default function GalleryEdit() {
           onOpenChange={form.setReactivateSuccessOpen}
           gallery={gallery}
           settings={settings}
-          clientLink={gallery.publicToken ? getGalleryUrl(gallery.publicToken) : null}
+          clientLink={gallery.publicToken ? getGalleryUrl(gallery.publicToken, 'select', { namespace: profile?.public_namespace, customDomain: profile?.custom_domain }) : null}
           newDeadline={(() => {
             const d = new Date();
             d.setDate(d.getDate() + form.reactivateDays);

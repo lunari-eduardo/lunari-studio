@@ -9,9 +9,9 @@ const SUPABASE_FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL
 /**
  * Generates a gallery URL for the client using the canonical public domain.
  */
-export function getGalleryUrl(publicToken: string, type: 'select' | 'deliver' = 'select', photographerDomain?: string): string {
+export function getGalleryUrl(publicToken: string, type: 'select' | 'deliver' = 'select', profileInfo?: { namespace?: string | null, customDomain?: string | null }): string {
   if (!publicToken) return '';
-  const baseDomain = photographerDomain || getPublicShareBaseUrl();
+  const baseDomain = getPublicShareBaseUrl(profileInfo);
   const prefix = type === 'deliver' ? 'c' : 'g';
   return `${baseDomain}/${prefix}/${publicToken}`;
 }
@@ -19,8 +19,8 @@ export function getGalleryUrl(publicToken: string, type: 'select' | 'deliver' = 
 /**
  * Generates a delivery gallery URL using the canonical public domain.
  */
-export function getDeliverGalleryUrl(publicToken: string, photographerDomain?: string): string {
-  return getGalleryUrl(publicToken, 'deliver', photographerDomain);
+export function getDeliverGalleryUrl(publicToken: string, profileInfo?: { namespace?: string | null, customDomain?: string | null }): string {
+  return getGalleryUrl(publicToken, 'deliver', profileInfo);
 }
 
 /**
