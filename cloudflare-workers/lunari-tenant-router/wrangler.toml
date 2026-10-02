@@ -1,0 +1,10 @@
+name = "lunari-tenant-router"
+main = "src/index.js"
+compatibility_date = "2023-10-30"
+
+[observability]
+enabled = true
+
+[[routes]]
+pattern = "*fallback.lunarihub.com/*"
+zone_name = "lunarihub.com"

@@ -176,3 +176,14 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/validate-proposal/deno.json"
 entrypoint = "./functions/validate-proposal/index.ts"
+
+[functions.manage-custom-domain]
+enabled = true
+verify_jwt = false
+import_map = "./functions/manage-custom-domain/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/manage-custom-domain/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/manage-custom-domain/*.html" ]

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Globe, Link as LinkIcon, Crown, CheckCircle2, Loader2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -123,52 +123,12 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
       </div>
 
       {/* Domínio Personalizado */}
-      <div className={cn(
-        "bg-card border rounded-xl p-5 space-y-4 relative overflow-hidden transition-all",
-        !hasPro && "opacity-95"
-      )}>
-        {!hasPro && (
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-xl">
-            <div className="bg-card border shadow-lg rounded-xl p-6 text-center max-w-sm mx-auto">
-              <div className="mx-auto w-12 h-12 bg-accent-gold/10 rounded-full flex items-center justify-center mb-4">
-                <Crown className="h-6 w-6 text-accent-gold" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Domínio Personalizado</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Assine o Plano Pro para usar seu próprio domínio (ex: www.seuestudio.com.br) em todos os links do Lunari.
-              </p>
-              <Button onClick={() => openModal()} className="w-full bg-accent-gold hover:bg-accent-gold/90 text-primary-foreground">
-                Fazer Upgrade
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Label className="text-base">Domínio Próprio</Label>
-            <Badge className="bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20 border-accent-gold/20 font-normal">
-              <Crown className="w-3 h-3 mr-1" /> Pro
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Aumente a autoridade da sua marca usando seu próprio domínio. Nós cuidamos do certificado SSL.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Input
-            type="text"
-            placeholder="estudio.com.br"
-            value={customDomain}
-            onChange={(e) => setCustomDomain(e.target.value)}
-            disabled={!hasPro}
-          />
-          <p className="text-xs text-muted-foreground">
-            Requer apontamento de CNAME no seu provedor de DNS após a configuração.
-          </p>
-        </div>
-      </div>
+      <CustomDomainSection 
+        profile={profile} 
+        hasPro={hasPro} 
+        openModal={openModal} 
+        onSaveProfile={onSaveProfile} 
+      />
 
       <div className="pt-4 flex justify-end">
         <Button onClick={handleSave} disabled={isSaving} className="gap-2 px-8">
@@ -179,3 +139,196 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
     </div>
   );
 }
+
+const WORKER_URL = 'https://lunari-domains-api.eduardo22diehl.workers.dev';
+
+function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any) {
+  const [domainInput, setDomainInput] = useState(profile.custom_domain || '');
+  const [status, setStatus] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+
+  // Hook inicial para pegar o status se já existir domínio
+  useEffect(() => {
+    if (profile.custom_domain && hasPro) {
+      checkDomainStatus(profile.custom_domain);
+    }
+  }, []);
+
+  const getAuthToken = async () => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token;
+  };
+
+  const sanitizeDomain = (val: string) => {
+    return val.toLowerCase().replace(/https?:\/\//, '').replace(/\/.*$/, '').trim();
+  };
+
+  const checkDomainStatus = async (domainToCheck: string) => {
+    setIsChecking(true);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch(`${WORKER_URL}/status`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: domainToCheck })
+      });
+      const data = await res.json();
+      if (data.success) setStatus(data.hostname);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const handleAddDomain = async () => {
+    if (!domainInput) return;
+    setIsLoading(true);
+    try {
+      const cleanDomain = sanitizeDomain(domainInput);
+      const token = await getAuthToken();
+      const res = await fetch(`${WORKER_URL}/add`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: cleanDomain })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Erro ao adicionar domínio');
+      
+      setStatus(data.hostname);
+      setDomainInput(cleanDomain);
+      toast.success('Domínio registrado! Veja as instruções de DNS.');
+      
+      // Update local profile state if needed
+      await onSaveProfile({ custom_domain: cleanDomain });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveDomain = async () => {
+    if (!profile.custom_domain && !domainInput) return;
+    setIsLoading(true);
+    try {
+      const cleanDomain = sanitizeDomain(profile.custom_domain || domainInput);
+      const token = await getAuthToken();
+      const res = await fetch(`${WORKER_URL}/delete`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: cleanDomain })
+      });
+      
+      if (!res.ok) throw new Error('Erro ao remover domínio');
+      
+      setStatus(null);
+      setDomainInput('');
+      toast.success('Domínio removido com sucesso.');
+      await onSaveProfile({ custom_domain: null });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className={cn("bg-card border rounded-xl p-5 space-y-4 relative overflow-hidden transition-all", !hasPro && "opacity-95")}>
+      {!hasPro && (
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center rounded-xl">
+          <div className="bg-card border shadow-lg rounded-xl p-6 text-center max-w-sm mx-auto">
+            <div className="mx-auto w-12 h-12 bg-accent-gold/10 rounded-full flex items-center justify-center mb-4">
+              <Crown className="h-6 w-6 text-accent-gold" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Domínio Personalizado</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Assine o Plano Pro para usar seu próprio domínio (ex: www.seuestudio.com.br) em todos os links do Lunari.
+            </p>
+            <Button onClick={() => openModal()} className="w-full bg-accent-gold hover:bg-accent-gold/90 text-primary-foreground">
+              Fazer Upgrade
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Label className="text-base">Domínio Próprio</Label>
+          <Badge className="bg-accent-gold/10 text-accent-gold hover:bg-accent-gold/20 border-accent-gold/20 font-normal">
+            <Crown className="w-3 h-3 mr-1" /> Pro
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Aumente a autoridade da sua marca usando seu próprio domínio.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          type="text"
+          placeholder="estudio.com.br"
+          value={domainInput}
+          onChange={(e) => setDomainInput(e.target.value)}
+          disabled={!hasPro || !!status}
+        />
+        {!status ? (
+          <Button onClick={handleAddDomain} disabled={isLoading || !domainInput || !hasPro}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adicionar'}
+          </Button>
+        ) : (
+          <Button variant="destructive" onClick={handleRemoveDomain} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remover'}
+          </Button>
+        )}
+      </div>
+
+      {status && (
+        <div className="mt-4 p-4 bg-muted/30 border rounded-lg space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium flex items-center gap-2">
+              Status do Domínio: 
+              {status.status === 'active' ? (
+                <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Ativo</Badge>
+              ) : (
+                <Badge variant="secondary" className="text-yellow-600">Pendente</Badge>
+              )}
+            </h4>
+            <Button variant="outline" size="sm" onClick={() => checkDomainStatus(domainInput)} disabled={isChecking}>
+              {isChecking ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null} Atualizar
+            </Button>
+          </div>
+
+          {status.status !== 'active' && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Para ativar, você precisa criar estes dois registros no painel do seu domínio (Registro.br, GoDaddy, etc):
+              </p>
+              
+              <div className="bg-background border rounded-md p-3 space-y-2 text-sm font-mono break-all">
+                <div>
+                  <span className="text-muted-foreground">1. CNAME de Apontamento</span><br/>
+                  <strong>Tipo:</strong> CNAME<br/>
+                  <strong>Nome:</strong> @ (ou o subdomínio se for o caso)<br/>
+                  <strong>Destino:</strong> fallback.lunarihub.com
+                </div>
+                {status.ownership_verification && (
+                  <div className="pt-2 border-t">
+                    <span className="text-muted-foreground">2. TXT de Verificação do Cloudflare</span><br/>
+                    <strong>Tipo:</strong> TXT<br/>
+                    <strong>Nome:</strong> {status.ownership_verification.name}<br/>
+                    <strong>Valor:</strong> {status.ownership_verification.value}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
