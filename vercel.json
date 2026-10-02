@@ -9,7 +9,7 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/payment-link-preview?id=:cobrancaId"
     },
     {
-      "source": "/@:namespace/l/:cobrancaId",
+      "source": "/:namespace/l/:cobrancaId",
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/payment-link-preview?id=:cobrancaId"
     },
     {
@@ -24,7 +24,7 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?token=:token"
     },
     {
-      "source": "/@:namespace/g/:token",
+      "source": "/:namespace/g/:token",
       "has": [
         {
           "type": "header",
@@ -46,7 +46,7 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?token=:token&type=deliver"
     },
     {
-      "source": "/@:namespace/c/:token",
+      "source": "/:namespace/c/:token",
       "has": [
         {
           "type": "header",
@@ -68,7 +68,7 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?type=form&token=:token"
     },
     {
-      "source": "/@:namespace/formulario/:token",
+      "source": "/:namespace/formulario/:token",
       "has": [
         {
           "type": "header",
@@ -90,7 +90,7 @@
       "destination": "https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?type=proposal&token=:token"
     },
     {
-      "source": "/@:namespace/p/:token",
+      "source": "/:namespace/p/:token",
       "has": [
         {
           "type": "header",

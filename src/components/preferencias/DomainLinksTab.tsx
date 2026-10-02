@@ -99,7 +99,7 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
         <div className="space-y-2">
           <div className="flex rounded-md shadow-sm">
             <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted/50 px-3 text-muted-foreground sm:text-sm">
-              lunarihub.com/@
+              lunarihub.com/
             </span>
             <Input
               type="text"
@@ -115,7 +115,7 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
             <div className="text-muted-foreground">
               Exemplo de galeria:{' '}
               <span className="text-foreground font-medium break-all">
-                https://lunarihub.com/@{namespace ? sanitizeNamespace(namespace) : 'seu-estudio'}/g/xyz
+                https://lunarihub.com/{namespace ? sanitizeNamespace(namespace) : 'seu-estudio'}/g/xyz
               </span>
             </div>
           </div>
