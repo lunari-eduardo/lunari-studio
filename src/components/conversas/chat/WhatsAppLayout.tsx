@@ -14,7 +14,9 @@ import { MessagesSkeleton } from './skeletons';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import type { UseConversasReturn } from '@/hooks/conversas/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { EnrichedChat } from '@/modules/conversas/types';
+import type { EnrichedChat, Contato } from '@/modules/conversas/types';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface WhatsAppLayoutProps {
   onNewChat: () => void;
@@ -84,8 +86,65 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
     [instancias],
   );
 
-  // Nenhuma conversa aberta automaticamente por padrão ao entrar na página
-  // O usuário escolhe explicitamente qual conversa deseja abrir no painel lateral
+  const handleStartChatWithContact = async (contato: Contato) => {
+    // 1. Verificar se já existe chat na lista
+    const existing = chats.find(
+      c => c.contato_id === contato.id || c.contato_phone_normalized === contato.phone_normalized
+    );
+    if (existing) {
+      handleSelect(existing);
+      return;
+    }
+
+    if (!connectedInstance) {
+      toast.error('Nenhum dispositivo WhatsApp conectado.');
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return;
+
+      const { data: newChat, error } = await supabase
+        .from('conversas_chats')
+        .insert({
+          user_id: userId,
+          contato_id: contato.id,
+          instance_id: connectedInstance.id,
+          contato_phone_normalized: contato.phone_normalized,
+          contato_nome: contato.nome || null,
+          status: 'active',
+          unread_count: 0,
+          pin: 'unpinned',
+          mute: false,
+        })
+        .select('*, clientes(nome)')
+        .single();
+
+      if (error) {
+        // Se já existia no banco
+        const { data: fallback } = await supabase
+          .from('conversas_chats')
+          .select('*, clientes(nome)')
+          .eq('user_id', userId)
+          .eq('contato_id', contato.id)
+          .maybeSingle();
+
+        if (fallback) {
+          handleSelect(fallback as any);
+          return;
+        }
+        throw error;
+      }
+
+      if (newChat) {
+        handleSelect(newChat as any);
+      }
+    } catch (err: any) {
+      toast.error('Erro ao abrir conversa: ' + (err.message || 'Falha na operação'));
+    }
+  };
 
   const selectedChat = useMemo(
     () => chats.find(c => c.id === selectedChatId) ?? null,
@@ -105,6 +164,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
           isLoading={isLoading}
           selectedChatId={selectedChatId}
           onSelectChat={handleSelect}
+          onStartChatWithContact={handleStartChatWithContact}
           instance={
             connectedInstance
               ? {
@@ -131,7 +191,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
             if (!connectedInstance) return;
             setIsSyncing(true);
             try {
-              await syncHistoricalChats(connectedInstance.id, { showToast: false });
+              await syncHistoricalChats(connectedInstance.id, { showToast: true });
             } finally {
               setIsSyncing(false);
             }

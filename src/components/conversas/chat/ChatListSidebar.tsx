@@ -27,6 +27,8 @@ import {
   ChevronDown,
   Check,
   RotateCcw,
+  User,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,7 +44,10 @@ import {
 import { ChatListItem } from './ChatListItem';
 import { ChatListSkeleton } from './skeletons';
 import { InstanceStatusBar } from '../shared/InstanceStatusBar';
-import type { Chat, EnrichedChat, InstanciaStatus } from '@/modules/conversas/types';
+import { ContactAvatar } from '../shared/ContactAvatar';
+import { formatPhone } from '../shared/format';
+import { useConversasContatos } from '@/hooks/useConversasContatos';
+import type { Chat, EnrichedChat, InstanciaStatus, Contato } from '@/modules/conversas/types';
 import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +97,7 @@ export interface ChatListSidebarProps {
   onMarkUnread?: (chat: EnrichedChat) => void;
   onMarkRead?: (chat: EnrichedChat) => void;
   onDeleteChat?: (chat: EnrichedChat) => void;
+  onStartChatWithContact?: (contato: Contato) => Promise<void> | void;
 }
 
 export function ChatListSidebar({
@@ -115,10 +121,12 @@ export function ChatListSidebar({
   onMarkUnread,
   onMarkRead,
   onDeleteChat,
+  onStartChatWithContact,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<SidebarFilter>({ type: 'all' });
   const { getLeadStatusForChat, leadStatuses = [], leadStatusMap = {} } = useChatLeadStatuses(chats);
+  const { contatos } = useConversasContatos();
 
   // ─── Contadores dinâmicos por categoria e etapas ──────────────────────────────
   const counts = useMemo(() => {
@@ -198,6 +206,22 @@ export function ChatListSidebar({
       return terms.every(term => target.includes(term));
     });
   }, [chats, activeFilter, leadStatusMap, search]);
+
+  // ─── Contatos da agenda correspondentes à busca textual ───────────────────
+  const matchedContacts = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return [];
+    const terms = q.split(/\s+/).filter(Boolean);
+
+    // Evita duplicar contatos que já estejam na lista de conversas filtradas
+    const existingPhones = new Set(filtered.map(c => c.contato_phone_normalized));
+
+    return contatos.filter(ct => {
+      if (existingPhones.has(ct.phone_normalized)) return false;
+      const target = `${ct.nome ?? ''} ${ct.phone_normalized ?? ''} ${ct.phone_raw ?? ''}`.toLowerCase();
+      return terms.every(term => target.includes(term));
+    });
+  }, [contatos, filtered, search]);
 
   // ─── Ordenação: fixadas primeiro (exceto em arquivadas), depois por data ─────
   const sorted = useMemo(() => {
@@ -608,7 +632,7 @@ export function ChatListSidebar({
       <ScrollArea className="flex-1 w-full overflow-hidden [&>div>div]:!block">
         {isLoading ? (
           <ChatListSkeleton />
-        ) : sorted.length === 0 ? (
+        ) : sorted.length === 0 && matchedContacts.length === 0 ? (
           <EmptyState hasSearch={!!search.trim()} filter={activeFilter} />
         ) : (
           <div className="py-1">
@@ -628,6 +652,42 @@ export function ChatListSidebar({
                 leadStatus={getLeadStatusForChat(c)}
               />
             ))}
+
+            {search.trim() && matchedContacts.length > 0 && (
+              <div className={cn("pt-2", sorted.length > 0 && "mt-2 border-t border-border/50")}>
+                <div className="px-4 py-1.5 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
+                  <User className="h-3 w-3" />
+                  <span>Contatos da Agenda ({matchedContacts.length})</span>
+                </div>
+                {matchedContacts.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      if (onStartChatWithContact) {
+                        void onStartChatWithContact(c);
+                        setSearch('');
+                      }
+                    }}
+                    className="w-full flex items-center gap-3.5 px-4 py-2.5 text-left hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60 transition-colors group"
+                  >
+                    <ContactAvatar name={c.nome} src={c.avatar_url} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                        {c.nome || formatPhone(c.phone_normalized)}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {formatPhone(c.phone_normalized)}
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground/60 group-hover:text-primary group-hover:opacity-100 flex items-center gap-1 transition-all">
+                      <span className="hidden group-hover:inline text-[11px] font-medium">Conversar</span>
+                      <MessageSquarePlus className="h-4 w-4" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </ScrollArea>
