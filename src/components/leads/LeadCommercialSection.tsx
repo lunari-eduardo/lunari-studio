@@ -135,6 +135,7 @@ export function DynamicShareModal({ isOpen, onClose, leadId, leadName, leadPhone
   const [generatedShare, setGeneratedShare] = useState<any>(null);
 
   const { createShare } = useMaterialShares(selectedMaterialId || undefined);
+  const { profile } = useUserProfile();
 
   const handleSend = () => {
     if (!selectedMaterialId) {
@@ -215,14 +216,14 @@ export function DynamicShareModal({ isOpen, onClose, leadId, leadName, leadPhone
                   <div className="flex w-full items-center gap-2">
                     <Input 
                       readOnly 
-                      value={`${getPublicShareBaseUrl()}/p/${generatedShare.token}`} 
+                      value={`${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`} 
                       className="bg-white border-green-200 text-sm h-10"
                     />
                     <Button 
                       variant="secondary"
                       className="shrink-0 bg-white hover:bg-green-100 text-green-700 border-green-200"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${getPublicShareBaseUrl()}/p/${generatedShare.token}`);
+                        navigator.clipboard.writeText(`${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`);
                         toast.success('Link copiado!');
                       }}
                     >
@@ -234,7 +235,7 @@ export function DynamicShareModal({ isOpen, onClose, leadId, leadName, leadPhone
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => {
                         const phone = leadPhone.replace(/\D/g, '');
-                        const msg = encodeURIComponent(`Olá ${leadName.split(' ')[0]}, preparei uma proposta exclusiva para você! Acesse o link: ${getPublicShareBaseUrl()}/p/${generatedShare.token}`);
+                        const msg = encodeURIComponent(`Olá ${leadName.split(' ')[0]}, preparei uma proposta exclusiva para você! Acesse o link: ${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`);
                         window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
                       }}
                     >

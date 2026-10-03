@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { Copy, Send, FileText, Clock, Loader2, Check } from 'lucide-react';
 import { useFormularioTemplates } from '@/hooks/useFormularioTemplates';
 import { useFormularios } from '@/hooks/useFormularios';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 import type { FormularioTemplate } from '@/types/formulario';
 
@@ -26,8 +27,9 @@ export function SendBriefingModal({
   clienteTelefone,
   sessionId,
 }: SendBriefingModalProps) {
+  const { profile } = useUserProfile();
   const { templates, isLoading: loadingTemplates } = useFormularioTemplates();
-  const { createFormulario, publishFormulario, isCreating } = useFormularios();
+  const { createFormulario, updateFormulario, isCreating } = useFormularios();
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
@@ -46,9 +48,9 @@ export function SendBriefingModal({
       });
 
       if (formulario?.id) {
-        await publishFormulario(formulario.id);
+        await updateFormulario({ id: formulario.id, status_envio: 'enviado' });
         const token = formulario.public_token;
-        const link = `${getPublicShareBaseUrl()}/formulario/${token}`;
+        const link = `${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/formulario/${token}`;
         setCreatedLink(link);
         setCreatedToken(token);
       }

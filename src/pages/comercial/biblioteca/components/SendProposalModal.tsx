@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { useSupabaseLeads } from '@/hooks/useSupabaseLeads';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
 import { useMaterialShares } from '@/hooks/useMaterialShares';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 import { formatWhatsAppNumber } from '../types';
 
@@ -24,6 +25,8 @@ export function SendProposalModal({ materialId, onClose }: SendProposalModalProp
   const [selectedLeadId, setSelectedLeadId] = useState<string>('none');
   const [customMessage, setCustomMessage] = useState('');
   const [generatedShare, setGeneratedShare] = useState<any>(null);
+
+  const { profile } = useUserProfile();
 
   const { leads } = useSupabaseLeads();
   const { clientes } = useClientesRealtime();
@@ -196,27 +199,27 @@ export function SendProposalModal({ materialId, onClose }: SendProposalModalProp
             </>
           ) : (
             <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-              <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex flex-col items-center justify-center text-center gap-2">
-                <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center mb-1">
-                  <Sparkles className="h-5 w-5 text-green-600" />
+              <div className="p-6 bg-muted/30 border border-border/60 rounded-xl flex flex-col items-center justify-center text-center gap-2">
+                <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center mb-2">
+                  <Sparkles className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-green-800">Orçamento pronto para envio!</h3>
-                <p className="text-sm text-green-700 mb-4">
+                <h3 className="font-semibold text-foreground text-lg tracking-tight">Orçamento pronto para envio!</h3>
+                <p className="text-sm text-muted-foreground mb-4">
                   Copie o link abaixo e envie para o seu cliente.
                 </p>
 
-                <div className="flex flex-col w-full gap-2 mt-4">
+                <div className="flex flex-col w-full gap-2 mt-2">
                   <div className="flex w-full items-center gap-2">
                     <Input
                       readOnly
-                      value={`${getPublicShareBaseUrl()}/p/${generatedShare.token}`}
-                      className="bg-white border-green-200 text-sm h-11"
+                      value={`${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`}
+                      className="bg-background border-border/60 text-sm h-11 font-mono"
                     />
                     <Button
                       variant="secondary"
-                      className="shrink-0 bg-white hover:bg-green-100 text-green-700 border-green-200 h-11 px-4"
+                      className="shrink-0 h-11 px-4"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${getPublicShareBaseUrl()}/p/${generatedShare.token}`);
+                        navigator.clipboard.writeText(`${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`);
                         toast.success('Link copiado!');
                       }}
                     >
@@ -242,7 +245,7 @@ export function SendProposalModal({ materialId, onClose }: SendProposalModalProp
                     const linkText = encodeURIComponent(
                       (customMessage ? customMessage + '\n\n' : '') +
                         'Acesse sua proposta aqui: ' +
-                        `${getPublicShareBaseUrl()}/p/${generatedShare.token}`
+                        `${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/p/${generatedShare.token}`
                     );
                     const wpUrl = `https://wa.me/${formattedPhone}?text=${linkText}`;
 

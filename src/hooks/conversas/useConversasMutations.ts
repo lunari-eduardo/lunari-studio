@@ -99,14 +99,39 @@ export function useConversasMutations(
     let snapshot = chats;
     setChats(prev => prev.filter(c => c.id !== chatId));
 
-    const { error } = await supabase
-      .from('conversas_chats')
-      .delete()
-      .eq('id', chatId);
+    try {
+      // 1. Buscar mensagens do chat para limpar registros que não possuem CASCADE (ex: conversas_ai_logs)
+      const { data: mensagens } = await supabase
+        .from('conversas_mensagens')
+        .select('id')
+        .eq('chat_id', chatId);
 
-    if (error) {
+      if (mensagens && mensagens.length > 0) {
+        const msgIds = mensagens.map(m => m.id);
+        // Excluir em lotes pequenos para respeitar limites da API URL
+        for (let i = 0; i < msgIds.length; i += 100) {
+          const chunk = msgIds.slice(i, i + 100);
+          await supabase.from('conversas_ai_logs' as any).delete().in('message_id', chunk);
+        }
+      }
+
+      // 2. Excluir explicitamente tabelas dependentes (garantia extra)
+      await supabase.from('conversas_notas').delete().eq('chat_id', chatId);
+      await supabase.from('conversas_mensagens').delete().eq('chat_id', chatId);
+
+      // 3. Excluir o chat principal
+      const { error } = await supabase
+        .from('conversas_chats')
+        .delete()
+        .eq('id', chatId);
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('[Conversas] Erro ao excluir conversa:', error);
       setChats(snapshot);
-      toast.error('Erro ao excluir conversa');
+      toast.error('Erro ao excluir conversa completamente');
       throw error;
     }
   }, [chats, setChats]);

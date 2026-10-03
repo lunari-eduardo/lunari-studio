@@ -18,6 +18,7 @@ import { useFormularios } from '@/hooks/useFormularios';
 import { SendBriefingModal } from './SendBriefingModal';
 import { FormularioRespostasView } from './FormularioRespostasView';
 import { FormularioCampo } from '@/types/formulario';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { getPublicShareBaseUrl } from '@/utils/domainUtils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +35,7 @@ export function ClienteFormulariosList({
   clienteNome,
   clienteTelefone,
 }: ClienteFormulariosListProps) {
+  const { profile } = useUserProfile();
   const { data: formularios = [], isLoading } = useFormulariosByCliente(clienteId);
   const { deleteFormulario } = useFormularios();
   const [sendModalOpen, setSendModalOpen] = useState(false);
@@ -45,7 +47,7 @@ export function ClienteFormulariosList({
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; titulo: string } | null>(null);
 
   const handleCopyLink = (token: string) => {
-    const link = `${getPublicShareBaseUrl()}/formulario/${token}`;
+    const link = `${getPublicShareBaseUrl({ namespace: profile?.public_namespace, customDomain: profile?.custom_domain })}/formulario/${token}`;
     navigator.clipboard.writeText(link);
     toast({ title: 'Link copiado!' });
   };
