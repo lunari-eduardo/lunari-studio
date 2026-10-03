@@ -1,4 +1,4 @@
-import { RefreshCcw, Star, Calendar, MoreVertical, Plus, Link } from 'lucide-react';
+import { RefreshCcw, Star, Calendar, MoreVertical, Plus, Link, Tag } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { UnifiedContactContext } from '@/hooks/useConversasContactContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { LeadStatusDropdown } from './LeadStatusDropdown';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useConversasEtiquetas } from '@/hooks/useConversasEtiquetas';
 
 interface Props {
   chat: any;
@@ -18,6 +19,9 @@ interface Props {
 export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, onOpenClient }: Props) {
   const queryClient = useQueryClient();
   const { state, categoriaPrincipal, etapaVigente, futureCount, contact, client, lead } = context;
+  const { etiquetas } = useConversasEtiquetas();
+  
+  const chatEtiquetas = (chat?.etiquetas || []).map((id: string) => etiquetas.find(e => e.id === id)).filter(Boolean);
 
   const clearManualMode = async () => {
     try {
@@ -68,6 +72,17 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, o
                 Cliente
               </div>
             )}
+
+            {chatEtiquetas.map(e => (
+              <div 
+                key={e!.id} 
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium tracking-tight" 
+                style={{ backgroundColor: e!.cor + '1A', color: e!.cor, border: `1px solid ${e!.cor}33` }}
+              >
+                <Tag className="h-2.5 w-2.5 opacity-70" />
+                {e!.nome}
+              </div>
+            ))}
 
             {hasFutureSession && (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-500/10 text-[10px] font-medium tracking-tight text-sky-600 dark:text-sky-500">

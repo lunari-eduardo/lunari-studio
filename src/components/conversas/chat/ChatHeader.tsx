@@ -2,7 +2,7 @@
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
-import { ArrowLeft, MoreVertical } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
 import { ContactAvatar } from '../shared/ContactAvatar';
 import type { Chat, EnrichedChat } from '@/modules/conversas/types';
 import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
+import { useConversasEtiquetas } from '@/hooks/useConversasEtiquetas';
 
 export interface ChatHeaderProps {
   chat: Chat | EnrichedChat;
@@ -51,6 +52,9 @@ export function ChatHeader({
 
   const { getLeadStatusForChat } = useChatLeadStatuses([chat as EnrichedChat]);
   const leadStatus = getLeadStatusForChat(chat as EnrichedChat);
+
+  const { etiquetas } = useConversasEtiquetas();
+  const chatEtiquetas = ((chat as EnrichedChat)?.etiquetas || []).map((id: string) => etiquetas.find(e => e.id === id)).filter(Boolean);
 
   return (
     <div
@@ -110,6 +114,16 @@ export function ChatHeader({
                 {leadStatus.label}
               </span>
             )}
+            {chatEtiquetas.map(e => (
+              <span 
+                key={e!.id} 
+                className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold border-none shrink-0 uppercase tracking-wider"
+                style={{ backgroundColor: e!.cor + '1A', color: e!.cor }}
+              >
+                <Tag className="h-2.5 w-2.5 mr-1 opacity-80" />
+                {e!.nome}
+              </span>
+            ))}
           </div>
           <div className="text-[13px] text-zinc-500 dark:text-zinc-400 truncate mt-1 leading-none">
             {chat.contato_phone_normalized}

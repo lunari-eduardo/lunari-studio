@@ -11,6 +11,8 @@ import { ChatListSidebar } from './ChatListSidebar';
 import { ChatPanel } from './ChatPanel';
 import { EmptyChatState } from './EmptyChatState';
 import { MessagesSkeleton } from './skeletons';
+import { ManageLabelsModal } from '../shared/ManageLabelsModal';
+import { LibraryPanel } from '../templates/LibraryPanel';
 import { useConversas } from '@/hooks/useConversasRealtime';
 import type { UseConversasReturn } from '@/hooks/conversas/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -61,6 +63,8 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
   const selectedChatId = searchParams.get('chat');
   const mobileShowChat = Boolean(selectedChatId);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
   const handleSelect = (chat: EnrichedChat) => {
     if (isMobile) {

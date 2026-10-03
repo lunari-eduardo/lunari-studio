@@ -200,7 +200,8 @@ export interface DbConversasChat {
     last_read_at: string | null;
     cliente_id: string | null;
     lead_id: string | null;
-    created_at: string;
+      etiquetas: string[];
+      created_at: string;
     updated_at: string;
   };
   Insert: {
@@ -224,7 +225,8 @@ export interface DbConversasChat {
     last_read_at?: string | null;
     cliente_id?: string | null;
     lead_id?: string | null;
-    created_at?: string;
+      etiquetas?: string[];
+      created_at?: string;
     updated_at?: string;
   };
   Update: {
@@ -248,7 +250,8 @@ export interface DbConversasChat {
     last_read_at?: string | null;
     cliente_id?: string | null;
     lead_id?: string | null;
-    created_at?: string;
+      etiquetas?: string[];
+      created_at?: string;
     updated_at?: string;
   };
   Relationships: [

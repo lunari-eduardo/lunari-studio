@@ -11,6 +11,8 @@ import type { Mensagem, MessageStatus } from '@/modules/conversas/types';
 import { formatTime } from '../shared/format';
 import { AudioPlayer } from './AudioPlayer';
 import { LinkPreview, extractFirstUrl } from './LinkPreview';
+import { normalizeMessageContent } from './normalize';
+import { PixBubble } from './PixBubble';
 import { useConversasStickers } from '@/hooks/useConversasStickers';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -351,12 +353,15 @@ export function MessageBubble({
   const isOwn = mensagem.direction === 'outbound';
   const failed = mensagem.status === 'failed';
   const isPending = mensagem.status === 'pending';
+  
+  const normalizedMsg = useMemo(() => normalizeMessageContent(mensagem.content), [mensagem.content]);
+  
   const isMedia = !isDeleted && mensagem.type !== 'text';
 
   const previewUrl = useMemo(() => {
-    if (isDeleted || !mensagem.content) return null;
-    return extractFirstUrl(mensagem.content);
-  }, [mensagem.content, isDeleted]);
+    if (isDeleted || !mensagem.content || normalizedMsg.type === 'pix') return null;
+    return extractFirstUrl(normalizedMsg.type === 'standard' ? normalizedMsg.content : normalizedMsg.fallbackText);
+  }, [mensagem.content, isDeleted, normalizedMsg]);
 
   const handleCopy = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -497,7 +502,7 @@ export function MessageBubble({
         className={cn(
           'relative w-fit min-w-[50px] text-sm break-words transition-all duration-300',
           hasReactions && 'mb-3',
-          hasStickerMedia
+          hasStickerMedia || normalizedMsg.type === 'pix'
             ? 'p-0 bg-transparent border-0 shadow-none'
             : isImageOnly
               ? cn(
@@ -746,15 +751,23 @@ export function MessageBubble({
               </span>
             )}
           </div>
+        ) : normalizedMsg.type === 'pix' ? (
+          <PixBubble 
+            pixData={normalizedMsg.pixData} 
+            isOwn={isOwn} 
+            timestamp={mensagem.timestamp} 
+            status={mensagem.status} 
+          />
         ) : (
           <>
             {previewUrl && (
               <LinkPreview url={previewUrl} direction={mensagem.direction} className="mb-1.5" />
             )}
             <MessageText
-              content={mensagem.content}
+              content={normalizedMsg.type === 'standard' ? normalizedMsg.content : normalizedMsg.fallbackText}
               className={cn(
                 'whitespace-pre-wrap leading-relaxed transition-all duration-200',
+                normalizedMsg.type === 'unsupported' && 'italic text-zinc-500',
                 isCopied && 'animate-pulse opacity-40 bg-[#C9A87C]/20 dark:bg-[#C9A87C]/20 rounded px-1 -mx-1 text-[#1C1C1C] dark:text-[#EFEFEF] scale-[0.99]'
               )}
             />
@@ -762,7 +775,7 @@ export function MessageBubble({
         )}
 
         {/* Footer: time + status icon (apenas no último do grupo e se não for figurinha ou imagem sem legenda já com timestamp em overlay) */}
-        {!hasStickerMedia && !isImageOnly && isLastInGroup ? (
+        {!hasStickerMedia && !isImageOnly && normalizedMsg.type !== 'pix' && isLastInGroup ? (
           <div className="flex items-center justify-end gap-1 mt-0.5 -mb-0.5">
             {isEdited ? (
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 italic select-none mr-0.5">

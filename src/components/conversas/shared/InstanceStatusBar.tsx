@@ -8,7 +8,7 @@
  */
 
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Wifi, WifiOff, MoreVertical, LogOut } from 'lucide-react';
+import { Loader2, RefreshCw, Wifi, WifiOff, MoreVertical, LogOut, Tag, Sparkles } from 'lucide-react';
 import type { InstanciaStatus } from '@/modules/conversas/types';
 import { cn } from '@/lib/utils';
 import { formatPhone } from './format';
@@ -17,6 +17,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 export interface InstanceStatusBarProps {
@@ -34,6 +35,8 @@ export interface InstanceStatusBarProps {
    * formatado e, em último caso, no `instanceName` cru.
    */
   displayName?: string | null;
+  onOpenTemplates?: () => void;
+  onOpenLabels?: () => void;
 }
 
 export function InstanceStatusBar({
@@ -46,6 +49,8 @@ export function InstanceStatusBar({
   onSyncChats,
   isSyncingChats,
   displayName,
+  onOpenTemplates,
+  onOpenLabels,
 }: InstanceStatusBarProps) {
   const connected = status === 'connected';
   const connecting = status === 'connecting';
@@ -124,6 +129,18 @@ export function InstanceStatusBar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
+                {onOpenTemplates && (
+                  <DropdownMenuItem onClick={onOpenTemplates}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Configurar templates
+                  </DropdownMenuItem>
+                )}
+                {onOpenLabels && (
+                  <DropdownMenuItem onClick={onOpenLabels}>
+                    <Tag className="h-4 w-4 mr-2" />
+                    Gerenciar etiquetas
+                  </DropdownMenuItem>
+                )}
                 {connected && onSyncChats && (
                   <DropdownMenuItem onClick={onSyncChats} disabled={isSyncingChats}>
                     <RefreshCw className={cn("h-4 w-4 mr-2", isSyncingChats && "animate-spin")} />
@@ -131,10 +148,13 @@ export function InstanceStatusBar({
                   </DropdownMenuItem>
                 )}
                 {connected && onDisconnect && (
-                  <DropdownMenuItem onClick={onDisconnect}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Desconectar WhatsApp
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onDisconnect}>
+                      <LogOut className="h-4 w-4 mr-2 text-destructive" />
+                      <span className="text-destructive">Desconectar WhatsApp</span>
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

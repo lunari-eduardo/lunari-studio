@@ -16,7 +16,7 @@ export interface LibraryPanelProps {
   chat?: Chat | EnrichedChat;
   suggestedCategory?: string;
   suggestedStep?: string;
-  onInsertToComposer: (text: string) => void;
+  onInsertToComposer?: (text: string) => void;
 }
 
 export function LibraryPanel({ open, onOpenChange, chat, suggestedCategory, suggestedStep, onInsertToComposer }: LibraryPanelProps) {
@@ -98,9 +98,14 @@ export function LibraryPanel({ open, onOpenChange, chat, suggestedCategory, sugg
   };
 
   const handleInsert = (template: ConversasTemplate) => {
-    const rendered = renderTemplateText(template.conteudo, templateContext);
-    onInsertToComposer(rendered);
-    onOpenChange(false);
+    if (onInsertToComposer) {
+      const rendered = renderTemplateText(template.conteudo, templateContext);
+      onInsertToComposer(rendered);
+      onOpenChange(false);
+    } else {
+      // If no insert callback, just open editor to edit
+      handleEdit(template);
+    }
   };
 
   const getStepLabel = (step?: string | null) => {

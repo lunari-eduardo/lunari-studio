@@ -49,6 +49,8 @@ import { formatPhone } from '../shared/format';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
 import type { Chat, EnrichedChat, InstanciaStatus, Contato } from '@/modules/conversas/types';
 import { useChatLeadStatuses } from '@/hooks/useChatLeadStatuses';
+import { useConversasEtiquetas } from '@/hooks/useConversasEtiquetas';
+import { Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type PrimaryFilter = 'all' | 'unread' | 'cliente' | 'lead';
@@ -61,7 +63,8 @@ export type SidebarFilter =
   | { type: 'lead_stage'; stageKey: string; label: string; color?: string }
   | { type: 'unknown' }
   | { type: 'pinned' }
-  | { type: 'archived' };
+  | { type: 'archived' }
+  | { type: 'etiqueta'; etiquetaId: string; label: string; color: string };
 
 export interface ChatCounts {
   all: number;
@@ -97,6 +100,8 @@ export interface ChatListSidebarProps {
   onMarkUnread?: (chat: EnrichedChat) => void;
   onMarkRead?: (chat: EnrichedChat) => void;
   onDeleteChat?: (chat: EnrichedChat) => void;
+  onOpenTemplates?: () => void;
+  onOpenLabels?: () => void;
   onStartChatWithContact?: (contato: Contato) => Promise<void> | void;
 }
 
@@ -127,6 +132,7 @@ export function ChatListSidebar({
   const [activeFilter, setActiveFilter] = useState<SidebarFilter>({ type: 'all' });
   const { getLeadStatusForChat, leadStatuses = [], leadStatusMap = {} } = useChatLeadStatuses(chats);
   const { contatos } = useConversasContatos();
+  const { etiquetas } = useConversasEtiquetas();
 
   // ─── Contadores dinâmicos por categoria e etapas ──────────────────────────────
   const counts = useMemo(() => {
@@ -138,6 +144,7 @@ export function ChatListSidebar({
     let pinned = 0;
     let archived = 0;
     const stageCounts: Record<string, number> = {};
+    const etiquetaCounts: Record<string, number> = {};
 
     for (const c of chats) {
       if (c.status === 'archived') {
@@ -153,6 +160,12 @@ export function ChatListSidebar({
       else unknown++;
 
       if (c.pin === 'pinned') pinned++;
+
+      if (c.etiquetas) {
+        for (const id of c.etiquetas) {
+          etiquetaCounts[id] = (etiquetaCounts[id] ?? 0) + 1;
+        }
+      }
 
       if (c.lead_id) {
         const stageKey = leadStatusMap[c.lead_id];
@@ -171,6 +184,7 @@ export function ChatListSidebar({
       pinned,
       archived,
       stageCounts,
+      etiquetaCounts,
     };
   }, [chats, leadStatusMap]);
 
@@ -193,6 +207,8 @@ export function ChatListSidebar({
         base = base.filter(c => c.lead_id && leadStatusMap[c.lead_id] === activeFilter.stageKey);
       } else if (activeFilter.type === 'unknown') {
         base = base.filter(c => c.contato_tipo !== 'cliente' && c.contato_tipo !== 'lead');
+      } else if (activeFilter.type === 'etiqueta') {
+        base = base.filter(c => (c.etiquetas || []).includes(activeFilter.etiquetaId));
       } else if (activeFilter.type === 'pinned') {
         base = base.filter(c => c.pin === 'pinned');
       }
@@ -565,6 +581,48 @@ export function ChatListSidebar({
               </>
             )}
 
+            {
+              etiquetas.length > 0 && (
+                <>
+                  <DropdownMenuSeparator className="my-1" />
+                  <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
+                    Etiquetas
+                  </DropdownMenuLabel>
+                  {etiquetas.map((etiqueta) => {
+                    const etiquetaCount = counts.etiquetaCounts?.[etiqueta.id] || 0;
+                    const isSelected = activeFilter.type === 'etiqueta' && activeFilter.etiquetaId === etiqueta.id;
+                    return (
+                      <DropdownMenuItem
+                        key={etiqueta.id}
+                        onClick={() => setActiveFilter({ type: 'etiqueta', etiquetaId: etiqueta.id, label: etiqueta.nome, color: etiqueta.cor })}
+                        className={cn(
+                          'flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors',
+                          isSelected && 'bg-accent font-semibold text-accent-foreground'
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 max-w-[160px]">
+                          <Tag className="h-3.5 w-3.5" style={{ color: etiqueta.cor }} />
+                          <span className="truncate">{etiqueta.nome}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span
+                            className={cn(
+                              'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+                              etiquetaCount > 0
+                                ? 'bg-zinc-200 dark:bg-zinc-700 text-foreground'
+                                : 'bg-zinc-100 dark:bg-zinc-800 text-muted-foreground/60'
+                            )}
+                          >
+                            {etiquetaCount}
+                          </span>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-primary ml-1" />}
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </>
+              )
+            }
             {/* Seção 3: Organização & Status */}
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">

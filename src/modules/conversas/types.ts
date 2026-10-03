@@ -29,6 +29,7 @@ export type MensagemUpdate = DbConversasMensagem['Update'];
 export type Instancia = DbConversasInstancia['Row'];
 export type Nota = DbConversasNota['Row'];
 export type Template = DbConversasTemplate['Row'];
+export type Etiqueta = { id: string; user_id: string; nome: string; cor: string; };
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 

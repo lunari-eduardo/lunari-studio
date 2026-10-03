@@ -8,7 +8,8 @@
  */
 
 import React from 'react';
-import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail } from 'lucide-react';
+import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail, Tag } from 'lucide-react';
+import { LabelChatPopover } from '../shared/LabelChatPopover';
 import { cn } from '@/lib/utils';
 import type { EnrichedChat } from '@/modules/conversas/types';
 import type { LeadStatusInfo } from '@/hooks/useChatLeadStatuses';
@@ -229,6 +230,12 @@ export const ChatListItem = React.memo(function ChatListItem({
                   </span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  <LabelChatPopover chat={chat}>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()}>
+                      <Tag className="h-4 w-4 mr-2" />
+                      Etiquetar
+                    </DropdownMenuItem>
+                  </LabelChatPopover>
                   {onTogglePin && (
                     <DropdownMenuItem
                       disabled={!canPinThisChat}
@@ -311,6 +318,6 @@ export const ChatListItem = React.memo(function ChatListItem({
     prev.chat.contato_tipo === next.chat.contato_tipo &&
     prev.chat.ultima_mensagem_direction === next.chat.ultima_mensagem_direction &&
     prev.chat.ultima_mensagem_type === next.chat.ultima_mensagem_type &&
-    prev.leadStatus?.key === next.leadStatus?.key
+    prev.leadStatus?.key === next.leadStatus?.key && JSON.stringify(prev.chat.etiquetas) === JSON.stringify(next.chat.etiquetas)
   );
 });
