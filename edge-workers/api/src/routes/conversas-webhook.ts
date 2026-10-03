@@ -1030,6 +1030,65 @@ async function handleChatsSet(
   }
 }
 
+async function handleContactsSet(
+  supabase: any,
+  payload: unknown,
+  instance: ResolvedInstance,
+) {
+  const rawList: any[] = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as any)?.contacts)
+    ? (payload as any).contacts
+    : Array.isArray((payload as any)?.data)
+    ? (payload as any).data
+    : payload && typeof payload === 'object'
+    ? [payload]
+    : [];
+
+  const contactsToUpsert: any[] = [];
+  const seenPhones = new Set<string>();
+
+  for (const c of rawList) {
+    const rawId = c.id || c.remoteJid || c.jid || '';
+    if (!rawId || rawId.includes('status@broadcast') || !rawId.endsWith('@s.whatsapp.net')) continue;
+
+    const jidDigits = rawId.split('@')[0];
+    if (jidDigits.length < 10 || jidDigits.length > 13) continue;
+
+    const normalized = normalizeBrPhone(jidDigits);
+    const phoneNormalized = normalized
+      ? (normalized.startsWith('55') ? normalized : `55${normalized}`)
+      : jidDigits;
+
+    if (seenPhones.has(phoneNormalized)) continue;
+    seenPhones.add(phoneNormalized);
+
+    const name = c.name?.trim() || c.pushName?.trim() || c.verifiedName?.trim() || null;
+    const avatar = c.profilePictureUrl || c.profilePicUrl || null;
+
+    contactsToUpsert.push({
+      user_id: instance.user_id,
+      phone_normalized: phoneNormalized,
+      phone_raw: jidDigits,
+      nome: name,
+      avatar_url: avatar,
+      tipo: 'unknown',
+    });
+  }
+
+  if (contactsToUpsert.length === 0) return;
+
+  for (let i = 0; i < contactsToUpsert.length; i += 100) {
+    const chunk = contactsToUpsert.slice(i, i + 100);
+    const { error } = await supabase
+      .from('conversas_contatos')
+      .upsert(chunk, { onConflict: 'user_id,phone_normalized', ignoreDuplicates: true });
+    if (error) {
+      console.error('[conversas-webhook] Erro ao sincronizar contatos via webhook:', error.message);
+    }
+  }
+}
+
 async function handleMessagesSet(
   env: Bindings,
   supabase: any,
@@ -1132,6 +1191,12 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
       case 'CHATS_UPSERT':
       case 'CHATS_UPDATE':
         await handleChatsSet(c.env, supabase, payload, instance);
+        break;
+
+      case 'CONTACTS_SET':
+      case 'CONTACTS_UPSERT':
+      case 'CONTACTS_UPDATE':
+        await handleContactsSet(supabase, payload, instance);
         break;
 
       case 'MESSAGES_SET':

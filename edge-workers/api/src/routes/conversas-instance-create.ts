@@ -14,7 +14,7 @@ import { requireUserAuth } from '../utils/auth.js';
 
 export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindings }>) {
   const auth = await requireUserAuth(c);
-  if (!auth.ok) return auth.response;
+  if (!auth.ok) return (auth as any).response;
   const { userId } = auth;
 
   // Service role para inserir a instância
@@ -46,6 +46,7 @@ export async function conversasInstanceCreateRoute(c: Context<{ Bindings: Bindin
     'CHATS_UPDATE',
     'CONTACTS_SET',
     'CONTACTS_UPSERT',
+    'CONTACTS_UPDATE',
     'MESSAGES_SET',
   ];
 

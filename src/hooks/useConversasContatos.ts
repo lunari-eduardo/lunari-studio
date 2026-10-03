@@ -57,7 +57,8 @@ export function useConversasContatos(): UseConversasContatosReturn {
           .from('conversas_contatos')
           .select('*, conversas_chats(contato_nome, ultima_mensagem_data)')
           .eq('user_id', userId)
-          .order('ultima_mensagem_data', { ascending: false, nullsFirst: false });
+          .order('ultima_mensagem_data', { ascending: false, nullsFirst: false })
+          .limit(10000);
 
         if (error) throw error;
         

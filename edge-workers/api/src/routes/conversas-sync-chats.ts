@@ -59,11 +59,11 @@ export async function performSyncChats(
     return { ok: false, synced: 0, syncedMessages: 0, total: 0, error: 'Configuração da Evolution API incompleta' };
   }
 
-  // 1. Chamar Evolution API — listar todas as conversas disponíveis
   let rawChats: any[] = [];
   const contactSavedNameByJid = new Map<string, string>();
   const contactPushNameByJid = new Map<string, string>();
   const contactAvatarByJid = new Map<string, string>();
+  const allJids = new Set<string>();
 
   try {
     const [chatsRes, contactsRes] = await Promise.all([
@@ -94,6 +94,7 @@ export async function performSyncChats(
     const raw: any = await chatsRes.json();
     rawChats = Array.isArray(raw) ? raw : Array.isArray(raw?.chats) ? raw.chats : [];
 
+    // Processar contatos primeiro para garantir que temos todos eles
     if (contactsRes && contactsRes.ok) {
       const rawContacts: any = await contactsRes.json();
       const contactsList = Array.isArray(rawContacts) ? rawContacts : [];
@@ -101,6 +102,7 @@ export async function performSyncChats(
         const saved = c.name?.trim() || c.displayName?.trim() || null;
         const push = c.pushName?.trim() || null;
         if (c.remoteJid) {
+          allJids.add(c.remoteJid);
           if (saved) contactSavedNameByJid.set(c.remoteJid, saved);
           if (push) contactPushNameByJid.set(c.remoteJid, push);
           if (c.profilePicUrl) contactAvatarByJid.set(c.remoteJid, c.profilePicUrl);
@@ -112,8 +114,28 @@ export async function performSyncChats(
     return { ok: false, synced: 0, syncedMessages: 0, total: 0, error: err.message };
   }
 
-  // 2. Filtrar apenas conversas individuais válidas (@s.whatsapp.net) e desduplicar por telefone
+  // 2. Filtrar e desduplicar contatos (tanto de conversas quanto da lista geral de contatos)
   const uniqueChatsByPhone = new Map<string, { chat: EvolutionChatListItem; phoneNormalized: string; phoneRaw: string; realName: string | null; realAvatar: string | null }>();
+  const allContactsByPhone = new Map<string, { phoneNormalized: string; phoneRaw: string; realName: string | null; realAvatar: string | null }>();
+
+  // Iterar novamente nos contatos para o mapa mestre
+  for (const rawJid of allJids) {
+    if (rawJid.endsWith('@s.whatsapp.net')) {
+      const jidDigits = rawJid.split('@')[0];
+      if (jidDigits.length >= 10 && jidDigits.length <= 13) {
+        const normalized = normalizeBrPhone(jidDigits);
+        const phoneNormalized = normalized ? (normalized.startsWith('55') ? normalized : `55${normalized}`) : jidDigits;
+        if (phoneNormalized && !allContactsByPhone.has(phoneNormalized)) {
+          allContactsByPhone.set(phoneNormalized, {
+            phoneNormalized,
+            phoneRaw: jidDigits,
+            realName: contactSavedNameByJid.get(rawJid) || contactPushNameByJid.get(rawJid) || null,
+            realAvatar: contactAvatarByJid.get(rawJid) || null,
+          });
+        }
+      }
+    }
+  }
 
   for (const chat of rawChats) {
     const rawJid = chat.remoteJid || chat.id || (chat as any).jid || '';
@@ -142,6 +164,17 @@ export async function performSyncChats(
     const realName = savedName || pushName || null;
     const realAvatar = contactAvatarByJid.get(rawJid) ?? chat.profilePicUrl ?? null;
 
+    // Adiciona ou atualiza na lista global de contatos
+    if (!allContactsByPhone.has(phoneNormalized)) {
+      allContactsByPhone.set(phoneNormalized, {
+        phoneNormalized,
+        phoneRaw: jidDigits,
+        realName,
+        realAvatar,
+      });
+    }
+
+    // Adiciona na lista de chats
     if (!uniqueChatsByPhone.has(phoneNormalized)) {
       uniqueChatsByPhone.set(phoneNormalized, {
         chat,
@@ -154,12 +187,14 @@ export async function performSyncChats(
   }
 
   const validItems = Array.from(uniqueChatsByPhone.values());
-  if (validItems.length === 0) {
+  const allContactsArray = Array.from(allContactsByPhone.values());
+  
+  if (allContactsArray.length === 0) {
     return { ok: true, synced: 0, syncedMessages: 0, total: rawChats.length };
   }
 
   // 3. Batch upsert de contatos (em chunks de 100)
-  const contactsPayload = validItems.map(item => ({
+  const contactsPayload = allContactsArray.map(item => ({
     user_id: userId,
     phone_normalized: item.phoneNormalized,
     phone_raw: item.phoneRaw,
