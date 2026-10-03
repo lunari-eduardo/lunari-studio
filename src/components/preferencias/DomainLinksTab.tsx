@@ -48,6 +48,13 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
     setIsSaving(true);
     try {
       const cleanNamespace = namespace ? sanitizeNamespace(namespace) : null;
+      
+      const reservedWords = ['app', 'www', 'api', 'admin', 'fallback', 'assets', 'edge', 'mail', 'smtp', 'ftp', 'webmail', 'cpanel', 'localhost', 'support', 'help', 'docs', 'blog'];
+      if (cleanNamespace && reservedWords.includes(cleanNamespace)) {
+        toast.error('Este link está reservado pelo sistema e não pode ser utilizado.');
+        return;
+      }
+
       // Se o usuário limpar o input manualmente, salvamos como nulo para forçar a exclusão
       const cleanDomain = customDomain && hasPro ? sanitizeDomain(customDomain) : null;
       
@@ -99,16 +106,16 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
 
         <div className="space-y-2">
           <div className="flex rounded-md shadow-sm">
-            <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted/50 px-3 text-muted-foreground sm:text-sm">
-              lunarihub.com/
-            </span>
             <Input
               type="text"
               placeholder="seu-estudio"
               value={namespace}
               onChange={(e) => setNamespace(e.target.value)}
-              className="rounded-l-none focus-visible:z-10"
+              className="rounded-r-none focus-visible:z-10"
             />
+            <span className="inline-flex items-center rounded-r-md border border-l-0 border-input bg-muted/50 px-3 text-muted-foreground sm:text-sm">
+              .lunarihub.com
+            </span>
           </div>
           
           <div className="bg-muted/30 p-3 rounded-lg border border-border/50 text-sm flex items-start gap-2">
@@ -116,7 +123,7 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
             <div className="text-muted-foreground">
               Exemplo de galeria:{' '}
               <span className="text-foreground font-medium break-all">
-                https://lunarihub.com/{namespace ? sanitizeNamespace(namespace) : 'seu-estudio'}/g/xyz
+                {previewBaseUrl}/g/xyz
               </span>
             </div>
           </div>

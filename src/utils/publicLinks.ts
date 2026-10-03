@@ -17,7 +17,7 @@ export function generatePublicLink({ type, token, slug, profile }: LinkGeneratio
     baseUrl = `https://${profile.custom_domain}`;
   } else if (profile?.namespace || profile?.public_namespace) {
     const ns = profile.namespace || profile.public_namespace;
-    baseUrl = `https://lunarihub.com/${ns}`;
+    baseUrl = `https://${ns}.lunarihub.com`;
   }
 
   // Se for root (booking ou proposal) usando slug e namespace ao mesmo tempo, 

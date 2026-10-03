@@ -52,7 +52,7 @@ export function getPublicShareBaseUrl(profileInfo?: { namespace?: string | null,
   return generatePublicLink({ 
     type: 'gallery', 
     profile: { namespace: profileInfo?.namespace || profileInfo?.public_namespace, custom_domain: profileInfo?.customDomain || profileInfo?.custom_domain } 
-  }).replace(/\/g$/, '');
+  }).replace(/\/g\/?$/, '');
 }
 
 export function buildPaymentShareUrl(cobrancaId: string, profileInfo?: { namespace?: string | null, public_namespace?: string | null, customDomain?: string | null, custom_domain?: string | null }): string {
