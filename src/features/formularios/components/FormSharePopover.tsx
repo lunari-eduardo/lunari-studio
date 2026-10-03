@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { getFormPublicUrl } from '../utils/publicUrl';
 import type { Formulario } from '@/types/formulario';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface Props {
   form: Formulario;
@@ -40,8 +41,9 @@ export function FormSharePopover({
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
+  const { profile } = useUserProfile();
 
-  const publicUrl = getFormPublicUrl(form);
+  const publicUrl = getFormPublicUrl(form, profile);
 
   if (!publicUrl) return null;
 

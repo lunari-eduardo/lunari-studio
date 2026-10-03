@@ -1,11 +1,17 @@
-/** Domínio público do Lunari Hub — SEM o prefixo `app.` */
-const PUBLIC_ORIGIN = 'https://lunarihub.com';
+import { generatePublicLink } from '@/utils/publicLinks';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Utilitário para gerar a URL pública de um formulário.
- * Padrão: https://lunarihub.com/formulario/{public_token}
  */
-export function getFormPublicUrl(form: Pick<Formulario, 'public_token'>): string {
+export function getFormPublicUrl(
+  form: { public_token?: string | null }, 
+  profile?: { namespace?: string | null; custom_domain?: string | null } | null
+): string {
   if (!form.public_token) return '';
-  return `${PUBLIC_ORIGIN}/formulario/${form.public_token}`;
+  return generatePublicLink({
+    type: 'form',
+    token: form.public_token,
+    profile
+  });
 }

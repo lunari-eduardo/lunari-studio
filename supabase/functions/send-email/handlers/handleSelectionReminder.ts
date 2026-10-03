@@ -9,7 +9,7 @@ import {
   replaceTemplateVariables,
   textToHtmlParagraphs,
   canUserSendAutomatedEmail,
-  GALLERY_BASE_URL,
+  generatePublicLink,
 } from '../helpers.ts';
 import { buildLayout } from '../templates/baseLayout.ts';
 import { sendResendEmail } from '../resendClient.ts';
@@ -50,7 +50,7 @@ export async function handleSelectionReminder(ctx: EventHandlerContext): Promise
       .maybeSingle(),
     supabase
       .from('profiles')
-      .select('nome, empresa, logo_url, email')
+      .select('nome, empresa, logo_url, email, namespace, public_namespace, custom_domain')
       .eq('user_id', gallery.user_id)
       .maybeSingle(),
   ]);
@@ -100,7 +100,11 @@ export async function handleSelectionReminder(ctx: EventHandlerContext): Promise
   const studioLogoUrl = settings?.studio_logo_url || ownerProfile?.logo_url || null;
 
   const replyTo = await getPhotographerReplyTo(supabase, gallery.user_id);
-  const galleryUrl = `${GALLERY_BASE_URL}/g/${encodeURIComponent(token)}`;
+  const galleryUrl = generatePublicLink({
+    type: 'gallery',
+    token: encodeURIComponent(token),
+    profile: ownerProfile,
+  });
   const { data: template } = await supabase
     .from('gallery_email_templates')
     .select('subject, body')

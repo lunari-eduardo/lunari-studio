@@ -9,7 +9,7 @@ import {
   formatCurrency,
   replaceTemplateVariables,
   canUserSendAutomatedEmail,
-  GALLERY_BASE_URL,
+  generatePublicLink,
 } from '../helpers.ts';
 import { sendResendEmail } from '../resendClient.ts';
 import {
@@ -84,7 +84,7 @@ export async function handleSelectionConfirmed(ctx: EventHandlerContext): Promis
       .maybeSingle(),
     supabase
       .from('profiles')
-      .select('nome, empresa, logo_url, email')
+      .select('nome, empresa, logo_url, email, namespace, public_namespace, custom_domain')
       .eq('user_id', gallery.user_id)
       .maybeSingle(),
   ]);
@@ -112,8 +112,8 @@ export async function handleSelectionConfirmed(ctx: EventHandlerContext): Promis
 
   const replyTo = await getPhotographerReplyTo(supabase, gallery.user_id);
   const token = body.publicToken || gallery.public_token;
-  const galleryUrl = token ? `${GALLERY_BASE_URL}/g/${encodeURIComponent(token)}` : undefined;
-  const dashboardUrl = `${GALLERY_BASE_URL}/app/gallery/select/${gallery.id}`;
+  const galleryUrl = token ? generatePublicLink({ type: 'gallery', token: encodeURIComponent(token), profile: ownerProfile }) : undefined;
+  const dashboardUrl = `https://app.lunarihub.com/app/gallery/select/${gallery.id}`;
 
   const formattedDateTime = formatLongDateTime(gallery.finalized_at || new Date());
   const selectedCount = Number(gallery.fotos_selecionadas || 0);

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useCobranca } from "@/hooks/useCobranca";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { buildPaymentShareUrl } from "@/utils/domainUtils";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface UseSessionPanelChargesParams {
   isEdit: boolean;
@@ -12,6 +13,7 @@ export function useSessionPanelCharges({
   isEdit,
   sessionId,
 }: UseSessionPanelChargesParams) {
+  const { profile } = useUserProfile();
   const { cobrancas, cancelCharge } = useCobranca({
     sessionId: isEdit ? sessionId : undefined,
   });
@@ -62,7 +64,7 @@ export function useSessionPanelCharges({
   const cobrancaPendente = pendenteCobrancas[0] || null;
   const cobrancaPendenteLink = cobrancaPendente
     ? cobrancaPendente.id
-      ? buildPaymentShareUrl(cobrancaPendente.id)
+      ? buildPaymentShareUrl(cobrancaPendente.id, profile)
       : cobrancaPendente.mpPaymentLink || cobrancaPendente.ipCheckoutUrl || ""
     : "";
 
@@ -70,7 +72,7 @@ export function useSessionPanelCharges({
     pagoCobrancas[0] || pendenteCobrancas[0] || cobrancas[0] || null;
   const cobrancaLink = cobranca
     ? cobranca.id
-      ? buildPaymentShareUrl(cobranca.id)
+      ? buildPaymentShareUrl(cobranca.id, profile)
       : cobranca.mpPaymentLink || cobranca.ipCheckoutUrl || ""
     : "";
 

@@ -174,8 +174,8 @@ function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any)
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain: domainToCheck })
       });
-      const data = await res.json();
-      if (data.success) setStatus(data.hostname);
+      const data = (await res.json()) as any;
+      if (data?.success) setStatus(data.hostname);
     } catch (e) {
       console.error(e);
     } finally {
@@ -194,11 +194,11 @@ function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any)
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ domain: cleanDomain })
       });
-      const data = await res.json();
+      const data = (await res.json()) as any;
       
-      if (!res.ok) throw new Error(data.error || 'Erro ao adicionar domínio');
+      if (!res.ok) throw new Error(data?.error || 'Erro ao adicionar domínio');
       
-      setStatus(data.hostname);
+      setStatus(data?.hostname);
       setDomainInput(cleanDomain);
       toast.success('Domínio registrado! Veja as instruções de DNS.');
       
@@ -305,7 +305,7 @@ function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any)
           {status.status !== 'active' && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Para ativar, você precisa criar estes dois registros no painel do seu domínio (Registro.br, GoDaddy, etc):
+                Para ativar, você precisa criar estes dois registros no painel do seu provedor de domínio (Registro.br, GoDaddy, Hostinger, etc):
               </p>
               
               <div className="bg-background border rounded-md p-3 space-y-2 text-sm font-mono break-all">
@@ -324,6 +324,10 @@ function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any)
                   </div>
                 )}
               </div>
+
+              <div className="pt-2">
+                <DnsHelpAccordion />
+              </div>
             </div>
           )}
         </div>
@@ -332,3 +336,62 @@ function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any)
   );
 }
 
+
+
+function DnsHelpAccordion() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border rounded-md mt-4">
+      <button 
+        className="w-full flex items-center justify-between p-3 text-sm font-medium hover:bg-muted/50 transition-colors text-left"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span className="flex items-center gap-2">
+          <Info className="h-4 w-4 text-accent-gold" /> 
+          Como configurar isso no meu provedor?
+        </span>
+        <span className="text-muted-foreground">{isOpen ? 'Ocultar' : 'Ver tutoriais'}</span>
+      </button>
+
+      {isOpen && (
+        <div className="p-4 border-t space-y-5 text-sm text-muted-foreground bg-muted/20">
+          <div className="space-y-2">
+            <h5 className="font-semibold text-foreground">Registro.br</h5>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>Acesse o painel do seu domínio no Registro.br.</li>
+              <li>Role até a seção "DNS" e clique em <strong>"Configurar Zona DNS"</strong>.</li>
+              <li>Se o botão disser apenas "Alterar Servidores DNS", clique primeiro no botão <strong>MODO AVANÇADO</strong> (no rodapé da janela) para liberar a criação de TXT e CNAME.</li>
+              <li>Clique em <strong>Nova Entrada</strong> e adicione o CNAME e o TXT conforme solicitado acima.</li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <h5 className="font-semibold text-foreground">Hostinger</h5>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>No hPanel, vá em Domínios e selecione o seu domínio.</li>
+              <li>No menu lateral, clique em <strong>DNS / Nameservers</strong>.</li>
+              <li>Em "Gerenciar registros DNS", preencha os campos para criar o CNAME (Destino: fallback.lunarihub.com) e depois o TXT.</li>
+            </ol>
+          </div>
+
+          <div className="space-y-2">
+            <h5 className="font-semibold text-foreground">GoDaddy</h5>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>No painel de produtos da GoDaddy, clique em <strong>DNS</strong> ao lado do seu domínio.</li>
+              <li>Clique no botão <strong>Adicionar Novo Registro</strong>.</li>
+              <li>Crie a entrada CNAME. Depois, repita o processo para criar a entrada TXT.</li>
+            </ol>
+          </div>
+
+          <div className="bg-accent-gold/10 p-3 rounded-md text-accent-gold/90 mt-2 flex gap-2">
+            <Info className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="text-xs leading-relaxed">
+              <strong>Importante:</strong> Após salvar lá no seu provedor, pode demorar de 10 minutos até 24 horas para a internet propagar esses registros (normalmente é bem rápido). Quando propagar, o status aqui mudará sozinho para Ativo.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -42,35 +42,61 @@ function getYouTubeVideoId(url: URL): string | null {
   return null;
 }
 
+interface LunariWorkerTarget {
+  endpoint: 'gallery-og' | 'payment-link-preview';
+  query: string;
+}
+
 /**
- * Detecta se é link de proposta (/p/), galeria (/g/), entrega (/c/) ou formulário (/formulario/).
- * Retorna os parâmetros para consulta no worker gallery-og.
+ * Detecta se é link do ecossistema Lunari (propostas, galerias, entregas, formulários ou cobranças),
+ * suportando caminhos diretos ou com namespace (ex: /estudio/g/:token).
  */
-function getLunariWorkerParams(url: URL): string | null {
+function getLunariWorkerTarget(url: URL): LunariWorkerTarget | null {
   const pathname = url.pathname;
-  
-  // Proposta por token: /p/:token
-  const pMatch = pathname.match(/^\/p\/([^/]+)/);
+
+  // 1. Cobranças: /l/:id, /checkout/:id, /pay/ip/:id (com ou sem namespace)
+  const lMatch = pathname.match(/(?:^|\/)(?:[a-zA-Z0-9_-]+\/)?(?:l|checkout|pay\/ip)\/([a-zA-Z0-9_-]+)/i);
+  if (lMatch) {
+    return {
+      endpoint: 'payment-link-preview',
+      query: `id=${encodeURIComponent(lMatch[1])}`,
+    };
+  }
+
+  // 2. Proposta: /p/:token (com ou sem namespace)
+  const pMatch = pathname.match(/(?:^|\/)(?:[a-zA-Z0-9_-]+\/)?p\/([a-zA-Z0-9_-]+)/i);
   if (pMatch) {
-    return `type=proposal&token=${encodeURIComponent(pMatch[1])}`;
+    return {
+      endpoint: 'gallery-og',
+      query: `type=proposal&token=${encodeURIComponent(pMatch[1])}`,
+    };
   }
 
-  // Galeria por token: /g/:token
-  const gMatch = pathname.match(/^\/g\/([^/]+)/);
+  // 3. Galeria: /g/:token (com ou sem namespace)
+  const gMatch = pathname.match(/(?:^|\/)(?:[a-zA-Z0-9_-]+\/)?g\/([a-zA-Z0-9_-]+)/i);
   if (gMatch) {
-    return `token=${encodeURIComponent(gMatch[1])}`;
+    return {
+      endpoint: 'gallery-og',
+      query: `token=${encodeURIComponent(gMatch[1])}`,
+    };
   }
 
-  // Entrega / download por token: /c/:token
-  const cMatch = pathname.match(/^\/c\/([^/]+)/);
+  // 4. Entrega / download: /c/:token (com ou sem namespace)
+  const cMatch = pathname.match(/(?:^|\/)(?:[a-zA-Z0-9_-]+\/)?c\/([a-zA-Z0-9_-]+)/i);
   if (cMatch) {
-    return `type=deliver&token=${encodeURIComponent(cMatch[1])}`;
+    return {
+      endpoint: 'gallery-og',
+      query: `type=deliver&token=${encodeURIComponent(cMatch[1])}`,
+    };
   }
 
-  // Formulário por token: /formulario/:token
-  const fMatch = pathname.match(/^\/formulario\/([^/]+)/);
+  // 5. Formulário: /formulario/:token (com ou sem namespace)
+  const fMatch = pathname.match(/(?:^|\/)(?:[a-zA-Z0-9_-]+\/)?formulario\/([a-zA-Z0-9_-]+)/i);
   if (fMatch) {
-    return `type=form&token=${encodeURIComponent(fMatch[1])}`;
+    return {
+      endpoint: 'gallery-og',
+      query: `type=form&token=${encodeURIComponent(fMatch[1])}`,
+    };
   }
 
   return null;
@@ -144,16 +170,18 @@ export function LinkPreview({ url, direction = 'outbound', className }: LinkPrev
       return;
     }
 
-    // 2. Links do ecossistema Lunari (Propostas, Galerias, Entregas, Formulários)
-    const lunariParams = getLunariWorkerParams(parsedUrl);
-    if (lunariParams) {
+    // 2. Links do ecossistema Lunari (Propostas, Galerias, Entregas, Formulários, Cobranças)
+    const lunariTarget = getLunariWorkerTarget(parsedUrl);
+    if (lunariTarget) {
       setLoading(true);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-      fetch(`https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/gallery-og?${lunariParams}&format=json`, {
+      const endpointUrl = `https://lunari-edge-previews.eduardo22diehl.workers.dev/functions/v1/${lunariTarget.endpoint}?${lunariTarget.query}`;
+
+      fetch(endpointUrl, {
         signal: controller.signal,
-        headers: { Accept: 'application/json, text/html' },
+        headers: { Accept: 'application/json' },
       })
         .then(async (res) => {
           clearTimeout(timeoutId);
@@ -210,7 +238,7 @@ export function LinkPreview({ url, direction = 'outbound', className }: LinkPrev
       signal: controller.signal,
     })
       .then((res) => res.json())
-      .then((json) => {
+      .then((json: any) => {
         clearTimeout(timeoutId);
         if (isCancelled) return;
 

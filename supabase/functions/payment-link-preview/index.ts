@@ -22,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PUBLIC_SITE_URL = (Deno.env.get("VITE_SITE_URL") || Deno.env.get("SITE_URL") || "https://app.lunarihub.com").replace(/\/$/, "");
-const FALLBACK_OG_IMAGE = `${PUBLIC_SITE_URL}/branding/logo-site-gold.png`;
+const FALLBACK_OG_IMAGE = `${PUBLIC_SITE_URL}/branding/fallback-og.png`;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BOT_UA_RE = /(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags)/i;
@@ -164,11 +164,34 @@ function targetPathFor(_provedor: string | null | undefined, id: string): string
 serve(async (req) => {
   const url = new URL(req.url);
   const id = (url.searchParams.get("id") || "").trim().toLowerCase();
-  const canonicalUrl = `${PUBLIC_SITE_URL}/l/${id}`;
+  
+  const xForwardedHost = req.headers.get("x-forwarded-host");
+  const requestHost = xForwardedHost || new URL(req.url).hostname;
+  let canonicalUrl = `https://${requestHost}/l/${id}`;
+  if (!xForwardedHost || requestHost.includes('workers.dev')) {
+    canonicalUrl = `${PUBLIC_SITE_URL}/l/${id}`;
+  }
+
+  function resolveCanonical(profile: any, type: string, pathParam: string) {
+    let baseUrl = 'https://lunarihub.com';
+    if (profile?.custom_domain) {
+      baseUrl = `https://${profile.custom_domain}`;
+    } else if (profile?.namespace || profile?.public_namespace) {
+      const ns = profile.namespace || profile.public_namespace;
+      baseUrl = `https://lunarihub.com/${ns}`;
+    }
+    
+    switch (type) {
+      case 'gallery': return `${baseUrl}/g/${pathParam}`;
+      case 'payment_shortlink': return `${baseUrl}/l/${pathParam}`;
+      case 'checkout': return `${baseUrl}/checkout/${pathParam}`;
+      default: return `${baseUrl}/${pathParam}`;
+    }
+  }
+
   const userAgent = req.headers.get("user-agent") || "";
   const accept = req.headers.get("accept") || "";
   const isBot = BOT_UA_RE.test(userAgent);
-  // Alguns crawlers (ex: fetch de og:image) mandam Accept: image/*. Tratar como bot também.
   const wantsHtml = accept.includes("text/html") || accept.includes("*/*") || accept === "";
   const treatAsBot = isBot || !wantsHtml;
 
@@ -234,7 +257,7 @@ serve(async (req) => {
     // Ramo BOT / CRAWLER (WhatsApp, Facebook, iMessage, etc.) — HTML branded
     // ─────────────────────────────────────────────────────────────
     const [{ data: profile }, { data: settings }, { data: cliente }] = await Promise.all([
-      supabase.from("profiles").select("nome, empresa, logo_url, avatar_url").eq("user_id", cobranca.user_id).maybeSingle(),
+      supabase.from("profiles").select("nome, empresa, logo_url, avatar_url, namespace, public_namespace, custom_domain").eq("user_id", cobranca.user_id).maybeSingle(),
       supabase.from("gallery_settings").select("studio_name, studio_logo_url, theme_overrides").eq("user_id", cobranca.user_id).maybeSingle(),
       cobranca.cliente_id
         ? supabase.from("clientes").select("nome").eq("id", cobranca.cliente_id).maybeSingle()
@@ -244,6 +267,8 @@ serve(async (req) => {
     const studioCandidate = (settings?.studio_name || "").trim();
     const companyCandidate = (profile?.empresa || "").trim();
     const nameCandidate = (profile?.nome || "").trim();
+
+    canonicalUrl = resolveCanonical(profile, 'payment_shortlink', id);
 
     let brandName = "Fotografia";
     if (studioCandidate && studioCandidate !== "Meu Estúdio") {
@@ -274,7 +299,7 @@ serve(async (req) => {
       title = `Pagamento concluído — ${brandName}`;
       desc = `Cobrança de ${valorFmt} paga com sucesso.`;
       bodyMessage = "Pagamento concluído";
-      linkHref = galleryToken ? `${PUBLIC_SITE_URL}/g/${galleryToken}` : absoluteTarget;
+      linkHref = galleryToken ? resolveCanonical(profile, 'gallery', galleryToken) : resolveCanonical(profile, 'checkout', id);
     } else if (status === "cancelado" || status === "expirado") {
       title = `Link não disponível — ${brandName}`;
       desc = "Este link de pagamento não está mais ativo.";
@@ -286,7 +311,7 @@ serve(async (req) => {
       title = `Pagamento para ${brandName} — ${valorFmt}`;
       desc = `${saudacao}Sua cobrança de ${valorFmt}${descSuffix}.`;
       bodyMessage = `Pagamento de ${valorFmt}`;
-      linkHref = absoluteTarget;
+      linkHref = resolveCanonical(profile, 'checkout', id);
     }
 
     const html = renderBrandedHtml({

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import type { Formulario } from '@/types/formulario';
 import { getFormPublicUrl } from '../utils/publicUrl';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface Props {
   form: Formulario;
@@ -24,9 +25,10 @@ interface Props {
 
 export function FormDetailShare({ form }: Props) {
   const [copied, setCopied] = useState(false);
+  const { profile } = useUserProfile();
 
   /** URL pública do formulário baseada no `public_token`. */
-  const publicUrl = useMemo(() => getFormPublicUrl(form), [form]);
+  const publicUrl = useMemo(() => getFormPublicUrl(form, profile), [form, profile]);
 
   const handleCopy = async () => {
     if (!publicUrl) return;

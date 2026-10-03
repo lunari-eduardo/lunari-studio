@@ -10,7 +10,7 @@ import {
   textToHtmlParagraphs,
   paymentMethodLabel,
   canUserSendAutomatedEmail,
-  GALLERY_BASE_URL,
+  generatePublicLink,
 } from '../helpers.ts';
 import { buildLayout } from '../templates/baseLayout.ts';
 import { sendResendEmail } from '../resendClient.ts';
@@ -44,7 +44,7 @@ export async function handlePaymentConfirmed(ctx: EventHandlerContext): Promise<
 
   const [{ data: settings }, { data: ownerProfile }, { data: client }, { data: gallery }] = await Promise.all([
     supabase.from('gallery_settings').select('*').eq('user_id', payment.user_id).maybeSingle(),
-    supabase.from('profiles').select('nome, empresa, logo_url, email').eq('user_id', payment.user_id).maybeSingle(),
+    supabase.from('profiles').select('nome, empresa, logo_url, email, namespace, public_namespace, custom_domain').eq('user_id', payment.user_id).maybeSingle(),
     payment.cliente_id ? supabase.from('clientes').select('id, nome, email').eq('id', payment.cliente_id).maybeSingle() : Promise.resolve({ data: null }),
     payment.galeria_id ? supabase.from('galerias').select('id, cliente_nome, cliente_email, nome_sessao, public_token').eq('id', payment.galeria_id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
@@ -95,7 +95,7 @@ export async function handlePaymentConfirmed(ctx: EventHandlerContext): Promise<
   const studioLogoUrl = settings?.studio_logo_url || ownerProfile?.logo_url || null;
 
   const replyTo = await getPhotographerReplyTo(supabase, payment.user_id);
-  const galleryUrl = gallery?.public_token ? `${GALLERY_BASE_URL}/g/${encodeURIComponent(gallery.public_token)}` : undefined;
+  const galleryUrl = gallery?.public_token ? generatePublicLink({ type: 'gallery', token: encodeURIComponent(gallery.public_token), profile: ownerProfile }) : undefined;
 
   const { data: template } = await supabase
     .from('gallery_email_templates')

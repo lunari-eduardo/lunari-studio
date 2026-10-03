@@ -4,7 +4,7 @@
 interface __BaseEnv_Env {
 	VITE_SITE_URL: "https://app.lunarihub.com";
 	R2_CDN_BASE: "https://media.lunarihub.com";
-	FALLBACK_OG_IMAGE: "https://app.lunarihub.com/branding/logo-site-gold.png";
+	FALLBACK_OG_IMAGE: "https://lunarihub.com/branding/fallback-og.png";
 	SUPABASE_URL: string;
 	SUPABASE_ANON_KEY: string;
 	SUPABASE_SERVICE_ROLE_KEY: string;

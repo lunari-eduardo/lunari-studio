@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Cobranca, TipoCobranca, CobrancaResponse, CreateCobrancaRequest, ProvedorPagamento } from '@/types/cobranca';
 import { toast } from 'sonner';
 import { buildPaymentShareUrl } from '@/utils/domainUtils';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface UseCobrancaOptions {
   clienteId?: string;
@@ -14,6 +15,7 @@ export function useCobranca(options: UseCobrancaOptions = {}) {
   const [cobrancas, setCobrancas] = useState<Cobranca[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingCharge, setCreatingCharge] = useState(false);
+  const { profile } = useUserProfile();
 
   // Fetch charges for client/session/galeria
   const fetchCobrancas = useCallback(async () => {
@@ -120,7 +122,7 @@ export function useCobranca(options: UseCobrancaOptions = {}) {
       }
 
       const rawUrl = result.checkoutUrl || result.paymentLink;
-      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId) : rawUrl;
+      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId, profile) : rawUrl;
 
       return {
         ...result,
@@ -182,7 +184,7 @@ export function useCobranca(options: UseCobrancaOptions = {}) {
       }
 
       const rawUrl = result.checkoutUrl || result.paymentLink;
-      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId) : rawUrl;
+      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId, profile) : rawUrl;
 
       return {
         ...result,
@@ -236,7 +238,7 @@ export function useCobranca(options: UseCobrancaOptions = {}) {
       }
 
       const rawUrl = result.checkoutUrl || result.paymentLink;
-      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId) : rawUrl;
+      const shareUrl = result.cobrancaId ? buildPaymentShareUrl(result.cobrancaId, profile) : rawUrl;
 
       return {
         ...result,

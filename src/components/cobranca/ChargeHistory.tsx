@@ -24,6 +24,7 @@ import { formatDateForDisplay } from '@/utils/dateUtils';
 import { toast } from 'sonner';
 import { buildPaymentShareUrl } from '@/utils/domainUtils';
 import { cn } from '@/lib/utils';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface ChargeHistoryProps {
   cobrancas: Cobranca[];
@@ -108,6 +109,7 @@ function getProviderLabel(provedor: string | undefined): string {
 export function ChargeHistory({ cobrancas, onCancel, onView }: ChargeHistoryProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const { profile } = useUserProfile();
 
   const handleCopy = (text: string, key: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -163,7 +165,7 @@ export function ChargeHistory({ cobrancas, onCancel, onView }: ChargeHistoryProp
             const statusConfig = getStatusView(cobranca.status);
             const tipoConfig = getTipoView(cobranca.tipoCobranca);
             const paymentLink = cobranca.id
-              ? buildPaymentShareUrl(cobranca.id)
+              ? buildPaymentShareUrl(cobranca.id, profile)
               : cobranca.ipCheckoutUrl || cobranca.mpPaymentLink || null;
 
             return (

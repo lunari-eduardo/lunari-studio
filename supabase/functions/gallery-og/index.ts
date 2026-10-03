@@ -5,7 +5,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PUBLIC_SITE_URL = (Deno.env.get("VITE_SITE_URL") || Deno.env.get("SITE_URL") || "https://app.lunarihub.com").replace(/\/$/, "");
 const R2_PUBLIC_URL = "https://media.lunarihub.com";
-const FALLBACK_OG_IMAGE = `${PUBLIC_SITE_URL}/branding/logo-site-gold.png`;
+const FALLBACK_OG_IMAGE = `${PUBLIC_SITE_URL}/branding/fallback-og.png`;
 
 const BOT_UA_RE = /(whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|skypeuripreview|googlebot|google-inspectiontool|bingbot|yandexbot|duckduckbot|preview|embedly|redditbot|pinterest|applebot|iframely|vkshare|snapchat|line-poker|nuzzel|qwantify|baiduspider|msnbot|mediapartners-google|whatsapp-preview|w3c_validator|opengraph|metatags)/i;
 
@@ -112,7 +112,30 @@ serve(async (req) => {
   else if (typeParam === "proposal" && token) targetPath = `/p/${token}`;
   else if (typeParam === "proposal" && slug) targetPath = `/${slug}`;
 
-  const canonicalUrl = `${PUBLIC_SITE_URL}${targetPath}`;
+  const xForwardedHost = req.headers.get("x-forwarded-host");
+  const requestHost = xForwardedHost || new URL(req.url).hostname;
+  let canonicalUrl = `https://${requestHost}${targetPath}`;
+  if (!xForwardedHost || requestHost.includes('workers.dev')) {
+    canonicalUrl = `${PUBLIC_SITE_URL}${targetPath}`;
+  }
+
+  function resolveCanonical(profile: any, type: string, pathParam: string) {
+    let baseUrl = 'https://lunarihub.com';
+    if (profile?.custom_domain) {
+      baseUrl = `https://${profile.custom_domain}`;
+    } else if (profile?.namespace || profile?.public_namespace) {
+      const ns = profile.namespace || profile.public_namespace;
+      baseUrl = `https://lunarihub.com/${ns}`;
+    }
+    
+    switch (type) {
+      case 'gallery': return `${baseUrl}/g/${pathParam}`;
+      case 'deliver': return `${baseUrl}/c/${pathParam}`;
+      case 'form': return `${baseUrl}/formulario/${pathParam}`;
+      case 'proposal': return `${baseUrl}/p/${pathParam}`;
+      default: return `${baseUrl}/${pathParam}`;
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────
   // Ramo BOT / CRAWLER (WhatsApp, etc.) — Retorna HTML estático
@@ -138,7 +161,7 @@ serve(async (req) => {
       if (form) {
         const [{ data: settings }, { data: profile }] = await Promise.all([
           supabase.from("gallery_settings").select("studio_name, studio_logo_url").eq("user_id", form.user_id).maybeSingle(),
-          supabase.from("profiles").select("nome, empresa, logo_url, avatar_url").eq("user_id", form.user_id).maybeSingle(),
+          supabase.from("profiles").select("nome, empresa, logo_url, avatar_url, namespace, public_namespace, custom_domain").eq("user_id", form.user_id).maybeSingle(),
         ]);
 
         const studioCandidate = (settings?.studio_name || "").trim();
@@ -155,6 +178,7 @@ serve(async (req) => {
         const formTitle = (form.titulo_cliente || form.titulo || "Formulário").toString().trim();
         ogTitle = `${formTitle} — ${brandName}`;
         ogDescription = (form.descricao || "Por favor, preencha este formulário para alinharmos os detalhes do seu ensaio.").toString().trim();
+        canonicalUrl = resolveCanonical(profile, 'form', token);
       }
     } else if (typeParam === "proposal" && (token || slug)) {
       // PROPOSTAS COMERCIAIS
@@ -183,7 +207,7 @@ serve(async (req) => {
         const [{ data: material }, { data: settings }, { data: profile }] = await Promise.all([
           supabase.from("commercial_materials").select("title, cover_image_url").eq("id", materialId).maybeSingle(),
           supabase.from("gallery_settings").select("studio_name, studio_logo_url").eq("user_id", userId).maybeSingle(),
-          supabase.from("profiles").select("nome, empresa, logo_url, avatar_url").eq("user_id", userId).maybeSingle(),
+          supabase.from("profiles").select("nome, empresa, logo_url, avatar_url, namespace, public_namespace, custom_domain").eq("user_id", userId).maybeSingle(),
         ]);
 
         const studioCandidate = (settings?.studio_name || "").trim();
@@ -200,6 +224,7 @@ serve(async (req) => {
         const proposalTitle = (material?.title || "Proposta").toString().trim();
         ogTitle = `${proposalTitle} — ${brandName}`;
         ogDescription = "Confira a proposta exclusiva preparada especialmente para você.";
+        canonicalUrl = resolveCanonical(profile, 'proposal', slug || token);
       }
     } else {
       // GALERIAS DE SELEÇÃO (/g/:token) E ENTREGA (/c/:token)
@@ -236,7 +261,7 @@ serve(async (req) => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("nome, empresa, logo_url, avatar_url")
+          .select("nome, empresa, logo_url, avatar_url, namespace, public_namespace, custom_domain")
           .eq("user_id", gallery.user_id)
           .maybeSingle(),
       ]);
@@ -303,6 +328,7 @@ serve(async (req) => {
         ogTitle = sessionName;
         ogDescription = "Clique e escolha suas fotos!";
       }
+      canonicalUrl = resolveCanonical(profile, isDeliver ? 'deliver' : 'gallery', token);
     }
 
     if (!ogImageUrl) {

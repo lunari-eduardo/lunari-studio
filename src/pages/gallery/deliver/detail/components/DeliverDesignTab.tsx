@@ -18,6 +18,8 @@ import { TitleCaseMode } from '@/types/gallery';
 import { PhotoPaths } from '@/lib/photoUrl';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { generatePublicLink } from '@/utils/publicLinks';
 
 interface DeliverDesignTabProps {
   galleryId: string;
@@ -85,9 +87,10 @@ export function DeliverDesignTab({
   onUpdateCoverVideo,
 }: DeliverDesignTabProps) {
   const [previewTab, setPreviewTab] = useState<'cover' | 'grid'>('cover');
+  const { profile } = useUserProfile();
 
   const activeTheme = THEME_REGISTRY[activeThemeId] || THEME_REGISTRY['lunari'];
-  const isDarkTheme = activeTheme?.backgroundMode === 'dark' || themeOverrides?.backgroundMode === 'dark';
+  const isDarkTheme = (activeTheme as any)?.backgroundMode === 'dark' || themeOverrides?.backgroundMode === 'dark';
 
   const photographerCustomColor =
     studioSettings?.customTheme?.primaryColor ||
@@ -96,8 +99,8 @@ export function DeliverDesignTab({
     studioSettings?.primaryColor;
 
   const primaryColor = useCustomTheme
-    ? (themeOverrides?.palette?.primary || themeOverrides?.primaryColor || photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A')
-    : (photographerCustomColor || activeTheme?.palette?.primary || '#C6A36A');
+    ? (themeOverrides?.palette?.primary || themeOverrides?.primaryColor || photographerCustomColor || (activeTheme as any)?.palette?.primary || '#C6A36A')
+    : (photographerCustomColor || (activeTheme as any)?.palette?.primary || '#C6A36A');
   const resolvedFontFamily = getFontFamilyById(sessionFont);
 
   // Foto de capa selecionada ou fallback fotográfico de alta qualidade
@@ -106,14 +109,15 @@ export function DeliverDesignTab({
 
   const hasValidPhoto = Boolean(
     activeCoverPhoto &&
-    ((activeCoverPhoto.preview_path && activeCoverPhoto.preview_path.trim() !== '' && !activeCoverPhoto.preview_path.includes('placeholder.svg')) ||
-     (activeCoverPhoto.storage_key && activeCoverPhoto.storage_key.trim() !== '' && !activeCoverPhoto.storage_key.includes('placeholder.svg')))
+    (( (activeCoverPhoto as any).preview_path && (activeCoverPhoto as any).preview_path.trim() !== '' && !(activeCoverPhoto as any).preview_path.includes('placeholder.svg')) ||
+     ( (activeCoverPhoto as any).previewPath && (activeCoverPhoto as any).previewPath.trim() !== '' && !(activeCoverPhoto as any).previewPath.includes('placeholder.svg')) ||
+     (activeCoverPhoto.storageKey && activeCoverPhoto.storageKey.trim() !== '' && !activeCoverPhoto.storageKey.includes('placeholder.svg')))
   );
 
   const coverPhotoPaths: PhotoPaths = hasValidPhoto && activeCoverPhoto
     ? {
-        storageKey: activeCoverPhoto.storage_key || fallbackPhoto.storageKey,
-        previewPath: activeCoverPhoto.preview_path || activeCoverPhoto.storage_key || fallbackPhoto.previewPath,
+        storageKey: activeCoverPhoto.storageKey || fallbackPhoto.storageKey,
+        previewPath: (activeCoverPhoto as any).preview_path || (activeCoverPhoto as any).previewPath || activeCoverPhoto.storageKey || fallbackPhoto.previewPath,
         width: activeCoverPhoto.width || fallbackPhoto.width,
         height: activeCoverPhoto.height || fallbackPhoto.height,
       }
@@ -595,7 +599,7 @@ export function DeliverDesignTab({
                 <Button
                   variant="secondary"
                   className="gap-2 rounded-full shadow-lg"
-                  onClick={() => window.open(`/g/${publicToken}`, '_blank')}
+                  onClick={() => window.open(generatePublicLink({ type: 'gallery', token: publicToken, profile }), '_blank')}
                 >
                   <Eye className="h-4 w-4" />
                   Ver link público

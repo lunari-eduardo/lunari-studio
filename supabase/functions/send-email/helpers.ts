@@ -6,8 +6,8 @@ export const corsHeaders = {
 };
 
 export const FROM_EMAIL = 'Lunari <contato@mail.lunarihub.com>';
-export const GALLERY_BASE_URL = 'https://app.lunarihub.com';
 export const RESEND_API_URL = 'https://api.resend.com/emails';
+export { generatePublicLink } from '../_shared/publicLinks.ts';
 
 export function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
