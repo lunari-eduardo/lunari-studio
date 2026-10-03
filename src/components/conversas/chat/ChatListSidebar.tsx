@@ -127,6 +127,8 @@ export function ChatListSidebar({
   onMarkRead,
   onDeleteChat,
   onStartChatWithContact,
+  onOpenTemplates,
+  onOpenLabels,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<SidebarFilter>({ type: 'all' });
@@ -311,6 +313,8 @@ export function ChatListSidebar({
           onSyncChats={onSyncChats}
           isSyncingChats={isSyncingChats}
           displayName={studioDisplayName}
+          onOpenTemplates={onOpenTemplates}
+          onOpenLabels={onOpenLabels}
         />
       ) : null}
 

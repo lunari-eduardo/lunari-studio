@@ -230,6 +230,8 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
           onMarkUnread={async (chat) => {
             await markAsUnread(chat.id);
           }}
+          onOpenTemplates={() => setIsTemplatesModalOpen(true)}
+          onOpenLabels={() => setIsLabelsModalOpen(true)}
           onDeleteChat={async (chat) => {
             if (!confirm(`Excluir conversa com ${chat.contato_nome ?? 'este contato'}?`))
               return;
@@ -292,6 +294,20 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
           </div>
         )}
       </div>
+
+      {isTemplatesModalOpen && (
+        <LibraryPanel
+          open={isTemplatesModalOpen}
+          onOpenChange={setIsTemplatesModalOpen}
+        />
+      )}
+
+      {isLabelsModalOpen && (
+        <ManageLabelsModal
+          open={isLabelsModalOpen}
+          onOpenChange={setIsLabelsModalOpen}
+        />
+      )}
     </div>
   );
 }
