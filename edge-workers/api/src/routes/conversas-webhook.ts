@@ -291,13 +291,34 @@ async function getOrCreateChat(
     .maybeSingle();
 
   if (existing) {
-    if ((!existing.contato_nome || existing.contato_nome.trim() === '') && pushName && pushName.trim().length > 0) {
-      await supabase
-        .from('conversas_chats')
-        .update({ contato_nome: pushName.trim(), updated_at: new Date().toISOString() })
-        .eq('id', existing.id);
+    if (!existing.contato_nome || existing.contato_nome.trim() === '') {
+      let resolvedName = (pushName && pushName.trim().length > 0) ? pushName.trim() : null;
+      if (!resolvedName) {
+        const { data: ct } = await supabase
+          .from('conversas_contatos')
+          .select('nome')
+          .eq('id', contatoId)
+          .maybeSingle();
+        if (ct?.nome) resolvedName = ct.nome;
+      }
+      if (resolvedName) {
+        await supabase
+          .from('conversas_chats')
+          .update({ contato_nome: resolvedName, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      }
     }
     return existing.id;
+  }
+
+  let initialName = (pushName && pushName.trim().length > 0) ? pushName.trim() : null;
+  if (!initialName) {
+    const { data: ct } = await supabase
+      .from('conversas_contatos')
+      .select('nome')
+      .eq('id', contatoId)
+      .maybeSingle();
+    if (ct?.nome) initialName = ct.nome;
   }
 
   const payload: Record<string, any> = {
@@ -306,8 +327,8 @@ async function getOrCreateChat(
     instance_id: instanceId,
     contato_phone_normalized: phoneNormalized,
   };
-  if (pushName && pushName.trim().length > 0) {
-    payload.contato_nome = pushName.trim();
+  if (initialName) {
+    payload.contato_nome = initialName;
   }
 
   const { data, error } = await supabase
@@ -1080,11 +1101,57 @@ async function handleContactsSet(
 
   for (let i = 0; i < contactsToUpsert.length; i += 100) {
     const chunk = contactsToUpsert.slice(i, i + 100);
+    const chunkPhones = chunk.map((c: any) => c.phone_normalized);
+
+    // Buscar contatos pré-existentes para preservar tipo, CRM links e nomes
+    const { data: existingList } = await supabase
+      .from('conversas_contatos')
+      .select('id, phone_normalized, nome, avatar_url, tipo, cliente_id, lead_id')
+      .eq('user_id', instance.user_id)
+      .in('phone_normalized', chunkPhones);
+
+    const existingMap = new Map<string, any>();
+    for (const ex of existingList ?? []) {
+      existingMap.set(ex.phone_normalized, ex);
+    }
+
+    const payload = chunk.map((item: any) => {
+      const existing = existingMap.get(item.phone_normalized);
+      if (existing) {
+        return {
+          id: existing.id,
+          user_id: instance.user_id,
+          phone_normalized: item.phone_normalized,
+          phone_raw: item.phone_raw,
+          // Preserva nome existente se já houver, senão assume o nome trazido pela agenda
+          nome: existing.nome || item.nome || null,
+          avatar_url: item.avatar_url || existing.avatar_url || null,
+          tipo: existing.tipo || 'unknown',
+          cliente_id: existing.cliente_id || null,
+          lead_id: existing.lead_id || null,
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return item;
+    });
+
     const { error } = await supabase
       .from('conversas_contatos')
-      .upsert(chunk, { onConflict: 'user_id,phone_normalized', ignoreDuplicates: true });
+      .upsert(payload, { onConflict: 'user_id,phone_normalized' });
     if (error) {
       console.error('[conversas-webhook] Erro ao sincronizar contatos via webhook:', error.message);
+    }
+
+    // Sincroniza em conversas_chats os chats que estavam sem nome
+    for (const item of payload) {
+      if (item.nome) {
+        await supabase
+          .from('conversas_chats')
+          .update({ contato_nome: item.nome, updated_at: new Date().toISOString() })
+          .eq('user_id', instance.user_id)
+          .eq('contato_phone_normalized', item.phone_normalized)
+          .is('contato_nome', null);
+      }
     }
   }
 }

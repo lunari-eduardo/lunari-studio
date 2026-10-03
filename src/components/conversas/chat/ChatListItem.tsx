@@ -78,7 +78,7 @@ export const ChatListItem = React.memo(function ChatListItem({
     chat.instance_id,
     chat.contato_phone_normalized,
     chat.id,
-    chat.contato_avatar,
+    chat.contato_avatar ?? (chat as any).conversas_contatos?.avatar_url,
   );
 
   return (
@@ -112,8 +112,8 @@ export const ChatListItem = React.memo(function ChatListItem({
       {/* Avatar — permanece limpo, sem nenhum indicador sobreposto */}
       <ContactAvatar
         phone={chat.contato_phone_normalized}
-        name={(chat as any).clientes?.nome ?? chat.contato_nome}
-        src={avatar}
+        name={(chat as any).clientes?.nome ?? chat.contato_nome ?? (chat as any).conversas_contatos?.nome}
+        src={avatar ?? (chat as any).conversas_contatos?.avatar_url}
         size="lg"
       />
 
@@ -132,7 +132,7 @@ export const ChatListItem = React.memo(function ChatListItem({
                 isUnread ? 'font-semibold text-zinc-800 dark:text-zinc-100' : 'font-medium text-zinc-700 dark:text-zinc-200',
               )}
             >
-              {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
+              {(chat as any).clientes?.nome ?? chat.contato_nome ?? (chat as any).conversas_contatos?.nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
           </div>
 

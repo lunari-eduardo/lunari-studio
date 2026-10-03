@@ -10,6 +10,7 @@ import { PublicCheckoutSuccess } from './checkout/public/components/PublicChecko
 import { PublicCheckoutError } from './checkout/public/components/PublicCheckoutError';
 import { PreCheckoutContactStep, PreCheckoutContactValues } from '@/components/gallery/PreCheckoutContactStep';
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 
 export default function PublicCheckout() {
   const {
@@ -44,6 +45,10 @@ export default function PublicCheckout() {
   }
 
   if (isConfirmed) {
+    if (data.galleryToken) {
+      return <Navigate to={`/g/${data.galleryToken}?payment=success`} replace />;
+    }
+
     const isBookingDeposit = Boolean(data?.cobranca?.descricao?.includes('Sinal de Agendamento'));
     return (
       <PublicCheckoutSuccess

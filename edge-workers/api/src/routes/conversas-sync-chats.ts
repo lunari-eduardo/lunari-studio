@@ -97,15 +97,23 @@ export async function performSyncChats(
     // Processar contatos primeiro para garantir que temos todos eles
     if (contactsRes && contactsRes.ok) {
       const rawContacts: any = await contactsRes.json();
-      const contactsList = Array.isArray(rawContacts) ? rawContacts : [];
+      const contactsList = Array.isArray(rawContacts)
+        ? rawContacts
+        : Array.isArray(rawContacts?.contacts)
+        ? rawContacts.contacts
+        : Array.isArray(rawContacts?.data)
+        ? rawContacts.data
+        : [];
       for (const c of contactsList) {
+        const rawJid = c.id || c.remoteJid || c.jid || '';
         const saved = c.name?.trim() || c.displayName?.trim() || null;
         const push = c.pushName?.trim() || null;
-        if (c.remoteJid) {
-          allJids.add(c.remoteJid);
-          if (saved) contactSavedNameByJid.set(c.remoteJid, saved);
-          if (push) contactPushNameByJid.set(c.remoteJid, push);
-          if (c.profilePicUrl) contactAvatarByJid.set(c.remoteJid, c.profilePicUrl);
+        const avatar = c.profilePictureUrl || c.profilePicUrl || null;
+        if (rawJid && rawJid.endsWith('@s.whatsapp.net')) {
+          allJids.add(rawJid);
+          if (saved) contactSavedNameByJid.set(rawJid, saved);
+          if (push) contactPushNameByJid.set(rawJid, push);
+          if (avatar) contactAvatarByJid.set(rawJid, avatar);
         }
       }
     }
@@ -162,16 +170,24 @@ export async function performSyncChats(
     const savedName = (rawJid ? contactSavedNameByJid.get(rawJid) : null) || chat.name?.trim() || chat.contact?.displayName?.trim() || null;
     const pushName = (rawJid ? contactPushNameByJid.get(rawJid) : null) || chat.pushName?.trim() || (chat.lastMessage?.key?.fromMe ? null : chat.lastMessage?.pushName?.trim()) || null;
     const realName = savedName || pushName || null;
-    const realAvatar = contactAvatarByJid.get(rawJid) ?? chat.profilePicUrl ?? null;
+    const realAvatar = (rawJid ? contactAvatarByJid.get(rawJid) : null) ?? chat.profilePicUrl ?? null;
 
-    // Adiciona ou atualiza na lista global de contatos
-    if (!allContactsByPhone.has(phoneNormalized)) {
+    // Adiciona ou enriquece na lista global de contatos
+    const existingContact = allContactsByPhone.get(phoneNormalized);
+    if (!existingContact) {
       allContactsByPhone.set(phoneNormalized, {
         phoneNormalized,
         phoneRaw: jidDigits,
         realName,
         realAvatar,
       });
+    } else {
+      if (!existingContact.realName && realName) {
+        existingContact.realName = realName;
+      }
+      if (!existingContact.realAvatar && realAvatar) {
+        existingContact.realAvatar = realAvatar;
+      }
     }
 
     // Adiciona na lista de chats
@@ -193,15 +209,36 @@ export async function performSyncChats(
     return { ok: true, synced: 0, syncedMessages: 0, total: rawChats.length };
   }
 
-  // 3. Batch upsert de contatos (em chunks de 100)
-  const contactsPayload = allContactsArray.map(item => ({
-    user_id: userId,
-    phone_normalized: item.phoneNormalized,
-    phone_raw: item.phoneRaw,
-    nome: item.realName,
-    avatar_url: item.realAvatar,
-    tipo: 'unknown',
-  }));
+  // 3. Buscar contatos já existentes no banco para preservar dados customizados, tipo e vínculo com CRM
+  const allPhones = allContactsArray.map(item => item.phoneNormalized);
+  const { data: dbExistingContacts } = await supabaseAdmin
+    .from('conversas_contatos')
+    .select('id, phone_normalized, nome, avatar_url, tipo, cliente_id, lead_id')
+    .eq('user_id', userId)
+    .in('phone_normalized', allPhones);
+
+  const existingContactByPhone = new Map<string, any>();
+  for (const c of dbExistingContacts ?? []) {
+    existingContactByPhone.set(c.phone_normalized, c);
+  }
+
+  // Batch upsert de contatos (em chunks de 100)
+  const contactsPayload = allContactsArray.map(item => {
+    const existing = existingContactByPhone.get(item.phoneNormalized);
+    const resolvedName = item.realName || existing?.nome || null;
+    const resolvedAvatar = item.realAvatar || existing?.avatar_url || null;
+    return {
+      ...(existing?.id ? { id: existing.id } : {}),
+      user_id: userId,
+      phone_normalized: item.phoneNormalized,
+      phone_raw: item.phoneRaw,
+      nome: resolvedName,
+      avatar_url: resolvedAvatar,
+      tipo: existing?.tipo || 'unknown',
+      cliente_id: existing?.cliente_id || null,
+      lead_id: existing?.lead_id || null,
+    };
+  });
 
   for (const chunk of chunkArray(contactsPayload, 100)) {
     const { error } = await supabaseAdmin
@@ -231,14 +268,21 @@ export async function performSyncChats(
     const contatoId = contactIdByPhone.get(item.phoneNormalized);
     if (!contatoId) continue;
 
+    const existingContact = existingContactByPhone.get(item.phoneNormalized);
+    const resolvedChatName = item.realName || existingContact?.nome || null;
+    const resolvedChatAvatar = item.realAvatar || existingContact?.avatar_url || null;
+
     const chatEntry: Record<string, any> = {
       user_id: userId,
       instance_id: instanceId,
       contato_id: contatoId,
       contato_phone_normalized: item.phoneNormalized,
     };
-    if (item.realName) chatEntry.contato_nome = item.realName;
-    if (item.realAvatar) chatEntry.contato_avatar = item.realAvatar;
+    if (resolvedChatName) chatEntry.contato_nome = resolvedChatName;
+    if (resolvedChatAvatar) chatEntry.contato_avatar = resolvedChatAvatar;
+    if (existingContact?.cliente_id) chatEntry.cliente_id = existingContact.cliente_id;
+    if (existingContact?.lead_id) chatEntry.lead_id = existingContact.lead_id;
+
     // Sempre atualiza o unread_count se ele vier da Evolution API (incluindo 0),
     // garantindo coerência com conversas lidas no celular.
     if (typeof item.chat?.unreadCount === 'number') {
@@ -261,6 +305,21 @@ export async function performSyncChats(
       .upsert(chunk, { onConflict: 'contato_id,instance_id' });
     if (error) {
       console.error('[performSyncChats] Erro batch upsert chats:', error.message);
+    }
+  }
+
+  // 4.1 Sincronizar retroativamente contato_nome nos chats que ainda estão com contato_nome vazio
+  // mas cujo contato correspondente tem nome cadastrado
+  for (const item of validItems) {
+    const existingContact = existingContactByPhone.get(item.phoneNormalized);
+    const nameToPropagate = item.realName || existingContact?.nome;
+    if (nameToPropagate) {
+      await supabaseAdmin
+        .from('conversas_chats')
+        .update({ contato_nome: nameToPropagate, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('contato_phone_normalized', item.phoneNormalized)
+        .is('contato_nome', null);
     }
   }
 

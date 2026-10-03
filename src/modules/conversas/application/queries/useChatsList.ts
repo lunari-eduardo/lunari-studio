@@ -56,7 +56,7 @@ export function useChatsList(options: UseChatsListOptions = {}) {
         const [chatsResult, instanciasResult] = await Promise.all([
           supabase
             .from('conversas_chats')
-            .select('*, clientes(nome)')
+            .select('*, clientes(nome), conversas_contatos(nome, avatar_url)')
             .eq('user_id', userId)
             .order('ultima_mensagem_data', { ascending: false, nullsFirst: false }),
           supabase

@@ -78,15 +78,15 @@ export function ChatHeader({
       >
         <ContactAvatar
           phone={chat.contato_phone_normalized}
-          name={(chat as any).clientes?.nome ?? chat.contato_nome}
-          src={chat.contato_avatar}
+          name={(chat as any).clientes?.nome ?? chat.contato_nome ?? (chat as any).conversas_contatos?.nome}
+          src={chat.contato_avatar ?? (chat as any).conversas_contatos?.avatar_url}
           className="h-11 w-11 text-base shadow-sm"
         />
 
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-center gap-2">
             <span className="text-base font-semibold text-[#1C1C1C] dark:text-[#EFEFEF] truncate tracking-tight group-hover/header:text-[#B8925F] dark:group-hover/header:text-[#D4AF37] transition-colors leading-none">
-              {(chat as any).clientes?.nome ?? chat.contato_nome ?? chat.contato_phone_normalized ?? 'Conversa'}
+              {(chat as any).clientes?.nome ?? chat.contato_nome ?? (chat as any).conversas_contatos?.nome ?? chat.contato_phone_normalized ?? 'Conversa'}
             </span>
             {/* Tags de tipo de contato */}
             {contatoTipo === 'cliente' ? (

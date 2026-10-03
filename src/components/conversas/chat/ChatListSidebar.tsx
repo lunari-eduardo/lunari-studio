@@ -202,7 +202,7 @@ export function ChatListSidebar({
     if (!search.trim()) return base;
     const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
     return base.filter(c => {
-      const target = `${c.contato_nome ?? ''} ${c.contato_phone_normalized ?? ''} ${c.ultima_mensagem ?? ''}`.toLowerCase();
+      const target = `${(c as any).clientes?.nome ?? ''} ${c.contato_nome ?? ''} ${(c as any).conversas_contatos?.nome ?? ''} ${c.contato_phone_normalized ?? ''} ${c.ultima_mensagem ?? ''}`.toLowerCase();
       return terms.every(term => target.includes(term));
     });
   }, [chats, activeFilter, leadStatusMap, search]);
