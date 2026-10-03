@@ -59,8 +59,6 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
   const [prioridade, setPrioridade] = useState<'baixa' | 'normal' | 'alta'>(initialPriority);
   
   const [ativo, setAtivo] = useState<boolean>(template?.ativo ?? true);
-  const [emojisSugeridos, setEmojisSugeridos] = useState<boolean>(template?.emojis_sugeridos ?? true);
-  const [usoInterno, setUsoInterno] = useState<boolean>(template?.uso_interno ?? false);
   
   const initialTags = Array.isArray(template?.palavras_chave) ? template.palavras_chave as string[] : [];
   const [tags, setTags] = useState<string[]>(initialTags);
@@ -178,8 +176,6 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
       etapa,
       ordem: ordemVal,
       ativo,
-      emojis_sugeridos: emojisSugeridos,
-      uso_interno: usoInterno,
       palavras_chave: tags as Json,
     });
   };
@@ -379,7 +375,6 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-500"><Smile className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
 
@@ -394,38 +389,6 @@ export function TemplateEditor({ template, onSave, onCancel, isLoading }: Templa
             <div className="flex justify-end gap-3 text-[10px] text-zinc-400 font-medium px-1">
               <span>{charCount} caracteres</span>
               <span>{wordCount} palavras</span>
-            </div>
-          </section>
-
-          {/* Seção 4: Configurações Adicionais */}
-          <section className="space-y-4 pt-4 border-t border-border/40">
-            <div className="flex items-center gap-2 pb-1">
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-500">4</div>
-              <h3 className="text-sm font-semibold tracking-tight text-zinc-900 dark:text-white">Opções adicionais</h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-start justify-between p-4 rounded-xl bg-white dark:bg-[#171717] border border-black/[0.06] dark:border-white/[0.06] shadow-sm">
-                <div className="space-y-1 pr-4">
-                  <Label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                    <Smile className="w-3.5 h-3.5 text-[#C9A87C]" />
-                    Emojis sugeridos
-                  </Label>
-                  <p className="text-[10px] text-zinc-500 leading-tight">Permite que a Lua utilize emojis quando gerar respostas baseadas neste modelo.</p>
-                </div>
-                <Switch checked={emojisSugeridos} onCheckedChange={setEmojisSugeridos} className="data-[state=checked]:bg-[#C9A87C]" />
-              </div>
-
-              <div className="flex items-start justify-between p-4 rounded-xl bg-white dark:bg-[#171717] border border-black/[0.06] dark:border-white/[0.06] shadow-sm">
-                <div className="space-y-1 pr-4">
-                  <Label className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                    <MoreVertical className="w-3.5 h-3.5 text-zinc-400" />
-                    Uso interno
-                  </Label>
-                  <p className="text-[10px] text-zinc-500 leading-tight">Modelo visível apenas para você (preparando para equipes).</p>
-                </div>
-                <Switch checked={usoInterno} onCheckedChange={setUsoInterno} className="data-[state=checked]:bg-zinc-800" />
-              </div>
             </div>
           </section>
 
