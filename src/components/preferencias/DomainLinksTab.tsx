@@ -48,6 +48,7 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
     setIsSaving(true);
     try {
       const cleanNamespace = namespace ? sanitizeNamespace(namespace) : null;
+      // Se o usuário limpar o input manualmente, salvamos como nulo para forçar a exclusão
       const cleanDomain = customDomain && hasPro ? sanitizeDomain(customDomain) : null;
       
       const success = await onSaveProfile({
@@ -127,7 +128,9 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
         profile={profile} 
         hasPro={hasPro} 
         openModal={openModal} 
-        onSaveProfile={onSaveProfile} 
+        onSaveProfile={onSaveProfile}
+        domainInput={customDomain}
+        setDomainInput={setCustomDomain}
       />
 
       <div className="pt-4 flex justify-end">
@@ -142,8 +145,7 @@ export function DomainLinksTab({ profile, onSaveProfile }: DomainLinksTabProps) 
 
 const WORKER_URL = 'https://lunari-domains-api.eduardo22diehl.workers.dev';
 
-function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile }: any) {
-  const [domainInput, setDomainInput] = useState(profile.custom_domain || '');
+function CustomDomainSection({ profile, hasPro, openModal, onSaveProfile, domainInput, setDomainInput }: any) {
   const [status, setStatus] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
