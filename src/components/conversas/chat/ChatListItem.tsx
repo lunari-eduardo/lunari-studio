@@ -11,7 +11,7 @@ import React from 'react';
 import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail, Tag } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import type { EnrichedChat } from '@/modules/conversas/types';
+import type { EnrichedChat, Etiqueta } from '@/modules/conversas/types';
 import type { LeadStatusInfo } from '@/hooks/useChatLeadStatuses';
 import { ContactAvatar } from '../shared/ContactAvatar';
 import { formatChatTimestamp } from '../shared/format';
@@ -43,6 +43,7 @@ export interface ChatListItemProps {
   onDelete?: (chat: EnrichedChat) => void;
   /** Status do lead vinculado (null se não houver lead). */
   leadStatus?: LeadStatusInfo | null;
+  todasEtiquetas?: Etiqueta[];
 }
 
 const CONTEXT_BADGE: Record<EnrichedChat['contato_tipo'], { label: string; className: string } | null> = {
@@ -63,14 +64,15 @@ export const ChatListItem = React.memo(function ChatListItem({
   onMarkRead,
   onDelete,
   onOpenAssignLabels,
-  leadStatus,
-}: ChatListItemProps) {
+    leadStatus,
+    todasEtiquetas = [],
+  }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
   const isUnread = unread > 0;
   const isArchived = chat.status === 'archived';
   const isBlocked = chat.status === 'blocked';
   const lastType = chat.ultima_mensagem_type;
-  const badge = CONTEXT_BADGE[chat.contato_tipo];
+  const activeEtiquetas = (chat.etiquetas || []).map(id => todasEtiquetas.find(e => e.id === id)).filter(Boolean) as Etiqueta[];
   const isPinned = chat.pin === 'pinned';
   const canPinThisChat = isPinned || !isPinLimitReached;
 
@@ -141,7 +143,29 @@ export const ChatListItem = React.memo(function ChatListItem({
 
           {/* Direita: Tags + Timestamp */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {leadStatus ? (
+            {activeEtiquetas.length > 0 ? (
+              <div className="flex items-center gap-1 overflow-hidden">
+                <span
+                  className="inline-flex items-center gap-1.5 px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 shadow-sm border"
+                  style={{
+                    backgroundColor: `${activeEtiquetas[0].cor}15`,
+                    color: activeEtiquetas[0].cor,
+                    borderColor: `${activeEtiquetas[0].cor}30`
+                  }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: activeEtiquetas[0].cor }}
+                  />
+                  <span className="truncate max-w-[80px]">{activeEtiquetas[0].nome}</span>
+                </span>
+                {activeEtiquetas.length > 1 && (
+                  <span className="inline-flex items-center justify-center h-[18px] px-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 text-[9px] font-medium text-zinc-500 border border-zinc-200 dark:border-zinc-700/60 shadow-sm flex-shrink-0">
+                    +{activeEtiquetas.length - 1}
+                  </span>
+                )}
+              </div>
+            ) : leadStatus ? (
               <span
                 className="inline-flex items-center gap-1.5 px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 bg-zinc-50/80 border border-zinc-200/80 text-zinc-600 dark:bg-zinc-800/40 dark:border-zinc-700/80 dark:text-zinc-300 shadow-sm"
               >
@@ -151,16 +175,7 @@ export const ChatListItem = React.memo(function ChatListItem({
                     style={{ backgroundColor: leadStatus.color }}
                   />
                 )}
-                <span className="truncate max-w-[110px]">{leadStatus.label}</span>
-              </span>
-            ) : badge ? (
-              <span
-                className={cn(
-                  'inline-flex items-center px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 shadow-sm',
-                  badge.className,
-                )}
-              >
-                {badge.label}
+                <span className="truncate max-w-[90px]">{leadStatus.label}</span>
               </span>
             ) : null}
 
@@ -233,7 +248,7 @@ export const ChatListItem = React.memo(function ChatListItem({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   {onOpenAssignLabels && (
-                    <DropdownMenuItem onSelect={() => onOpenAssignLabels()}>
+                    <DropdownMenuItem onSelect={() => onOpenAssignLabels()} onClick={(e) => e.stopPropagation()}>
                       <Tag className="h-4 w-4 mr-2" />
                       Etiquetar
                     </DropdownMenuItem>
