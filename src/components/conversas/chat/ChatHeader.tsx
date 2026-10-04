@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
@@ -27,6 +27,7 @@ export interface ChatHeaderProps {
   onDelete?: () => void;
   onMarkUnread?: () => void;
   onFeedDna?: () => void;
+  onOpenAssignLabels?: () => void;
 }
 
 export function ChatHeader({
@@ -40,6 +41,7 @@ export function ChatHeader({
   onDelete,
   onMarkUnread,
   onFeedDna,
+  onOpenAssignLabels,
 }: ChatHeaderProps) {
   const contatoTipo =
     'contato_tipo' in chat && (chat as EnrichedChat).contato_tipo
@@ -160,6 +162,12 @@ export function ChatHeader({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-[#1A1A1A] dark:border-[rgba(255,255,255,0.08)]">
+            {onOpenAssignLabels && (
+              <DropdownMenuItem onSelect={() => setTimeout(() => onOpenAssignLabels(), 0)} className="dark:hover:bg-white/[0.07]">
+                <Tag className="h-4 w-4 mr-2" />
+                Etiquetar
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={onPin} className="dark:hover:bg-white/[0.07]">
               {chat.pin === 'pinned' ? 'Desafixar conversa' : 'Fixar conversa'}
             </DropdownMenuItem>

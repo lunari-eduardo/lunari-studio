@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ChatImagePreviewModal } from './ChatImagePreviewModal';
 import { useLuaGenerate } from '@/hooks/lua/useLuaGenerate';
 import { FeedDnaModal } from '../../lua/FeedDnaModal';
+import { AssignLabelsModal } from '../shared/AssignLabelsModal';
 
 
 export interface ChatPanelProps {
