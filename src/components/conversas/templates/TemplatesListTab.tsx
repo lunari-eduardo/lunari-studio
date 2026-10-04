@@ -138,11 +138,11 @@ export function TemplatesListTab({
 
   return (
     <div className="flex flex-col h-full bg-transparent mt-2">
-      {/* Header: Sugestões de mensagens */}
+      {/* Header: Templates */}
       <div className="flex items-center justify-between mb-2 px-1">
         <h3 className="text-[13px] font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#D4AF37]" />
-          Sugestões de mensagens
+          Templates
         </h3>
         <button 
           onClick={handleOpenLibrary}

@@ -25,6 +25,7 @@ import { ClientLinkModal } from './modals/ClientLinkModal';
 import LeadFormModal from '@/components/leads/LeadFormModal';
 import { useAppContext } from '@/contexts/AppContext';
 import { useLeads } from '@/hooks/useLeads';
+import { useCategorias } from '@/hooks/useCategorias';
 import { useClientesRealtime } from '@/hooks/useClientesRealtime';
 import { useConversasContatos } from '@/hooks/useConversasContatos';
 import { SmartSessionCard } from './cards/SmartSessionCard';
@@ -69,6 +70,9 @@ export function ChatContextPanel({
   const { addLead, convertToClient } = useLeads();
   const { setSelectedClientForScheduling } = useAppContext();
   const { atualizarCliente } = useClientesRealtime();
+  const { categorias } = useCategorias();
+  const categoryNames = (categorias || []).map(c => c.nome);
+  const commercialIntent = useCommercialIntent(messages, categoryNames);
   const { updateContato } = useConversasContatos();
   const [notaDraft, setNotaDraft] = useState('');
   const [submittingNota, setSubmittingNota] = useState(false);
@@ -210,7 +214,7 @@ export function ChatContextPanel({
           <TemplatesListTab
             chat={chat}
             messages={messages}
-            suggestedCategory={templateContext.category}
+            suggestedCategory={commercialIntent.detected && commercialIntent.service ? commercialIntent.service : templateContext.category}
             suggestedStep={templateContext.stage}
             onInsertToComposer={onInsertToComposer ?? (() => {})}
           />
