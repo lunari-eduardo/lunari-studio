@@ -127,6 +127,7 @@ export function ChatPanel({
     return window.innerWidth >= 1024; // Padrão sempre aberto no desktop
   });
   const [injectedText, setInjectedText] = useState<string | null>(null);
+  const [isAssigningLabels, setIsAssigningLabels] = useState(false);
 
   const [audiosSalvosOpen, setAudiosSalvosOpen] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -343,6 +344,7 @@ export function ChatPanel({
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
+          onOpenAssignLabels={() => setIsAssigningLabels(true)}
         />
         <MessagesSkeleton />
       </div>
@@ -370,6 +372,7 @@ export function ChatPanel({
           onPin={onPin}
           onDelete={onDelete}
           onMarkUnread={onMarkUnread}
+          onOpenAssignLabels={() => setIsAssigningLabels(true)}
         />
 
         <div className="flex-1 min-h-0 relative flex flex-col">
@@ -615,6 +618,12 @@ export function ChatPanel({
         onClose={() => setIsFeedModalOpen(false)}
         chatId={chat.id}
         messages={mensagens}
+      />
+
+      <AssignLabelsModal
+        chat={chat as EnrichedChat}
+        open={isAssigningLabels}
+        onOpenChange={setIsAssigningLabels}
       />
     </>
   );

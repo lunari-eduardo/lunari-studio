@@ -1,16 +1,16 @@
-﻿/**
- * Sidebar esquerda do módulo Conversas.
+/**
+ * Sidebar esquerda do m�dulo Conversas.
  *
- * Layout: barra de instância → header com busca → filtros primários & etapas →
+ * Layout: barra de inst�ncia ? header com busca ? filtros prim�rios & etapas ?
  * lista de chats.
  *
  * Filtros suportados:
  * - Todas (conversas ativas)
- * - Não lidas (mensagens pendentes)
+ * - N�o lidas (mensagens pendentes)
  * - Dropdown com:
- *   - CRM & Vínculos: Clientes, Todos os Leads, Outros Contatos
- *   - Etapas do Funil (Leads): cada status do CRM com cor oficial e contagem dinâmica
- *   - Status & Organização: Fixadas, Arquivadas
+ *   - CRM & V�nculos: Clientes, Todos os Leads, Outros Contatos
+ *   - Etapas do Funil (Leads): cada status do CRM com cor oficial e contagem din�mica
+ *   - Status & Organiza��o: Fixadas, Arquivadas
  */
 
 import { useMemo, useState } from 'react';
@@ -90,11 +90,11 @@ export interface ChatListSidebarProps {
   onDisconnect?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
-  /** Nome amigável do estúdio (perfil.empresa ?? perfil.nome) usado na barra de instância. */
+  /** Nome amig�vel do est�dio (perfil.empresa ?? perfil.nome) usado na barra de inst�ncia. */
   studioDisplayName?: string | null;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
   isPinLimitReached?: boolean;
-  /** Contadores dinâmicos para os filtros primários (compatibilidade retroativa). */
+  /** Contadores din�micos para os filtros prim�rios (compatibilidade retroativa). */
   chatCounts: ChatCounts;
   onArchive?: (chat: EnrichedChat) => void;
   onBlock?: (chat: EnrichedChat) => void;
@@ -138,7 +138,7 @@ export function ChatListSidebar({
   const { contatos } = useConversasContatos();
   const { etiquetas } = useConversasEtiquetas();
 
-  // ─── Contadores dinâmicos por categoria e etapas ──────────────────────────────
+  // --- Contadores din�micos por categoria e etapas ------------------------------
   const counts = useMemo(() => {
     let all = 0;
     let unread = 0;
@@ -192,7 +192,7 @@ export function ChatListSidebar({
     };
   }, [chats, leadStatusMap]);
 
-  // ─── Filtro combinado: filtro ativo + busca textual ───────────────────────────
+  // --- Filtro combinado: filtro ativo + busca textual ---------------------------
   const filtered = useMemo(() => {
     let base: EnrichedChat[] = [];
 
@@ -227,13 +227,13 @@ export function ChatListSidebar({
     });
   }, [chats, activeFilter, leadStatusMap, search]);
 
-  // ─── Contatos da agenda correspondentes à busca textual ───────────────────
+  // --- Contatos da agenda correspondentes � busca textual -------------------
   const matchedContacts = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return [];
     const terms = q.split(/\s+/).filter(Boolean);
 
-    // Evita duplicar contatos que já estejam na lista de conversas filtradas
+    // Evita duplicar contatos que j� estejam na lista de conversas filtradas
     const existingPhones = new Set(filtered.map(c => c.contato_phone_normalized));
 
     return contatos.filter(ct => {
@@ -243,7 +243,7 @@ export function ChatListSidebar({
     });
   }, [contatos, filtered, search]);
 
-  // ─── Ordenação: fixadas primeiro (exceto em arquivadas), depois por data ─────
+  // --- Ordena��o: fixadas primeiro (exceto em arquivadas), depois por data -----
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       if (activeFilter.type !== 'archived') {
@@ -285,7 +285,7 @@ export function ChatListSidebar({
       case 'all':
         return `${total} conversa${plural ? 's' : ''}`;
       case 'unread':
-        return `${total} não lida${plural ? 's' : ''}`;
+        return `${total} n�o lida${plural ? 's' : ''}`;
       case 'cliente':
         return `${total} cliente${plural ? 's' : ''}`;
       case 'lead':
@@ -303,7 +303,7 @@ export function ChatListSidebar({
 
   return (
     <div className="w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col bg-background border-r border-border h-full overflow-hidden">
-      {/* ── Barra de instância ── */}
+      {/* -- Barra de inst�ncia -- */}
       {instance ? (
         <InstanceStatusBar
           instanceName={instance.instance_name}
@@ -320,14 +320,14 @@ export function ChatListSidebar({
         />
       ) : null}
 
-      {/* ── Header: busca + novo chat ── */}
+      {/* -- Header: busca + novo chat -- */}
       <div className="px-3 pt-2.5 pb-2 flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar conversa…"
+            placeholder="Buscar conversa�"
             className="pl-9 pr-7 h-9 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-transparent focus:border-border focus:bg-background transition-all"
           />
           {search && (
@@ -351,7 +351,7 @@ export function ChatListSidebar({
         </button>
       </div>
 
-      {/* ── Filtros rápidos + Dropdown de Filtros Avançados e Etapas do CRM ── */}
+      {/* -- Filtros r�pidos + Dropdown de Filtros Avan�ados e Etapas do CRM -- */}
       <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0">
         {/* Aba: Todas */}
         <button
@@ -379,7 +379,7 @@ export function ChatListSidebar({
           )}
         </button>
 
-        {/* Aba: Não lidas */}
+        {/* Aba: N�o lidas */}
         <button
           type="button"
           onClick={() => setActiveFilter({ type: 'unread' })}
@@ -390,7 +390,7 @@ export function ChatListSidebar({
               : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800',
           )}
         >
-          Não lidas
+          N�o lidas
           {counts.unread > 0 && (
             <span
               className={cn(
@@ -469,9 +469,9 @@ export function ChatListSidebar({
             align="end"
             className="w-64 max-h-[420px] overflow-y-auto p-1.5 shadow-xl rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md"
           >
-            {/* Seção 1: CRM & Vínculos */}
+            {/* Se��o 1: CRM & V�nculos */}
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-              CRM & Vínculos
+              CRM & V�nculos
             </DropdownMenuLabel>
 
             <DropdownMenuItem
@@ -533,7 +533,7 @@ export function ChatListSidebar({
               </DropdownMenuItem>
             )}
 
-            {/* Seção 2: Etapas de Leads */}
+            {/* Se��o 2: Etapas de Leads */}
             {leadStatuses.length > 0 && (
               <>
                 <DropdownMenuSeparator className="my-1" />
@@ -629,10 +629,10 @@ export function ChatListSidebar({
                 </>
               )
             }
-            {/* Seção 3: Organização & Status */}
+            {/* Se��o 3: Organiza��o & Status */}
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-              Status & Organização
+              Status & Organiza��o
             </DropdownMenuLabel>
 
             <DropdownMenuItem
@@ -673,7 +673,7 @@ export function ChatListSidebar({
               </div>
             </DropdownMenuItem>
 
-            {/* Opção para Redefinir se houver filtro ativo */}
+            {/* Op��o para Redefinir se houver filtro ativo */}
             {activeFilter.type !== 'all' && (
               <>
                 <DropdownMenuSeparator className="my-1" />
@@ -692,7 +692,7 @@ export function ChatListSidebar({
 
       <Separator className="shrink-0" />
 
-      {/* ── Lista de conversas ── */}
+      {/* -- Lista de conversas -- */}
       <ScrollArea className="flex-1 w-full overflow-hidden [&>div>div]:!block">
         {isLoading ? (
           <ChatListSkeleton />
@@ -757,7 +757,7 @@ export function ChatListSidebar({
         )}
       </ScrollArea>
 
-      {/* ── Rodapé com contador contextual ── */}
+      {/* -- Rodap� com contador contextual -- */}
       {!isLoading && filtered.length > 0 && (
         <>
           <Separator className="shrink-0" />
@@ -768,6 +768,13 @@ export function ChatListSidebar({
           </div>
         </>
       )}
+      <AssignLabelsModal
+        chat={assigningChat}
+        open={!!assigningChat}
+        onOpenChange={(open) => {
+          if (!open) setAssigningChat(null);
+        }}
+      />
     </div>
   );
 }
@@ -778,7 +785,7 @@ function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: Sidebar
   const getFilterMessage = () => {
     switch (filter.type) {
       case 'unread':
-        return 'Nenhuma mensagem não lida';
+        return 'Nenhuma mensagem n�o lida';
       case 'cliente':
         return 'Nenhum cliente com conversa ativa';
       case 'lead':
@@ -804,7 +811,7 @@ function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: Sidebar
       </p>
       {!hasSearch && !isFiltered && (
         <p className="text-xs text-muted-foreground mt-1">
-          Conecte o WhatsApp para começar
+          Conecte o WhatsApp para come�ar
         </p>
       )}
     </div>
