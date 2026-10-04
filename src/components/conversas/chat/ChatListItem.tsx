@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Card de conversa para a lista do painel esquerdo.
  *
  * Visual premium: sem verde WhatsApp, sem azul double-check.
@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pin, MoreHorizontal, Archive, ArchiveRestore, Ban, Trash2, Mail, Tag } from 'lucide-react';
-import { LabelChatPopover } from '../shared/LabelChatPopover';
+
 import { cn } from '@/lib/utils';
 import type { EnrichedChat } from '@/modules/conversas/types';
 import type { LeadStatusInfo } from '@/hooks/useChatLeadStatuses';
@@ -38,6 +38,7 @@ export interface ChatListItemProps {
   onMarkUnread?: (chat: EnrichedChat) => void;
   /** Marcar como lida */
   onMarkRead?: (chat: EnrichedChat) => void;
+  onOpenAssignLabels?: () => void;
   /** Excluir conversa */
   onDelete?: (chat: EnrichedChat) => void;
   /** Status do lead vinculado (null se não houver lead). */
@@ -61,6 +62,7 @@ export const ChatListItem = React.memo(function ChatListItem({
   onMarkUnread,
   onMarkRead,
   onDelete,
+  onOpenAssignLabels,
   leadStatus,
 }: ChatListItemProps) {
   const unread = chat.unread_count ?? 0;
@@ -230,12 +232,12 @@ export const ChatListItem = React.memo(function ChatListItem({
                   </span>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <LabelChatPopover chat={chat}>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()}>
+                  {onOpenAssignLabels && (
+                    <DropdownMenuItem onSelect={() => onOpenAssignLabels()}>
                       <Tag className="h-4 w-4 mr-2" />
                       Etiquetar
                     </DropdownMenuItem>
-                  </LabelChatPopover>
+                  )}
                   {onTogglePin && (
                     <DropdownMenuItem
                       disabled={!canPinThisChat}

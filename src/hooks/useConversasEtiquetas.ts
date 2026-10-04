@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToast } from '@/hooks/use-toast';
@@ -7,13 +7,12 @@ import type { Etiqueta } from '@/modules/conversas/types';
 export function useConversasEtiquetas() {
   const { profile } = useUserProfile();
   const { toast } = useToast();
-  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchEtiquetas = useCallback(async () => {
-    if (!profile?.user_id) return;
-    setIsLoading(true);
-    try {
+  const { data: etiquetas = [], isLoading } = useQuery({
+    queryKey: ['conversas_etiquetas', profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return [];
       const { data, error } = await supabase
         .from('conversas_etiquetas' as any)
         .select('*')
@@ -21,21 +20,15 @@ export function useConversasEtiquetas() {
         .order('nome', { ascending: true });
 
       if (error) throw error;
-      setEtiquetas(data as unknown as unknown as Etiqueta[]);
-    } catch (err: any) {
-      console.error('Erro ao buscar etiquetas:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [profile?.user_id]);
+      return data as unknown as Etiqueta[];
+    },
+    enabled: !!profile?.user_id,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
 
-  useEffect(() => {
-    fetchEtiquetas();
-  }, [fetchEtiquetas]);
-
-  const createEtiqueta = async (etiqueta: Omit<Etiqueta, 'id' | 'user_id'>) => {
-    if (!profile?.user_id) return null;
-    try {
+  const createMutation = useMutation({
+    mutationFn: async (etiqueta: Omit<Etiqueta, 'id' | 'user_id'>) => {
+      if (!profile?.user_id) throw new Error('No user profile');
       const { data, error } = await supabase
         .from('conversas_etiquetas' as any)
         .insert([{ ...etiqueta, user_id: profile.user_id }])
@@ -44,69 +37,65 @@ export function useConversasEtiquetas() {
 
       if (error) {
         if (error.code === '23505') {
-          toast({ title: 'Aviso', description: 'Já existe uma etiqueta com este nome.' });
-          return null;
+          throw new Error('Jo existe uma etiqueta com este nome.');
         }
         throw error;
       }
-      
-      setEtiquetas(prev => [...prev, data as unknown as Etiqueta].sort((a, b) => a.nome.localeCompare(b.nome)));
-      return data as unknown as unknown as Etiqueta;
-    } catch (err: any) {
-      console.error('Erro ao criar etiqueta:', err);
-      toast({ title: 'Erro', description: 'Não foi possível criar a etiqueta.', variant: 'destructive' });
-      return null;
+      return data as unknown as Etiqueta;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas_etiquetas'] });
+    },
+    onError: (err: any) => {
+      if (err.message === 'Jo existe uma etiqueta com este nome.') {
+        toast({ title: 'Aviso', description: err.message });
+      } else {
+        toast({ title: 'Erro', description: 'Nuo foi possível criar a etiqueta.', variant: 'destructive' });
+      }
     }
-  };
+  });
 
-  const updateEtiqueta = async (id: string, updates: Partial<Omit<Etiqueta, 'id' | 'user_id'>>) => {
-    try {
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: Partial<Omit<Etiqueta, 'id' | 'user_id'>> }) => {
       const { data, error } = await supabase
         .from('conversas_etiquetas' as any)
         .update(updates)
         .eq('id', id)
         .select()
         .single();
-
       if (error) throw error;
-      
-      setEtiquetas(prev => prev.map(e => (e.id === id ? (data as unknown as Etiqueta) : e)).sort((a, b) => a.nome.localeCompare(b.nome)));
-      return data as unknown as unknown as Etiqueta;
-    } catch (err: any) {
-      console.error('Erro ao atualizar etiqueta:', err);
-      toast({ title: 'Erro', description: 'Não foi possível atualizar a etiqueta.', variant: 'destructive' });
-      return null;
+      return data as unknown as Etiqueta;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas_etiquetas'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Erro', description: 'Nuo foi possível atualizar a etiqueta.', variant: 'destructive' });
     }
-  };
+  });
 
-  const deleteEtiqueta = async (id: string) => {
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('conversas_etiquetas' as any)
         .delete()
         .eq('id', id);
-
       if (error) throw error;
-      
-      setEtiquetas(prev => prev.filter(e => e.id !== id));
-      
-      // We should ideally also remove it from chats, but a cascade delete or a cron job is better,
-      // or just filtering invalid ids in the frontend. 
-      // For now, we will handle missing tags gracefully.
-      return true;
-    } catch (err: any) {
-      console.error('Erro ao excluir etiqueta:', err);
-      toast({ title: 'Erro', description: 'Não foi possível excluir a etiqueta.', variant: 'destructive' });
-      return false;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversas_etiquetas'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Erro', description: 'Nuo foi possível excluir a etiqueta.', variant: 'destructive' });
     }
-  };
+  });
 
   return {
     etiquetas,
     isLoading,
-    createEtiqueta,
-    updateEtiqueta,
-    deleteEtiqueta,
-    refreshEtiquetas: fetchEtiquetas,
+    createEtiqueta: createMutation.mutateAsync,
+    updateEtiqueta: async (id: string, updates: Partial<Omit<Etiqueta, 'id' | 'user_id'>>) => updateMutation.mutateAsync({ id, updates }),
+    deleteEtiqueta: deleteMutation.mutateAsync,
   };
 }

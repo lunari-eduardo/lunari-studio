@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sidebar esquerda do módulo Conversas.
  *
  * Layout: barra de instância → header com busca → filtros primários & etapas →
@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChatListItem } from './ChatListItem';
 import { ChatListSkeleton } from './skeletons';
+import { AssignLabelsModal } from '../shared/AssignLabelsModal';
 import { InstanceStatusBar } from '../shared/InstanceStatusBar';
 import { ContactAvatar } from '../shared/ContactAvatar';
 import { formatPhone } from '../shared/format';
@@ -131,6 +132,7 @@ export function ChatListSidebar({
   onOpenLabels,
 }: ChatListSidebarProps) {
   const [search, setSearch] = useState('');
+  const [assigningChat, setAssigningChat] = useState<EnrichedChat | null>(null);
   const [activeFilter, setActiveFilter] = useState<SidebarFilter>({ type: 'all' });
   const { getLeadStatusForChat, leadStatuses = [], leadStatusMap = {} } = useChatLeadStatuses(chats);
   const { contatos } = useConversasContatos();
@@ -710,6 +712,7 @@ export function ChatListSidebar({
                 onBlock={onBlock}
                 onMarkUnread={onMarkUnread}
                 onMarkRead={onMarkRead}
+                onOpenAssignLabels={() => setAssigningChat(c)}
                 onDelete={onDeleteChat}
                 leadStatus={getLeadStatusForChat(c)}
               />
