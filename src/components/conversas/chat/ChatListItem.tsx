@@ -246,9 +246,9 @@ export const ChatListItem = React.memo(function ChatListItem({
                     <MoreHorizontal className="h-3 w-3" />
                   </span>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                <DropdownMenuContent align="end" className="w-48">
                   {onOpenAssignLabels && (
-                    <DropdownMenuItem onSelect={() => onOpenAssignLabels()} onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setTimeout(() => onOpenAssignLabels(), 0); }}>
                       <Tag className="h-4 w-4 mr-2" />
                       Etiquetar
                     </DropdownMenuItem>
