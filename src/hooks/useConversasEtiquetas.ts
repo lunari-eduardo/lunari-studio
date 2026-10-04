@@ -11,13 +11,13 @@ export function useConversasEtiquetas() {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchEtiquetas = useCallback(async () => {
-    if (!profile?.id) return;
+    if (!profile?.user_id) return;
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('conversas_etiquetas' as any)
         .select('*')
-        .eq('user_id', profile.id)
+        .eq('user_id', profile.user_id)
         .order('nome', { ascending: true });
 
       if (error) throw error;
@@ -27,18 +27,18 @@ export function useConversasEtiquetas() {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile?.user_id]);
 
   useEffect(() => {
     fetchEtiquetas();
   }, [fetchEtiquetas]);
 
   const createEtiqueta = async (etiqueta: Omit<Etiqueta, 'id' | 'user_id'>) => {
-    if (!profile?.id) return null;
+    if (!profile?.user_id) return null;
     try {
       const { data, error } = await supabase
         .from('conversas_etiquetas' as any)
-        .insert([{ ...etiqueta, user_id: profile.id }])
+        .insert([{ ...etiqueta, user_id: profile.user_id }])
         .select()
         .single();
 
