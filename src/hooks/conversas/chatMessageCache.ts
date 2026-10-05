@@ -39,7 +39,7 @@ export async function preloadChatData(chatId: string, userId: string) {
     if (notasResult.error) throw notasResult.error;
 
     chatDataCache.set(chatId, {
-      mensagens: (mensagensResult.data ?? []).reverse() as Mensagem[],
+      mensagens: [...(mensagensResult.data ?? [])].reverse() as Mensagem[],
       notas: notasResult.data ?? [],
       lastFetch: Date.now(),
     });

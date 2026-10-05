@@ -179,7 +179,8 @@ export function useConversasChat(
         if (mensagensResult.error) throw mensagensResult.error;
         if (!cancelled) {
           const raw = mensagensResult.data ?? [];
-          setMensagens(raw.reverse() as unknown as MensagemLocal[]);
+          const reversed = [...raw].reverse();
+          setMensagens(reversed as unknown as MensagemLocal[]);
           lastPageWasFullRef.current = raw.length >= INITIAL_PAGE_SIZE;
         }
 
@@ -189,8 +190,9 @@ export function useConversasChat(
         }
 
         if (!cancelled) {
+          const raw = mensagensResult.data ?? [];
           chatDataCache.set(chatId, {
-            mensagens: (mensagensResult.data ?? []).reverse() as Mensagem[],
+            mensagens: [...raw].reverse() as Mensagem[],
             notas: notasResult.data ?? [],
             lastFetch: Date.now(),
           });
@@ -276,7 +278,7 @@ export function useConversasChat(
       }
 
       if (data && data.length > 0) {
-        const olderReversed = data.reverse();
+        const olderReversed = [...data].reverse();
         setMensagens(prev => [...(olderReversed as unknown as MensagemLocal[]), ...prev]);
         setPage(prev => prev + 1);
         // Se retornou menos que a página cheia, sabemos que acabou o histórico.
