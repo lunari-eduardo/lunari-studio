@@ -40,6 +40,8 @@ export interface SessionData {
   descricao: string;
   status: string;
   whatsapp: string;
+  avatarUrl?: string | null;
+  appointmentId?: string | null;
   categoria: string;
   pacote: string;
   valorPacote: string;

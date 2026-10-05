@@ -152,3 +152,35 @@ export function getContrastColor(backgroundColor: string): string {
   const luminance = getLuminance(backgroundColor);
   return luminance > 0.4 ? '#1A1614' : '#FAF9F7';
 }
+export interface StatusTone {
+  bgLight: string;
+  borderLight: string;
+  textLight: string;
+  bgDark: string;
+  borderDark: string;
+  textDark: string;
+}
+
+/**
+ * Calcula os tons suaves para chips e botões (Design DNA) a partir de uma cor base.
+ */
+export function getStatusTone(hex: string): StatusTone {
+  const rgb = hexToRgb(hex) || { r: 120, g: 120, b: 120 };
+  const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+  
+  // Claro: fundo = hex @ 12%, borda = hex @ 28%
+  // Texto: escurece a cor se for muito clara para manter contraste 4.5:1
+  const textLightHsv = { ...hsv, s: Math.max(hsv.s, 60), v: Math.min(hsv.v, 45) };
+  const textLight = hsvToHex(textLightHsv.h, textLightHsv.s, textLightHsv.v);
+  const bgLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`;
+  const borderLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`;
+
+  // Escuro: fundo = hex @ 16%, borda = hex @ 32%
+  // Texto: clareia a cor para dar contraste no escuro
+  const textDarkHsv = { ...hsv, s: Math.min(hsv.s, 70), v: Math.max(hsv.v, 90) };
+  const textDark = hsvToHex(textDarkHsv.h, textDarkHsv.s, textDarkHsv.v);
+  const bgDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`;
+  const borderDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.32)`;
+
+  return { bgLight, borderLight, textLight, bgDark, borderDark, textDark };
+}

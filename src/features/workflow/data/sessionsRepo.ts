@@ -11,7 +11,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import type { WorkflowSession } from "../domain/session";
+import { type WorkflowSession, WORKFLOW_CLIENTE_EMBED } from "../domain/session";
 
 // A2: Embed reduzido. Listagem só usa `nome` do cliente. Consumidores que
 // precisam de email/telefone/whatsapp devem buscar o cliente sob demanda
@@ -19,7 +19,7 @@ import type { WorkflowSession } from "../domain/session";
 // cada linha de 100+ sessões por mês.
 const SELECT_WITH_CLIENTE = `
   *,
-  clientes ( nome ),
+  ${WORKFLOW_CLIENTE_EMBED},
   galerias ( id, total_fotos_extras_vendidas, valor_total_vendido )
 ` as const;
 
@@ -40,7 +40,7 @@ const SELECT_LEAN = `
   valor_adicional, desconto, credito_aplicado,
   extras_overridden, galeria_id, tipo_registro, appointment_id,
   updated_at, produtos_incluidos, regras_congeladas,
-  clientes ( nome ),
+  ${WORKFLOW_CLIENTE_EMBED},
   galerias ( id, total_fotos_extras_vendidas, valor_total_vendido )
 ` as const;
 

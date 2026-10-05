@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { WORKFLOW_CLIENTE_EMBED } from '@/features/workflow/domain/session';
 import { WorkflowSession } from './types';
 import { calculateSessionTotal, calculateManualProductsTotal } from '@/utils/sessionCalculations';
 
@@ -427,7 +428,7 @@ export const executeSessionUpdate = async (
 
   const { error } = await supabase
     .from('clientes_sessoes')
-    .update(sanitizedUpdates)
+    .update(sanitizedUpdates as any)
     .eq('id', id)
     .eq('user_id', userId);
 
@@ -483,13 +484,13 @@ export const executeSessionUpdate = async (
   // Buscar sessão completa com cliente
   const { data: fullUpdatedSession } = await supabase
     .from('clientes_sessoes')
-    .select(`*, clientes(nome)`)
+    .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
     .eq('id', id)
     .single();
 
   return {
     hasChanges: true,
     sanitizedUpdates,
-    fullUpdatedSession: (fullUpdatedSession as WorkflowSession) || null,
+    fullUpdatedSession: (fullUpdatedSession as unknown as WorkflowSession) || null,
   };
 };

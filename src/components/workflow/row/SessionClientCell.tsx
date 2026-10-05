@@ -1,0 +1,67 @@
+import { ClienteAvatar } from "../shared/ClienteAvatar";
+import { MessageCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
+
+interface SessionClientCellProps {
+  clientId?: string;
+  nome: string;
+  avatarUrl?: string | null;
+  categoria?: string;
+  whatsapp?: string;
+  className?: string;
+}
+
+export function SessionClientCell({ 
+  clientId, 
+  nome, 
+  avatarUrl, 
+  categoria, 
+  whatsapp,
+  className 
+}: SessionClientCellProps) {
+  const whatsappUrl = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, "")}` : null;
+
+  return (
+    <div className={cn("flex items-center gap-3 min-w-0", className)}>
+      <ClienteAvatar src={avatarUrl} nome={nome} size="lg" />
+      
+      <div className="flex flex-col min-w-0 justify-center">
+        <div className="flex items-center gap-2">
+          {clientId ? (
+            <Link 
+              to={`/app/clientes/${clientId}`}
+              className="text-sm font-semibold tracking-tight text-foreground truncate hover:text-accent-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent-gold rounded"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {nome || "Cliente não informado"}
+            </Link>
+          ) : (
+            <span className="text-sm font-semibold tracking-tight text-foreground truncate">
+              {nome || "Cliente não informado"}
+            </span>
+          )}
+
+          {whatsappUrl && (
+            <a 
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10 p-1 rounded-md transition-colors shrink-0"
+              onClick={(e) => e.stopPropagation()}
+              title="Conversar no WhatsApp"
+            >
+              <MessageCircle className="w-[14px] h-[14px]" />
+            </a>
+          )}
+        </div>
+        
+        {categoria && (
+          <span className="text-xs text-muted-foreground truncate">
+            {categoria}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}

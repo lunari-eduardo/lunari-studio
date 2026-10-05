@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { eventBus } from '@/shared/event-bus';
 import { WorkflowSession } from '@/features/workflow';
+import { WORKFLOW_CLIENTE_EMBED } from '@/features/workflow/domain/session';
 import { executeOptimisticPayment } from './cacheOperations';
 
 interface UseCacheEventListenersProps {
@@ -54,12 +55,12 @@ export const useCacheEventListeners = ({
         console.log('🔄 [CacheMerge] Hidratando dados do cliente...');
         const { data: fullSession } = await supabase
           .from('clientes_sessoes')
-          .select(`*, clientes(nome)`)
+          .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
           .eq('id', session.id)
           .single();
 
         if (fullSession) {
-          mergeUpdate(fullSession as WorkflowSession);
+          mergeUpdate(fullSession as unknown as WorkflowSession);
           return;
         }
       }
@@ -131,14 +132,14 @@ export const useCacheEventListeners = ({
       const fetchSession = async () => {
         const byText = await supabase
           .from('clientes_sessoes')
-          .select('*, clientes(nome)')
+          .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
           .eq('session_id', sessionId)
           .maybeSingle();
         if (byText.data) return byText.data;
 
         const byUuid = await supabase
           .from('clientes_sessoes')
-          .select('*, clientes(nome)')
+          .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
           .eq('id', sessionId)
           .maybeSingle();
         return byUuid.data;
@@ -153,7 +154,7 @@ export const useCacheEventListeners = ({
 
       if (fullSession) {
         console.log('✅ [WorkflowCache] Sessão atualizada:', fullSession.id, 'valor_pago:', fullSession.valor_pago);
-        mergeUpdate(fullSession as WorkflowSession);
+        mergeUpdate(fullSession as unknown as WorkflowSession);
         window.dispatchEvent(
           new CustomEvent('workflow-session-financials-stale', {
             detail: { sessionId: (fullSession as any).id },

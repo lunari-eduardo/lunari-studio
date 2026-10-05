@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkflowSession } from '@/features/workflow';
+import { WORKFLOW_CLIENTE_EMBED } from '@/features/workflow/domain/session';
 import { isWorkflowRealtimeV2Enabled } from '@/features/workflow/realtime';
 import { getYearMonthFromDateString } from './types';
 
@@ -50,7 +51,7 @@ export const useLegacyRealtime = ({
           // FASE 6: Para INSERT, processar imediatamente (sem debounce)
           // Para UPDATE/DELETE, usar debounce reduzido de 150ms
           if (payload.eventType === 'INSERT') {
-            const session = payload.new as WorkflowSession;
+            const session = payload.new as unknown as WorkflowSession;
             console.log('🆕 [Realtime] INSERT detectado, processando imediatamente...');
 
             // Verificar se já existe no cache (evitar duplicação com merge otimista)
@@ -65,13 +66,13 @@ export const useLegacyRealtime = ({
 
             const { data: fullSession } = await supabase
               .from('clientes_sessoes')
-              .select(`*, clientes(nome)`)
+              .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
               .eq('id', session.id)
               .single();
 
             if (fullSession) {
               console.log('✅ [Realtime] Sessão nova inserida:', fullSession.id);
-              mergeUpdate(fullSession as WorkflowSession);
+              mergeUpdate(fullSession as unknown as WorkflowSession);
             } else {
               console.log('⚠️ [Realtime] INSERT: usando payload como fallback');
               mergeUpdate(session);
@@ -85,18 +86,18 @@ export const useLegacyRealtime = ({
               realtimeDebounceMap.delete(incomingSessionId);
 
               if (payload.eventType === 'UPDATE') {
-                const session = payload.new as WorkflowSession;
+                const session = payload.new as unknown as WorkflowSession;
 
                 console.log('🔄 [Realtime] Buscando sessão completa após UPDATE...', session.id);
                 const { data: fullSession } = await supabase
                   .from('clientes_sessoes')
-                  .select(`*, clientes(nome)`)
+                  .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
                   .eq('id', session.id)
                   .single();
 
                 if (fullSession) {
                   console.log('✅ [Realtime] Sessão atualizada:', fullSession.id);
-                  mergeUpdate(fullSession as WorkflowSession);
+                  mergeUpdate(fullSession as unknown as WorkflowSession);
                 } else {
                   mergeUpdate(session);
                 }
@@ -129,13 +130,13 @@ export const useLegacyRealtime = ({
             setTimeout(async () => {
               const { data: updatedSession } = await supabase
                 .from('clientes_sessoes')
-                .select(`*, clientes(nome)`)
+                .select(`*, ${WORKFLOW_CLIENTE_EMBED}`)
                 .eq('session_id', sessionId)
                 .single();
 
               if (updatedSession) {
                 console.log('💰 [Realtime] Sessão atualizada após pagamento:', updatedSession.id, 'valor_pago:', updatedSession.valor_pago);
-                mergeUpdate(updatedSession as WorkflowSession);
+                mergeUpdate(updatedSession as unknown as WorkflowSession);
               }
             }, 350);
           }

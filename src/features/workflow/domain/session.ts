@@ -6,8 +6,11 @@
  * `src/hooks/useWorkflowRealtime.ts` para permitir re-export como shim.
  */
 
+export const WORKFLOW_CLIENTE_EMBED = "clientes ( nome, avatar_url, telefone, email, whatsapp )";
+
 export interface WorkflowSessionClienteEmbed {
   nome: string;
+  avatar_url?: string;
   email?: string;
   telefone?: string;
   whatsapp?: string;
