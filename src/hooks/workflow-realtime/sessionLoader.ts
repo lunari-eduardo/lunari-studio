@@ -14,7 +14,8 @@ export const fetchWorkflowSessionsWithPayments = async (userId: string): Promise
         nome,
         email,
         telefone,
-        whatsapp
+        whatsapp,
+        avatar_url
       )
     `)
     .eq('user_id', userId)

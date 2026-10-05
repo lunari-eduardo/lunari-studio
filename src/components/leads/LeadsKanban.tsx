@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +30,7 @@ import LeadLossReasonModal from "./LeadLossReasonModal";
 import { DynamicShareModal } from "./LeadCommercialSection";
 import type { Lead } from "@/types/leads";
 import type { PeriodFilter } from "@/hooks/useLeadMetrics";
+import { convertPeriodTypeToFilter, filterLeadsByPeriod } from "@/utils/leadFilters";
 import { cn } from "@/lib/utils";
 
 export interface LeadsKanbanProps {
@@ -61,7 +62,7 @@ export default function LeadsKanban({
   const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
   const [leadForLossReason, setLeadForLossReason] = useState<Lead | null>(null);
   
-  // Envio de orçamento
+  // Envio de orÃ§amento
   const [sendProposalModalOpen, setSendProposalModalOpen] = useState(false);
   const [leadForProposal, setLeadForProposal] = useState<Lead | null>(null);
   const activeMaterials = useMemo(() => materials.filter(m => m.status === 'active' && !!m.current_version?.published_at), [materials]);
@@ -80,8 +81,10 @@ export default function LeadsKanban({
       })),
     [statuses],
   );
+  const activeStatuses = useMemo(() => statuses.filter((s) => !s.isConverted && !s.isLost), [statuses]);
+
   const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
+    let filtered = leads.filter((lead) => {
       const matchesSearch =
         !searchTerm.trim() ||
         lead.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,86 +92,42 @@ export default function LeadsKanban({
         lead.telefone?.includes(searchTerm);
 
       const matchesOrigem = originFilter === "all" || lead.origem === originFilter;
-
-      // Apply period filter if provided
-      let matchesPeriod = true;
-      if (periodFilter) {
-        const convertPeriodTypeToFilter = (periodType: string) => {
-          const currentYear = new Date().getFullYear();
-
-          switch (periodType) {
-            case "current_year":
-              return { year: currentYear, month: undefined };
-            case "january_2025":
-              return { year: 2025, month: 1 };
-            case "february_2025":
-              return { year: 2025, month: 2 };
-            case "march_2025":
-              return { year: 2025, month: 3 };
-            case "april_2025":
-              return { year: 2025, month: 4 };
-            case "may_2025":
-              return { year: 2025, month: 5 };
-            case "june_2025":
-              return { year: 2025, month: 6 };
-            case "july_2025":
-              return { year: 2025, month: 7 };
-            case "august_2025":
-              return { year: 2025, month: 8 };
-            case "september_2025":
-              return { year: 2025, month: 9 };
-            case "october_2025":
-              return { year: 2025, month: 10 };
-            case "november_2025":
-              return { year: 2025, month: 11 };
-            case "december_2025":
-              return { year: 2025, month: 12 };
-            case "previous_year":
-              return { year: currentYear - 1, month: undefined };
-            case "all_time":
-            default:
-              return { year: undefined, month: undefined };
-          }
-        };
-
-        const { year, month } = convertPeriodTypeToFilter(periodFilter.periodType);
-
-        if (year || month) {
-          const date = new Date(lead.dataCriacao);
-          const leadMonth = date.getMonth() + 1;
-          const leadYear = date.getFullYear();
-
-          if (year && month) {
-            matchesPeriod = leadMonth === month && leadYear === year;
-          } else if (year) {
-            matchesPeriod = leadYear === year;
-          }
-        }
-      }
-
-      return matchesSearch && matchesOrigem && matchesPeriod;
+      
+      return matchesSearch && matchesOrigem;
     });
-  }, [leads, searchTerm, originFilter, periodFilter]);
+
+    if (periodFilter) {
+      const filterObj = convertPeriodTypeToFilter(periodFilter.periodType);
+      filtered = filterLeadsByPeriod(filtered, filterObj, statuses);
+    }
+    
+    return filtered.filter(lead => {
+      const statusDef = statuses.find(s => s.key === lead.status);
+      if (!statusDef) return true;
+      return !statusDef.isConverted && !statusDef.isLost;
+    });
+
+  }, [leads, searchTerm, originFilter, periodFilter, statuses]);
   const groupedLeads = useMemo(() => {
     const groups: Record<string, Lead[]> = {};
-    statuses.forEach((s) => {
+    activeStatuses.forEach((s) => {
       groups[s.key] = [];
     });
     filteredLeads.forEach((lead) => {
       (groups[lead.status] ||= []).push(lead);
     });
     return groups;
-  }, [filteredLeads, statuses]);
+  }, [filteredLeads, activeStatuses]);
   const handleStatusChange = (lead: Lead, newStatus: string) => {
     const statusName = statuses.find((s) => s.key === newStatus)?.name || newStatus;
     const convertedKey = getConvertedKey();
 
-    // Check if moving to lost status - NÃO atualizar aqui, apenas abrir modal
+    // Check if moving to lost status - NÃƒO atualizar aqui, apenas abrir modal
     if (newStatus === "perdido") {
-      console.log('🔴 [Kanban] Abrindo modal de motivo de perda para:', lead.nome);
+      console.log('ðŸ”´ [Kanban] Abrindo modal de motivo de perda para:', lead.nome);
       setLeadForLossReason(lead);
       setLossReasonModalOpen(true);
-      return; // A atualização será feita no modal após seleção do motivo
+      return; // A atualizaÃ§Ã£o serÃ¡ feita no modal apÃ³s seleÃ§Ã£o do motivo
     }
 
     // Update lead status for non-lost statuses
@@ -199,7 +158,7 @@ export default function LeadsKanban({
         "followup",
         "Timer de follow-up iniciado",
         true,
-        "Contagem iniciada para follow-up automático",
+        "Contagem iniciada para follow-up automÃ¡tico",
       );
     }
 
@@ -233,7 +192,7 @@ export default function LeadsKanban({
       addInteraction(leadId, "manual", "Agendamento adiado", false, "Cliente convertido mas agendamento foi adiado");
       toast({
         title: "Agendamento Adiado",
-        description: `${lead.nome} está marcado para agendar.`,
+        description: `${lead.nome} estÃ¡ marcado para agendar.`,
       });
     }
   };
@@ -266,9 +225,9 @@ export default function LeadsKanban({
     const previousStatus = lead?.status || 'desconhecido';
     const now = new Date().toISOString();
     
-    console.log('🔴 [Kanban] Confirmando perda com motivo:', { leadId, reason, previousStatus });
+    console.log('ðŸ”´ [Kanban] Confirmando perda com motivo:', { leadId, reason, previousStatus });
 
-    // UMA ÚNICA chamada com todos os campos
+    // UMA ÃšNICA chamada com todos os campos
     updateLead(leadId, {
       status: "perdido",
       perdidoEm: now,
@@ -298,7 +257,7 @@ export default function LeadsKanban({
     const previousStatus = lead?.status || 'desconhecido';
     const now = new Date().toISOString();
 
-    console.log('🔴 [Kanban] Perda sem motivo:', { leadId, previousStatus });
+    console.log('ðŸ”´ [Kanban] Perda sem motivo:', { leadId, previousStatus });
 
     // Mover para perdido mesmo sem motivo
     updateLead(leadId, {
@@ -335,7 +294,7 @@ export default function LeadsKanban({
         "manual",
         "Marcado como agendado manualmente",
         false,
-        "Cliente foi marcado como agendado sem criar agendamento específico",
+        "Cliente foi marcado como agendado sem criar agendamento especÃ­fico",
       );
       toast({
         title: "Marcado como Agendado",
@@ -397,7 +356,7 @@ export default function LeadsKanban({
                   onDelete={() => {
                     deleteLead(lead.id);
                     toast({
-                      title: "Lead excluído",
+                      title: "Lead excluÃ­do",
                     });
                   }}
                   onConvertToClient={() => handleConvertToClient(lead.id)}
@@ -479,7 +438,7 @@ export default function LeadsKanban({
           {/* Kanban Columns - Enhanced mobile scrolling */}
           <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
             <div className={cn("flex h-full min-w-max", isMobile ? "gap-1 px-1" : "gap-2 px-2")}>
-              {statuses.map((status) => (
+              {activeStatuses.map((status) => (
                 <StatusColumn key={status.id} title={status.name} statusKey={status.key} />
               ))}
             </div>
@@ -534,7 +493,7 @@ export default function LeadsKanban({
           } catch (error) {
             toast({
               title: "Erro",
-              description: "Não foi possível criar o lead",
+              description: "NÃ£o foi possÃ­vel criar o lead",
             });
           }
         }}
@@ -605,3 +564,4 @@ export default function LeadsKanban({
     </div>
   );
 }
+

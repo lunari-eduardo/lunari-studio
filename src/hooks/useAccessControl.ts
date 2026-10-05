@@ -211,7 +211,7 @@ export const useAccessControlInternal = (opts?: { enabled?: boolean }): AccessCo
     const state = await checkAccessWithRetry(3);
     setAccessState(state);
     setLoading(false);
-  }, [user, checkAccessWithRetry]);
+  }, [user?.id, checkAccessWithRetry]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -242,7 +242,7 @@ export const useAccessControlInternal = (opts?: { enabled?: boolean }): AccessCo
     };
 
     checkAccess();
-  }, [user, authLoading, isOnline, checkAccessWithRetry, enabled]);
+  }, [user?.id, authLoading, isOnline, checkAccessWithRetry, enabled]);
 
   // Auto-retry quando voltar online
   useEffect(() => {

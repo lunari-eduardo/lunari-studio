@@ -24,7 +24,7 @@ const PERIOD_OPTIONS = [{
   value: 'last_30_days' as PeriodType,
   label: 'Últimos 30 dias' 
 }, {
-  value: 'last_90_days' as PeriodType,
+  value: 'last_60_days' as PeriodType,
   label: 'Últimos 90 dias'
 }, {
   value: 'current_year' as PeriodType,
@@ -68,13 +68,7 @@ const PERIOD_OPTIONS = [{
 }, {
   value: 'previous_year' as PeriodType,
   label: 'Ano Anterior'
-}, {
-  value: 'archived' as PeriodType,
-  label: '📁 Arquivados'
-}, {
-  value: 'all_active' as PeriodType,
-  label: 'Todos Ativos'
-}, {
+},   {
   value: 'all_time' as PeriodType,
   label: 'Histórico Completo'
 }];

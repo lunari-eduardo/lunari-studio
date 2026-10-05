@@ -54,11 +54,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
       
       {/* Receita */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           Receita
         </div>
-        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+        <span className="text-xl font-bold tracking-tight text-foreground leading-none">
           {isLoading ? <Skeleton /> : formatCurrency(financials.paidMonth)}
         </span>
       </div>
@@ -67,11 +67,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
 
       {/* Previsto */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
           Previsto
         </div>
-        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+        <span className="text-xl font-bold tracking-tight text-foreground leading-none">
           {isLoading ? <Skeleton /> : formatCurrency(financials.totalMonth)}
         </span>
       </div>
@@ -80,11 +80,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
 
       {/* Pendente */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
           Pendente
         </div>
-        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+        <span className="text-xl font-bold tracking-tight text-foreground leading-none">
           {isLoading ? <Skeleton /> : formatCurrency(financials.remainingMonth)}
         </span>
       </div>
@@ -93,11 +93,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
         <>
           <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
           <div className="flex flex-col gap-1.5" title="Crédito gerado por overpayment em sessões deste mês">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
               Créd. Gerados
             </div>
-            <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+            <span className="text-xl font-bold tracking-tight text-foreground leading-none">
               {formatCurrency(creditosGerados)}
             </span>
           </div>
@@ -108,11 +108,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
         <>
           <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
           <div className="flex flex-col gap-1.5" title="Créditos aplicados como pagamento em sessões deste mês">
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
               Créd. Usados
             </div>
-            <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+            <span className="text-xl font-bold tracking-tight text-foreground leading-none">
               {formatCurrency(creditosUtilizados)}
             </span>
           </div>
@@ -123,11 +123,11 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
 
       {/* Sessões */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
           <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
           Sessões
         </div>
-        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+        <span className="text-xl font-bold tracking-tight text-foreground leading-none">
           {isLoading ? <Skeleton w="w-12" /> : sessionCount}
         </span>
       </div>

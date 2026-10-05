@@ -1,10 +1,4 @@
-/**
- * Hook que resolve o status do lead vinculado para cada chat em batch.
- * Retorna um mapa { lead_id → status_key } para uso na renderização da lista.
- * Uma única query para todos os chats visíveis.
- */
-
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +9,7 @@ export interface LeadStatusInfo {
   key: string;
   label: string;
   color?: string;
+  isFinished?: boolean;
 }
 
 export function useChatLeadStatuses(chats: EnrichedChat[]) {
@@ -22,7 +17,6 @@ export function useChatLeadStatuses(chats: EnrichedChat[]) {
   const userId = user?.id;
   const { statuses } = useLeadStatuses();
 
-  // Extrair todos os lead_ids únicos e não nulos dos chats
   const leadIds = useMemo(() => {
     const ids = new Set<string>();
     for (const chat of chats) {
@@ -31,7 +25,6 @@ export function useChatLeadStatuses(chats: EnrichedChat[]) {
     return Array.from(ids);
   }, [chats]);
 
-  // Buscar os status dos leads em batch (1 query)
   const { data: leadStatusMap = {} } = useQuery({
     queryKey: ['chat-lead-statuses', userId, leadIds.join(',')],
     queryFn: async () => {
@@ -56,25 +49,31 @@ export function useChatLeadStatuses(chats: EnrichedChat[]) {
     refetchOnWindowFocus: false,
   });
 
-  // Mapa de status_key → LeadStatusDef para traduzir key → label
   const statusDefMap = useMemo(() => {
-    const m: Record<string, { label: string; color?: string }> = {};
+    const m: Record<string, { label: string; color?: string; isFinished?: boolean }> = {};
     for (const s of statuses) {
-      m[s.key] = { label: s.name, color: s.color };
+      m[s.key] = { 
+        label: s.name, 
+        color: s.color,
+        isFinished: s.isConverted || s.isLost
+      };
     }
     return m;
   }, [statuses]);
 
-  /**
-   * Retorna a informação do status do lead vinculado ao chat,
-   * ou null se o chat não tiver lead vinculado.
-   */
   const getLeadStatusForChat = useMemo(() => {
     return (chat: EnrichedChat): LeadStatusInfo | null => {
       if (!chat.lead_id) return null;
       const statusKey = leadStatusMap[chat.lead_id];
       if (!statusKey) return null;
+      
       const def = statusDefMap[statusKey];
+      
+      // Regra de negcios: no exibir a tag na lista de conversas se for ganho/perdido (finished)
+      if (def?.isFinished || ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(statusKey.toLowerCase())) {
+        return null;
+      }
+
       return {
         key: statusKey,
         label: def?.label ?? statusKey.replace(/_/g, ' '),

@@ -51,7 +51,7 @@ export async function getSessionsForMonth(month: number, year: number) {
       .select(
         `
         *,
-        clientes (nome, email, telefone),
+        clientes (nome, email, telefone, avatar_url),
         appointments (status, package_id, 
           pacotes (nome, valor_base, valor_foto_extra, produtos_incluidos, 
             categorias (nome)
