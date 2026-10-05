@@ -1,11 +1,11 @@
-import type { PeriodType } from '@/hooks/useLeadMetrics';
+﻿import type { PeriodType } from '@/hooks/useLeadMetrics';
 import type { Lead, LeadStatusDef } from '@/types/leads';
 
 export interface FilterResult {
   year?: number;
   month?: number;
   dateFrom?: Date;
-  type: 'year' | 'month' | 'range'  | 'all';
+  type: 'year' | 'month' | 'range' | 'all';
 }
 
 export function convertPeriodTypeToFilter(periodType: PeriodType): FilterResult {
@@ -60,24 +60,32 @@ export function isLeadFinished(lead: Lead, statuses: LeadStatusDef[]): boolean {
   if (statusDef) {
     return !!(statusDef.isConverted || statusDef.isLost);
   }
-  // Fallback to text check if definitions not loaded fully
   const lower = (lead.status || '').toLowerCase();
   return ['fechado', 'perdido', 'ganho', 'convertido', 'lost', 'won'].includes(lower);
 }
 
+export function shouldLeadBeInHistory(lead: Lead, statuses: LeadStatusDef[]): boolean {
+  const finished = isLeadFinished(lead, statuses);
+  if (!finished) return false;
+  
+  if (lead.arquivado) return true;
+
+  const ts = getValidTimestamp(lead);
+  const daysSince = (new Date().getTime() - ts.getTime()) / (1000 * 3600 * 24);
+  return daysSince > 10;
+}
+
 export function filterLeadsByPeriod(leads: Lead[], filter: FilterResult, statuses: LeadStatusDef[] = []): Lead[] {
   return leads.filter(lead => {
-    // 1. Leads ativos sempre aparecem, independente da data
-    const finished = isLeadFinished(lead, statuses);
-    if (!finished) {
-      return true; // Ignore period filter completely for active leads
+    const shouldBeInHistory = shouldLeadBeInHistory(lead, statuses);
+    if (!shouldBeInHistory) {
+      return true; // Ignore period filter completely for active leads and leads < 10 days old
     }
 
-    // 2. Leads ganhos/perdidos usam a data de alteraǜo/criaǜo para o filtro de histrico
     const leadDate = getValidTimestamp(lead);
     
     if (isNaN(leadDate.getTime())) {
-      console.warn("%s", '[LeadFilters] Data inválida para lead ' + lead.id);
+      console.warn("%s", "[LeadFilters] Data inválida para lead " + lead.id);
       return false;
     }
     
@@ -93,7 +101,6 @@ export function filterLeadsByPeriod(leads: Lead[], filter: FilterResult, statuse
         const leadMonth = leadDate.getMonth() + 1;
         const leadYear2 = leadDate.getFullYear();
         return leadMonth === filter.month && leadYear2 === filter.year;
-      
       case 'all':
       default:
         return true;
@@ -129,8 +136,7 @@ export function sortLeadsByLastModified(leads: Lead[]): Lead[] {
   return [...leads].sort((a, b) => {
     const dateA = getValidTimestamp(a).getTime();
     const dateB = getValidTimestamp(b).getTime();
-    return dateB - dateA; // Descending
+    return dateB - dateA;
   });
 }
-
 

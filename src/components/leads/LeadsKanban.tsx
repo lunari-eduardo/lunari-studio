@@ -30,7 +30,7 @@ import LeadLossReasonModal from "./LeadLossReasonModal";
 import { DynamicShareModal } from "./LeadCommercialSection";
 import type { Lead } from "@/types/leads";
 import type { PeriodFilter } from "@/hooks/useLeadMetrics";
-import { convertPeriodTypeToFilter, filterLeadsByPeriod } from "@/utils/leadFilters";
+import { convertPeriodTypeToFilter, filterLeadsByPeriod, shouldLeadBeInHistory } from "@/utils/leadFilters";
 import { cn } from "@/lib/utils";
 
 export interface LeadsKanbanProps {
@@ -101,23 +101,30 @@ export default function LeadsKanban({
       filtered = filterLeadsByPeriod(filtered, filterObj, statuses);
     }
     
-    return filtered.filter(lead => {
-      const statusDef = statuses.find(s => s.key === lead.status);
-      if (!statusDef) return true;
-      return !statusDef.isConverted && !statusDef.isLost;
-    });
+    return filtered.filter(lead => { return !shouldLeadBeInHistory(lead, statuses); });
 
   }, [leads, searchTerm, originFilter, periodFilter, statuses]);
   const groupedLeads = useMemo(() => {
     const groups: Record<string, Lead[]> = {};
-    activeStatuses.forEach((s) => {
+    statuses.forEach((s) => {
       groups[s.key] = [];
     });
     filteredLeads.forEach((lead) => {
       (groups[lead.status] ||= []).push(lead);
     });
     return groups;
-  }, [filteredLeads, activeStatuses]);
+  }, [filteredLeads, statuses]);
+  const handleMoveToHistory = (lead: Lead) => {
+    updateLead(lead.id, {
+      arquivado: true,
+      statusTimestamp: new Date().toISOString(),
+    });
+    toast({
+      title: "Movido para Histórico",
+      description: `${lead.nome} foi movido para o histórico.`,
+    });
+  };
+
   const handleStatusChange = (lead: Lead, newStatus: string) => {
     const statusName = statuses.find((s) => s.key === newStatus)?.name || newStatus;
     const convertedKey = getConvertedKey();
@@ -438,7 +445,7 @@ export default function LeadsKanban({
           {/* Kanban Columns - Enhanced mobile scrolling */}
           <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
             <div className={cn("flex h-full min-w-max", isMobile ? "gap-1 px-1" : "gap-2 px-2")}>
-              {activeStatuses.map((status) => (
+              {statuses.map((status) => (
                 <StatusColumn key={status.id} title={status.name} statusKey={status.key} />
               ))}
             </div>

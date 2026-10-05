@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { MessageCircle, Eye, Trash2, FileText, Calendar, CheckCircle, ExternalLink, Link2, Send } from 'lucide-react';
+import { MessageCircle, Eye, Trash2, FileText, Calendar, CheckCircle, ExternalLink, Link2, Send, Archive } from 'lucide-react';
 import type { Lead } from '@/types/leads';
 import { useAppContext } from '@/contexts/AppContext';
 import { linkLeadToClient, getAvailableClientsForLinking } from '@/utils/leadClientSync';
@@ -17,6 +17,7 @@ interface LeadActionsPopoverProps {
   onMarkAsScheduled?: () => void;
   onViewAppointment?: () => void;
   onSendProposal?: () => void;
+  onMoveToHistory?: () => void;
   children: React.ReactNode;
 }
 
@@ -30,6 +31,7 @@ export default function LeadActionsPopover({
   onMarkAsScheduled,
   onViewAppointment,
   onSendProposal,
+  onMoveToHistory,
   children
 }: LeadActionsPopoverProps) {
   const [open, setOpen] = useState(false);
