@@ -89,6 +89,8 @@ export const useWorkflowPackageData = () => {
           data: session.data_sessao,
           hora: session.hora_sessao,
           nome: session.clientes?.nome || 'Cliente não encontrado',
+          avatarUrl: session.clientes?.avatar_url || null,
+          appointmentId: session.appointment_id || null,
           email: session.clientes?.email || '',
           descricao: session.descricao || '',
           status: session.status,

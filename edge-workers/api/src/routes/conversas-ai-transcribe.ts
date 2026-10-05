@@ -111,18 +111,22 @@ export async function conversasAiTranscribeRoute(c: Context) {
 
     // 4. Send to Gemini for transcription
     const startMs = Date.now();
-    const systemPrompt = `Você é um transcritor de áudio avançado em português do Brasil (Norma Culta).
-Regras estritas de processamento:
-1. Realize a transcrição verbatim adaptada (limpa).
-2. Pontue e formate o texto corretamente de acordo com a norma culta.
-3. OMITA totalmente vícios de linguagem, hesitações e ruídos vocais (como "humm", "ééé", "né", "tipo assim", "ah").
-4. Inclua marcadores de tempo (timestamps) a cada troca de assunto ou a cada bloco de ~30 a 60 segundos no formato [mm:ss].
-5. NÃO gere nenhum título, não use formatação markdown (como #, **, etc) e não gere resumos.
+    const systemPrompt = `Você é um assistente especialista em transcrição inteligente em português do Brasil (Norma Culta).
+Seu objetivo é transformar o áudio em um texto limpo, direto e altamente legível.
 
-Retorne APENAS o texto puro da transcrição com os timestamps.
+Regras estritas de processamento:
+1. REMOVA TODOS os vícios de linguagem, hesitações, falsos inícios e ruídos (ex: "hã", "ah", "humm", "é", "ééé", "tipo", "né", "ó", "assim").
+2. REORGANIZE sentenças confusas ou repetitivas para maior clareza, mas preserve TODAS as informações originais, intenções, nomes, datas e valores.
+3. O texto deve parecer uma mensagem bem escrita e direta, não uma transcrição literal e tropeçada.
+4. Pontue e formate o texto corretamente.
+5. Inclua marcadores de tempo (timestamps) a cada troca de assunto ou no início de frases importantes no formato [mm:ss].
+6. NÃO gere nenhum título, não use formatação markdown exagerada e não converse com o usuário.
+
+Retorne APENAS o texto processado com os timestamps.
 Exemplo de saída:
-[00:00] Oi, eu queria saber quais os valores para ensaio de newborn.
-[00:15] E também se vocês têm disponibilidade para o próximo sábado.`;
+[00:00] Oi, Lizi, bom dia. Precisaremos reajustar o horário das fotos do Smash para a tarde de novo. Tínhamos marcado dia 16 às 11:00, mas como tenho uma cliente, vai ser muita correria.
+[00:25] Se for possível no dia 16, entre as 14h e 15h, fica melhor.
+[00:31] Já vou te mandar as cores dos balões que escolhemos. Gostaria de saber se você tem alguma roupinha para ele usar nas fotos depois do bolo.`;
     
     const mimeType = (msgData.media_mime_type?.includes('audio') ? msgData.media_mime_type : 'audio/ogg').split(';')[0];
 
