@@ -1,3 +1,5 @@
+import { ClienteAvatar } from '../shared/ClienteAvatar';
+import { formatToDayMonth } from '@/utils/dateUtils';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -413,240 +415,62 @@ export function WorkflowMobileCard({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="p-3.5 sm:p-4 cursor-pointer active:bg-accent/30 transition-colors select-none touch-manipulation"
+          className="p-3.5 sm:p-4 cursor-pointer active:bg-accent/30 transition-colors select-none touch-manipulation flex items-center justify-between gap-2"
         >
-          {/* Linha 1: Nome do Cliente + Ações Contextuais */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1 flex items-center">
-              {session.clienteId ? (
-                <Link
-                  to={`/app/clientes/${session.clienteId}`}
-                  onClick={(e) => {
-                    if (isScrollingRef.current) {
-                      e.preventDefault();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  className="font-semibold text-[15px] text-foreground hover:text-primary transition-colors truncate max-w-full inline-block"
-                >
-                  {session.nome}
-                </Link>
-              ) : (
-                <span className="font-semibold text-[15px] text-foreground truncate max-w-full inline-block">
-                  {session.nome}
-                </span>
-              )}
-            </div>
-
-            {/* Ações contextuais */}
-            <div
-              className="flex items-center gap-1 shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {session.whatsapp && (
-                <a
-                  href={`https://wa.me/${session.whatsapp.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => {
-                    if (isScrollingRef.current) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return;
-                    }
-                    e.stopPropagation();
-                  }}
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-green-600 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors touch-manipulation"
-                  title="WhatsApp"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </a>
-              )}
-
-              <DropdownMenu open={actionsMenuOpen} onOpenChange={handleActionsMenuOpenChange}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onPointerDown={(e) => {
-                      // Previne que o Radix abra no pointerdown inicial no touch, evitando disparar no início da rolagem
-                      e.preventDefault();
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isScrollingRef.current) return;
-                      setActionsMenuOpen((prev) => !prev);
-                    }}
-                    className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground touch-manipulation"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52" collisionPadding={12}>
-                  {session.clienteId && (
-                    <DropdownMenuItem
-                      onClick={() => navigate(`/app/clientes/${session.clienteId}`)}
-                    >
-                      <Eye className="h-4 w-4 mr-2 text-primary" />
-                      Ver perfil no CRM
-                    </DropdownMenuItem>
-                  )}
-
-                  {session.whatsapp && (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        window.open(
-                          `https://wa.me/${session.whatsapp?.replace(/\D/g, "")}`,
-                          "_blank",
-                        )
-                      }
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2 text-green-600" />
-                      Conversar no WhatsApp
-                    </DropdownMenuItem>
-                  )}
-
-                  {(session.clienteId || session.whatsapp) && <DropdownMenuSeparator />}
-
-                  <DropdownMenuItem onClick={() => setModalProdutosOpen(true)}>
-                    <Package className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Gerenciar produtos
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem onClick={() => setWorkflowPaymentsOpen(true)}>
-                    <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Histórico financeiro
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-
-                  <DropdownMenuItem
-                    onClick={() => setDeleteModalOpen(true)}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    Cancelar sessão
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Linha 2: Pacote à esquerda + Status Dropdown alinhado à direita */}
-          <div className="mt-1 flex items-center justify-between gap-2 min-w-0">
-            <div className="text-xs text-muted-foreground truncate flex-1 min-w-0">
-              {displayPackageName}
-            </div>
-
-            {/* Status da sessão em Dropdown perfeitamente alinhado à direita */}
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="shrink-0"
-            >
-              <DropdownMenu open={statusMenuOpen} onOpenChange={handleStatusMenuOpenChange}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    onPointerDown={(e) => {
-                      // Previne que o Radix abra no pointerdown inicial no touch, evitando disparar no início da rolagem
-                      e.preventDefault();
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isScrollingRef.current) return;
-                      setStatusMenuOpen((prev) => !prev);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all shadow-2xs hover:opacity-90 active:scale-95 shrink-0 select-none cursor-pointer touch-manipulation"
-                    style={
-                      session.status
-                        ? {
-                            backgroundColor: statusColor,
-                            color: getContrastColor(statusColor),
-                          }
-                        : {
-                            backgroundColor: "transparent",
-                            color: "var(--muted-foreground)",
-                            border: "1px dashed rgba(156, 163, 175, 0.5)",
-                          }
-                    }
-                    title="Alterar status da sessão"
-                  >
-                    <span className="truncate max-w-[130px]">
-                      {session.status || "Sem status"}
-                    </span>
-                    <ChevronDown className="h-2.5 w-2.5 opacity-75 shrink-0" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 z-50" collisionPadding={12}>
-                  <DropdownMenuItem
-                    onClick={() => onStatusChange(session.id, "")}
-                    className="text-muted-foreground italic text-xs"
-                  >
-                    Limpar status
-                  </DropdownMenuItem>
-                  {statusOptions.map((opt) => (
-                    <DropdownMenuItem
-                      key={opt}
-                      onClick={() => onStatusChange(session.id, opt)}
-                      className="text-xs gap-2 cursor-pointer"
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: getStatusColor(opt) }}
-                      />
-                      <span className="truncate">{opt}</span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Linha 3: Badge de Situação + Fotos + Divisor + Valor em Destaque */}
-          <div className="mt-3 flex items-center justify-between gap-2 pt-2 border-t border-border/20">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Badge de Situação */}
-              <span
-                className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[11px] font-medium tracking-wide",
-                  isPago
-                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                    : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20",
-                )}
-              >
-                {isPago ? "Pago" : "Pendente"}
-              </span>
-
-              {/* Indicador de fotos extras */}
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Camera className="h-3.5 w-3.5" />
-                <span>
-                  {qtdFotosExtras} {qtdFotosExtras === 1 ? "extra" : "extras"}
+          {/* Esquerda: Avatar + Nome + Descricao */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <ClienteAvatar src={session.avatarUrl} nome={session.nome} size="md" className="shrink-0" />
+            <div className="flex flex-col min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-sm text-foreground truncate leading-tight">
+                  {session.nome || 'Cliente'}
                 </span>
               </div>
-            </div>
-
-            {/* Valor em destaque à direita + Chevron sutil */}
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-sm font-bold tabular-nums tracking-tight",
-                  isPago
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-amber-600 dark:text-amber-400",
-                )}
-              >
-                {formatCurrencyBRL(isPago ? totalCalculado : pendente)}
+              <span className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
+                {displayPackageName}
               </span>
-
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 text-muted-foreground transition-transform duration-200",
-                  isExpanded && "rotate-180 text-primary",
-                )}
-              />
             </div>
+          </div>
+
+          {/* Direita: Horario ou Valor pendente + Acoes */}
+          <div className="flex items-center shrink-0 ml-1 gap-2">
+            <div className="flex flex-col items-end shrink-0" onClick={(e) => e.stopPropagation()}>
+              <span className="text-[13px] font-semibold tabular-nums text-foreground leading-tight">
+                {session.appointmentId && session.hora && session.hora !== '00:00' ? session.hora : (session.data ? formatToDayMonth(session.data) : 'S/ Data')}
+              </span>
+              {pendente > 0 && (
+                <span className="text-[10px] font-medium text-destructive mt-0.5 tabular-nums leading-tight">
+                  {formatCurrencyBRL(pendente)}
+                </span>
+              )}
+            </div>
+
+            {session.whatsapp && (
+              <a
+                href={`https://wa.me/${session.whatsapp.replace(/\D/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  if (isScrollingRef.current) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                  }
+                  e.stopPropagation();
+                }}
+                className="h-7 w-7 rounded-full flex items-center justify-center bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors touch-manipulation shrink-0 ml-0.5"
+                title="WhatsApp"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+              </a>
+            )}
+            
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-0.5",
+                isExpanded && "rotate-180 text-primary"
+              )}
+            />
           </div>
         </div>
 
@@ -1205,16 +1029,18 @@ export function WorkflowMobileCard({
           onConfirm={(action) => {
             onDeleteSession(
               session.id,
-              session.nome || "Sessão",
+              session.nome || 'Sess�o',
               Array.isArray(session.pagamentos) ? session.pagamentos.length : 0,
               action,
             );
             setDeleteModalOpen(false);
           }}
-          sessionTitle={session.nome || "Sessão"}
-          paymentCount={
-            Array.isArray(session.pagamentos) ? session.pagamentos.length : 0
-          }
+          sessionData={{
+            id: session.id,
+            clientName: session.nome || 'Sess�o',
+            date: session.data || '',
+            hasPayments: Array.isArray(session.pagamentos) && session.pagamentos.length > 0
+          }}
         />
       )}
 
@@ -1298,3 +1124,5 @@ export function WorkflowMobileCard({
     </>
   );
 }
+
+
