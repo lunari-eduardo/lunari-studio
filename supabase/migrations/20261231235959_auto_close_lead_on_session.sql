@@ -1,7 +1,8 @@
 -- ==============================================================================
 -- Migration: Auto Close Lead on Session Creation
 -- Description: Trigger that automatically closes active leads when a new
--- session is scheduled/created for the same client.
+-- session is scheduled/created for the same client. Includes intelligent
+-- matching by client ID, WhatsApp conversation, phone, and email.
 -- ==============================================================================
 
 CREATE OR REPLACE FUNCTION public.auto_close_lead_on_session_creation()
@@ -12,6 +13,8 @@ SET search_path = public
 AS $$
 DECLARE
   v_converted_status_key TEXT;
+  v_cliente_email TEXT;
+  v_cliente_telefone TEXT;
 BEGIN
   -- 0. Ignorar se a sessão não estiver vinculada a um cliente
   IF NEW.cliente_id IS NULL THEN
@@ -34,14 +37,17 @@ BEGIN
   END IF;
 
   -- 3. If still no status found, use hardcoded fallback 'fechado' just in case 
-  -- (though the system should have seeded statuses)
   IF v_converted_status_key IS NULL THEN
     v_converted_status_key := 'fechado';
   END IF;
 
-  -- 4. Update any active lead for this client to the converted status
-  -- An active lead is one that is not archived and not in a converted/lost state
-  -- This also covers leads linked to the client via WhatsApp contacts/chats
+  -- 4. Obter dados do cliente recém agendado para o cruzamento inteligente
+  SELECT email, telefone INTO v_cliente_email, v_cliente_telefone
+  FROM public.clientes
+  WHERE id = NEW.cliente_id AND user_id = NEW.user_id;
+
+  -- 5. Update any active lead for this client to the converted status
+  -- This covers leads linked explicitly, via WhatsApp, or intelligently by phone/email
   UPDATE public.leads
   SET 
     status = v_converted_status_key
@@ -58,6 +64,14 @@ BEGIN
       )
       OR id IN (
         SELECT lead_id FROM public.conversas_chats WHERE cliente_id = NEW.cliente_id AND lead_id IS NOT NULL
+      )
+      -- Intelligent matching
+      OR (v_cliente_email IS NOT NULL AND email = v_cliente_email)
+      OR (
+        v_cliente_telefone IS NOT NULL 
+        AND telefone IS NOT NULL
+        AND regexp_replace(telefone, '\D', '', 'g') <> '' 
+        AND regexp_replace(telefone, '\D', '', 'g') = regexp_replace(v_cliente_telefone, '\D', '', 'g')
       )
     );
 
