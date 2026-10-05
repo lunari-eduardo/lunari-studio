@@ -23,6 +23,7 @@ import { INPUT_EDITABLE, VALUE_STRONG } from "./details/cardTokens";
 import { computeProductNextAction } from "@/features/workflow/domain/productNextAction";
 import { SessionCreditBadge } from "@/components/finance/SessionCreditBadge";
 import { useSessionFinancialsWithExtras } from "@/features/workflow/hooks/useSessionFinancialsWithExtras";
+import { useExtraEditGuard } from "./hooks/useExtraEditGuard";
 
 
 interface WorkflowCardExpandedProps {
@@ -66,15 +67,7 @@ export function WorkflowCardExpanded({
   const [valorFotoExtraValue, setValorFotoExtraValue] = useState(session.valorFotoExtra || "");
   const [qtdFotosExtraValue, setQtdFotosExtraValue] = useState(String(session.qtdFotosExtra || 0));
 
-  const [pendingExtraEdit, setPendingExtraEdit] = useState<
-    | {
-        field: "valorFotoExtra" | "qtdFotosExtra";
-        nextValue: string;
-        previousValue: string;
-        source: "gallery" | "frozen_rules";
-      }
-    | null
-  >(null);
+
 
   // Snapshot canônico de fotos extras (RPC compartilhada com Gallery).
   const { calc: extraCalc, resolvedGalleryId, isLoading: extraCalcLoading } =
@@ -206,23 +199,15 @@ export function WorkflowCardExpanded({
     precoEfetivo > 0 &&
     Math.abs(precoBaseTabela - precoEfetivo) > 0.01;
 
-  const requestExtraEdit = useCallback(
-    (field: "valorFotoExtra" | "qtdFotosExtra", nextValue: string, previousValue: string) => {
-      if (nextValue === previousValue) return;
-      if (galeriaHasSales) {
-        setPendingExtraEdit({ field, nextValue, previousValue, source: "gallery" });
-        return;
-      }
-      // Sem galeria consolidada: se existe regra congelada com desconto
-      // progressivo E ainda não há override, confirma antes de desvincular.
-      if (hasDescontoProgressivo && !session.extrasOverridden) {
-        setPendingExtraEdit({ field, nextValue, previousValue, source: "frozen_rules" });
-        return;
-      }
-      onFieldUpdate(session.id, field, nextValue);
-    },
-    [galeriaHasSales, hasDescontoProgressivo, session.extrasOverridden, session.id, onFieldUpdate],
-  );
+  const { pendingExtraEdit, requestExtraEdit, confirmExtraEdit, cancelExtraEdit } = useExtraEditGuard({
+    sessionId: session.id,
+    galeriaHasSales: Boolean(galeriaHasSales),
+    hasDescontoProgressivo,
+    extrasOverridden: Boolean(session.extrasOverridden),
+    onFieldUpdate,
+    setValorFotoExtraValue,
+    setQtdFotosExtraValue
+  });
 
   const handleValorFotoExtraBlur = useCallback(() => {
     const numValue = parseCurrency(valorFotoExtraValue);
@@ -237,21 +222,6 @@ export function WorkflowCardExpanded({
     setQtdFotosExtraValue(sanitized);
     requestExtraEdit("qtdFotosExtra", sanitized, String(session.qtdFotosExtra || 0));
   }, [qtdFotosExtraValue, session.qtdFotosExtra, requestExtraEdit]);
-
-  const confirmExtraEdit = useCallback(() => {
-    if (!pendingExtraEdit) return;
-    onFieldUpdate(session.id, pendingExtraEdit.field, pendingExtraEdit.nextValue);
-    setPendingExtraEdit(null);
-  }, [pendingExtraEdit, session.id, onFieldUpdate]);
-
-  const cancelExtraEdit = useCallback(() => {
-    if (pendingExtraEdit?.field === "valorFotoExtra") {
-      setValorFotoExtraValue(pendingExtraEdit.previousValue);
-    } else if (pendingExtraEdit?.field === "qtdFotosExtra") {
-      setQtdFotosExtraValue(pendingExtraEdit.previousValue);
-    }
-    setPendingExtraEdit(null);
-  }, [pendingExtraEdit]);
 
   return (
     <div className="bg-transparent px-4 py-5 md:px-6">

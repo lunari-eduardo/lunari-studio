@@ -86,7 +86,7 @@ export function useSalesAnalytics(
     }
     
     // Use real conversion rate from leads data
-    const conversionRate = leadMetrics.taxaConversao;
+    const conversionRate = leadMetrics?.taxaConversao ?? 0;
 
     console.log(`💰 [useSalesAnalytics] Métricas calculadas: R$ ${totalRevenue.toLocaleString()}, ${totalSessions} sessões, ${uniqueClients} clientes únicos`);
 

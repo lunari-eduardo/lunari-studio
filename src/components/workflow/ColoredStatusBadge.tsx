@@ -34,6 +34,9 @@ export function ColoredStatusBadge({
         return '#F59E0B';
       case 'cancelado':
         return '#EF4444';
+      case 'enviado para seleção':
+      case 'enviado para selecao':
+        return '#A0522D';
       default:
         return getStatusColor(status);
     }
@@ -42,7 +45,7 @@ export function ColoredStatusBadge({
   if (!status || status === '') {
     if (actualVariant === "soft") {
       return (
-        <div className={cn("px-3 h-8 rounded-full border border-dashed border-border/60 bg-transparent flex items-center justify-center text-xs font-normal text-muted-foreground italic", className)}>
+        <div className={cn("px-2.5 h-8 rounded-full border border-dashed border-border/60 bg-transparent flex items-center justify-center text-xs font-normal text-muted-foreground italic", className)}>
           Definir status
         </div>
       );
@@ -62,7 +65,8 @@ export function ColoredStatusBadge({
     
     return (
       <div 
-        className={cn("px-3 h-8 rounded-full border flex items-center gap-2 text-xs font-medium whitespace-nowrap", className)}
+        className={cn("px-2.5 h-8 rounded-full border flex items-center gap-2 text-xs font-semibold whitespace-nowrap", className)}
+        title={displayText}
         style={{ 
           backgroundColor: isDark ? tone.bgDark : tone.bgLight,
           borderColor: isDark ? tone.borderDark : tone.borderLight,
@@ -70,7 +74,7 @@ export function ColoredStatusBadge({
         }}
       >
         <span 
-          className="w-1.5 h-1.5 rounded-full shrink-0" 
+          className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/60 dark:ring-black/20" 
           style={{ backgroundColor: statusColor }}
         />
         <span className="truncate">{displayText}</span>

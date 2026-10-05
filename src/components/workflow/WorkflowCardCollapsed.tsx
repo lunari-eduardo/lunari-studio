@@ -15,6 +15,9 @@ import { Link } from "react-router-dom";
 import { formatToDayMonth } from "@/utils/dateUtils";
 import { buildGalleryNewUrl, buildGalleryDeliverUrl } from "@/utils/galleryRedirect";
 import { useAppContext } from "@/contexts/AppContext";
+import { useExtraEditGuard } from "./hooks/useExtraEditGuard";
+import { WORKFLOW_ROW_GRID, INPUT_EDITABLE } from "./details/cardTokens";
+import { Lock, ImagePlus } from "lucide-react";
 import { useSessionFinancialsWithExtras } from "@/features/workflow/hooks/useSessionFinancialsWithExtras";
 import {
   useMonthAccessControl,
@@ -71,6 +74,36 @@ export function WorkflowCardCollapsed({
   const [workflowPaymentsOpen, setWorkflowPaymentsOpen] = useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState(session.descricao || "");
+  const [qtdFotosExtraValue, setQtdFotosExtraValue] = useState(String(session.qtdFotosExtra || 0));
+
+  const galeriaHasSales =
+    (session.galeriaStatusPagamento === "pago" ||
+      Number((session as any).galerias?.valor_total_vendido ?? 0) > 0);
+
+  const regrasPacote =
+    (session as any)?.regras_congeladas?.pacote ??
+    (session as any)?.regrasDePrecoFotoExtraCongeladas?.pacote;
+  const precoBaseTabela = Number(regrasPacote?.valorFotoExtra ?? 0);
+  const precoEfetivo = Number(regrasPacote?.valorFotoExtraEfetivo ?? precoBaseTabela);
+  const hasDescontoProgressivo =
+    precoBaseTabela > 0 &&
+    precoEfetivo > 0 &&
+    Math.abs(precoBaseTabela - precoEfetivo) > 0.01;
+
+  const { pendingExtraEdit, requestExtraEdit, confirmExtraEdit, cancelExtraEdit } = useExtraEditGuard({
+    sessionId: session.id,
+    galeriaHasSales: Boolean(galeriaHasSales),
+    hasDescontoProgressivo,
+    extrasOverridden: Boolean(session.extrasOverridden),
+    onFieldUpdate,
+    setQtdFotosExtraValue
+  });
+
+  const handleQtdFotosExtraBlur = useCallback(() => {
+    const sanitized = String(Math.max(0, parseInt(qtdFotosExtraValue, 10) || 0));
+    setQtdFotosExtraValue(sanitized);
+    requestExtraEdit("qtdFotosExtra", sanitized, String(session.qtdFotosExtra || 0));
+  }, [qtdFotosExtraValue, session.qtdFotosExtra, requestExtraEdit]);
 
   useEffect(() => {
     setDescriptionValue(session.descricao || "");
@@ -99,6 +132,12 @@ export function WorkflowCardCollapsed({
     session.sessionId || null,
   );
   const hasGaleria = fin.hasGaleria;
+
+  useEffect(() => {
+    if (session.extrasOverridden) return;
+    const resolvedQtd = fin.qtdExtras > 0 ? fin.qtdExtras : (Number(session.qtdFotosExtra) || 0);
+    setQtdFotosExtraValue(String(resolvedQtd));
+  }, [fin.qtdExtras, session.extrasOverridden, session.qtdFotosExtra]);
 
   const calculateRestante = useCallback(() => {
     if (fin.totalVisual > 0 || fin.pagoTotal > 0) {
@@ -254,36 +293,39 @@ export function WorkflowCardCollapsed({
   return (
     <>
       <div 
-        className={cn("group relative flex items-center gap-4 px-4 py-3 transition-colors cursor-pointer min-h-[72px]", isExpanded ? "bg-transparent" : "bg-card hover:bg-muted/10 rounded-xl border border-border/40 shadow-[0_4px_30px_rgba(0,0,0,0.02)]")} 
+        className={cn("group relative px-4 py-3 transition-colors cursor-pointer min-h-[72px]", WORKFLOW_ROW_GRID, isExpanded ? "bg-transparent" : "bg-card hover:bg-muted/10 rounded-xl border border-border/40 shadow-[0_4px_30px_rgba(0,0,0,0.02)]")} 
         onClick={onToggleExpand}
       >
-        <SessionDateBlock 
-          dataSessao={session.data} 
-          horaSessao={session.hora} 
-          appointmentId={session.appointmentId} 
-          className="hidden md:flex" 
-        />
+        <div className="hidden md:flex min-w-0">
+          <SessionDateBlock 
+            dataSessao={session.data} 
+            horaSessao={session.hora} 
+            appointmentId={session.appointmentId} 
+          />
+        </div>
         
-        <SessionClientCell 
-          clientId={session.clienteId} 
-          nome={session.nome} 
-          avatarUrl={session.avatarUrl} 
-          categoria={session.categoria} 
-          whatsapp={session.whatsapp} 
-          className="flex-1 min-w-[200px]" 
-        />
+        <div className="min-w-0 flex items-center">
+          <SessionClientCell 
+            clientId={session.clienteId} 
+            nome={session.nome} 
+            avatarUrl={session.avatarUrl} 
+            categoria={session.categoria} 
+            whatsapp={session.whatsapp} 
+            className="min-w-0 w-full" 
+          />
+        </div>
 
-        <div className="w-48 xl:w-56 shrink-0 hidden md:flex items-center px-1" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center px-1 min-w-0" onClick={e => e.stopPropagation()}>
           <input
             value={descriptionValue}
             onChange={(e) => setDescriptionValue(e.target.value)}
             onBlur={handleDescriptionBlur}
             placeholder="Adicionar descrição..."
-            className="w-full text-[13px] bg-transparent border border-transparent hover:border-border/60 hover:bg-muted/30 focus:border-border focus:bg-background focus:ring-2 focus:ring-accent-gold/40 rounded-lg px-3 py-1.5 transition-all text-muted-foreground focus:text-foreground placeholder:text-muted-foreground/50 outline-none"
+            className="w-full text-[13px] bg-transparent border border-transparent hover:border-border/60 hover:bg-muted/30 focus:border-border focus:bg-background focus:ring-2 focus:ring-accent-gold/40 rounded-lg px-2 py-1.5 transition-all text-muted-foreground focus:text-foreground placeholder:text-muted-foreground/50 outline-none"
           />
         </div>
 
-        <div className="w-48 shrink-0 hidden md:block" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center min-w-0" onClick={e => e.stopPropagation()}>
           <WorkflowPackageCombobox
             key={`package-${session.id}`}
             value={pacoteAtual}
@@ -299,7 +341,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="w-32 shrink-0 hidden md:flex items-center justify-center" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
           <SessionStatusSelect
             status={session.status}
             statusOptions={statusOptions}
@@ -307,22 +349,45 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="w-24 shrink-0 hidden lg:flex items-center justify-center" onClick={e => e.stopPropagation()}>
+        <div className="hidden @4xl:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
           <ProductStatusChip
             produtos={session.produtosList as any}
             onClick={() => setModalAberto(true)}
           />
         </div>
 
-        <SessionMetricCell 
-          sessionId={session.sessionId || null}
-          clienteId={(session as any).clienteId || null}
-          pendente={pendente}
-          formatCurrency={formatCurrency}
-          className="w-24 shrink-0 hidden md:flex"
-        />
+        <div className="hidden @6xl:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
+          {fin.hasGaleria ? (
+            <div className="flex items-center gap-1.5 text-muted-foreground" title="Editar no card expandido">
+              <Lock className="h-3 w-3 opacity-50" />
+              <span className="text-[13px] tabular-nums font-medium">{qtdFotosExtraValue}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <ImagePlus className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <input
+                type="number"
+                min={0}
+                value={qtdFotosExtraValue}
+                onChange={(e) => setQtdFotosExtraValue(e.target.value)}
+                onBlur={handleQtdFotosExtraBlur}
+                placeholder="—"
+                className={cn(INPUT_EDITABLE, "w-12 px-1 text-center bg-transparent border-transparent shadow-none hover:bg-muted/40 focus:bg-background")}
+              />
+            </div>
+          )}
+        </div>
 
-        <div className="w-28 shrink-0 hidden md:flex items-center justify-center" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex flex-col items-end justify-center min-w-0">
+          <SessionMetricCell 
+            sessionId={session.sessionId || null}
+            clienteId={(session as any).clienteId || null}
+            pendente={pendente}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+
+        <div className="hidden md:flex items-center min-w-0" onClick={e => e.stopPropagation()}>
           <CardGalleryButtons
             galerias={galerias}
             hasGalerias={hasGalerias}
@@ -334,13 +399,14 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <SessionRowMenu 
-          clientId={session.clienteId}
-          onOpenProdutos={() => setModalAberto(true)}
-          onOpenPaymentModal={() => setWorkflowPaymentsOpen(true)}
-          onCancelSession={() => setDeleteModalOpen(true)}
-          className="hidden md:flex"
-        />
+        <div className="hidden md:flex items-center justify-end min-w-0">
+          <SessionRowMenu 
+            clientId={session.clienteId}
+            onOpenProdutos={() => setModalAberto(true)}
+            onOpenPaymentModal={() => setWorkflowPaymentsOpen(true)}
+            onCancelSession={() => setDeleteModalOpen(true)}
+          />
+        </div>
       </div>
 
       {/* Modais renderizados FORA do wrapper com onClick={onToggleExpand}.

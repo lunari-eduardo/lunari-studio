@@ -87,9 +87,9 @@ export function useSalesAnalyticsRefactored(
     
     return {
       ...analyticsResult.metrics,
-      conversionRate: leadMetrics.taxaConversao
+      conversionRate: leadMetrics?.taxaConversao ?? 0
     };
-  }, [analyticsResult?.metrics, leadMetrics.taxaConversao]);
+  }, [analyticsResult?.metrics, leadMetrics?.taxaConversao]);
 
   return {
     // Main metrics (with conversion rate override)

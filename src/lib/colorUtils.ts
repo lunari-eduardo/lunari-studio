@@ -168,19 +168,19 @@ export function getStatusTone(hex: string): StatusTone {
   const rgb = hexToRgb(hex) || { r: 120, g: 120, b: 120 };
   const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
   
-  // Claro: fundo = hex @ 12%, borda = hex @ 28%
+  // Claro: fundo = hex @ 20%, borda = hex @ 45%
   // Texto: escurece a cor se for muito clara para manter contraste 4.5:1
-  const textLightHsv = { ...hsv, s: Math.max(hsv.s, 60), v: Math.min(hsv.v, 45) };
+  const textLightHsv = { ...hsv, s: Math.max(hsv.s, 65), v: Math.min(hsv.v, 38) };
   const textLight = hsvToHex(textLightHsv.h, textLightHsv.s, textLightHsv.v);
-  const bgLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12)`;
-  const borderLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28)`;
+  const bgLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.20)`;
+  const borderLight = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)`;
 
-  // Escuro: fundo = hex @ 16%, borda = hex @ 32%
+  // Escuro: fundo = hex @ 24%, borda = hex @ 45%
   // Texto: clareia a cor para dar contraste no escuro
-  const textDarkHsv = { ...hsv, s: Math.min(hsv.s, 70), v: Math.max(hsv.v, 90) };
+  const textDarkHsv = { ...hsv, s: Math.max(hsv.s, 65), v: Math.max(hsv.v, 90) };
   const textDark = hsvToHex(textDarkHsv.h, textDarkHsv.s, textDarkHsv.v);
-  const bgDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.16)`;
-  const borderDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.32)`;
+  const bgDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.24)`;
+  const borderDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)`;
 
   return { bgLight, borderLight, textLight, bgDark, borderDark, textDark };
 }

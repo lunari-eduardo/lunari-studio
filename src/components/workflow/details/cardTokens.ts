@@ -30,3 +30,9 @@ export const BLOCK_ICON_CLS = "h-3.5 w-3.5 text-muted-foreground/70";
 export const SECTION_TITLE_CLS =
   "text-[11px] font-semibold uppercase tracking-[0.1em] text-foreground/80";
 
+export const WORKFLOW_ROW_GRID = 
+  "flex md:grid items-center gap-4 md:gap-x-3 " +
+  "md:grid-cols-[56px_minmax(190px,240px)_minmax(140px,1fr)_176px_168px_96px_120px_32px] " +
+  "@4xl:grid-cols-[56px_minmax(190px,240px)_minmax(140px,1fr)_176px_168px_84px_96px_120px_32px] " +
+  "@6xl:grid-cols-[56px_minmax(190px,240px)_minmax(140px,1fr)_176px_168px_84px_80px_96px_120px_32px]";
+

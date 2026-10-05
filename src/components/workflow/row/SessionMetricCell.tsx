@@ -1,6 +1,7 @@
 import { SessionCreditBadge } from "@/components/finance/SessionCreditBadge";
 import { useSessionCreditContext } from "@/hooks/useSessionCreditContext";
 import { cn } from "@/lib/utils";
+import { CheckCircle2 } from "lucide-react";
 
 interface SessionMetricCellProps {
   sessionId: string | null;
@@ -40,8 +41,12 @@ export function SessionMetricCell({
         </div>
       ) : (
         <div className="flex flex-col items-end">
-          <span className="text-sm font-semibold text-foreground/40 tabular-nums leading-none">
-            Quitado
+          <span 
+            className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/25 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-500/30"
+            title="Quitado"
+          >
+            <CheckCircle2 className="h-3 w-3" />
+            Pago
           </span>
         </div>
       )}

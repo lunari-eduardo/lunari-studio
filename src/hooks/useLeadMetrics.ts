@@ -1,4 +1,4 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { useLeads } from "./useLeads";
 import { useLeadStatuses } from "./useLeadStatuses";
 import { getLossReasons } from "@/config/motivosPerda";
@@ -12,6 +12,12 @@ export interface LeadMetrics {
   leadsPerdidos: number;
   taxaConversao: number;
   topMotivoPerda: string | null;
+}
+
+export interface UseLeadMetricsResult extends LeadMetrics {
+  metrics: LeadMetrics;
+  topMotivoLabel: string | null;
+  hasData: boolean;
 }
 
 export type PeriodType =
@@ -39,7 +45,7 @@ export interface PeriodFilter {
   periodType: PeriodType;
 }
 
-export function useLeadMetrics(periodFilter?: PeriodFilter) {
+export function useLeadMetrics(periodFilter?: PeriodFilter): UseLeadMetricsResult {
   const { leads } = useLeads();
   const { statuses } = useLeadStatuses();
   const lossReasons = getLossReasons();
@@ -116,5 +122,14 @@ export function useLeadMetrics(periodFilter?: PeriodFilter) {
     };
   }, [filteredLeads, lossReasons, statuses]);
 
-  return metrics;
+  const topMotivoLabel = useMemo(() => {
+    return metrics.topMotivoPerda;
+  }, [metrics.topMotivoPerda]);
+
+  return {
+    metrics,
+    topMotivoLabel,
+    hasData: filteredLeads.length > 0,
+    ...metrics,
+  };
 }

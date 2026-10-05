@@ -40,20 +40,19 @@ export function CardGalleryButtons({
   onCreateEntrega,
 }: Props) {
   return (
-    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-      {!temTodas && (
+    <div className="grid grid-cols-[72px_56px] gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {!temTodas ? (
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              size={compact ? "sm" : "default"}
-              className={compact ? "h-6 px-2 text-[10px] gap-1" : "h-7 px-2.5 text-xs gap-1"}
+              className={compact ? "h-7 px-2 text-[10px] gap-1 rounded-lg" : "h-8 px-2.5 text-xs gap-1 rounded-lg"}
             >
-              <Plus className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <Plus className="h-3.5 w-3.5" />
               Criar
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-48 p-1" align="end" side="bottom">
+          <PopoverContent className="w-48 p-1" align="start" side="bottom">
             {!temSelecao && (
               <button
                 onClick={onCreateSelecao}
@@ -74,17 +73,18 @@ export function CardGalleryButtons({
             )}
           </PopoverContent>
         </Popover>
+      ) : (
+        <span aria-hidden />
       )}
 
-      {hasGalerias && (
+      {hasGalerias ? (
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              size={compact ? "sm" : "default"}
-              className={compact ? "h-6 px-1.5 text-[10px] gap-0.5" : "h-7 px-2 text-xs gap-1"}
+              className={compact ? "h-7 px-1.5 text-[10px] gap-0.5 rounded-lg border border-transparent hover:bg-muted/50" : "h-8 px-2 text-xs gap-1 rounded-lg border border-transparent hover:bg-muted/50"}
             >
-              <Eye className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+              <Eye className="h-3.5 w-3.5" />
               Ver
             </Button>
           </PopoverTrigger>
@@ -109,6 +109,8 @@ export function CardGalleryButtons({
             ))}
           </PopoverContent>
         </Popover>
+      ) : (
+        <span aria-hidden />
       )}
     </div>
   );

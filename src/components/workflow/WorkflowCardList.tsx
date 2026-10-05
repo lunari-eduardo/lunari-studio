@@ -61,7 +61,7 @@ export function WorkflowCardList({ initialExpandedId,
   return (
     <div 
       ref={containerRef}
-      className="h-full w-full overflow-auto p-4 md:p-6"
+      className="h-full w-full overflow-auto p-4 md:p-6 @container"
       style={{ height: 'calc(100vh - 280px)', paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
     >
       <div className="flex flex-col gap-3 md:gap-4 overflow-x-auto">
