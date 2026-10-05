@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Chat, Mensagem, MensagemInsert, MensagemUpdate, Nota } from '@/modules/conversas/types';
+import { chatDataCache } from './conversas/chatMessageCache';
 
 const DEBUG = false;
 
@@ -76,14 +77,27 @@ export function useConversasChat(
   const { autoMarkRead = true } = options;
   const { user } = useAuth();
 
+  const cached = chatId ? chatDataCache.get(chatId) : null;
+
   const [chat, setChat] = useState<Chat | null>(null);
-  const [mensagens, setMensagens] = useState<MensagemLocal[]>([]);
-  const [notas, setNotas] = useState<Nota[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [mensagens, setMensagens] = useState<MensagemLocal[]>(cached ? (cached.mensagens as MensagemLocal[]) : []);
+  const [notas, setNotas] = useState<Nota[]>(cached ? cached.notas : []);
+  const [isLoading, setIsLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [presenceStatus, setPresenceStatus] = useState<string | null>(null);
   const [isSyncingHistory, setIsSyncingHistory] = useState(false);
+
+  // Sync state back to cache whenever it changes, ensuring seamless unmount/remount
+  useEffect(() => {
+    if (chatId && mensagens.length > 0) {
+      chatDataCache.set(chatId, {
+        mensagens: mensagens,
+        notas: notas,
+        lastFetch: Date.now(),
+      });
+    }
+  }, [chatId, mensagens, notas]);
 
   const PAGE_SIZE = 50;
   // P0-05 / Fase 2 — primeira página reduzida para combinar com WhatsApp (carrega
@@ -115,10 +129,18 @@ export function useConversasChat(
 
     const load = async () => {
       try {
-        setIsLoading(true);
+        const hasCache = chatDataCache.has(chatId);
+        if (!hasCache) {
+          setIsLoading(true);
+          setMensagens([]);
+          setNotas([]);
+        } else {
+          // If the component didn't unmount but chatId changed, apply cache immediately
+          const cachedEntry = chatDataCache.get(chatId)!;
+          setMensagens(cachedEntry.mensagens as MensagemLocal[]);
+          setNotas(cachedEntry.notas);
+        }
         setError(null);
-        setMensagens([]);
-        setNotas([]);
         setPage(0);
 
         const currentUserId = user?.id || (await loadUserId());
@@ -164,6 +186,14 @@ export function useConversasChat(
         if (notasResult.error) console.warn('[Conversas] Notas load error:', notasResult.error);
         if (!cancelled) {
           setNotas(notasResult.data ?? []);
+        }
+
+        if (!cancelled) {
+          chatDataCache.set(chatId, {
+            mensagens: (mensagensResult.data ?? []).reverse() as Mensagem[],
+            notas: notasResult.data ?? [],
+            lastFetch: Date.now(),
+          });
         }
 
         // Auto-mark read
@@ -437,7 +467,7 @@ export function useConversasChat(
         created_at: new Date().toISOString(),
         is_deleted: false,
         is_edited: false,
-        edited_at: null,
+        edited_at: null, audio_transcript: null,
       };
 
       // Optimistic insert
@@ -534,7 +564,7 @@ export function useConversasChat(
         created_at: new Date().toISOString(),
         is_deleted: false,
         is_edited: false,
-        edited_at: null,
+        edited_at: null, audio_transcript: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);
@@ -656,7 +686,7 @@ export function useConversasChat(
         created_at: new Date().toISOString(),
         is_deleted: false,
         is_edited: false,
-        edited_at: null,
+        edited_at: null, audio_transcript: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);
@@ -772,7 +802,7 @@ export function useConversasChat(
         created_at: new Date().toISOString(),
         is_deleted: false,
         is_edited: false,
-        edited_at: null,
+        edited_at: null, audio_transcript: null,
       };
 
       setMensagens(prev => [...prev, optimisticMsg]);

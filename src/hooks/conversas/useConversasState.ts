@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { initAudio, playNotificationSound, showBrowserNotification, requestNotificationPermission } from '@/modules/conversas/notifications';
 import type { Chat } from '@/modules/conversas/types';
 import type { InstanciaStatus, ContactType, EnrichedChat } from '@/modules/conversas/types';
+import { preloadUnreadChats } from './chatMessageCache';
 
 const DEBUG = false;
 
@@ -40,6 +41,15 @@ export function useConversasState(realtime: boolean) {
     const { data: { session } } = await supabase.auth.getSession();
     return session?.user?.id ?? null;
   }, [user?.id]);
+
+  useEffect(() => {
+    // Preload unread messages in the background so there's no delay when opening them
+    loadUserId().then(userId => {
+      if (userId && chats.length > 0) {
+        preloadUnreadChats(userId, chats);
+      }
+    });
+  }, [chats, loadUserId]);
 
   const loadContatoTipos = useCallback(async (userId: string) => {
     const { data } = await supabase
