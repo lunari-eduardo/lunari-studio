@@ -273,12 +273,21 @@ export function WorkflowCardCollapsed({
           className="flex-1 min-w-[200px]" 
         />
 
+        <div className="w-48 xl:w-56 shrink-0 hidden md:flex items-center px-1" onClick={e => e.stopPropagation()}>
+          <input
+            value={descriptionValue}
+            onChange={(e) => setDescriptionValue(e.target.value)}
+            onBlur={handleDescriptionBlur}
+            placeholder="Adicionar descrição..."
+            className="w-full text-[13px] bg-transparent border border-transparent hover:border-border/60 hover:bg-muted/30 focus:border-border focus:bg-background focus:ring-2 focus:ring-accent-gold/40 rounded-lg px-3 py-1.5 transition-all text-muted-foreground focus:text-foreground placeholder:text-muted-foreground/50 outline-none"
+          />
+        </div>
+
         <div className="w-48 shrink-0 hidden md:block" onClick={e => e.stopPropagation()}>
           <WorkflowPackageCombobox
             key={`package-${session.id}`}
             value={pacoteAtual}
             displayName={displayPackageName}
-            description={descriptionValue}
             variant="inline"
             onValueChange={(packageData) => {
               if (!packageData.id && !packageData.nome) {

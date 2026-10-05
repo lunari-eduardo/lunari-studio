@@ -327,7 +327,7 @@ function WorkflowContent() {
                   placeholder="Buscar por cliente ou e-mail..."
                   value={filters.searchTerm}
                   onChange={(e) => filters.setSearchTerm(e.target.value)}
-                  className="pl-10 h-9"
+                  className="pl-9 h-9 bg-muted/30 hover:bg-muted/50 border-0 rounded-full focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/20 shadow-none transition-colors"
                 />
               </div>
 
@@ -429,3 +429,4 @@ function WorkflowContent() {
     </div>
   );
 }
+

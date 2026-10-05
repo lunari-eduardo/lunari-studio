@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Financials {
   totalMonth: number;
@@ -21,20 +22,13 @@ interface Props {
 const formatCurrency = (value: unknown) =>
   `R$ ${(Number(value) || 0).toFixed(2).replace(".", ",")}`;
 
-const Skeleton = ({ w = "w-16" }: { w?: string }) => (
+const Skeleton = ({ w = "w-24" }: { w?: string }) => (
   <span
-    className={`inline-block h-4 ${w} rounded bg-muted/60 animate-pulse`}
+    className={`inline-block h-7 ${w} rounded-md bg-muted/60 animate-pulse`}
     aria-hidden="true"
   />
 );
 
-/**
- * Barra de métricas do Workflow.
- * Fonte canônica: RPC `workflow_month_metrics` (via useWorkflowMetricsRealtime).
- *
- * Enquanto `isLoading`, valores são substituídos por skeletons — evita
- * mostrar valores do mês anterior durante a troca.
- */
 export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionCount, isLoading = false }: Props) {
   if (!showMetrics) {
     return (
@@ -43,7 +37,7 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
           variant="ghost"
           size="sm"
           onClick={() => onToggle(true)}
-          className="h-7 px-2 text-xs text-muted-foreground gap-1.5"
+          className="h-7 px-2 text-xs text-muted-foreground gap-1.5 hover:text-foreground"
         >
           <Eye className="h-3.5 w-3.5" />
           Mostrar métricas
@@ -56,58 +50,94 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
   const creditosUtilizados = Number(financials.creditosUtilizados) || 0;
 
   return (
-    <div className="flex items-center gap-4 sm:gap-5 flex-wrap bg-card/30 backdrop-blur-lg dark:bg-card/[0.04] border border-white/50 dark:border-white/10 rounded-lg px-4 py-2.5">
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-        <span className="text-[11px] text-muted-foreground">Receita</span>
-        {isLoading
-          ? <Skeleton />
-          : <span className="text-sm font-bold text-green-500">{formatCurrency(financials.paidMonth)}</span>}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-        <span className="text-[11px] text-muted-foreground">Previsto</span>
-        {isLoading
-          ? <Skeleton />
-          : <span className="text-sm font-bold text-blue-500">{formatCurrency(financials.totalMonth)}</span>}
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0" />
-        <span className="text-[11px] text-muted-foreground">Pendente</span>
-        {isLoading
-          ? <Skeleton />
-          : <span className="text-sm font-bold text-orange-500">{formatCurrency(financials.remainingMonth)}</span>}
+    <div className="flex items-center gap-6 sm:gap-8 flex-wrap px-1 pt-2 pb-4 relative group">
+      
+      {/* Receita */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+          Receita
+        </div>
+        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+          {isLoading ? <Skeleton /> : formatCurrency(financials.paidMonth)}
+        </span>
       </div>
 
-      {!isLoading && creditosGerados > 0 && (
-        <div className="flex items-center gap-1.5" title="Crédito gerado por overpayment em sessões deste mês">
-          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-          <span className="text-[11px] text-muted-foreground">Créd. gerados</span>
-          <span className="text-sm font-bold text-amber-500">{formatCurrency(creditosGerados)}</span>
+      <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
+
+      {/* Previsto */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+          Previsto
         </div>
+        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+          {isLoading ? <Skeleton /> : formatCurrency(financials.totalMonth)}
+        </span>
+      </div>
+
+      <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
+
+      {/* Pendente */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+          Pendente
+        </div>
+        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+          {isLoading ? <Skeleton /> : formatCurrency(financials.remainingMonth)}
+        </span>
+      </div>
+
+      {(!isLoading && creditosGerados > 0) && (
+        <>
+          <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
+          <div className="flex flex-col gap-1.5" title="Crédito gerado por overpayment em sessões deste mês">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Créd. Gerados
+            </div>
+            <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+              {formatCurrency(creditosGerados)}
+            </span>
+          </div>
+        </>
       )}
 
-      {!isLoading && creditosUtilizados > 0 && (
-        <div className="flex items-center gap-1.5" title="Créditos aplicados como pagamento em sessões deste mês">
-          <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
-          <span className="text-[11px] text-muted-foreground">Créd. utilizados</span>
-          <span className="text-sm font-bold text-indigo-500">{formatCurrency(creditosUtilizados)}</span>
-        </div>
+      {(!isLoading && creditosUtilizados > 0) && (
+        <>
+          <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
+          <div className="flex flex-col gap-1.5" title="Créditos aplicados como pagamento em sessões deste mês">
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              Créd. Usados
+            </div>
+            <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+              {formatCurrency(creditosUtilizados)}
+            </span>
+          </div>
+        </>
       )}
 
-      <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-violet-500 shrink-0" />
-        <span className="text-[11px] text-muted-foreground">Sessões</span>
-        {isLoading
-          ? <Skeleton w="w-8" />
-          : <span className="text-sm font-bold">{sessionCount}</span>}
+      <div className="w-[1px] h-8 bg-border/40 hidden sm:block" />
+
+      {/* Sessões */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-widest">
+          <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+          Sessões
+        </div>
+        <span className="text-[22px] font-bold tracking-tight text-foreground leading-none">
+          {isLoading ? <Skeleton w="w-12" /> : sessionCount}
+        </span>
       </div>
 
+      {/* Ocultar (Aparece no hover do container) */}
       <Button
         variant="ghost"
         size="icon"
         onClick={() => onToggle(false)}
-        className="h-7 w-7 shrink-0 ml-auto"
+        className="h-7 w-7 ml-auto shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
         title="Ocultar métricas"
       >
         <EyeOff className="h-4 w-4 text-muted-foreground" />

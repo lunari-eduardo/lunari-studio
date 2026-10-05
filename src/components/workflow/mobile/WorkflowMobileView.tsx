@@ -135,7 +135,7 @@ export function WorkflowMobileView({
   }, [filters]);
 
   return (
-    <div className="w-full space-y-3.5 px-2.5 pt-1 pb-16">
+    <div className="w-full space-y-3.5 px-2.5 pt-1" style={{ paddingBottom: "calc(8rem + env(safe-area-inset-bottom))" }}>
       {/* 1. CABEÇALHO COM TÍTULO E SUBTÍTULO + AÇÃO VENDA AVULSA */}
       <div className="flex items-center justify-between gap-2">
         <div>
@@ -517,3 +517,4 @@ export function WorkflowMobileView({
     </div>
   );
 }
+

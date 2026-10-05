@@ -180,9 +180,7 @@ const WorkflowPackageComboboxComponent = ({
                   <span className="text-[13px] font-medium leading-none truncate">
                     {displayName || selectedPackage?.nome}
                   </span>
-                  <span className={cn("text-[11px] text-muted-foreground truncate leading-none mt-1", !description && "opacity-0")}>
-                    {description || "Personalizado"}
-                  </span>
+                  {description && (<span className="text-[11px] text-muted-foreground truncate leading-none mt-1">{description}</span>)}
                 </>
               ) : (
                 <span className="text-xs italic text-muted-foreground truncate">
