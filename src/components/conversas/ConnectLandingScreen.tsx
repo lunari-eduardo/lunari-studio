@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useConversas } from '@/hooks/useConversasRealtime';
+import { useGlobalConversas } from '@/contexts/ConversasContext';
 import { ConnectHero } from './connect/ConnectHero';
 import { PhoneMockup } from './connect/PhoneMockup';
 import { QrCodePanel } from './connect/QrCodePanel';
@@ -17,7 +17,7 @@ import { BenefitGrid } from './connect/BenefitGrid';
 import { ExternalLink, Lightbulb } from 'lucide-react';
 
 export function ConnectLandingScreen() {
-  const { instancias, createInstance, refreshQrCode, isLoading } = useConversas();
+  const { instancias, createInstance, refreshQrCode, isLoading } = useGlobalConversas();
   const [creating, setCreating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 

@@ -13,7 +13,7 @@ import { EmptyChatState } from './EmptyChatState';
 import { MessagesSkeleton } from './skeletons';
 import { ManageLabelsModal } from '../shared/ManageLabelsModal';
 import { LibraryPanel } from '../templates/LibraryPanel';
-import { useConversas } from '@/hooks/useConversasRealtime';
+import { useGlobalConversas } from '@/contexts/ConversasContext';
 import type { UseConversasReturn } from '@/hooks/conversas/types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import type { EnrichedChat, Contato } from '@/modules/conversas/types';
@@ -22,12 +22,14 @@ import { toast } from 'sonner';
 
 export interface WhatsAppLayoutProps {
   onNewChat: () => void;
-  conversas?: UseConversasReturn;
+  conversas?: UseConversasReturn; // Kept for compatibility but we will use global if not passed
 }
 
+let lastOpenedChatId: string | null = null;
+
 export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsAppLayoutProps) {
-  const hookConversas = useConversas({ realtime: !propConversas });
-  const conversasData = propConversas ?? hookConversas;
+  const globalConversas = useGlobalConversas();
+  const conversasData = propConversas ?? globalConversas;
   const {
     chats,
     instancias,
@@ -62,6 +64,15 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
 
   const selectedChatId = searchParams.get('chat');
   const mobileShowChat = Boolean(selectedChatId);
+
+  useEffect(() => {
+    if (selectedChatId) {
+      lastOpenedChatId = selectedChatId;
+    } else if (lastOpenedChatId && !isMobile) {
+      setSearchParams({ chat: lastOpenedChatId }, { replace: true });
+    }
+  }, [selectedChatId, isMobile, setSearchParams]);
+
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLabelsModalOpen, setIsLabelsModalOpen] = useState(false);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
@@ -78,6 +89,7 @@ export function WhatsAppLayout({ onNewChat, conversas: propConversas }: WhatsApp
   };
 
   const handleBackToChatList = () => {
+    lastOpenedChatId = null;
     if (window.history.length > 1) {
       navigate(-1);
     } else {

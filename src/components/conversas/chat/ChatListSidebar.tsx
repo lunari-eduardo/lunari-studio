@@ -1,16 +1,16 @@
 /**
- * Sidebar esquerda do mÛdulo Conversas.
+ * Sidebar esquerda do m√≥dulo Conversas.
  *
- * Layout: barra de inst‚ncia ? header com busca ? filtros prim·rios & etapas ?
+ * Layout: barra de inst√¢ncia ? header com busca ? filtros prim√°rios & etapas ?
  * lista de chats.
  *
  * Filtros suportados:
  * - Todas (conversas ativas)
- * - N„o lidas (mensagens pendentes)
+ * - N√£o lidas (mensagens pendentes)
  * - Dropdown com:
- *   - CRM & VÌnculos: Clientes, Todos os Leads, Outros Contatos
- *   - Etapas do Funil (Leads): cada status do CRM com cor oficial e contagem din‚mica
- *   - Status & OrganizaÁ„o: Fixadas, Arquivadas
+ *   - CRM & V√≠nculos: Clientes, Todos os Leads, Outros Contatos
+ *   - Etapas do Funil (Leads): cada status do CRM com cor oficial e contagem din√¢mica
+ *   - Status & Organiza√ß√£o: Fixadas, Arquivadas
  */
 
 import { useMemo, useState } from 'react';
@@ -90,11 +90,11 @@ export interface ChatListSidebarProps {
   onDisconnect?: () => void;
   onSyncChats?: () => void;
   isSyncingChats?: boolean;
-  /** Nome amig·vel do est˙dio (perfil.empresa ?? perfil.nome) usado na barra de inst‚ncia. */
+  /** Nome amig√°vel do est√∫dio (perfil.empresa ?? perfil.nome) usado na barra de inst√¢ncia. */
   studioDisplayName?: string | null;
   onTogglePin?: (chat: EnrichedChat, e?: React.MouseEvent) => void;
   isPinLimitReached?: boolean;
-  /** Contadores din‚micos para os filtros prim·rios (compatibilidade retroativa). */
+  /** Contadores din√¢micos para os filtros prim√°rios (compatibilidade retroativa). */
   chatCounts: ChatCounts;
   onArchive?: (chat: EnrichedChat) => void;
   onBlock?: (chat: EnrichedChat) => void;
@@ -138,7 +138,7 @@ export function ChatListSidebar({
   const { contatos } = useConversasContatos();
   const { etiquetas } = useConversasEtiquetas();
 
-  // --- Contadores din‚micos por categoria e etapas ------------------------------
+  // --- Contadores din√¢micos por categoria e etapas ------------------------------
   const counts = useMemo(() => {
     let all = 0;
     let unread = 0;
@@ -160,7 +160,7 @@ export function ChatListSidebar({
       all++;
       if ((c.unread_count ?? 0) > 0) unread++;
       if (c.contato_tipo === 'cliente') cliente++;
-      else if (c.contato_tipo === 'lead') lead++;
+      else if (c.contato_tipo === 'lead' || !!c.lead_id) lead++;
       else unknown++;
 
       if (c.pin === 'pinned') pinned++;
@@ -206,11 +206,11 @@ export function ChatListSidebar({
       } else if (activeFilter.type === 'cliente') {
         base = base.filter(c => c.contato_tipo === 'cliente');
       } else if (activeFilter.type === 'lead') {
-        base = base.filter(c => c.contato_tipo === 'lead');
+        base = base.filter(c => c.contato_tipo === 'lead' || !!c.lead_id);
       } else if (activeFilter.type === 'lead_stage') {
         base = base.filter(c => c.lead_id && leadStatusMap[c.lead_id] === activeFilter.stageKey);
       } else if (activeFilter.type === 'unknown') {
-        base = base.filter(c => c.contato_tipo !== 'cliente' && c.contato_tipo !== 'lead');
+        base = base.filter(c => c.contato_tipo !== 'cliente' && c.contato_tipo !== 'lead' && !c.lead_id);
       } else if (activeFilter.type === 'etiqueta') {
         base = base.filter(c => (c.etiquetas || []).includes(activeFilter.etiquetaId));
       } else if (activeFilter.type === 'pinned') {
@@ -227,13 +227,13 @@ export function ChatListSidebar({
     });
   }, [chats, activeFilter, leadStatusMap, search]);
 
-  // --- Contatos da agenda correspondentes ‡ busca textual -------------------
+  // --- Contatos da agenda correspondentes √† busca textual -------------------
   const matchedContacts = useMemo(() => {
     const q = search.toLowerCase().trim();
     if (!q) return [];
     const terms = q.split(/\s+/).filter(Boolean);
 
-    // Evita duplicar contatos que j· estejam na lista de conversas filtradas
+    // Evita duplicar contatos que j√° estejam na lista de conversas filtradas
     const existingPhones = new Set(filtered.map(c => c.contato_phone_normalized));
 
     return contatos.filter(ct => {
@@ -243,7 +243,7 @@ export function ChatListSidebar({
     });
   }, [contatos, filtered, search]);
 
-  // --- OrdenaÁ„o: fixadas primeiro (exceto em arquivadas), depois por data -----
+  // --- Ordena√ß√£o: fixadas primeiro (exceto em arquivadas), depois por data -----
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
       if (activeFilter.type !== 'archived') {
@@ -285,7 +285,7 @@ export function ChatListSidebar({
       case 'all':
         return `${total} conversa${plural ? 's' : ''}`;
       case 'unread':
-        return `${total} n„o lida${plural ? 's' : ''}`;
+        return `${total} n√£o lida${plural ? 's' : ''}`;
       case 'cliente':
         return `${total} cliente${plural ? 's' : ''}`;
       case 'lead':
@@ -303,7 +303,7 @@ export function ChatListSidebar({
 
   return (
     <div className="w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col bg-background border-r border-border h-full overflow-hidden">
-      {/* -- Barra de inst‚ncia -- */}
+      {/* -- Barra de inst√¢ncia -- */}
       {instance ? (
         <InstanceStatusBar
           instanceName={instance.instance_name}
@@ -327,7 +327,7 @@ export function ChatListSidebar({
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar conversaÖ"
+            placeholder="Buscar conversa¬Ö"
             className="pl-9 pr-7 h-9 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-transparent focus:border-border focus:bg-background transition-all"
           />
           {search && (
@@ -351,8 +351,8 @@ export function ChatListSidebar({
         </button>
       </div>
 
-      {/* -- Filtros r·pidos + Dropdown de Filtros AvanÁados e Etapas do CRM -- */}
-      <div className="px-3 pb-2 flex items-center gap-1.5 min-w-0">
+      {/* -- Filtros r√°pidos + Dropdown de Filtros Avan√ßados e Etapas do CRM -- */}
+      <div className="px-3 pb-2 flex items-center gap-1.5 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {/* Aba: Todas */}
         <button
           type="button"
@@ -379,7 +379,7 @@ export function ChatListSidebar({
           )}
         </button>
 
-        {/* Aba: N„o lidas */}
+        {/* Aba: N√£o lidas */}
         <button
           type="button"
           onClick={() => setActiveFilter({ type: 'unread' })}
@@ -390,7 +390,7 @@ export function ChatListSidebar({
               : 'bg-zinc-100/70 dark:bg-zinc-800/70 text-muted-foreground border border-transparent hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800',
           )}
         >
-          N„o lidas
+          N√£o lidas
           {counts.unread > 0 && (
             <span
               className={cn(
@@ -469,9 +469,9 @@ export function ChatListSidebar({
             align="end"
             className="w-64 max-h-[420px] overflow-y-auto p-1.5 shadow-xl rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md"
           >
-            {/* SeÁ„o 1: CRM & VÌnculos */}
+            {/* Se√ß√£o 1: CRM & V√≠nculos */}
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-              CRM & VÌnculos
+              CRM & V√≠nculos
             </DropdownMenuLabel>
 
             <DropdownMenuItem
@@ -533,7 +533,7 @@ export function ChatListSidebar({
               </DropdownMenuItem>
             )}
 
-            {/* SeÁ„o 2: Etapas de Leads */}
+            {/* Se√ß√£o 2: Etapas de Leads */}
             {leadStatuses.length > 0 && (
               <>
                 <DropdownMenuSeparator className="my-1" />
@@ -629,10 +629,10 @@ export function ChatListSidebar({
                 </>
               )
             }
-            {/* SeÁ„o 3: OrganizaÁ„o & Status */}
+            {/* Se√ß√£o 3: Organiza√ß√£o & Status */}
             <DropdownMenuSeparator className="my-1" />
             <DropdownMenuLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1">
-              Status & OrganizaÁ„o
+              Status & Organiza√ß√£o
             </DropdownMenuLabel>
 
             <DropdownMenuItem
@@ -673,7 +673,7 @@ export function ChatListSidebar({
               </div>
             </DropdownMenuItem>
 
-            {/* OpÁ„o para Redefinir se houver filtro ativo */}
+            {/* Op√ß√£o para Redefinir se houver filtro ativo */}
             {activeFilter.type !== 'all' && (
               <>
                 <DropdownMenuSeparator className="my-1" />
@@ -715,6 +715,7 @@ export function ChatListSidebar({
                 onOpenAssignLabels={() => setAssigningChat(c)}
                 onDelete={onDeleteChat}
                 leadStatus={getLeadStatusForChat(c)}
+                todasEtiquetas={etiquetas}
               />
             ))}
 
@@ -757,7 +758,7 @@ export function ChatListSidebar({
         )}
       </ScrollArea>
 
-      {/* -- RodapÈ com contador contextual -- */}
+      {/* -- Rodap√© com contador contextual -- */}
       {!isLoading && filtered.length > 0 && (
         <>
           <Separator className="shrink-0" />
@@ -785,7 +786,7 @@ function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: Sidebar
   const getFilterMessage = () => {
     switch (filter.type) {
       case 'unread':
-        return 'Nenhuma mensagem n„o lida';
+        return 'Nenhuma mensagem n√£o lida';
       case 'cliente':
         return 'Nenhum cliente com conversa ativa';
       case 'lead':
@@ -811,7 +812,7 @@ function EmptyState({ hasSearch, filter }: { hasSearch: boolean; filter: Sidebar
       </p>
       {!hasSearch && !isFiltered && (
         <p className="text-xs text-muted-foreground mt-1">
-          Conecte o WhatsApp para comeÁar
+          Conecte o WhatsApp para come√ßar
         </p>
       )}
     </div>

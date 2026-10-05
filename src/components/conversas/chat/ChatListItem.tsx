@@ -85,6 +85,7 @@ export const ChatListItem = React.memo(function ChatListItem({
         />
 
         <div className="flex-1 min-w-0 overflow-hidden">
+          {/* Row 1: Name and Date */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
               {isPinned && (
@@ -100,50 +101,59 @@ export const ChatListItem = React.memo(function ChatListItem({
               </span>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {activeEtiquetas.length > 0 ? (
-                <div className="flex items-center gap-1 overflow-hidden">
-                  <span
-                    className="inline-flex items-center gap-1.5 px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 shadow-sm border"
-                    style={{
-                      backgroundColor: `${activeEtiquetas[0].cor}15`,
-                      color: activeEtiquetas[0].cor,
-                      borderColor: `${activeEtiquetas[0].cor}30`
-                    }}
-                  >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: activeEtiquetas[0].cor }}
-                    />
-                    <span className="truncate max-w-[80px]">{activeEtiquetas[0].nome}</span>
-                  </span>
-                  {activeEtiquetas.length > 1 && (
-                    <span className="inline-flex items-center justify-center h-[18px] px-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 text-[9px] font-medium text-zinc-500 border border-zinc-200 dark:border-zinc-700/60 shadow-sm flex-shrink-0">
-                      +{activeEtiquetas.length - 1}
-                    </span>
-                  )}
-                </div>
-              ) : leadStatus ? (
+            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
+              {formatChatTimestamp(chat.ultima_mensagem_data)}
+            </span>
+          </div>
+
+          {/* Row 2: Tags */}
+          {(leadStatus || activeEtiquetas.length > 0) && (
+            <div className="flex items-center gap-1.5 mt-1 overflow-hidden">
+              {leadStatus && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-1.5 py-[2px] rounded-md text-[10px] font-medium flex-shrink-0 bg-zinc-50/80 border border-zinc-200/80 text-zinc-600 dark:bg-zinc-800/40 dark:border-zinc-700/80 dark:text-zinc-300 shadow-sm"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                 >
-                  {leadStatus.color && (
+                  {leadStatus.color ? (
                     <span
                       className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: leadStatus.color }}
                     />
+                  ) : (
+                    <div className="w-3 h-3 flex items-center justify-center flex-shrink-0">
+                      {chat.contato_tipo === 'cliente' ? (
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      )}
+                    </div>
                   )}
                   <span className="truncate max-w-[90px]">{leadStatus.label}</span>
                 </span>
-              ) : null}
+              )}
 
-              <span className="text-[11px] text-zinc-400 dark:text-zinc-500 flex-shrink-0 whitespace-nowrap font-medium">
-                {formatChatTimestamp(chat.ultima_mensagem_data)}
-              </span>
+              {activeEtiquetas.length > 0 && (
+                <div className="flex items-center gap-1 overflow-hidden">
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0"
+                    style={{
+                      backgroundColor: `${activeEtiquetas[0].cor}20`,
+                      color: activeEtiquetas[0].cor,
+                    }}
+                  >
+                    <span className="truncate max-w-[80px]">{activeEtiquetas[0].nome}</span>
+                  </span>
+                  {activeEtiquetas.length > 1 && (
+                    <span className="inline-flex items-center justify-center h-[18px] px-1 rounded bg-zinc-100 dark:bg-zinc-800/60 text-[9px] font-medium text-zinc-500 flex-shrink-0">
+                      +{activeEtiquetas.length - 1}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center justify-between gap-2 mt-0.5">
+          {/* Row 3: Message and Actions */}
+          <div className="flex items-center justify-between gap-2 mt-1">
             <span
               className={cn(
                 'truncate text-[13px] leading-tight block',
@@ -151,14 +161,14 @@ export const ChatListItem = React.memo(function ChatListItem({
               )}
             >
               {lastType && lastType !== 'text'
-                ? `?? ${chat.ultima_mensagem ?? lastType}`
+                ? `📄 ${chat.ultima_mensagem ?? lastType}`
                 : chat.ultima_mensagem ?? 'Sem mensagens ainda'}
             </span>
 
             {/* Actions Menu - Wrapped in pointer-events-auto to receive clicks properly */}
             <div className="flex items-center gap-0.5 flex-shrink-0 pointer-events-auto">
               {isUnread && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[10px] font-semibold mr-0.5">
+                <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-rose-600/90 dark:bg-rose-500/90 text-white text-[10px] font-semibold mr-0.5 shadow-sm">
                   {unread > 99 ? '99+' : unread}
                 </span>
               )}

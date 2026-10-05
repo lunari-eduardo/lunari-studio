@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useConversas } from '@/hooks/useConversasRealtime';
+import { useGlobalConversas } from '@/contexts/ConversasContext';
 import { ConnectLandingScreen } from '@/components/conversas/ConnectLandingScreen';
 import { WhatsAppLayout } from '@/components/conversas/chat/WhatsAppLayout';
 import { NewChatModal } from '@/components/conversas/chat/NewChatModal';
@@ -19,7 +19,7 @@ import { NewChatModal } from '@/components/conversas/chat/NewChatModal';
 import { ChatListSkeleton } from '@/components/conversas/chat/skeletons';
 
 export default function ConversasPage() {
-  const conversas = useConversas();
+  const conversas = useGlobalConversas();
   const { instanceViewState, connectedInstance } = conversas;
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [, setSearchParams] = useSearchParams();

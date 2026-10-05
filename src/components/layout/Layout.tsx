@@ -8,6 +8,7 @@ import { useEquipmentSync } from '@/hooks/useEquipmentSync';
 import { TrialBanner } from '@/components/subscription/TrialBanner';
 import { cn } from '@/lib/utils';
 import { AssistantLauncher } from '@/modules/assistant';
+import { ConversasProvider } from '@/contexts/ConversasContext';
 
 export default function Layout() {
   const isMobile = useIsMobile();
@@ -30,36 +31,40 @@ export default function Layout() {
 
   const hasBottomNav = (isMobile || responsiveMode === 'tablet-portrait') && !isEditor && !isConversasChatMobile;
 
-  return <div className="flex bg-background" style={{ height: '100dvh' }}>
-      <Sidebar hideBottomNav={isConversasChatMobile} />
-      
-      <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
+  return (
+    <ConversasProvider>
+      <div className="flex bg-background" style={{ height: '100dvh' }}>
+        <Sidebar hideBottomNav={isConversasChatMobile} />
+        
+        <div className="flex-1 flex flex-col overflow-hidden relative bg-background">
 
 
-        {!isConversasChatMobile && <TrialBanner />}
-        {!isConversasChatMobile && <Header />}
+          {!isConversasChatMobile && <TrialBanner />}
+          {!isConversasChatMobile && <Header />}
 
-        <main
-          className={cn(
-            "flex-1 relative z-10",
-            isFullScreen
-              ? "flex flex-col min-h-0 overflow-hidden p-0 m-0"
-              : "overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0",
-            hasBottomNav && "pb-14"
-          )}
-          style={hasBottomNav ? { paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' } : undefined}
-        >
-          <div className={cn("animate-lunar", isFullScreen && "flex-1 min-h-0 flex flex-col h-full")}>
-            <Outlet />
-          </div>
-        </main>
+          <main
+            className={cn(
+              "flex-1 relative z-10",
+              isFullScreen
+                ? "flex flex-col min-h-0 overflow-hidden p-0 m-0"
+                : "overflow-y-auto overflow-x-hidden p-1 md:p-2 px-[8px] scrollbar-elegant py-0 my-0",
+              hasBottomNav && "pb-14"
+            )}
+            style={hasBottomNav ? { paddingBottom: 'calc(3.5rem + env(safe-area-inset-bottom))' } : undefined}
+          >
+            <div className={cn("animate-lunar", isFullScreen && "flex-1 min-h-0 flex flex-col h-full")}>
+              <Outlet />
+            </div>
+          </main>
 
+        </div>
+        
+        {/* Equipment sync notifications */}
+        <EquipmentSyncNotification />
+        
+        {/* Assistente Lu (Onda E.3) */}
+        <AssistantLauncher />
       </div>
-      
-      {/* Equipment sync notifications */}
-      <EquipmentSyncNotification />
-      
-      {/* Assistente Lu (Onda E.3) */}
-      <AssistantLauncher />
-    </div>;
+    </ConversasProvider>
+  );
 }
