@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import LeadsKanban from "@/components/leads/LeadsKanban";
 import LeadMetricsCards from "@/components/leads/LeadMetricsCards";
 import UnifiedLeadFilters from "@/components/leads/UnifiedLeadFilters";
@@ -25,7 +25,8 @@ export default function Leads() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
-  const [showMetrics, setShowMetrics] = useState(!isMobile); 
+  const [showMetrics, setShowMetrics] = useState(!isMobile);
+  const [kanbanCreateOpen, setKanbanCreateOpen] = useState(false);
 
   const handlePeriodChange = (periodType: PeriodType) => {
     setPeriodFilter({ periodType });
@@ -81,25 +82,36 @@ export default function Leads() {
           isMobile ? "pt-2 pb-1" : "pt-3",
         )}
       >
+        {/* Header da página com subtítulo de pipeline */}
+        <div className={cn("flex items-center justify-between mb-3", isMobile ? "mb-2" : "")}>
+          <div>
+            <h1 className={cn("font-semibold text-lunar-text tracking-tight", isMobile ? "text-base" : "text-lg")}>
+              Leads
+            </h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {ativosCount} {ativosCount === 1 ? "lead" : "leads"} no pipeline
+            </p>
+          </div>
+
+          {/* Botão de métricas (apenas mobile) */}
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMetrics(!showMetrics)}
+              className="h-8 px-2 text-muted-foreground"
+            >
+              <BarChart3 className="h-4 w-4" />
+              {showMetrics ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+            </Button>
+          )}
+        </div>
+
         <div className="flex flex-col xl:flex-row xl:items-start gap-4 mb-2">
           {(!isMobile || showMetrics) && (
             <div className="flex-1 min-w-0 transition-all duration-300 animate-in slide-in-from-top-2">
               <LeadMetricsCards periodFilter={periodFilter} isMobile={isMobile} isCollapsed={isMobile && !showMetrics} />
             </div>
-          )}
-          {isMobile && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowMetrics(!showMetrics)}
-              className="w-full justify-between text-sm font-medium border-lunar-border/60 hover:border-lunar-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span>Métricas</span>
-              </div>
-              {showMetrics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
           )}
         </div>
 

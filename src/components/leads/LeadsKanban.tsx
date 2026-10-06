@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +10,9 @@ import {
   rectIntersection,
   useSensor,
   useSensors,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
   DragOverlay,
   useDroppable,
 } from "@dnd-kit/core";
@@ -38,6 +40,7 @@ export interface LeadsKanbanProps {
   searchTerm?: string;
   originFilter?: string;
   isMobile?: boolean;
+  onOpenCreate?: () => void;
 }
 
 export default function LeadsKanban({
@@ -45,6 +48,7 @@ export default function LeadsKanban({
   searchTerm = "",
   originFilter = "all",
   isMobile = false,
+  onOpenCreate,
 }: LeadsKanbanProps) {
   const navigate = useNavigate();
   const { leads, addLead, updateLead, deleteLead, convertToClient } = useLeads();
@@ -62,17 +66,26 @@ export default function LeadsKanban({
   const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
   const [leadForLossReason, setLeadForLossReason] = useState<Lead | null>(null);
   
-  // Envio de orÃ§amento
+  // Envio de orçamento
   const [sendProposalModalOpen, setSendProposalModalOpen] = useState(false);
   const [leadForProposal, setLeadForProposal] = useState<Lead | null>(null);
   const activeMaterials = useMemo(() => materials.filter(m => m.status === 'active' && !!m.current_version?.published_at), [materials]);
 
-  const pointerSensor = useSensor(PointerSensor, {
+  const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
       distance: 8,
     },
   });
-  const sensors = useSensors(pointerSensor);
+  // No mobile, exige 250ms de hold antes de ativar drag,
+  // evitando conflito com o scroll horizontal do kanban
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 250,
+      tolerance: 8,
+    },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
   const statusOptions = useMemo(
     () =>
       statuses.map((s) => ({
@@ -119,10 +132,6 @@ export default function LeadsKanban({
       arquivado: true,
       statusTimestamp: new Date().toISOString(),
     });
-    toast({
-      title: "Movido para Histórico",
-      description: `${lead.nome} foi movido para o histórico.`,
-    });
   };
 
   const handleStatusChange = (lead: Lead, newStatus: string) => {
@@ -134,7 +143,7 @@ export default function LeadsKanban({
       console.log('ðŸ”´ [Kanban] Abrindo modal de motivo de perda para:', lead.nome);
       setLeadForLossReason(lead);
       setLossReasonModalOpen(true);
-      return; // A atualizaÃ§Ã£o serÃ¡ feita no modal apÃ³s seleÃ§Ã£o do motivo
+      return; // A atualização será feita no modal após seleção do motivo
     }
 
     // Update lead status for non-lost statuses
@@ -165,15 +174,11 @@ export default function LeadsKanban({
         "followup",
         "Timer de follow-up iniciado",
         true,
-        "Contagem iniciada para follow-up automÃ¡tico",
+        "Contagem iniciada para follow-up automático",
       );
     }
 
     // Note: Direct scheduling button will be shown on card instead of modal
-    toast({
-      title: "Lead movido",
-      description: `${lead.nome} movido para ${statusName}`,
-    });
   };
   const handleScheduled = (leadId: string, appointmentId: string) => {
     updateLead(leadId, {
@@ -183,10 +188,6 @@ export default function LeadsKanban({
     const lead = leads.find((l) => l.id === leadId);
     if (lead) {
       addInteraction(leadId, "manual", "Cliente agendado com sucesso", false, `Agendamento criado: ${appointmentId}`);
-      toast({
-        title: "Cliente Agendado",
-        description: `${lead.nome} foi agendado com sucesso!`,
-      });
     }
   };
   const handleNotScheduled = (leadId: string) => {
@@ -197,10 +198,6 @@ export default function LeadsKanban({
     const lead = leads.find((l) => l.id === leadId);
     if (lead) {
       addInteraction(leadId, "manual", "Agendamento adiado", false, "Cliente convertido mas agendamento foi adiado");
-      toast({
-        title: "Agendamento Adiado",
-        description: `${lead.nome} estÃ¡ marcado para agendar.`,
-      });
     }
   };
   const handleConvertToClient = async (leadId: string) => {
@@ -208,10 +205,6 @@ export default function LeadsKanban({
     if (cliente) {
       updateLead(leadId, {
         status: "fechado",
-      });
-      toast({
-        title: "Lead Convertido",
-        description: `${(cliente as { nome?: string }).nome || 'Cliente'} foi convertido em cliente.`,
       });
     }
   };
@@ -252,11 +245,6 @@ export default function LeadsKanban({
       previousStatus,
       "perdido",
     );
-
-    toast({
-      title: "Lead Perdido",
-      description: `${lead?.nome} marcado como perdido. Motivo: ${reason}`,
-    });
   };
 
   const handleLossReasonSkip = (leadId: string) => {
@@ -283,11 +271,6 @@ export default function LeadsKanban({
       previousStatus,
       "perdido",
     );
-
-    toast({
-      title: "Lead Perdido",
-      description: `${lead?.nome} marcado como perdido (sem motivo definido)`,
-    });
   };
   const handleMarkAsScheduled = (leadId: string) => {
     updateLead(leadId, {
@@ -301,12 +284,8 @@ export default function LeadsKanban({
         "manual",
         "Marcado como agendado manualmente",
         false,
-        "Cliente foi marcado como agendado sem criar agendamento especÃ­fico",
+        "Cliente foi marcado como agendado sem criar agendamento específico",
       );
-      toast({
-        title: "Marcado como Agendado",
-        description: `${lead.nome} foi marcado como agendado.`,
-      });
     }
   };
   const handleViewAppointment = (lead: Lead) => {
@@ -362,9 +341,6 @@ export default function LeadsKanban({
                   lead={lead}
                   onDelete={() => {
                     deleteLead(lead.id);
-                    toast({
-                      title: "Lead excluÃ­do",
-                    });
                   }}
                   onConvertToClient={() => handleConvertToClient(lead.id)}
                   onRequestMove={(status) => {
@@ -396,27 +372,27 @@ export default function LeadsKanban({
   };
   return (
     <div className="flex flex-col h-full">
-      {/* Header - More compact on mobile */}
-      <div className={cn("flex items-center justify-between", isMobile ? "px-2 py-1.5" : "px-2 py-3")}>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size={isMobile ? "sm" : "icon"}
-            onClick={() => setConfigModalOpen(true)}
-            title="Configurar Follow-up"
-            className={cn(isMobile && "h-8")}
-          >
-            <Settings className="h-4 w-4" />
-            {isMobile && <span className="ml-1 text-xs">Config</span>}
-          </Button>
-          <Button
-            onClick={() => setCreateModalOpen(true)}
-            size={isMobile ? "sm" : "default"}
-            className={cn(isMobile && "h-8 text-xs")}
-          >
-            {isMobile ? "Novo" : "Novo Lead"}
-          </Button>
-        </div>
+      {/* Header do Kanban — config discreta + novo lead dourado */}
+      <div className={cn("flex items-center justify-end gap-2", isMobile ? "px-2 py-1.5" : "px-2 py-2")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setConfigModalOpen(true)}
+          title="Configurar Follow-up"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Button
+          onClick={() => onOpenCreate ? onOpenCreate() : setCreateModalOpen(true)}
+          size={isMobile ? "sm" : "sm"}
+          className={cn(
+            "gap-1.5 font-semibold bg-lunar-accent hover:bg-lunar-accent/90 text-black",
+            isMobile ? "h-8 text-xs" : "h-8 text-xs"
+          )}
+        >
+          + {isMobile ? "Novo" : "Novo Lead"}
+        </Button>
       </div>
 
       {/* Kanban Board Container - Optimized for mobile scroll */}
@@ -426,6 +402,10 @@ export default function LeadsKanban({
           collisionDetection={rectIntersection}
           onDragStart={(e) => {
             setActiveId(String(e.active.id));
+            // Haptic leve ao iniciar drag (mobile)
+            if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+              navigator.vibrate(40);
+            }
           }}
           onDragEnd={(e) => {
             const overId = e.over?.id as string | undefined;
@@ -433,6 +413,10 @@ export default function LeadsKanban({
               const current = leads.find((lead) => lead.id === activeId);
               if (current && current.status !== overId) {
                 handleStatusChange(current, overId);
+                // Haptic de confirmação ao mover para nova coluna
+                if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+                  navigator.vibrate([20, 10, 20]);
+                }
               }
             }
             // Delay clearing activeId to let the optimistic cache update
@@ -451,8 +435,13 @@ export default function LeadsKanban({
             </div>
           </div>
 
-          <DragOverlay dropAnimation={null}>
-            <div className="pointer-events-none bg-card/60 dark:bg-card/[0.10] backdrop-blur-[30px] border-[1.5px] border-white/60 dark:border-white/[0.12] rounded-xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)] scale-[1.04]">
+          <DragOverlay
+            dropAnimation={{
+              duration: 200,
+              easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+            }}
+          >
+            <div className="pointer-events-none rotate-1 scale-[1.04] bg-card/60 dark:bg-card/[0.10] backdrop-blur-[30px] border-[1.5px] border-white/60 dark:border-white/[0.12] rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] ring-1 ring-lunar-accent/20">
               {activeId
                 ? (() => {
                     const lead = leads.find((l) => l.id === activeId);
@@ -493,14 +482,10 @@ export default function LeadsKanban({
               true,
               `Lead registrado no funil`,
             );
-            toast({
-              title: "Lead criado",
-              description: data.nome,
-            });
           } catch (error) {
             toast({
               title: "Erro",
-              description: "NÃ£o foi possÃ­vel criar o lead",
+              description: "Não foi possível criar o lead",
             });
           }
         }}

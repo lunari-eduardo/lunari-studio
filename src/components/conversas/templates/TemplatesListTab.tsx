@@ -55,7 +55,7 @@ export function TemplatesListTab({
   const [search, setSearch] = useState('');
   const [libraryOpen, setLibraryOpen] = useState(false);
 
-  const studioName = profile?.empresa?.trim() || profile?.nome?.trim() || 'EstÃºdio';
+  const studioName = profile?.empresa?.trim() || profile?.nome?.trim() || 'Estúdio';
   const pixKey = (profile as any)?.pix_key || '';
 
   const templateContext = useMemo(
@@ -89,7 +89,7 @@ export function TemplatesListTab({
         .join(' ');
         
       const hasPixIntent = recentUserMessages.includes('pix') || recentUserMessages.includes('chave');
-      const hasBudgetIntent = recentUserMessages.includes('valor') || recentUserMessages.includes('orÃ§ament') || recentUserMessages.includes('pacote');
+      const hasBudgetIntent = recentUserMessages.includes('valor') || recentUserMessages.includes('orçament') || recentUserMessages.includes('pacote');
       const hasDateIntent = recentUserMessages.includes('dia') || recentUserMessages.includes('data') || recentUserMessages.includes('agenda');
       
       result = [...result].sort((a, b) => {
@@ -110,7 +110,7 @@ export function TemplatesListTab({
           const tText = (template.nome + ' ' + template.conteudo).toLowerCase();
           
           if (checkPix && (tTags.includes('pix') || tTags.includes('pagamento') || tText.includes('pix'))) score += 3;
-          if (checkBudget && (tTags.includes('orÃ§amento') || tTags.includes('valores') || tText.includes('orÃ§ament'))) score += 3;
+          if (checkBudget && (tTags.includes('orçamento') || tTags.includes('valores') || tText.includes('orçament'))) score += 3;
           if (checkDate && (tTags.includes('agendamento') || tTags.includes('data') || tText.includes('agendament'))) score += 3;
           
           return score;
@@ -171,7 +171,7 @@ export function TemplatesListTab({
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-6 text-center">
-            <p className="text-[11px] text-zinc-500">VocÃªï¿½ ainda nï¿½o possui modelos salvos.</p>
+            <p className="text-[11px] text-zinc-500">Vocêï¿½ ainda nï¿½o possui modelos salvos.</p>
             {!search && (
               <Button
                 variant="link"
@@ -190,7 +190,7 @@ export function TemplatesListTab({
               template.categoria?.toLowerCase() === suggestedCategory.toLowerCase()
             );
             
-            // Ãcones aleatÃ³rios limpos baseados nÃ£o ID ou index para a UI
+            // Ícones aleatórios limpos baseados não ID ou index para a UI
             const icons = [
                { icon: <MessageCircle className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />, bg: "bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30" },
                { icon: <Briefcase className="h-3.5 w-3.5 text-[#D4AF37]" />, bg: "bg-[#D4AF37]/10 border-[#D4AF37]/20" },

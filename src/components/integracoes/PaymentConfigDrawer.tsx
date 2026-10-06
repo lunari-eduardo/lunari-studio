@@ -159,9 +159,9 @@ export function PaymentConfigDrawer({
             <div>
               <SheetTitle>{getProviderLabel(provider)}</SheetTitle>
               <SheetDescription className="text-xs">
-                {provider === 'pix_manual' && 'ConfirmaÃ§Ã£o manual de pagamento'}
-                {provider === 'infinitepay' && 'Checkout automÃ¡tico'}
-                {provider === 'mercadopago' && 'Checkout automÃ¡tico via OAuth'}
+                {provider === 'pix_manual' && 'Confirmação manual de pagamento'}
+                {provider === 'infinitepay' && 'Checkout automático'}
+                {provider === 'mercadopago' && 'Checkout automático via OAuth'}
                 {provider === 'asaas' && 'Checkout transparente'}
               </SheetDescription>
             </div>
@@ -174,7 +174,7 @@ export function PaymentConfigDrawer({
             <>
               <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
                 <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-500" />
-                VocÃª precisarÃ¡ confirmar manualmente cada recebimento.
+                Você precisará confirmar manualmente cada recebimento.
               </div>
 
               <div className="space-y-4">
@@ -187,7 +187,7 @@ export function PaymentConfigDrawer({
                       <SelectItem value="cpf">CPF</SelectItem>
                       <SelectItem value="cnpj">CNPJ</SelectItem>
                       <SelectItem value="email">E-mail</SelectItem>
-                      <SelectItem value="aleatoria">Chave AleatÃ³ria</SelectItem>
+                      <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -199,7 +199,7 @@ export function PaymentConfigDrawer({
 
                 <div className="space-y-2">
                   <Label>Nome do Titular</Label>
-                  <Input value={nomeTitular} onChange={(e) => setNomeTitular(e.target.value)} placeholder="Nome que aparecerÃ¡ para o cliente" />
+                  <Input value={nomeTitular} onChange={(e) => setNomeTitular(e.target.value)} placeholder="Nome que aparecerá para o cliente" />
                 </div>
               </div>
 
@@ -230,7 +230,7 @@ export function PaymentConfigDrawer({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Excluir chave PIX?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Esta aÃ§Ã£o removerÃ¡ permanentemente a chave PIX configurada. Seus clientes nÃ£o poderÃ£o mais realizar pagamentos manuais via PIX atÃ© que vocÃª configure uma nova chave.
+                      Esta ação removerá permanentemente a chave PIX configurada. Seus clientes não poderão mais realizar pagamentos manuais via PIX até que você configure uma nova chave.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -263,11 +263,11 @@ export function PaymentConfigDrawer({
                   <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-sm text-muted-foreground">@</span>
                   <Input value={handle} onChange={(e) => setHandle(e.target.value.replace('@', ''))} placeholder="seu-handle" className="rounded-l-none" />
                 </div>
-                <p className="text-xs text-muted-foreground">Identificador Ãºnico do seu perfil InfinitePay</p>
+                <p className="text-xs text-muted-foreground">Identificador único do seu perfil InfinitePay</p>
               </div>
 
               <a href="https://infinitepay.io" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-                NÃ£o tem conta? Criar conta <ExternalLink className="h-3 w-3" />
+                Não tem conta? Criar conta <ExternalLink className="h-3 w-3" />
               </a>
 
               <Button className="w-full" onClick={handleSaveInfinitePay} disabled={!handle.trim() || saveIpPending}>
@@ -283,8 +283,8 @@ export function PaymentConfigDrawer({
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 text-sm text-destructive">
                   <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium">ReconexÃ£o necessÃ¡ria</p>
-                    <p className="text-muted-foreground mt-1">Sua autorizaÃ§Ã£o expirou.</p>
+                    <p className="font-medium">Reconexão necessária</p>
+                    <p className="text-muted-foreground mt-1">Sua autorização expirou.</p>
                   </div>
                 </div>
               )}
@@ -297,13 +297,13 @@ export function PaymentConfigDrawer({
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="text-sm font-medium">MÃ©todos de Pagamento</h4>
+                    <h4 className="text-sm font-medium">Métodos de Pagamento</h4>
                     <div className="flex items-center justify-between">
                       <Label>PIX</Label>
                       <Switch checked={mpHabilitarPix} onCheckedChange={setMpHabilitarPix} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <Label>CartÃ£o de CrÃ©dito</Label>
+                      <Label>Cartão de Crédito</Label>
                       <Switch checked={mpHabilitarCartao} onCheckedChange={setMpHabilitarCartao} />
                     </div>
                   </div>
@@ -312,14 +312,14 @@ export function PaymentConfigDrawer({
                     <div className="space-y-4 pt-4 border-t border-border">
                       <h4 className="text-sm font-medium">Parcelamento</h4>
                       <div className="space-y-2">
-                        <Label>MÃ¡ximo de parcelas</Label>
+                        <Label>Máximo de parcelas</Label>
                         <Select value={mpMaxParcelas} onValueChange={setMpMaxParcelas}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="1">Ã€ vista</SelectItem>
-                            <SelectItem value="3">AtÃ© 3x</SelectItem>
-                            <SelectItem value="6">AtÃ© 6x</SelectItem>
-                            <SelectItem value="12">AtÃ© 12x</SelectItem>
+                            <SelectItem value="3">Até 3x</SelectItem>
+                            <SelectItem value="6">Até 6x</SelectItem>
+                            <SelectItem value="12">Até 12x</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -329,9 +329,9 @@ export function PaymentConfigDrawer({
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">Taxas e Parcelamento</p>
                             <p className="text-xs text-muted-foreground leading-relaxed">
-                              Diferente de outros provedores, o controle de repasse ou absorÃ§Ã£o de juros e taxas do Mercado Pago Ã© feito <strong>diretamente na sua conta do Mercado Pago</strong>.
+                              Diferente de outros provedores, o controle de repasse ou absorção de juros e taxas do Mercado Pago é feito <strong>diretamente na sua conta do Mercado Pago</strong>.
                               <br /><br />
-                              Acesse seu painel no Mercado Pago, vÃ¡ em <strong>ConfiguraÃ§Ãµes &gt; Custos de parcelamento</strong> para definir as regras de juros que serÃ£o aplicadas aos seus clientes no momento do pagamento.
+                              Acesse seu painel no Mercado Pago, vá em <strong>Configurações &gt; Custos de parcelamento</strong> para definir as regras de juros que serão aplicadas aos seus clientes no momento do pagamento.
                             </p>
                           </div>
                         </div>
@@ -340,7 +340,7 @@ export function PaymentConfigDrawer({
                   )}
 
                   <Button className="w-full" onClick={handleSaveMpSettings} disabled={updateMpPending}>
-                    {updateMpPending ? 'Salvando...' : 'Salvar ConfiguraÃ§Ãµes'}
+                    {updateMpPending ? 'Salvando...' : 'Salvar Configurações'}
                   </Button>
                 </>
               ) : (
@@ -370,7 +370,7 @@ export function PaymentConfigDrawer({
                       {asaasShowKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">Encontre sua API Key em Asaas {'>'} IntegraÃ§Ãµes {'>'} API</p>
+                  <p className="text-xs text-muted-foreground">Encontre sua API Key em Asaas {'>'} Integrações {'>'} API</p>
                 </div>
               ) : (
                 <div className="space-y-1.5 p-3 rounded-lg border border-border/80 bg-muted/20">
@@ -392,20 +392,20 @@ export function PaymentConfigDrawer({
                   <Switch checked={asaasEnvironment === 'production'} onCheckedChange={(c) => setAsaasEnvironment(c ? 'production' : 'sandbox')} />
                   <span className="text-sm font-medium">
                     {asaasEnvironment === 'production'
-                      ? <span className="text-green-600 dark:text-green-400">ProduÃ§Ã£o</span>
+                      ? <span className="text-green-600 dark:text-green-400">Produção</span>
                       : <span className="text-amber-600 dark:text-amber-400">Sandbox</span>}
                   </span>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h4 className="text-sm font-medium">MÃ©todos de Pagamento</h4>
+                <h4 className="text-sm font-medium">Métodos de Pagamento</h4>
                 <div className="flex items-center justify-between">
                   <Label>PIX</Label>
                   <Switch checked={asaasHabilitarPix} onCheckedChange={setAsaasHabilitarPix} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>CartÃ£o de CrÃ©dito</Label>
+                  <Label>Cartão de Crédito</Label>
                   <Switch checked={asaasHabilitarCartao} onCheckedChange={setAsaasHabilitarCartao} />
                 </div>
                 <div className="flex items-center justify-between">
@@ -418,16 +418,16 @@ export function PaymentConfigDrawer({
                 <div className="space-y-4 pt-4 border-t border-border">
                   <h4 className="text-sm font-medium">Parcelamento</h4>
                   <div className="space-y-2">
-                    <Label>MÃ¡ximo de parcelas</Label>
+                    <Label>Máximo de parcelas</Label>
                     <Select value={asaasMaxParcelas} onValueChange={setAsaasMaxParcelas}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="1">Ã€ vista</SelectItem>
-                        <SelectItem value="2">AtÃ© 2x</SelectItem>
-                        <SelectItem value="3">AtÃ© 3x</SelectItem>
-                        <SelectItem value="6">AtÃ© 6x</SelectItem>
-                        <SelectItem value="10">AtÃ© 10x</SelectItem>
-                        <SelectItem value="12">AtÃ© 12x</SelectItem>
+                        <SelectItem value="2">Até 2x</SelectItem>
+                        <SelectItem value="3">Até 3x</SelectItem>
+                        <SelectItem value="6">Até 6x</SelectItem>
+                        <SelectItem value="10">Até 10x</SelectItem>
+                        <SelectItem value="12">Até 12x</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -474,7 +474,7 @@ export function PaymentConfigDrawer({
                         <RadioGroupItem value="repassar" id="asaas-taxa-repassar" className="mt-0.5" />
                         <div className="space-y-0.5">
                           <p className="text-sm font-medium text-foreground">Cliente paga os juros</p>
-                          <p className="text-xs text-muted-foreground">O acrÃ©scimo das parcelas Ã© cobrado do cliente no checkout.</p>
+                          <p className="text-xs text-muted-foreground">O acréscimo das parcelas é cobrado do cliente no checkout.</p>
                         </div>
                       </label>
 
@@ -490,17 +490,17 @@ export function PaymentConfigDrawer({
                         <RadioGroupItem value="absorver" id="asaas-taxa-absorver" className="mt-0.5" />
                         <div className="space-y-0.5">
                           <p className="text-sm font-medium text-foreground">Eu absorvo a taxa</p>
-                          <p className="text-xs text-muted-foreground">Parcelamento sem juros para o cliente; vocÃª assume a taxa.</p>
+                          <p className="text-xs text-muted-foreground">Parcelamento sem juros para o cliente; você assume a taxa.</p>
                         </div>
                       </label>
                     </RadioGroup>
                   </div>
 
-                  {/* AntecipaÃ§Ã£o */}
+                  {/* Antecipação */}
                   <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <Label>Vou antecipar meus recebÃ­veis</Label>
+                        <Label>Vou antecipar meus recebíveis</Label>
                         <p className="text-xs text-muted-foreground">Ative se pretende antecipar no Asaas</p>
                       </div>
                       <Switch
@@ -525,8 +525,8 @@ export function PaymentConfigDrawer({
                     {asaasIreiAntecipar && !asaasAbsorverTaxa && (
                       <div className="flex items-center justify-between pt-2 border-t border-border/50">
                         <div className="space-y-0.5">
-                          <Label>Repassar taxa de antecipaÃ§Ã£o</Label>
-                          <p className="text-xs text-muted-foreground">O cliente pagarÃ¡ a taxa junto</p>
+                          <Label>Repassar taxa de antecipação</Label>
+                          <p className="text-xs text-muted-foreground">O cliente pagará a taxa junto</p>
                         </div>
                         <Switch
                           checked={asaasRepassarAntecipacao}
@@ -548,10 +548,10 @@ export function PaymentConfigDrawer({
                     )}
 
                     <p className="text-xs text-muted-foreground">
-                      {!asaasIreiAntecipar ? 'Sem antecipaÃ§Ã£o configurada'
-                        : asaasAbsorverTaxa ? 'VocÃª absorverÃ¡ o custo da antecipaÃ§Ã£o'
-                        : asaasRepassarAntecipacao ? 'Cliente pagarÃ¡ processamento + antecipaÃ§Ã£o'
-                        : 'VocÃª absorverÃ¡ o custo da antecipaÃ§Ã£o'}
+                      {!asaasIreiAntecipar ? 'Sem antecipação configurada'
+                        : asaasAbsorverTaxa ? 'Você absorverá o custo da antecipação'
+                        : asaasRepassarAntecipacao ? 'Cliente pagará processamento + antecipação'
+                        : 'Você absorverá o custo da antecipação'}
                     </p>
                   </div>
 
@@ -593,11 +593,11 @@ export function PaymentConfigDrawer({
                             <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs font-medium">
                               <CheckCircle className="h-3 w-3" />
                               Desconto promocional ativo
-                              {asaasFees.discount.expiration && ` atÃ© ${format(new Date(asaasFees.discount.expiration), "dd/MM/yyyy", { locale: ptBR })}`}
+                              {asaasFees.discount.expiration && ` até ${format(new Date(asaasFees.discount.expiration), "dd/MM/yyyy", { locale: ptBR })}`}
                             </div>
                           )}
 
-                          <p className="text-xs font-medium text-muted-foreground">CartÃ£o de CrÃ©dito</p>
+                          <p className="text-xs font-medium text-muted-foreground">Cartão de Crédito</p>
                           {(asaasFees.discount?.active && asaasFees.discount.tiers.length > 0 ? asaasFees.discount.tiers : asaasFees.creditCard.tiers).map((tier: any, idx: number) => {
                             const standardTier = asaasFees.discount?.active ? asaasFees.creditCard.tiers[idx] : null;
                             return (
@@ -617,12 +617,12 @@ export function PaymentConfigDrawer({
 
                           <div className="pt-1 border-t border-border space-y-0.5">
                             <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>AntecipaÃ§Ã£o Ã  vista</span>
-                              <span>{asaasFees.creditCard.detachedMonthlyFeeValue}%/mÃªs</span>
+                              <span>Antecipação à vista</span>
+                              <span>{asaasFees.creditCard.detachedMonthlyFeeValue}%/mês</span>
                             </div>
                             <div className="flex justify-between text-xs text-muted-foreground">
-                              <span>AntecipaÃ§Ã£o parcelado</span>
-                              <span>{asaasFees.creditCard.installmentMonthlyFeeValue}%/mÃªs</span>
+                              <span>Antecipação parcelado</span>
+                              <span>{asaasFees.creditCard.installmentMonthlyFeeValue}%/mês</span>
                             </div>
                           </div>
 
@@ -646,7 +646,7 @@ export function PaymentConfigDrawer({
                 onClick={isNewAsaas ? handleSaveAsaas : handleSaveAsaasSettings}
                 disabled={isNewAsaas ? (!asaasApiKey.trim() || saveAsaasPending) : updateAsaasSettings.isPending}
               >
-                {(saveAsaasPending || updateAsaasSettings.isPending) ? (saveAsaasPending ? 'Validando no Asaas...' : 'Salvando...') : 'Salvar ConfiguraÃ§Ãµes'}
+                {(saveAsaasPending || updateAsaasSettings.isPending) ? (saveAsaasPending ? 'Validando no Asaas...' : 'Salvando...') : 'Salvar Configurações'}
               </Button>
             </>
           )}

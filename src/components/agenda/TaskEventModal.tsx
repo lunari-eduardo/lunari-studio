@@ -29,14 +29,14 @@ interface TaskEventModalProps {
 }
 
 const QUICK_SUGGESTIONS = [
-  'MÃ©dico',
+  'Médico',
   'Responder e-mails',
   'Revisão de portfólio',
   'Envio de orçamentos',
   'Edição de vídeo',
   'Montar álbum',
   'Planejamento de postagens',
-  'ManutenÃ§Ã£o de equipamentos',
+  'Manutenção de equipamentos',
 ];
 
 export function TaskEventModal({
@@ -116,7 +116,7 @@ export function TaskEventModal({
             </div>
             <div>
               <DialogTitle className="text-base font-semibold">
-                {isEdit ? 'Editar Tarefa na Agenda' : 'Novo Tarefa na Agenda'}
+                {isEdit ? 'Editar Tarefa na Agenda' : 'Nova Tarefa na Agenda'}
               </DialogTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Blocos de tempo reservados para tarefas
@@ -126,21 +126,21 @@ export function TaskEventModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-          {/* TÃ­tulo */}
+          {/* Título */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-foreground">
-              TÃ­tulo do compromisso *
+              Título do compromisso *
             </label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: MÃ©dico, Escola, Viagem..."
+              placeholder="Ex: Médico, Escola, Viagem..."
               className="h-10 text-sm"
               autoFocus
               required
             />
 
-            {/* SugestÃµes rÃ¡pidas */}
+            {/* Sugestões rápidas */}
             {!isEdit && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {QUICK_SUGGESTIONS.map((sug) => (
@@ -157,7 +157,7 @@ export function TaskEventModal({
             )}
           </div>
 
-          {/* Data e HorÃ¡rio */}
+          {/* Data e Horário */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -176,7 +176,7 @@ export function TaskEventModal({
             <div className="space-y-1.5">
               <label className="block text-xs font-medium text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                HorÃ¡rio
+                Horário
               </label>
               <Input
                 type="time"
@@ -188,14 +188,14 @@ export function TaskEventModal({
             </div>
           </div>
 
-          {/* DuraÃ§Ã£o */}
+          {/* Duração */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-muted-foreground">
-              DuraÃ§Ã£o estimada
+              Duração estimada
             </label>
             <Select value={durationMinutes} onValueChange={setDurationMinutes}>
               <SelectTrigger className="h-10 text-sm">
-                <SelectValue placeholder="Selecione a duraÃ§Ã£o" />
+                <SelectValue placeholder="Selecione a duração" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="30">30 minutos</SelectItem>
@@ -203,21 +203,21 @@ export function TaskEventModal({
                 <SelectItem value="90">1 hora e 30 minutos</SelectItem>
                 <SelectItem value="120">2 horas</SelectItem>
                 <SelectItem value="180">3 horas</SelectItem>
-                <SelectItem value="240">4 horas (meio perÃ­odo)</SelectItem>
+                <SelectItem value="240">4 horas (meio período)</SelectItem>
                 <SelectItem value="480">8 horas (dia todo)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* ObservaÃ§Ãµes / DescriÃ§Ã£o */}
+          {/* Observações / Descrição */}
           <div className="space-y-1.5">
             <label className="block text-xs font-medium text-muted-foreground">
-              ObservaÃ§Ãµes / Detalhes (opcional)
+              Observações / Detalhes (opcional)
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="EndereÃ§o, lembretes ou informaÃ§Ãµes adicionais..."
+              placeholder="Endereço, lembretes ou informações adicionais..."
               className="min-h-[70px] text-sm resize-none"
             />
           </div>
@@ -254,20 +254,20 @@ export function TaskEventModal({
                 disabled={saving || !title.trim()}
                 className="h-9 text-xs bg-amber-600 hover:bg-amber-700 text-white"
               >
-                {saving ? 'Salvando...' : isEdit ? 'Salvar alteraÃ§Ãµes' : 'Criar bloco'}
+                {saving ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Criar bloco'}
               </Button>
             </div>
           </DialogFooter>
         </form>
       </DialogContent>
 
-      {/* Modal interno de confirmaÃ§Ã£o de exclusÃ£o */}
+      {/* Modal interno de confirmação de exclusão */}
       <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Tarefa na Agenda?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir "{event?.title || 'este evento'}"? Esta aÃ§Ã£o removerÃ¡ o compromisso da sua agenda.
+              Tem certeza que deseja excluir "{event?.title || 'este evento'}"? Esta ação removerá o compromisso da sua agenda.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

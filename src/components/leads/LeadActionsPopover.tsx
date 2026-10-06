@@ -57,9 +57,7 @@ export default function LeadActionsPopover({
   };
 
   const handleLinkToClient = (clienteId: string) => {
-    if (linkLeadToClient(lead.id, clienteId)) {
-      toast.success('Lead vinculado ao cliente CRM');
-    } else {
+    if (!linkLeadToClient(lead.id, clienteId)) {
       toast.error('Erro ao vincular lead');
     }
     setOpen(false);

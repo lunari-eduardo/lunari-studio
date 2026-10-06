@@ -123,7 +123,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   const contatoId = chat?.contato_id;
   const rawPhone = chat?.contato_phone_normalized || '';
 
-  // 1. Carregar informaÃ§Ãµes do Contato de Conversas
+  // 1. Carregar informações do Contato de Conversas
   const { data: contatoInfo, isLoading: isLoadingContato } = useQuery({
     queryKey: ['conversas-contato-info', contatoId],
     queryFn: async () => {
@@ -165,7 +165,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
         return data as unknown as ContextCliente;
       }
 
-      // Tentativa de correspondÃªncia determinÃ­stica por telefone normalizado
+      // Tentativa de correspondência determinística por telefone normalizado
       if (rawPhone && rawPhone.length >= 10) {
         const cleanPhone = rawPhone.replace(/\D/g, '');
         const phoneWithoutDdi = cleanPhone.startsWith('55') && cleanPhone.length >= 12
@@ -203,7 +203,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // 3. Carregar SessÃµes de forma direta e rÃ¡pida (Query Split)
+  // 3. Carregar Sessões de forma direta e rápida (Query Split)
   const { data: sessoesDiretas, isLoading: isLoadingSessoes, error: errorSessoes } = useQuery({
     queryKey: ['conversas-sessoes-diretas', cliente?.id, userId],
     queryFn: async () => {
@@ -214,10 +214,10 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
         .select('id, session_id, categoria, pacote, data_sessao, hora_sessao, status, valor_total, valor_pago, descricao, detalhes, galeria_id, galerias(id, status)')
         .eq('cliente_id', cliente.id)
         .order('data_sessao', { ascending: false })
-        .limit(10); // Busca atÃ© 10 para o metrics e o next/last session
+        .limit(10); // Busca até 10 para o metrics e o next/last session
 
       if (error) {
-        console.error('[useConversasContactContext] Erro CrÃ­tico ao buscar sessÃµes:', error);
+        console.error('[useConversasContactContext] Erro Crítico ao buscar sessões:', error);
         throw error;
       }
       return data as unknown as ContextSessao[];
@@ -301,7 +301,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // CÃ¡lculo do contexto
+  // Cálculo do contexto
   const sessoes = sessoesDiretas || [];
   const validSessions = sessoes.filter(s => !!s.data_sessao);
   
@@ -329,7 +329,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   const hasOrcamento = (rpcContext?.orcamentos || []).length > 0;
   const etapaVigente = resolveEtapaVigente(contatoBase, activeWorkflow, hasOrcamento);
 
-  // CÃ¡lculo de mÃ©tricas
+  // Cálculo de métricas
   const totalSessions = validSessions.length;
   const lifetimeValue = validSessions.reduce((acc, s) => acc + (s.valor_total || 0), 0);
   const clientSinceStr = validSessions.length > 0 ? validSessions[validSessions.length - 1].data_sessao : cliente?.created_at;
@@ -342,7 +342,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     name: chat?.contato_nome || contatoInfo?.nome || cliente?.nome || lead?.nome || 'Contato desconhecido',
     phone: rawPhone || cliente?.telefone || lead?.telefone || '',
     firstContactAt: contatoInfo?.created_at ? new Date(contatoInfo.created_at) : null,
-    source: 'whatsapp', // SimplificaÃ§Ã£o base
+    source: 'whatsapp', // Simplificação base
   };
 
   const chatState = useChatStateResolver({
@@ -379,10 +379,10 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     error: globalError
   };
 
-  // Mutations de VinculaÃ§Ã£o
+  // Mutations de Vinculação
   const linkClienteMutation = useMutation({
     mutationFn: async (clienteIdToLink: string) => {
-      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
+      if (!chatId || !userId) throw new Error('Chat não selecionado');
 
       const { error: chatError } = await supabase
         .from('conversas_chats')
@@ -405,13 +405,13 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onError: (err) => {
       console.error('[linkClienteMutation] Erro:', err);
-      toast.error('NÃ£o foi possÃ­vel vincular o cliente.');
+      toast.error('Não foi possível vincular o cliente.');
     },
   });
 
   const linkLeadMutation = useMutation({
     mutationFn: async (leadIdToLink: string) => {
-      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
+      if (!chatId || !userId) throw new Error('Chat não selecionado');
 
       const { error: chatError } = await supabase
         .from('conversas_chats')
@@ -433,13 +433,13 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onError: (err) => {
       console.error('[linkLeadMutation] Erro:', err);
-      toast.error('NÃ£o foi possÃ­vel vincular o lead.');
+      toast.error('Não foi possível vincular o lead.');
     },
   });
 
   const linkAmbosMutation = useMutation({
     mutationFn: async ({ leadId, clienteId }: { leadId?: string; clienteId?: string }) => {
-      if (!chatId || !userId) throw new Error('Chat nÃ£o selecionado');
+      if (!chatId || !userId) throw new Error('Chat não selecionado');
 
       const chatUpdates: { cliente_id?: string; lead_id?: string; updated_at: string } = {
         updated_at: new Date().toISOString(),
@@ -480,13 +480,13 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
     },
     onError: (err) => {
       console.error('[linkAmbosMutation] Erro:', err);
-      toast.error('NÃ£o foi possÃ­vel vincular o lead/cliente Ã  conversa.');
+      toast.error('Não foi possível vincular o lead/cliente à conversa.');
     },
   });
 
   const createQuickTaskMutation = useMutation({
     mutationFn: async (title: string) => {
-      if (!cliente?.id || !userId) throw new Error('Cliente nÃ£o identificado');
+      if (!cliente?.id || !userId) throw new Error('Cliente não identificado');
       const { error } = await supabase
         .from('tasks')
         .insert({
@@ -529,7 +529,7 @@ export function useConversasContactContext(chat: Chat | EnrichedChat | null) {
   return {
     unifiedContext,
     
-    // Mapeamento legado que continua necessÃ¡rio atÃ© as modais migrarem
+    // Mapeamento legado que continua necessário até as modais migrarem
     cliente,
     lead,
     sessoes,

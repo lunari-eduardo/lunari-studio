@@ -29,3 +29,8 @@ No `package.json`, o comando `"build"` executa apenas `"vite build"`.
 3. **Verificação de Sintaxe e Tipos dos Arquivos Modificados**:
    - Rodar SEMPRE `npm run typecheck:changed` antes de qualquer entrega ou encerramento de tarefa.
    - NUNCA considerar uma tarefa pronta se `npm run typecheck:changed` acusar qualquer erro.
+
+4. **Validação de Encoding (Prevenção de Mojibake)**:
+   - Certifique-se de que todos os arquivos modificados ou criados foram salvos e mantidos estritamente no formato **UTF-8**.
+   - Verifique o `git diff` e procure por caracteres corrompidos como `Ã©`, `Ã§`, `Ã£` ou ``.
+   - Se identificar corrupção (Mojibake) causada por ferramentas ou editores rodando em Windows (ex: Windows-1252 ANSI), reverta ou corrija IMEDIATAMENTE (re-encodando a string ou arquivo de latin1 para utf8). NUNCA envie código com acentuação quebrada.

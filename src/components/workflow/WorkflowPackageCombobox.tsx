@@ -9,7 +9,7 @@ import { useRealtimeConfiguration } from '@/hooks/useRealtimeConfiguration';
 interface PackageComboboxProps {
   value?: string;
   displayName?: string; // Nome a exibir (congelado)
-  description?: string; // Usado na variante inline como 2Âª linha
+  description?: string; // Usado na variante inline como 2ª linha
   variant?: "default" | "inline" | "mobile-pill";
   onValueChange: (packageData: {
     id: string; // Add ID to the interface
@@ -25,7 +25,7 @@ interface PackageComboboxProps {
   disabled?: boolean;
 }
 
-// FunÃ§Ã£o utilitÃ¡ria para buscar categoria por ID
+// Função utilitária para buscar categoria por ID
 const getCategoriaNameById = (categoriaId: string | number, configCategorias: any[]): string => {
   if (!categoriaId || !configCategorias.length) return '';
   
@@ -55,7 +55,7 @@ const WorkflowPackageComboboxComponent = ({
 }: PackageComboboxProps) => {
   const [open, setOpen] = useState(false);
   
-  // CORREÃ‡ÃƒO: Usar real-time configuration (nÃ£o mais useConfiguration que causa loops)
+  // CORREÃ‡ÃƒO: Usar real-time configuration (não mais useConfiguration que causa loops)
   const { pacotes: rawPacotes, categorias, isLoadingPacotes } = useRealtimeConfiguration();
   
   // CORREÃ‡ÃƒO: Memoizar processamento de pacotes para evitar recalcular em cada render
@@ -78,7 +78,7 @@ const WorkflowPackageComboboxComponent = ({
     });
   }, [rawPacotes, categorias]);
   
-  // FunÃ§Ã£o para limpar a seleÃ§Ã£o
+  // Função para limpar a seleção
   const handleClearPackage = () => {
     onValueChange({
       id: '',
@@ -91,7 +91,7 @@ const WorkflowPackageComboboxComponent = ({
     setOpen(false);
   };
   
-  // CORREÃ‡ÃƒO: Memoizar seleÃ§Ã£o de pacote para evitar recalcular
+  // CORREÃ‡ÃƒO: Memoizar seleção de pacote para evitar recalcular
   const selectedPackage = useMemo(() => {
     return pacotes.find(pkg => 
       pkg.id === value || 
@@ -253,5 +253,5 @@ const WorkflowPackageComboboxComponent = ({
   );
 };
 
-// CORREÃ‡ÃƒO: Memoizar componente para evitar re-renders desnecessÃ¡rios
+// CORREÃ‡ÃƒO: Memoizar componente para evitar re-renders desnecessários
 export const WorkflowPackageCombobox = memo(WorkflowPackageComboboxComponent);

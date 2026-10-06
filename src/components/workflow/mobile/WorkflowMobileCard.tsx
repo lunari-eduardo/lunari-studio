@@ -152,7 +152,7 @@ export function WorkflowMobileCard({
   }, []);
 
   const handleTouchEnd = useCallback(() => {
-    // Janela de 150ms para neutralizar eventos click sintéticos disparados após o término do scroll
+    // Janela de 150ms para neutralizar eventos click sintï¿½ticos disparados apï¿½s o tï¿½rmino do scroll
     setTimeout(() => {
       isScrollingRef.current = false;
       touchStartPos.current = null;
@@ -169,7 +169,7 @@ export function WorkflowMobileCard({
     setStatusMenuOpen(open);
   }, []);
 
-  // Campos editáveis
+  // Campos editï¿½veis
   const [descontoValue, setDescontoValue] = useState(session.desconto || "");
   const [adicionalValue, setAdicionalValue] = useState(session.valorAdicional || "");
   const [valorFotoExtraValue, setValorFotoExtraValue] = useState(
@@ -190,7 +190,7 @@ export function WorkflowMobileCard({
     setObsValue(session.observacoes || "");
   }, [session.desconto, session.valorAdicional, session.valorFotoExtra, session.observacoes]);
 
-  // Cálculos financeiros (RPC canonica)
+  // Cï¿½lculos financeiros (RPC canonica)
   const { calc: extraCalc, resolvedGalleryId } = useGalleryExtraCalc(
     session.galeriaId || null,
     { sessionId: session.sessionId || null },
@@ -225,7 +225,7 @@ export function WorkflowMobileCard({
 
   const isPago = pendente <= 0.01 && totalCalculado > 0;
 
-  // Cor de status da sessão
+  // Cor de status da sessï¿½o
   const statusColor = useMemo(() => {
     if (!session.status) return "#9CA3AF";
     return getStatusColor(session.status);
@@ -263,7 +263,7 @@ export function WorkflowMobileCard({
       return;
     }
     if (temSelecao) {
-      toast.error("Esta sessão já possui uma Galeria de Seleção");
+      toast.error("Esta sessï¿½o jï¿½ possui uma Galeria de Seleï¿½ï¿½o");
       return;
     }
     const frozenPkg = session.regras_congeladas?.pacote as any | undefined;
@@ -317,7 +317,7 @@ export function WorkflowMobileCard({
       return;
     }
     if (temEntrega) {
-      toast.error("Esta sessão já possui uma Galeria de Entrega");
+      toast.error("Esta sessï¿½o jï¿½ possui uma Galeria de Entrega");
       return;
     }
     const url = buildGalleryDeliverUrl({
@@ -329,7 +329,7 @@ export function WorkflowMobileCard({
     window.open(url, "_blank", "noopener,noreferrer");
   }, [hasGaleryAccess, temEntrega, session]);
 
-  // Edição de campos
+  // Ediï¿½ï¿½o de campos
   const handleDescontoBlur = useCallback(() => {
     const num = parseMoneyValue(descontoValue);
     const formatted = formatCurrencyBRL(num);
@@ -366,7 +366,7 @@ export function WorkflowMobileCard({
   );
   const productActionInfo = computeProductNextAction(produtosVendidos);
 
-  // Extras da galeria (fonte canônica alinhada com WorkflowCardExpanded)
+  // Extras da galeria (fonte canï¿½nica alinhada com WorkflowCardExpanded)
   const fallbackExtrasTotal =
     (Number(session.qtdFotosExtra) || 0) * parseMoneyValue(session.valorFotoExtra);
   const extrasTotalCanonico =
@@ -375,7 +375,7 @@ export function WorkflowMobileCard({
   const extrasPendente = fin.extrasPend ?? 0;
   const extrasFullyPaid = extrasPendente <= 0.001;
 
-  // Pendente da sessão (fonte canônica alinhada com WorkflowCardExpanded)
+  // Pendente da sessï¿½o (fonte canï¿½nica alinhada com WorkflowCardExpanded)
   const valorTotalFallback = parseMoneyValue(session.total);
   const pendenteVisual =
     fin.totalVisual > 0 || fin.pagoTotal > 0
@@ -389,7 +389,7 @@ export function WorkflowMobileCard({
   const canCobrarTudo = canCobrarSessao && canCobrarExtras;
   const showChargeDropdown = canCobrarExtras || extrasPendente > 0.001;
 
-  // Gatilho do botão Cobrar quando não houver dropdown
+  // Gatilho do botï¿½o Cobrar quando nï¿½o houver dropdown
   const handleCobrarClick = useCallback(() => {
     if (canCobrarExtras && !canCobrarSessao) {
       setShowExtraChargeModal(true);
@@ -427,13 +427,13 @@ export function WorkflowMobileCard({
           {/* Direita: Empilhamento vertical */}
           <div className="flex flex-col min-w-0 flex-1">
             
-            {/* CABEÇALHO: Nome + Badges + Menu */}
+            {/* CABEï¿½ALHO: Nome + Badges + Menu */}
             <div className="flex items-start justify-between gap-2">
               <span className="font-semibold text-[14px] text-foreground leading-snug truncate">
                 {session.nome || 'Cliente'}
               </span>
               
-              {/* Ações Topo Direita */}
+              {/* Aï¿½ï¿½es Topo Direita */}
               <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {/* Badge Pago/Faltando */}
                 {pendente <= 0.01 && totalCalculado > 0 ? (
@@ -448,7 +448,7 @@ export function WorkflowMobileCard({
                   </span>
                 ) : null}
 
-                {/* Menu de Ações */}
+                {/* Menu de Aï¿½ï¿½es */}
                 <div className="ml-1 -mr-2">
                   <SessionRowMenu 
                     clientId={session.clienteId}
@@ -460,13 +460,13 @@ export function WorkflowMobileCard({
               </div>
             </div>
 
-            {/* DESCRIÇÃO */}
+            {/* DESCRIï¿½ï¿½O */}
             <div className="mt-0.5 min-w-0" onClick={(e) => e.stopPropagation()}>
               <input
                 value={obsValue}
                 onChange={(e) => setObsValue(e.target.value)}
                 onBlur={handleObsBlur}
-                placeholder="Adicionar descrição..."
+                placeholder="Adicionar descriÃ§Ã£o..."
                 className="w-full text-[12px] bg-transparent border-transparent px-0 py-0 text-muted-foreground focus:text-foreground placeholder:text-muted-foreground/50 outline-none truncate"
               />
             </div>
@@ -537,7 +537,7 @@ export function WorkflowMobileCard({
               })}
             </div>
 
-            {/* CONTEÚDO DAS ABAS */}
+            {/* CONTEï¿½DO DAS ABAS */}
             <div className="p-4 space-y-4 text-xs">
               {/* ABA RESUMO */}
               {activeTab === "resumo" && (
@@ -545,7 +545,7 @@ export function WorkflowMobileCard({
                   <div className="flex items-center justify-between py-1 border-b border-border/20">
                     <span className="text-muted-foreground flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5" />
-                      Data da sessão
+                      Data da sessï¿½o
                     </span>
                     <span className="font-medium text-foreground">
                       {formatFullDateLong(session.data)}
@@ -632,13 +632,13 @@ export function WorkflowMobileCard({
                   <div className="pt-2">
                     <span className="text-muted-foreground flex items-center gap-1.5 mb-1.5">
                       <FileText className="h-3.5 w-3.5" />
-                      Observações
+                      Observaï¿½ï¿½es
                     </span>
                     <Textarea
                       value={obsValue}
                       onChange={(e) => setObsValue(e.target.value)}
                       onBlur={handleObsBlur}
-                      placeholder="Observações da sessão..."
+                      placeholder="Observaï¿½ï¿½es da sessï¿½o..."
                       className="text-xs bg-background/50 resize-none min-h-[60px]"
                     />
                   </div>
@@ -673,7 +673,7 @@ export function WorkflowMobileCard({
                       <span
                         className={cn("w-2 h-2 rounded-full", productActionInfo.dotClass)}
                       />
-                      <span className="text-muted-foreground">Etapa de produção:</span>
+                      <span className="text-muted-foreground">Etapa de produï¿½ï¿½o:</span>
                       <span className="font-medium text-foreground">
                         {productActionInfo.label}
                       </span>
@@ -682,7 +682,7 @@ export function WorkflowMobileCard({
 
                   {totalProdutosVendidos === 0 ? (
                     <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
-                      Nenhum produto adicionado nesta sessão.
+                      Nenhum produto adicionado nesta sessï¿½o.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -717,14 +717,14 @@ export function WorkflowMobileCard({
               {activeTab === "galeria" && (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    {/* Galeria de Seleção */}
+                    {/* Galeria de Seleï¿½ï¿½o */}
                     <div className="p-3 rounded-lg bg-background/60 border border-border/30 flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-foreground">Galeria de Seleção</p>
+                        <p className="font-semibold text-foreground">Galeria de Seleï¿½ï¿½o</p>
                         <p className="text-[11px] text-muted-foreground">
                           {temSelecao
                             ? "Galeria criada e ativa"
-                            : "Nenhuma seleção criada"}
+                            : "Nenhuma seleï¿½ï¿½o criada"}
                         </p>
                       </div>
                       {temSelecao ? (
@@ -882,13 +882,13 @@ export function WorkflowMobileCard({
                     )}
 
                     <div className="pt-2 border-t border-border/30 flex justify-between font-bold text-sm">
-                      <span className="text-foreground">Total da sessão:</span>
+                      <span className="text-foreground">Total da sessï¿½o:</span>
                       <span className="text-foreground">
                         {formatCurrencyBRL(totalCalculado)}
                       </span>
                     </div>
                     <div className="flex justify-between font-medium text-emerald-600 dark:text-emerald-400">
-                      <span>Valor já pago:</span>
+                      <span>Valor jï¿½ pago:</span>
                       <span>{formatCurrencyBRL(valorPagoDisplay)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-amber-600 dark:text-amber-400">
@@ -897,7 +897,7 @@ export function WorkflowMobileCard({
                     </div>
                   </div>
 
-                  {/* Crédito da sessão se houver */}
+                  {/* Crï¿½dito da sessï¿½o se houver */}
                   {session.clienteId && (
                     <div className="pt-2">
                       <SessionCreditBadge
@@ -916,14 +916,14 @@ export function WorkflowMobileCard({
                       className="w-full h-8 text-xs gap-1.5"
                     >
                       <DollarSign className="h-3.5 w-3.5" />
-                      Histórico financeiro
+                      Histï¿½rico financeiro
                     </Button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* BOTÕES DE AÇÃO FIXOS NO RODAPÉ DO EXPANDIDO */}
+            {/* BOTï¿½ES DE Aï¿½ï¿½O FIXOS NO RODAPï¿½ DO EXPANDIDO */}
             <div className="p-3 bg-card/90 border-t border-border/30 flex items-center gap-2">
               <Button
                 variant="outline"
@@ -954,7 +954,7 @@ export function WorkflowMobileCard({
                     >
                       <Send className="h-3.5 w-3.5 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium">Cobrar sessão</div>
+                        <div className="text-xs font-medium">Cobrar sessï¿½o</div>
                         <div className="text-[10px] text-muted-foreground">
                           {formatCurrencyBRL(pendenteSessaoSugerido)}
                         </div>
@@ -984,7 +984,7 @@ export function WorkflowMobileCard({
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium">Cobrar tudo</div>
                             <div className="text-[10px] text-muted-foreground">
-                              {formatCurrencyBRL(pendenteSessaoSugerido + extrasPendente)} • 1 link único
+                              {formatCurrencyBRL(pendenteSessaoSugerido + extrasPendente)} ï¿½ 1 link ï¿½nico
                             </div>
                           </div>
                         </DropdownMenuItem>
@@ -1054,7 +1054,7 @@ export function WorkflowMobileCard({
           onConfirm={(action) => {
             onDeleteSession(
               session.id,
-              session.nome || 'Sess?o',
+              session.nome || 'SessÃ£o',
               Array.isArray(session.pagamentos) ? session.pagamentos.length : 0,
               action,
             );
@@ -1062,7 +1062,7 @@ export function WorkflowMobileCard({
           }}
           sessionData={{
             id: session.id,
-            clientName: session.nome || 'Sess?o',
+            clientName: session.nome || 'SessÃ£o',
             date: session.data || '',
             hasPayments: Array.isArray(session.pagamentos) && session.pagamentos.length > 0
           }}
