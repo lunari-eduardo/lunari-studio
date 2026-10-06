@@ -1,9 +1,9 @@
-import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Calendar, Search, MapPin } from 'lucide-react';
 import type { PeriodType } from '@/hooks/useLeadMetrics';
+import { cn } from '@/lib/utils';
+
 export interface UnifiedLeadFiltersProps {
   periodType: PeriodType;
   onPeriodChange: (periodType: PeriodType) => void;
@@ -82,95 +82,100 @@ export default function UnifiedLeadFilters({
   origins,
   isMobile = false
 }: UnifiedLeadFiltersProps) {
-  return <Card className={`${isMobile ? 'p-2 py-1' : 'p-3 py-px'} bg-gradient-to-r from-lunar-surface to-lunar-surface/90 border-lunar-border/60 shadow-sm`}>
-      {/* Desktop Layout */}
-      <div className="hidden md:flex items-center gap-4">
-        {/* Period Filter with highlight */}
-        <div className="flex items-center gap-2 px-3 rounded-lg bg-lunar-accent/10 border border-lunar-accent/20 shadow-sm py-[5px]">
-          <Calendar className="h-4 w-4 text-lunar-accent" />
-          
-          <Select value={periodType} onValueChange={onPeriodChange}>
-            <SelectTrigger className="w-[180px] text-sm border-lunar-border/40 focus:border-lunar-accent/50 focus:ring-lunar-accent/20">
+  // Encontrar nomes amigáveis para as pílulas
+  const activePeriodLabel = PERIOD_OPTIONS.find(p => p.value === periodType)?.label;
+  const activeOriginLabel = originFilter !== 'all' ? originFilter : null;
+  const hasActiveFilters = periodType !== 'last_60_days' || searchTerm !== '' || originFilter !== 'all';
+
+  const clearFilters = () => {
+    onPeriodChange('last_60_days');
+    onSearchChange('');
+    onOriginChange('all');
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className={cn("flex flex-wrap items-center justify-end gap-2", isMobile ? "w-full" : "w-auto")}>
+        {/* Search Filter Minimalista */}
+        <div className="relative flex items-center w-full md:w-64">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input 
+            placeholder="Buscar leads..." 
+            value={searchTerm} 
+            onChange={e => onSearchChange(e.target.value)} 
+            className="pl-8 h-8 text-xs bg-muted/20 border-border/40 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-md w-full transition-all" 
+          />
+          <div className="absolute right-2.5 flex items-center pointer-events-none">
+            <span className="text-[10px] text-muted-foreground font-medium px-1 rounded-sm border border-border/50 bg-background/50">⌘K</span>
+          </div>
+        </div>
+        
+        {/* Period Filter Minimalista */}
+        <Select value={periodType} onValueChange={onPeriodChange}>
+          <SelectTrigger className="h-8 text-xs w-[140px] bg-muted/20 border-border/40 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIOD_OPTIONS.map(option => <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {PERIOD_OPTIONS.map(option => (
+              <SelectItem key={option.value} value={option.value} className="text-xs">
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         
-        {/* Search Filter */}
-        <div className="flex items-center gap-2 flex-1 max-w-md">
-          <Search className="h-4 w-4 text-lunar-textSecondary" />
-          <Input placeholder="Buscar leads..." value={searchTerm} onChange={e => onSearchChange(e.target.value)} className="text-sm border-lunar-border/40" />
-        </div>
-        
-        {/* Origin Filter */}
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-lunar-textSecondary" />
-          <Select value={originFilter} onValueChange={onOriginChange}>
-            <SelectTrigger className="w-[150px] text-sm border-lunar-border/40">
+        {/* Origin Filter Minimalista */}
+        <Select value={originFilter} onValueChange={onOriginChange}>
+          <SelectTrigger className="h-8 text-xs w-[120px] bg-muted/20 border-border/40 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md">
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              {origins.map(origem => <SelectItem key={origem.id} value={origem.nome}>
-                  {origem.nome}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className="text-xs">Todas as origens</SelectItem>
+            {origins.map(origem => (
+              <SelectItem key={origem.id} value={origem.nome} className="text-xs">
+                {origem.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Mobile Layout - More Compact */}
-      <div className={`md:hidden ${isMobile ? 'space-y-1.5' : 'space-y-3'}`}>
-        {/* Period Filter with highlight - More compact */}
-        <div className={`flex items-center gap-2 rounded-lg bg-lunar-accent/10 border border-lunar-accent/20 shadow-sm ${isMobile ? 'px-2 py-1' : 'px-3 py-2'}`}>
-          <Calendar className={`text-lunar-accent ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-          <Label className={`font-medium text-lunar-accent whitespace-nowrap ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            Período:
-          </Label>
-          <Select value={periodType} onValueChange={onPeriodChange}>
-            <SelectTrigger className={`flex-1 border-lunar-border/40 focus:border-lunar-accent/50 focus:ring-lunar-accent/20 ${isMobile ? 'text-xs h-7' : 'text-sm'}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PERIOD_OPTIONS.map(option => <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Search and Origin in same row on mobile - More compact */}
-        <div className={`grid grid-cols-2 ${isMobile ? 'gap-1' : 'gap-2'}`}>
-          <div className="flex items-center gap-1">
-            <Search className={`text-lunar-textSecondary flex-shrink-0 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            <Input 
-              placeholder="Buscar..." 
-              value={searchTerm} 
-              onChange={e => onSearchChange(e.target.value)} 
-              className={`border-lunar-border/40 ${isMobile ? 'text-xs h-7' : 'text-sm'}`} 
-            />
-          </div>
+      {/* Pílulas de Filtros Ativos (Chips) */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center justify-end gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+          {periodType !== 'last_60_days' && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted/40 border border-border/30 text-[10px] text-muted-foreground">
+              <span>{activePeriodLabel}</span>
+              <button onClick={() => onPeriodChange('last_60_days')} className="hover:text-foreground transition-colors ml-1">×</button>
+            </div>
+          )}
+          {activeOriginLabel && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted/40 border border-border/30 text-[10px] text-muted-foreground">
+              <span>{activeOriginLabel}</span>
+              <button onClick={() => onOriginChange('all')} className="hover:text-foreground transition-colors ml-1">×</button>
+            </div>
+          )}
+          {searchTerm && (
+            <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-muted/40 border border-border/30 text-[10px] text-muted-foreground">
+              <span>Busca: "{searchTerm}"</span>
+              <button onClick={() => onSearchChange('')} className="hover:text-foreground transition-colors ml-1">×</button>
+            </div>
+          )}
           
-          <div className="flex items-center gap-1">
-            <MapPin className={`text-lunar-textSecondary flex-shrink-0 ${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-            <Select value={originFilter} onValueChange={onOriginChange}>
-              <SelectTrigger className={`border-lunar-border/40 ${isMobile ? 'text-xs h-7' : 'text-sm'}`}>
-                <SelectValue placeholder="Origem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {origins.map(origem => <SelectItem key={origem.id} value={origem.nome}>
-                    {origem.nome}
-                  </SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <button 
+            onClick={clearFilters}
+            className="text-[10px] text-lunar-accent hover:text-lunar-accent/80 font-medium ml-1 transition-colors px-1"
+          >
+            Limpar filtros
+          </button>
         </div>
-      </div>
-    </Card>;
+      )}
+    </div>
+  );
 }
