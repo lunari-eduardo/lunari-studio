@@ -17,7 +17,7 @@ import DailyView from "@/components/agenda/DailyView";
 import AnnualView from "@/components/agenda/AnnualView";
 import AgendaHeader from "@/components/agenda/AgendaHeader";
 import AgendaModals from "@/components/agenda/AgendaModals";
-import TaskFormModal from "@/modules/tasks/presentation/components/TaskFormModal";
+import { TaskEventModal } from "@/components/agenda/TaskEventModal";
 import {
   useUnifiedEventsRangeQuery,
   type UnifiedEvent,
@@ -68,9 +68,9 @@ export default function Agenda() {
   const { addTask } = useSupabaseTasks();
   const { isMobile, isTablet } = useResponsiveLayout();
   
-  // Task modal state
-  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [taskInitialDate, setTaskInitialDate] = useState<string | null>(null);
+  // Task Event modal state
+  const [isTaskEventModalOpen, setIsTaskEventModalOpen] = useState(false);
+  const [selectedTaskEvent, setSelectedTaskEvent] = useState<Appointment | null>(null);
 
   // Personal Event modal state
   const [isPersonalEventModalOpen, setIsPersonalEventModalOpen] = useState(false);
@@ -227,8 +227,9 @@ export default function Agenda() {
   }, []);
 
   const handleCreateTaskSlot = useCallback((slot: { date: Date; time: string }) => {
-    setTaskInitialDate(format(slot.date, 'yyyy-MM-dd'));
-    setIsTaskModalOpen(true);
+    setNewItemSlot(slot);
+    setSelectedTaskEvent(null);
+    setIsTaskEventModalOpen(true);
   }, []);
 
   // Handle event click (existing appointment or budget)
@@ -237,7 +238,8 @@ export default function Agenda() {
       const appointment = event.originalData as Appointment;
       const agendaType = appointment.agendaType || 
         (appointment.type === 'personal' || appointment.type === 'pessoal' ? 'personal' : 
-         appointment.type === 'meeting' || appointment.type === 'reuniao' ? 'meeting' : 'session');
+         appointment.type === 'meeting' || appointment.type === 'reuniao' ? 'meeting' : 
+         appointment.type === 'task' || appointment.type === 'tarefa' ? 'task' : 'session');
 
       if (agendaType === 'personal') {
         setSelectedPersonalEvent(appointment);
@@ -248,6 +250,12 @@ export default function Agenda() {
       if (agendaType === 'meeting') {
         setSelectedMeeting(appointment);
         setIsMeetingModalOpen(true);
+        return;
+      }
+
+      if (agendaType === 'task') {
+        setSelectedTaskEvent(appointment);
+        setIsTaskEventModalOpen(true);
         return;
       }
 
@@ -349,6 +357,22 @@ export default function Agenda() {
   const handleDeleteMeeting = useCallback(async (id: string) => {
     await deleteAppointment(id, 'remove');
     toast.success('Reunião excluída com sucesso.');
+  }, [deleteAppointment]);
+
+  // Handlers para Tarefas na Agenda
+  const handleSaveTaskEvent = useCallback(async (data: any) => {
+    if (data.id) {
+      await updateAppointment(data.id, data);
+      toast.success('Tarefa atualizada com sucesso!');
+    } else {
+      await addAppointment(data);
+      toast.success('Tarefa criada na agenda com sucesso!');
+    }
+  }, [addAppointment, updateAppointment]);
+
+  const handleDeleteTaskEvent = useCallback(async (id: string) => {
+    await deleteAppointment(id, 'remove');
+    toast.success('Tarefa excluída da agenda.');
   }, [deleteAppointment]);
 
   // Handle budget appointment save (reschedule)
@@ -541,27 +565,15 @@ export default function Agenda() {
         onDelete={handleDeleteMeeting}
       />
 
-      {/* Task creation modal */}
-      <TaskFormModal
-        open={isTaskModalOpen}
-        onOpenChange={(open) => {
-          setIsTaskModalOpen(open);
-          if (!open) setTaskInitialDate(null);
-        }}
-        mode="create"
-        initial={{ dueDate: taskInitialDate || format(date, 'yyyy-MM-dd') }}
-        onSubmit={async (data) => {
-          await addTask({
-            ...data,
-            status: data.status ?? 'todo',
-            priority: data.priority ?? 'medium',
-            type: data.type ?? 'simple',
-            source: 'manual',
-          } as any);
-          setIsTaskModalOpen(false);
-          setTaskInitialDate(null);
-          toast.success('Tarefa criada com sucesso');
-        }}
+      {/* Task Event modal */}
+      <TaskEventModal
+        open={isTaskEventModalOpen}
+        onOpenChange={setIsTaskEventModalOpen}
+        event={selectedTaskEvent}
+        initialDate={newItemSlot?.date || date}
+        initialTime={newItemSlot?.time || '10:00'}
+        onSave={handleSaveTaskEvent}
+        onDelete={handleDeleteTaskEvent}
       />
 
       <AgendaModals

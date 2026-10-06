@@ -31,11 +31,12 @@ function assertIsoDate(value: string): string {
   return value;
 }
 
-function inferAgendaType(type: string | null | undefined): "session" | "personal" | "meeting" {
+function inferAgendaType(type: string | null | undefined): "session" | "personal" | "meeting" | "task" {
   if (!type) return "session";
   const lower = type.toLowerCase();
   if (lower === 'personal' || lower === 'personal_event' || lower === 'pessoal' || lower === 'evento_pessoal') return 'personal';
   if (lower === 'meeting' || lower === 'reuniao' || lower === 'reunião') return 'meeting';
+  if (lower === 'task' || lower === 'tarefa') return 'task';
   return 'session';
 }
 
@@ -160,9 +161,9 @@ async function handleConfirmedSideEffects(appointmentId: string, userId: string)
       return;
     }
 
-    // Se for evento pessoal ou reunião, sincroniza Google mas NÃO cria sessão de workflow (clientes_sessoes)
+    // Se for evento pessoal, reunião ou tarefa, sincroniza Google mas NÃO cria sessão de workflow (clientes_sessoes)
     const itemType = inferAgendaType(fresh.type);
-    if (itemType === 'personal' || itemType === 'meeting') {
+    if (itemType === 'personal' || itemType === 'meeting' || itemType === 'task') {
       try {
         const { syncAppointmentToGoogleCalendar } = await import("@/services/googleCalendarSync");
         await syncAppointmentToGoogleCalendar(appointmentId, "update");
@@ -276,7 +277,7 @@ async function handleConfirmedSideEffects(appointmentId: string, userId: string)
             );
           }
 
-          await supabase.from("clientes_sessoes").update(patch).eq("id", session.id);
+          await supabase.from("clientes_sessoes").update(patch as any).eq("id", session.id);
         } catch (patchError) {
           console.error("⚠️ [agenda.repo] Erro no patch redundante:", patchError);
         }
@@ -376,6 +377,8 @@ export class SupabaseAppointmentsRepository implements AppointmentsRepository {
       ? (input.type && input.type !== 'Sessão' ? input.type : 'pessoal')
       : input.agendaType === 'meeting'
       ? (input.type && input.type !== 'Sessão' ? input.type : 'reunião')
+      : input.agendaType === 'task'
+      ? (input.type && input.type !== 'Sessão' ? input.type : 'tarefa')
       : (input.type || 'Sessão');
 
     const sanitizeUuid = (val: string | null | undefined): string | null => {
@@ -444,6 +447,7 @@ export class SupabaseAppointmentsRepository implements AppointmentsRepository {
     if (patch.agendaType !== undefined) {
       if (patch.agendaType === 'personal' && !patch.type) updateData.type = 'pessoal';
       if (patch.agendaType === 'meeting' && !patch.type) updateData.type = 'reunião';
+      if (patch.agendaType === 'task' && !patch.type) updateData.type = 'tarefa';
     }
     if (patch.durationMinutes !== undefined) updateData.duration_minutes = patch.durationMinutes;
     if (patch.status !== undefined) updateData.status = patch.status;
@@ -456,7 +460,7 @@ export class SupabaseAppointmentsRepository implements AppointmentsRepository {
 
     const { error } = await supabase
       .from("appointments")
-      .update(updateData)
+      .update(updateData as any)
       .eq("id", id)
       .eq("user_id", session.user.id);
 

@@ -50,11 +50,16 @@ BEGIN
   -- This covers leads linked explicitly, via WhatsApp, or intelligently by phone/email
   UPDATE public.leads
   SET 
-    status = v_converted_status_key
+    status = v_converted_status_key,
+    scheduled_appointment_id = NEW.session_id,
+    needs_scheduling = false
   WHERE 
     user_id = NEW.user_id
-    AND status NOT IN (
-      SELECT key FROM public.lead_statuses WHERE user_id = NEW.user_id AND (is_converted = true OR is_lost = true)
+    AND (
+      status NOT IN (
+        SELECT key FROM public.lead_statuses WHERE user_id = NEW.user_id AND (is_converted = true OR is_lost = true)
+      )
+      OR scheduled_appointment_id IS NULL
     )
     AND (arquivado = false OR arquivado IS NULL)
     AND (

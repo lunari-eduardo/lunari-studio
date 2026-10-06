@@ -29,7 +29,7 @@ export const ProdutoIncluidoSchema = z.object({
 });
 export type ProdutoIncluido = z.infer<typeof ProdutoIncluidoSchema>;
 
-export const AgendaItemTypeSchema = z.enum(["session", "personal", "meeting"]);
+export const AgendaItemTypeSchema = z.enum(["session", "personal", "meeting", "task"]);
 export type AgendaItemType = z.infer<typeof AgendaItemTypeSchema>;
 
 export const AppointmentSchema = z.object({

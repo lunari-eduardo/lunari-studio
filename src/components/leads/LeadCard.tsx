@@ -297,7 +297,7 @@ export default function LeadCard({
       <LeadActionButtons lead={lead} />
 
       {/* Direct scheduling button for converted leads */}
-      {isConverted && onDirectScheduling && (
+      {isConverted && onDirectScheduling && !lead.scheduledAppointmentId && (
         <div className="mt-3 pt-3 border-t border-border/60 dark:border-border/60">
           <Button
             onClick={onDirectScheduling}

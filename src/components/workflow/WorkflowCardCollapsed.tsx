@@ -293,10 +293,10 @@ export function WorkflowCardCollapsed({
   return (
     <>
       <div 
-        className={cn("group relative px-4 py-3 transition-colors cursor-pointer min-h-[72px]", WORKFLOW_ROW_GRID, isExpanded ? "bg-transparent" : "bg-card hover:bg-muted/10 rounded-xl border border-border/40 shadow-[0_4px_30px_rgba(0,0,0,0.02)]")} 
+        className={cn("group relative px-4 py-3 transition-colors cursor-pointer min-h-[72px]", "flex items-center gap-3 w-full flex-nowrap overflow-hidden", isExpanded ? "bg-transparent" : "bg-card hover:bg-muted/10 rounded-xl border border-border/40 shadow-[0_4px_30px_rgba(0,0,0,0.02)]")} 
         onClick={onToggleExpand}
       >
-        <div className="hidden md:flex min-w-0">
+        <div className="hidden md:flex min-w-0 w-[56px] shrink-0">
           <SessionDateBlock 
             dataSessao={session.data} 
             horaSessao={session.hora} 
@@ -304,7 +304,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
         
-        <div className="min-w-0 flex items-center">
+        <div className="min-w-0 flex items-center w-[180px] lg:w-[220px] shrink-0">
           <SessionClientCell 
             clientId={session.clienteId} 
             nome={session.nome} 
@@ -315,7 +315,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center px-1 min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center px-1 min-w-0 flex-1" onClick={e => e.stopPropagation()}>
           <input
             value={descriptionValue}
             onChange={(e) => setDescriptionValue(e.target.value)}
@@ -325,7 +325,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center min-w-0 w-[160px] shrink-0" onClick={e => e.stopPropagation()}>
           <WorkflowPackageCombobox
             key={`package-${session.id}`}
             value={pacoteAtual}
@@ -341,7 +341,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center justify-center min-w-0 w-[140px] shrink-0" onClick={e => e.stopPropagation()}>
           <SessionStatusSelect
             status={session.status}
             statusOptions={statusOptions}
@@ -349,14 +349,14 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden @4xl:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden xl:flex items-center justify-center min-w-0 w-[84px] shrink-0" onClick={e => e.stopPropagation()}>
           <ProductStatusChip
             produtos={session.produtosList as any}
             onClick={() => setModalAberto(true)}
           />
         </div>
 
-        <div className="hidden @6xl:flex items-center justify-center min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden 2xl:flex items-center justify-center min-w-0 w-[70px] shrink-0" onClick={e => e.stopPropagation()}>
           {fin.hasGaleria ? (
             <div className="flex items-center gap-1.5 text-muted-foreground" title="Editar no card expandido">
               <Lock className="h-3 w-3 opacity-50" />
@@ -378,7 +378,7 @@ export function WorkflowCardCollapsed({
           )}
         </div>
 
-        <div className="hidden md:flex flex-col items-end justify-center min-w-0">
+        <div className="hidden md:flex flex-col items-end justify-center min-w-0 w-[96px] shrink-0">
           <SessionMetricCell 
             sessionId={session.sessionId || null}
             clienteId={(session as any).clienteId || null}
@@ -387,7 +387,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center min-w-0" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center min-w-0 w-[110px] shrink-0 justify-end" onClick={e => e.stopPropagation()}>
           <CardGalleryButtons
             galerias={galerias}
             hasGalerias={hasGalerias}
@@ -399,7 +399,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center justify-end min-w-0">
+        <div className="hidden md:flex items-center justify-end min-w-0 w-[32px] shrink-0">
           <SessionRowMenu 
             clientId={session.clienteId}
             onOpenProdutos={() => setModalAberto(true)}

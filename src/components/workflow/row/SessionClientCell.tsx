@@ -2,6 +2,8 @@ import { ClienteAvatar } from "../shared/ClienteAvatar";
 import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useGlobalConversas } from "@/contexts/ConversasContext";
+import { useNavigate } from "react-router-dom";
 
 interface SessionClientCellProps {
   clientId?: string;
@@ -20,7 +22,19 @@ export function SessionClientCell({
   whatsapp,
   className 
 }: SessionClientCellProps) {
-  const whatsappUrl = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, "")}` : null;
+  const whatsappUrl = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, '')}` : null;
+  const conversas = useGlobalConversas();
+  const navigate = useNavigate();
+  const hasConnectedInstance = !!conversas?.connectedInstance;
+
+  const handleWhatsappClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!whatsapp) return;
+    if (hasConnectedInstance) {
+      e.preventDefault();
+      navigate(`/app/conversas?phone=55${whatsapp.replace(/\D/g, '')}`);
+    }
+  };
 
   return (
     <div className={cn("flex items-center gap-3 min-w-0", className)}>
@@ -65,3 +79,5 @@ export function SessionClientCell({
     </div>
   );
 }
+
+

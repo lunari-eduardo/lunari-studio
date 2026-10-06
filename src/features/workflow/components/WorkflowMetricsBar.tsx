@@ -145,3 +145,4 @@ export function WorkflowMetricsBar({ showMetrics, onToggle, financials, sessionC
     </div>
   );
 }
+
