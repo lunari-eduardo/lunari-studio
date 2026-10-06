@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+﻿import { useState, useCallback, useMemo } from 'react';
 import {
   format,
   startOfWeek,
@@ -520,14 +520,14 @@ export default function Agenda() {
           )}
           <div className="min-w-0 space-y-4">
             <div
-              className="rounded-xl border border-border/20 bg-card/60 p-2 shadow-sm md:p-3"
+              className="rounded-xl border border-border/60 bg-card p-2 shadow-sm md:p-3"
               {...((isMobile || isTablet) && view !== 'year' ? swipeHandlers : {})}
             >
               {renderView()}
             </div>
 
             <ProGate entitlement="tasks" opacity>
-              <details className="group rounded-xl border border-border/20 bg-card/40">
+              <details className="group rounded-xl border border-border/60 bg-card">
                 <summary className="cursor-pointer list-none px-4 py-2.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
                   Diagnóstico
                 </summary>

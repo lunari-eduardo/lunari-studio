@@ -1,4 +1,4 @@
-import MiniMonthCalendar from './MiniMonthCalendar';
+﻿import MiniMonthCalendar from './MiniMonthCalendar';
 import AgendaTasksSection from './AgendaTasksSection';
 import DayRevenueKPI from './DayRevenueKPI';
 import { useAvailability } from '@/hooks/useAvailability';
@@ -30,7 +30,7 @@ export default function AgendaSidebar({
 
   return (
     <aside className="space-y-3">
-      <div className="rounded-xl border border-border/20 bg-card/60 shadow-sm p-3">
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm p-3">
         <MiniMonthCalendar
           selectedDate={date}
           unifiedEvents={unifiedEvents}

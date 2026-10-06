@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Settings, Share2, Crown, Globe } from "lucide-react";
 import { formatDateTitle, ViewType } from '@/utils/dateFormatters';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
@@ -61,7 +61,7 @@ export default function AgendaHeader({
         variant="outline"
         onClick={onNavigateToday}
         size="sm"
-        className={`h-9 px-4 bg-transparent border-border/60 text-foreground hover:bg-muted/50 text-xs`}
+        className="h-9 px-4 text-xs"
       >
         Hoje
       </Button>
@@ -72,7 +72,7 @@ export default function AgendaHeader({
           size="icon"
           onClick={onNavigatePrevious}
           aria-label="Período anterior"
-          className="h-9 w-9 bg-transparent border-border/60 text-foreground hover:bg-muted/50"
+          className="h-9 w-9"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -86,7 +86,7 @@ export default function AgendaHeader({
           size="icon"
           onClick={onNavigateNext}
           aria-label="Próximo período"
-          className="h-9 w-9 bg-transparent border-border/60 text-foreground hover:bg-muted/50"
+          className="h-9 w-9"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>

@@ -1,3 +1,4 @@
+﻿import { Button } from '@/components/ui/button';
 import {
   MoreVertical,
   Clock,
@@ -45,13 +46,13 @@ export default function TimeSlotOptionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
+        <Button variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-foreground"
           onClick={(e) => e.stopPropagation()}
-          className="p-1 rounded-md opacity-50 hover:opacity-100 hover:bg-accent/50 transition-all focus:opacity-100"
+          
           aria-label="Opções do horário"
         >
           <MoreVertical className="h-4 w-4" />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[190px]">
         {/* Criação de itens */}

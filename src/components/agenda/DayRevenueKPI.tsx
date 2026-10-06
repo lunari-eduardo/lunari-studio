@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { summarizeRevenue, getWeekRange } from '@/utils/agendaRevenueCalc';
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
@@ -23,7 +23,7 @@ export default function DayRevenueKPI({ date, unifiedEvents, range }: DayRevenue
   const title = range === 'week' ? 'Faturamento da semana' : 'Faturamento do dia';
 
   return (
-    <div className="rounded-lg border border-border/20 bg-card/40 px-3 py-2">
+    <div className="rounded-xl border border-border/60 bg-card/40 px-3 py-2">
       <div className="flex items-baseline justify-between gap-2">
         <div className="text-[10px] text-muted-foreground/70 uppercase tracking-wide">
           {title}

@@ -1,4 +1,4 @@
-import { format, isSameDay } from 'date-fns';
+﻿import { format, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TimeInput } from "@/components/ui/time-input";
 import { useState, useRef } from 'react';
@@ -318,7 +318,7 @@ export default function DailyView({
       <div className="flex items-center justify-between mb-2 border-b border-border/40 pb-2">
         <Popover open={showAddTimeSlot} onOpenChange={setShowAddTimeSlot}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-7 w-7 rounded-full">
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground">
               <Plus className="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>

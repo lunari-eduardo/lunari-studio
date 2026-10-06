@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { isSameDay, parseISO, getMonth, getYear, getDate, startOfWeek, endOfWeek, format } from 'date-fns';
 import { Calendar, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -119,7 +119,7 @@ export default function AgendaTasksSection({
   }
 
   return (
-    <div className="rounded-lg border border-border/20 bg-card/40 p-3">
+    <div className="rounded-xl border border-border/60 bg-card/40 p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
