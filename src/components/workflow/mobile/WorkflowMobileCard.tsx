@@ -39,6 +39,8 @@ import {
   Lock,
   Layers,
   Sparkles,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { SessionData } from "@/types/workflow";
@@ -52,6 +54,8 @@ import { ChargeModal } from "@/components/cobranca/ChargeModal";
 import { CombinedChargeModal } from "@/components/cobranca/CombinedChargeModal";
 import { OverrideExtrasDialog } from "../details/OverrideExtrasDialog";
 import { WorkflowPackageCombobox } from "../WorkflowPackageCombobox";
+import { SessionStatusSelect } from "../SessionStatusSelect";
+import { SessionRowMenu } from "../shared/SessionRowMenu";
 import { SessionCreditBadge } from "@/components/finance/SessionCreditBadge";
 import { FotosExtrasPaymentBadge } from "../FotosExtrasPaymentBadge";
 import { useAppContext } from "@/contexts/AppContext";
@@ -148,7 +152,7 @@ export function WorkflowMobileCard({
   }, []);
 
   const handleTouchEnd = useCallback(() => {
-    // Janela de 150ms para neutralizar eventos click sintÃ©ticos disparados apÃ³s o tÃ©rmino do scroll
+    // Janela de 150ms para neutralizar eventos click sintéticos disparados após o término do scroll
     setTimeout(() => {
       isScrollingRef.current = false;
       touchStartPos.current = null;
@@ -165,7 +169,7 @@ export function WorkflowMobileCard({
     setStatusMenuOpen(open);
   }, []);
 
-  // Campos editÃ¡veis
+  // Campos editáveis
   const [descontoValue, setDescontoValue] = useState(session.desconto || "");
   const [adicionalValue, setAdicionalValue] = useState(session.valorAdicional || "");
   const [valorFotoExtraValue, setValorFotoExtraValue] = useState(
@@ -186,7 +190,7 @@ export function WorkflowMobileCard({
     setObsValue(session.observacoes || "");
   }, [session.desconto, session.valorAdicional, session.valorFotoExtra, session.observacoes]);
 
-  // CÃ¡lculos financeiros (RPC canonica)
+  // Cálculos financeiros (RPC canonica)
   const { calc: extraCalc, resolvedGalleryId } = useGalleryExtraCalc(
     session.galeriaId || null,
     { sessionId: session.sessionId || null },
@@ -221,7 +225,7 @@ export function WorkflowMobileCard({
 
   const isPago = pendente <= 0.01 && totalCalculado > 0;
 
-  // Cor de status da sessÃ£o
+  // Cor de status da sessão
   const statusColor = useMemo(() => {
     if (!session.status) return "#9CA3AF";
     return getStatusColor(session.status);
@@ -259,7 +263,7 @@ export function WorkflowMobileCard({
       return;
     }
     if (temSelecao) {
-      toast.error("Esta sessÃ£o jÃ¡ possui uma Galeria de SeleÃ§Ã£o");
+      toast.error("Esta sessão já possui uma Galeria de Seleção");
       return;
     }
     const frozenPkg = session.regras_congeladas?.pacote as any | undefined;
@@ -313,7 +317,7 @@ export function WorkflowMobileCard({
       return;
     }
     if (temEntrega) {
-      toast.error("Esta sessÃ£o jÃ¡ possui uma Galeria de Entrega");
+      toast.error("Esta sessão já possui uma Galeria de Entrega");
       return;
     }
     const url = buildGalleryDeliverUrl({
@@ -325,7 +329,7 @@ export function WorkflowMobileCard({
     window.open(url, "_blank", "noopener,noreferrer");
   }, [hasGaleryAccess, temEntrega, session]);
 
-  // EdiÃ§Ã£o de campos
+  // Edição de campos
   const handleDescontoBlur = useCallback(() => {
     const num = parseMoneyValue(descontoValue);
     const formatted = formatCurrencyBRL(num);
@@ -362,7 +366,7 @@ export function WorkflowMobileCard({
   );
   const productActionInfo = computeProductNextAction(produtosVendidos);
 
-  // Extras da galeria (fonte canÃ´nica alinhada com WorkflowCardExpanded)
+  // Extras da galeria (fonte canônica alinhada com WorkflowCardExpanded)
   const fallbackExtrasTotal =
     (Number(session.qtdFotosExtra) || 0) * parseMoneyValue(session.valorFotoExtra);
   const extrasTotalCanonico =
@@ -371,7 +375,7 @@ export function WorkflowMobileCard({
   const extrasPendente = fin.extrasPend ?? 0;
   const extrasFullyPaid = extrasPendente <= 0.001;
 
-  // Pendente da sessÃ£o (fonte canÃ´nica alinhada com WorkflowCardExpanded)
+  // Pendente da sessão (fonte canônica alinhada com WorkflowCardExpanded)
   const valorTotalFallback = parseMoneyValue(session.total);
   const pendenteVisual =
     fin.totalVisual > 0 || fin.pagoTotal > 0
@@ -385,7 +389,7 @@ export function WorkflowMobileCard({
   const canCobrarTudo = canCobrarSessao && canCobrarExtras;
   const showChargeDropdown = canCobrarExtras || extrasPendente > 0.001;
 
-  // Gatilho do botÃ£o Cobrar quando nÃ£o houver dropdown
+  // Gatilho do botão Cobrar quando não houver dropdown
   const handleCobrarClick = useCallback(() => {
     if (canCobrarExtras && !canCobrarSessao) {
       setShowExtraChargeModal(true);
@@ -406,7 +410,7 @@ export function WorkflowMobileCard({
           isExpanded && "ring-1 ring-primary/30 shadow-[0_4px_20px_rgba(0,0,0,0.08)]",
         )}
       >
-        {/* PARTE COLAPSADA DO CARD */}
+                {/* PARTE COLAPSADA DO CARD */}
         <div
           onClick={() => {
             if (isScrollingRef.current) return;
@@ -415,66 +419,87 @@ export function WorkflowMobileCard({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="p-3.5 sm:p-4 cursor-pointer active:bg-accent/30 transition-colors select-none touch-manipulation flex items-center justify-between gap-2"
+          className="p-3.5 sm:p-4 cursor-pointer active:bg-accent/30 transition-colors select-none touch-manipulation flex items-start gap-3"
         >
-          {/* Esquerda: Avatar + Nome + Descricao */}
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <ClienteAvatar src={session.avatarUrl} nome={session.nome} size="md" className="shrink-0" />
-            <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="font-semibold text-sm text-foreground truncate leading-tight">
-                  {session.nome || 'Cliente'}
-                </span>
-              </div>
-              <span className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
-                {displayPackageName}
-              </span>
-            </div>
-          </div>
+          {/* Esquerda: Avatar */}
+          <ClienteAvatar src={session.avatarUrl} nome={session.nome} size="md" className="shrink-0 mt-0.5" />
 
-          {/* Direita: Horario ou Valor pendente + Acoes */}
-          <div className="flex items-center shrink-0 ml-1 gap-2">
-            <div className="flex flex-col items-end shrink-0" onClick={(e) => e.stopPropagation()}>
-              <span className="text-[13px] font-semibold tabular-nums text-foreground leading-tight">
-                {session.appointmentId && session.hora && session.hora !== '00:00' ? session.hora : (session.data ? formatToDayMonth(session.data) : 'S/ Data')}
-              </span>
-              {pendente > 0 && (
-                <span className="text-[10px] font-medium text-destructive mt-0.5 tabular-nums leading-tight">
-                  {formatCurrencyBRL(pendente)}
-                </span>
-              )}
-            </div>
-
-            {session.whatsapp && (
-              <a
-                href={`https://wa.me/${session.whatsapp.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => {
-                  if (isScrollingRef.current) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                  }
-                  e.stopPropagation();
-                }}
-                className="h-7 w-7 rounded-full flex items-center justify-center bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors touch-manipulation shrink-0 ml-0.5"
-                title="WhatsApp"
-              >
-                <MessageCircle className="h-3.5 w-3.5" />
-              </a>
-            )}
+          {/* Direita: Empilhamento vertical */}
+          <div className="flex flex-col min-w-0 flex-1">
             
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0 ml-0.5",
-                isExpanded && "rotate-180 text-primary"
-              )}
-            />
+            {/* CABEÇALHO: Nome + Badges + Menu */}
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-semibold text-[14px] text-foreground leading-snug truncate">
+                {session.nome || 'Cliente'}
+              </span>
+              
+              {/* Ações Topo Direita */}
+              <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                {/* Badge Pago/Faltando */}
+                {pendente <= 0.01 && totalCalculado > 0 ? (
+                  <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Pago
+                  </span>
+                ) : pendente > 0 ? (
+                  <span className="inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                    <AlertCircle className="h-3 w-3" />
+                    {formatCurrencyBRL(pendente)}
+                  </span>
+                ) : null}
+
+                {/* Menu de Ações */}
+                <div className="ml-1 -mr-2">
+                  <SessionRowMenu 
+                    clientId={session.clienteId}
+                    onOpenProdutos={() => setModalProdutosOpen(true)}
+                    onOpenPaymentModal={() => setWorkflowPaymentsOpen(true)}
+                    onCancelSession={() => setDeleteModalOpen(true)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* DESCRIÇÃO */}
+            <div className="mt-0.5 min-w-0" onClick={(e) => e.stopPropagation()}>
+              <input
+                value={obsValue}
+                onChange={(e) => setObsValue(e.target.value)}
+                onBlur={handleObsBlur}
+                placeholder="Adicionar descrição..."
+                className="w-full text-[12px] bg-transparent border-transparent px-0 py-0 text-muted-foreground focus:text-foreground placeholder:text-muted-foreground/50 outline-none truncate"
+              />
+            </div>
+
+            {/* SELETORES (Pacote e Status) */}
+            <div className="flex items-center gap-2 mt-2.5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex-1 max-w-[140px] min-w-0">
+                <WorkflowPackageCombobox
+                  key={`mobile-pkg-btn-${session.id}`}
+                  value={pacoteAtual}
+                  displayName={displayPackageName}
+                  variant="mobile-pill"
+                  onValueChange={(pkg) => {
+                    if (!pkg.id && !pkg.nome) {
+                      onFieldUpdate(session.id, "pacote", "");
+                      return;
+                    }
+                    onFieldUpdate(session.id, "pacote", pkg.id || pkg.nome);
+                  }}
+                />
+              </div>
+              <div className="flex-1 max-w-[140px] min-w-0">
+                <SessionStatusSelect
+                  status={session.status}
+                  statusOptions={statusOptions}
+                  variant="mobile-pill"
+                  onChange={(newStatus) => onStatusChange(session.id, newStatus)}
+                />
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* PARTE EXPANDIDA DO CARD */}
+{/* PARTE EXPANDIDA DO CARD */}
         {isExpanded && (
           <div className="border-t border-border/30 bg-muted/10">
             {/* ABAS */}
@@ -512,7 +537,7 @@ export function WorkflowMobileCard({
               })}
             </div>
 
-            {/* CONTEÃšDO DAS ABAS */}
+            {/* CONTEÚDO DAS ABAS */}
             <div className="p-4 space-y-4 text-xs">
               {/* ABA RESUMO */}
               {activeTab === "resumo" && (
@@ -520,7 +545,7 @@ export function WorkflowMobileCard({
                   <div className="flex items-center justify-between py-1 border-b border-border/20">
                     <span className="text-muted-foreground flex items-center gap-1.5">
                       <Calendar className="h-3.5 w-3.5" />
-                      Data da sessÃ£o
+                      Data da sessão
                     </span>
                     <span className="font-medium text-foreground">
                       {formatFullDateLong(session.data)}
@@ -607,13 +632,13 @@ export function WorkflowMobileCard({
                   <div className="pt-2">
                     <span className="text-muted-foreground flex items-center gap-1.5 mb-1.5">
                       <FileText className="h-3.5 w-3.5" />
-                      ObservaÃ§Ãµes
+                      Observações
                     </span>
                     <Textarea
                       value={obsValue}
                       onChange={(e) => setObsValue(e.target.value)}
                       onBlur={handleObsBlur}
-                      placeholder="ObservaÃ§Ãµes da sessÃ£o..."
+                      placeholder="Observações da sessão..."
                       className="text-xs bg-background/50 resize-none min-h-[60px]"
                     />
                   </div>
@@ -648,7 +673,7 @@ export function WorkflowMobileCard({
                       <span
                         className={cn("w-2 h-2 rounded-full", productActionInfo.dotClass)}
                       />
-                      <span className="text-muted-foreground">Etapa de produÃ§Ã£o:</span>
+                      <span className="text-muted-foreground">Etapa de produção:</span>
                       <span className="font-medium text-foreground">
                         {productActionInfo.label}
                       </span>
@@ -657,7 +682,7 @@ export function WorkflowMobileCard({
 
                   {totalProdutosVendidos === 0 ? (
                     <div className="text-center py-4 text-muted-foreground border border-dashed rounded-lg">
-                      Nenhum produto adicionado nesta sessÃ£o.
+                      Nenhum produto adicionado nesta sessão.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -692,14 +717,14 @@ export function WorkflowMobileCard({
               {activeTab === "galeria" && (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    {/* Galeria de SeleÃ§Ã£o */}
+                    {/* Galeria de Seleção */}
                     <div className="p-3 rounded-lg bg-background/60 border border-border/30 flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-foreground">Galeria de SeleÃ§Ã£o</p>
+                        <p className="font-semibold text-foreground">Galeria de Seleção</p>
                         <p className="text-[11px] text-muted-foreground">
                           {temSelecao
                             ? "Galeria criada e ativa"
-                            : "Nenhuma seleÃ§Ã£o criada"}
+                            : "Nenhuma seleção criada"}
                         </p>
                       </div>
                       {temSelecao ? (
@@ -857,13 +882,13 @@ export function WorkflowMobileCard({
                     )}
 
                     <div className="pt-2 border-t border-border/30 flex justify-between font-bold text-sm">
-                      <span className="text-foreground">Total da sessÃ£o:</span>
+                      <span className="text-foreground">Total da sessão:</span>
                       <span className="text-foreground">
                         {formatCurrencyBRL(totalCalculado)}
                       </span>
                     </div>
                     <div className="flex justify-between font-medium text-emerald-600 dark:text-emerald-400">
-                      <span>Valor jÃ¡ pago:</span>
+                      <span>Valor já pago:</span>
                       <span>{formatCurrencyBRL(valorPagoDisplay)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-amber-600 dark:text-amber-400">
@@ -872,7 +897,7 @@ export function WorkflowMobileCard({
                     </div>
                   </div>
 
-                  {/* CrÃ©dito da sessÃ£o se houver */}
+                  {/* Crédito da sessão se houver */}
                   {session.clienteId && (
                     <div className="pt-2">
                       <SessionCreditBadge
@@ -891,14 +916,14 @@ export function WorkflowMobileCard({
                       className="w-full h-8 text-xs gap-1.5"
                     >
                       <DollarSign className="h-3.5 w-3.5" />
-                      HistÃ³rico financeiro
+                      Histórico financeiro
                     </Button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* BOTÃ•ES DE AÃ‡ÃƒO FIXOS NO RODAPÃ‰ DO EXPANDIDO */}
+            {/* BOTÕES DE AÇÃO FIXOS NO RODAPÉ DO EXPANDIDO */}
             <div className="p-3 bg-card/90 border-t border-border/30 flex items-center gap-2">
               <Button
                 variant="outline"
@@ -929,7 +954,7 @@ export function WorkflowMobileCard({
                     >
                       <Send className="h-3.5 w-3.5 text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium">Cobrar sessÃ£o</div>
+                        <div className="text-xs font-medium">Cobrar sessão</div>
                         <div className="text-[10px] text-muted-foreground">
                           {formatCurrencyBRL(pendenteSessaoSugerido)}
                         </div>
@@ -959,7 +984,7 @@ export function WorkflowMobileCard({
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-medium">Cobrar tudo</div>
                             <div className="text-[10px] text-muted-foreground">
-                              {formatCurrencyBRL(pendenteSessaoSugerido + extrasPendente)} â€¢ 1 link Ãºnico
+                              {formatCurrencyBRL(pendenteSessaoSugerido + extrasPendente)} • 1 link único
                             </div>
                           </div>
                         </DropdownMenuItem>
@@ -1029,7 +1054,7 @@ export function WorkflowMobileCard({
           onConfirm={(action) => {
             onDeleteSession(
               session.id,
-              session.nome || 'Sessão',
+              session.nome || 'Sess?o',
               Array.isArray(session.pagamentos) ? session.pagamentos.length : 0,
               action,
             );
@@ -1037,7 +1062,7 @@ export function WorkflowMobileCard({
           }}
           sessionData={{
             id: session.id,
-            clientName: session.nome || 'Sessão',
+            clientName: session.nome || 'Sess?o',
             date: session.data || '',
             hasPayments: Array.isArray(session.pagamentos) && session.pagamentos.length > 0
           }}

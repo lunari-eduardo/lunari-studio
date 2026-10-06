@@ -10,7 +10,7 @@ interface PackageComboboxProps {
   value?: string;
   displayName?: string; // Nome a exibir (congelado)
   description?: string; // Usado na variante inline como 2Âª linha
-  variant?: "default" | "inline";
+  variant?: "default" | "inline" | "mobile-pill";
   onValueChange: (packageData: {
     id: string; // Add ID to the interface
     nome: string;
@@ -192,6 +192,34 @@ const WorkflowPackageComboboxComponent = ({
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[240px] p-0 shadow-neumorphic border-0 dropdown-solid z-[9999]">
+          {commandContent}
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
+  if (variant === "mobile-pill") {
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button 
+            role="combobox" 
+            aria-expanded={open} 
+            disabled={disabled || isLoadingPacotes}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border bg-transparent text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-accent-gold/40 disabled:opacity-50 disabled:cursor-not-allowed max-w-full",
+              open ? "border-border bg-muted/20" : "border-border/40 hover:bg-muted/10",
+              !hasSelection && "border-dashed"
+            )}
+          >
+            <Package className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+            <span className={cn("text-[11px] font-medium leading-none truncate max-w-[120px]", hasSelection ? "text-muted-foreground" : "text-muted-foreground/50 italic")}>
+              {hasSelection ? (displayName || selectedPackage?.nome) : (isLoadingPacotes ? "Carregando..." : "Pacote")}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[240px] p-0 shadow-neumorphic border-0 dropdown-solid z-[9999]" align="start">
           {commandContent}
         </PopoverContent>
       </Popover>
