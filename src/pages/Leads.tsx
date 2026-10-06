@@ -83,9 +83,9 @@ export default function Leads() {
         )}
       >
         {/* Header da página com subtítulo de pipeline */}
-        <div className={cn("flex items-center justify-between mb-3", isMobile ? "mb-2" : "")}>
+        <div className={cn("flex items-center justify-between mb-4", isMobile ? "mb-2" : "")}>
           <div>
-            <h1 className={cn("font-semibold text-lunar-text tracking-tight", isMobile ? "text-base" : "text-lg")}>
+            <h1 className={cn("font-medium text-foreground tracking-tight", isMobile ? "text-base" : "text-xl")}>
               Leads
             </h1>
             <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -107,7 +107,7 @@ export default function Leads() {
           )}
         </div>
 
-        <div className="flex flex-col xl:flex-row xl:items-start gap-4 mb-2">
+        <div className="flex flex-col xl:flex-row xl:items-start gap-4 mb-4">
           {(!isMobile || showMetrics) && (
             <div className="flex-1 min-w-0 transition-all duration-300 animate-in slide-in-from-top-2">
               <LeadMetricsCards periodFilter={periodFilter} isMobile={isMobile} isCollapsed={isMobile && !showMetrics} />
@@ -116,23 +116,23 @@ export default function Leads() {
         </div>
 
         <Tabs defaultValue="ativos" className="flex flex-col">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-2">
-            <TabsList className="w-full lg:w-auto grid grid-cols-3">
-              <TabsTrigger value="ativos" className="relative">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+            <TabsList className="w-full lg:w-auto grid grid-cols-3 bg-muted/30 border border-border/20">
+              <TabsTrigger value="ativos" className="relative data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 Funil
-                <span className="ml-2 bg-muted-foreground/20 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
+                <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
                   {ativosCount}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="ganhos">
-                Histórico Ganhos
-                <span className="ml-2 bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded-full text-[10px]">
+              <TabsTrigger value="ganhos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                Ganhos
+                <span className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500/80 px-1.5 py-0.5 rounded-full text-[10px]">
                   {ganhosCount}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="perdidos">
-                Histórico Perdidos
-                <span className="ml-2 bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full text-[10px]">
+              <TabsTrigger value="perdidos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                Perdidos
+                <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
                   {perdidosCount}
                 </span>
               </TabsTrigger>

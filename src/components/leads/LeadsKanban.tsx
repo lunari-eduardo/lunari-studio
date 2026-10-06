@@ -304,29 +304,30 @@ export default function LeadsKanban({
     const statusColor = statuses.find((s) => s.key === statusKey)?.color || "#6b7280";
     return (
       <section className={cn("h-full flex flex-col", isMobile ? "flex-1 min-w-[240px]" : "flex-1 min-w-[280px]")}>
-        <header className={cn("flex items-center justify-between px-1", isMobile ? "mb-1.5" : "mb-3")}>
+        <header className={cn("flex items-center justify-between px-2", isMobile ? "mb-1.5" : "mb-3")}>
           <div className="flex items-center gap-2">
             <div
-              className={cn("rounded-full", isMobile ? "w-2 h-2" : "w-3 h-3")}
+              className={cn("rounded-full", isMobile ? "w-1.5 h-1.5" : "w-2 h-2")}
               style={{
                 backgroundColor: statusColor,
               }}
             />
-            <h2 className={cn("font-semibold text-lunar-text", isMobile ? "text-xs" : "text-sm")}>{title}</h2>
+            <h2 className={cn("font-medium text-foreground", isMobile ? "text-xs" : "text-sm")}>{title}</h2>
           </div>
-          <Badge variant="outline" className={cn(isMobile ? "text-[10px] px-1 py-0" : "text-2xs")}>
+          <span className="text-[10px] font-medium text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded-full">
             {leadsInColumn.length}
-          </Badge>
+          </span>
         </header>
 
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
-            "bg-transparent", // Coluna completamente limpa, sem fundo cinza encaixotado
-            isMobile ? "p-1" : "p-2",
-            isOver && "bg-muted/10 ring-1 ring-border/50" // Apenas um leve respiro no hover da coluna
+            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out border",
+            "bg-muted/5", 
+            isMobile ? "p-1.5" : "p-2",
+            isOver ? "bg-muted/10 shadow-inner" : "" 
           )}
+          style={{ borderColor: `${statusColor}25` }}
         >
           <div className="flex-1 overflow-y-auto scrollbar-kanban">
             <ul className={cn("pb-2", isMobile ? "space-y-1" : "space-y-2")}>
@@ -423,7 +424,7 @@ export default function LeadsKanban({
         >
           {/* Kanban Columns - Enhanced mobile scrolling */}
           <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
-            <div className={cn("flex h-full min-w-max", isMobile ? "gap-1 px-1" : "gap-2 px-2")}>
+            <div className={cn("flex h-full min-w-max", isMobile ? "gap-2 px-2" : "gap-4 px-4")}>
               {statuses.map((status) => (
                 <StatusColumn key={status.id} title={status.name} statusKey={status.key} />
               ))}

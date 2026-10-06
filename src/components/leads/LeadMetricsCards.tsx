@@ -27,39 +27,33 @@ export default function LeadMetricsCards({
     title: 'Total de Leads',
     value: metrics.totalLeads,
     icon: Users,
-    color: 'text-lunar-accent',
-    bgColor: 'bg-lunar-accent/10'
+    color: 'text-muted-foreground'
   }, {
-    title: 'Leads Enviados',
+    title: 'Orçamentos Enviados',
     value: metrics.leadsEnviados,
     icon: Send,
-    color: 'text-chart-blue-1',
-    bgColor: 'bg-chart-blue-1/10'
+    color: 'text-muted-foreground'
   }, {
     title: 'Leads Fechados',
     value: metrics.leadsFechados,
     icon: CheckCircle,
-    color: 'text-chart-green-1',
-    bgColor: 'bg-chart-green-1/10'
+    color: 'text-muted-foreground'
   }, {
     title: 'Leads Perdidos',
     value: metrics.leadsPerdidos,
     icon: XCircle,
-    color: 'text-chart-red-1',
-    bgColor: 'bg-chart-red-1/10'
+    color: 'text-muted-foreground'
   }, {
     title: 'Taxa de Conversão',
     value: `${metrics.taxaConversao}%`,
     icon: TrendingUp,
-    color: 'text-chart-purple-1',
-    bgColor: 'bg-chart-purple-1/10',
+    color: 'text-muted-foreground',
     subtitle: metrics.leadsEnviados > 0 ? `${metrics.leadsFechados}/${metrics.leadsEnviados}` : '0/0'
   }, {
     title: 'Top Motivo Perda',
     value: topMotivoLabel || 'N/A',
     icon: AlertTriangle,
-    color: 'text-chart-orange-1',
-    bgColor: 'bg-chart-orange-1/10',
+    color: 'text-muted-foreground',
     isText: true
   }];
 
@@ -85,39 +79,43 @@ export default function LeadMetricsCards({
   )}>
       {cards.map((card, index) => {
       const Icon = card.icon;
-      return <Card key={index} className="bg-card/40 dark:bg-card/[0.05] backdrop-blur-sm border-white/30 dark:border-white/[0.08] hover:bg-card/60 dark:hover:bg-white/[0.08] transition-all">
+      return <Card key={index} className="bg-card/20 backdrop-blur-sm border-border/30 hover:bg-card/40 transition-all rounded-xl shadow-none">
             <CardContent className={cn(
-              "flex items-center justify-between",
-              isMobile ? "px-2 py-1.5" : "px-3 py-2"
+              "flex flex-col justify-between",
+              isMobile ? "px-3 py-2.5" : "px-4 py-3",
+              "h-full gap-2"
             )}>
-              <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between w-full">
                 <p className={cn(
-                  "font-medium text-lunar-textSecondary truncate mb-1",
+                  "font-medium text-muted-foreground truncate",
                   isMobile ? "text-[10px]" : "text-xs"
                 )}>
                   {card.title}
                 </p>
+                <div className="flex-shrink-0 opacity-50">
+                  <Icon className={cn(
+                    card.color,
+                    isMobile ? "h-3.5 w-3.5" : "h-4 w-4"
+                  )} />
+                </div>
+              </div>
+              <div className="mt-1">
                 <p className={cn(
-                  "font-bold text-lunar-text",
-                  isMobile ? "text-xs" : "text-sm"
+                  "font-semibold text-foreground tracking-tight",
+                  isMobile ? "text-lg" : "text-2xl"
                 )}>
                   {card.isText ? <span className={cn(
-                    isMobile ? "text-[10px]" : "text-xs", 
-                    card.value === 'N/A' ? 'text-lunar-textSecondary' : ''
+                    isMobile ? "text-xs font-medium" : "text-sm font-medium", 
+                    card.value === 'N/A' ? 'text-muted-foreground' : ''
                   )}>
                       {card.value}
                     </span> : card.value}
                 </p>
-              </div>
-              <div className={cn(
-                "rounded-md flex-shrink-0 ml-2", 
-                isMobile ? "p-1" : "p-1.5",
-                card.bgColor
-              )}>
-                <Icon className={cn(
-                  card.color,
-                  isMobile ? "h-2.5 w-2.5" : "h-3 w-3"
-                )} />
+                {card.subtitle && (
+                   <p className="text-[10px] text-muted-foreground mt-0.5">
+                     {card.subtitle}
+                   </p>
+                )}
               </div>
             </CardContent>
           </Card>;

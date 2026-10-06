@@ -196,13 +196,11 @@ export default function LeadCard({
   return (
     <li
       className={cn(
-        "relative overflow-hidden rounded-xl p-3 select-none touch-none transform-gpu group transition-all duration-300 ease-out border",
-        isDragging ? "opacity-40 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/20 cursor-grabbing" : "cursor-grab",
+        "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out",
+        isDragging ? "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing" : "cursor-grab",
         isPressing ? "scale-[0.99]" : "",
-        "bg-card/40 backdrop-blur-md border-border/40 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]",
-        "hover:bg-card/60 hover:border-border/80 hover:shadow-[0_8px_30px_-8px_rgba(0,0,0,0.08)]",
-        "dark:bg-[#1a1a1a]/40 dark:border-white/[0.04] dark:shadow-[0_2px_10px_-4px_rgba(0,0,0,0.2)]",
-        "dark:hover:bg-[#1a1a1a]/70 dark:hover:border-white/[0.08] dark:hover:shadow-[0_8px_30px_-8px_rgba(0,0,0,0.4)]"
+        "bg-card/20 backdrop-blur-md border border-border/30 shadow-sm",
+        "hover:bg-card/40 hover:border-border/50 hover:shadow-md"
       )}
       style={dndStyle}
       ref={dndRef as any}
@@ -218,20 +216,13 @@ export default function LeadCard({
       onMouseUp={() => setIsPressing(false)}
       onMouseLeave={() => setIsPressing(false)}
     >
-      {/* Linha de Status Ultra Fina */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-[1.5px] opacity-70 transition-opacity group-hover:opacity-100"
-        style={{ backgroundColor: statusColor }}
-      />
-
       {/* Cabeçalho: Avatar Neutro + Nome + Menu */}
       <div className="flex items-start gap-3 mb-3">
-        {/* Avatar Neutro Elegante */}
+        {/* Avatar Neutro Ultra Elegante */}
         <div
           className={cn(
             "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
-            "bg-gradient-to-br from-muted to-muted/30 border border-white/10 dark:border-white/5",
-            "text-foreground/70 shadow-sm"
+            "bg-muted/40 text-muted-foreground"
           )}
         >
           <span className="text-[10px] font-medium tracking-wider">{initials}</span>
@@ -246,7 +237,7 @@ export default function LeadCard({
 
         {/* Nome + timestamp */}
         <div className="flex-1 min-w-0 pt-0.5">
-          <h3 className="text-xs font-medium text-foreground leading-tight truncate tracking-tight">{lead.nome}</h3>
+          <h3 className="text-sm font-medium text-foreground leading-tight truncate tracking-tight">{lead.nome}</h3>
           <p className="text-[10px] text-muted-foreground mt-1 font-light tracking-wide">{timeAgo}</p>
         </div>
 
@@ -266,68 +257,69 @@ export default function LeadCard({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-6 w-6 flex-shrink-0 -mt-1 -mr-1 text-muted-foreground/50 hover:text-foreground transition-colors" 
+            className="h-6 w-6 flex-shrink-0 -mt-1 -mr-1 text-muted-foreground/40 hover:text-foreground transition-colors" 
             title="Mais opções" 
             data-no-drag="true"
           >
-            <MoreVertical className="h-3.5 w-3.5" />
+            <MoreVertical className="h-4 w-4" />
           </Button>
         </LeadActionsPopover>
       </div>
 
       {/* Badges Neutros: Origem + follow-up + agendamento */}
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {/* Badge de canal de origem (Borda neutra + dot de cor) */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {/* Badge de canal de origem (Borda ultra sutil, text muted) */}
         {lead.origem && (
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border/40 bg-transparent text-[10px] font-medium text-muted-foreground">
-            {originDotColor && <div className={cn("w-1.5 h-1.5 rounded-full", originDotColor)} />}
+          <div className="inline-flex items-center px-1.5 py-0.5 rounded border border-border/30 bg-transparent text-[10px] text-muted-foreground">
             <span>{lead.origem}</span>
           </div>
         )}
 
-        {/* Follow-up counter (adaptado para neutro internamente se possível) */}
+        {/* Follow-up counter */}
         {lead.status === "orcamento_enviado" && (
-          <FollowUpCounter statusTimestamp={lead.statusTimestamp} />
+          <div className="inline-flex items-center rounded border border-border/30 bg-transparent text-[10px] text-muted-foreground">
+             <FollowUpCounter statusTimestamp={lead.statusTimestamp} />
+          </div>
         )}
 
         {/* Badge follow-up stealth */}
         {showFollowUpBadge && (
-          <div className="inline-flex items-center px-2 py-0.5 rounded-md border border-red-500/20 bg-red-500/5 text-[10px] font-medium text-red-600/80 dark:text-red-400/80">
+          <div className="inline-flex items-center px-1.5 py-0.5 rounded border border-border/30 bg-transparent text-[10px] text-red-500/80">
             Follow-up
           </div>
         )}
 
         {/* Badge de agendamento stealth */}
         {lead.scheduledAppointmentId && (
-          <div className="inline-flex items-center px-2 py-0.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+          <div className="inline-flex items-center px-1.5 py-0.5 rounded border border-border/30 bg-transparent text-[10px] text-emerald-500/80">
             Agendado
           </div>
         )}
         {!lead.scheduledAppointmentId && lead.needsScheduling && (
-           <div className="inline-flex items-center px-2 py-0.5 rounded-md border border-amber-500/20 bg-amber-500/5 text-[10px] font-medium text-amber-600/80 dark:text-amber-400/80">
+           <div className="inline-flex items-center px-1.5 py-0.5 rounded border border-border/30 bg-transparent text-[10px] text-amber-500/80">
            Agendar
          </div>
         )}
 
-        {/* Badge motivo perda (stealth) */}
+        {/* Badge motivo perda */}
         {lead.status === "perdido" && lead.motivoPerda && (
-          <div className="inline-flex items-center px-2 py-0.5 rounded-md border border-border/40 bg-muted/20 text-[10px] font-medium text-muted-foreground">
+          <div className="inline-flex items-center px-1.5 py-0.5 rounded border border-border/30 bg-transparent text-[10px] text-muted-foreground">
             Motivo: {lead.motivoPerda}
           </div>
         )}
       </div>
 
-      {/* Botão de ação primária (Stealth Design) */}
+      {/* Botão de ação primária integrado como rodapé do card */}
       {primaryAction && (
-        <div className="mt-1">
+        <div className="mt-4 -mx-3.5 -mb-3.5 border-t border-border/20">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className={cn("w-full h-7 text-[11px] font-medium gap-1.5 transition-all duration-300 ease-out", primaryAction.className)}
+            className={cn("w-full h-8 rounded-t-none rounded-b-[14px] text-[11px] font-medium gap-1.5 transition-all duration-300", primaryAction.className)}
             onClick={primaryAction.onClick}
             data-no-drag="true"
           >
-            <primaryAction.icon className="h-3 w-3" />
+            <primaryAction.icon className="h-3.5 w-3.5" />
             {primaryAction.label}
           </Button>
         </div>
