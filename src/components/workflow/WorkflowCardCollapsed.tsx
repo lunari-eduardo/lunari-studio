@@ -387,7 +387,7 @@ export function WorkflowCardCollapsed({
           />
         </div>
 
-        <div className="hidden md:flex items-center min-w-0 w-[110px] shrink-0 justify-end" onClick={e => e.stopPropagation()}>
+        <div className="hidden md:flex items-center min-w-0 w-[140px] shrink-0 justify-end" onClick={e => e.stopPropagation()}>
           <CardGalleryButtons
             galerias={galerias}
             hasGalerias={hasGalerias}
