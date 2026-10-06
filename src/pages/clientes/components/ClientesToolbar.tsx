@@ -142,7 +142,7 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Buscar por nome, e-mail, telefone ou WhatsApp..."
-              className="h-10 pl-10 pr-20 bg-card/60 border-border/40 text-sm focus-visible:ring-accent-gold/40 rounded-xl"
+              className="h-9 pl-10 pr-20 bg-transparent border-border/60 text-sm focus-visible:ring-accent-gold/40 rounded-lg"
             />
             {searchTerm ? (
               <button
@@ -164,14 +164,14 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
           {/* Controles de Visão, Filtros e Novo Cliente */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Alternador Cards / Tabela */}
-            <div className="flex items-center rounded-xl border border-border/40 bg-muted/40 p-1">
+            <div className="flex items-center rounded-lg border border-border/60 bg-transparent p-0.5 h-9">
               <button
                 type="button"
                 onClick={() => onViewModeChange('cards')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all h-full ${
                   viewMode === 'cards'
-                    ? 'bg-background text-foreground font-semibold shadow-xs border border-border/40 dark:bg-zinc-800 dark:border-transparent'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                    ? 'bg-muted/50 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
                 title="Visualização em Cards"
               >
@@ -181,10 +181,10 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
               <button
                 type="button"
                 onClick={() => onViewModeChange('list')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all h-full ${
                   viewMode === 'list'
-                    ? 'bg-background text-foreground font-semibold shadow-xs border border-border/40 dark:bg-zinc-800 dark:border-transparent'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/40'
+                    ? 'bg-muted/50 text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
                 }`}
                 title="Visualização em Tabela"
               >
@@ -198,10 +198,10 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
               type="button"
               variant="outline"
               onClick={onOpenFilterDrawer}
-              className={`h-10 text-xs gap-1.5 border-border/40 rounded-xl transition-all ${
+              className={`h-9 px-4 text-xs gap-1.5 rounded-lg transition-all ${
                 activeFiltersCount > 0
                   ? 'border-accent-gold/50 bg-accent-gold/15 text-zinc-900 dark:text-accent-gold hover:bg-accent-gold/25 font-semibold'
-                  : 'bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-zinc-800 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white'
+                  : 'border-border/60 bg-transparent text-foreground hover:bg-muted/50'
               }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -217,10 +217,10 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
             <Button
               type="button"
               onClick={onNewClient}
-              className="h-10 gap-1.5 text-xs font-semibold rounded-xl bg-accent-gold hover:bg-accent-gold/90 text-zinc-950 shadow-xs active:scale-[0.98]"
+              className="h-9 px-4 gap-1.5 text-xs rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
             >
-              <Plus className="h-4 w-4 text-zinc-950" />
-              <span className="text-zinc-950 font-semibold">Novo Cliente</span>
+              <Plus className="h-4 w-4" />
+              <span>Novo Cliente</span>
             </Button>
           </div>
         </div>
@@ -340,7 +340,7 @@ export const ClientesToolbar: React.FC<ClientesToolbarProps> = ({
               Ordenar por
             </span>
             <Select value={sortValue} onValueChange={handleSortSelect}>
-              <SelectTrigger className="h-8 text-xs w-[170px] border-border/40 bg-card/60 rounded-lg">
+              <SelectTrigger className="h-9 text-xs w-[170px] border-border/60 bg-transparent rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">

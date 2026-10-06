@@ -76,7 +76,6 @@ export default function LeadCard({
   dndStyle,
   isDragging = false,
 }: LeadCardProps) {
-  const [isPressing, setIsPressing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const { statuses } = useLeadStatuses();
   const { addInteraction } = useLeadInteractions();
@@ -198,7 +197,7 @@ export default function LeadCard({
       className={cn(
         "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out",
         isDragging ? "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing" : "cursor-grab",
-        isPressing ? "scale-[0.99]" : "",
+        !isDragging && "active:scale-[0.99]",
         "bg-card/20 backdrop-blur-md border border-border/30 shadow-sm",
         "hover:bg-card/40 hover:border-border/50 hover:shadow-md"
       )}
@@ -212,9 +211,6 @@ export default function LeadCard({
           e.stopPropagation();
         }
       }}
-      onMouseDown={() => setIsPressing(true)}
-      onMouseUp={() => setIsPressing(false)}
-      onMouseLeave={() => setIsPressing(false)}
     >
       {/* Cabeçalho: Avatar Neutro + Nome + Menu */}
       <div className="flex items-start gap-3 mb-3">

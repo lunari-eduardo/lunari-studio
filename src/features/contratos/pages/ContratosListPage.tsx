@@ -219,6 +219,8 @@ export default function ContratosListPage() {
               <EmptyBusca termo={searchTerm || myCategoryFilter} />
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {/* CTA para criar novo sempre no início */}
+                <CreateContratoCard onClick={handleNew} />
                 {filteredTemplates.map((template) => (
                   <ContratoCard
                     key={template.id}
@@ -226,8 +228,6 @@ export default function ContratosListPage() {
                     onEdit={handleEdit}
                   />
                 ))}
-                {/* CTA para criar novo sempre no final */}
-                <CreateContratoCard onClick={handleNew} />
               </div>
             )}
           </TabsContent>

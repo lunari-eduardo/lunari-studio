@@ -103,7 +103,7 @@ export default function UnifiedLeadFilters({
             placeholder="Buscar leads..." 
             value={searchTerm} 
             onChange={e => onSearchChange(e.target.value)} 
-            className="pl-8 h-8 text-xs bg-muted/20 border-border/40 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-md w-full transition-all" 
+            className="pl-8 h-9 text-sm bg-transparent border-border/60 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-lg w-full transition-all" 
           />
           <div className="absolute right-2.5 flex items-center pointer-events-none">
             <span className="text-[10px] text-muted-foreground font-medium px-1 rounded-sm border border-border/50 bg-background/50">⌘K</span>
@@ -112,7 +112,7 @@ export default function UnifiedLeadFilters({
         
         {/* Period Filter Minimalista */}
         <Select value={periodType} onValueChange={onPeriodChange}>
-          <SelectTrigger className="h-8 text-xs w-[140px] bg-muted/20 border-border/40 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md">
+          <SelectTrigger className="h-9 text-sm w-[140px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-lg">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue />
@@ -120,7 +120,7 @@ export default function UnifiedLeadFilters({
           </SelectTrigger>
           <SelectContent>
             {PERIOD_OPTIONS.map(option => (
-              <SelectItem key={option.value} value={option.value} className="text-xs">
+              <SelectItem key={option.value} value={option.value} className="text-sm">
                 {option.label}
               </SelectItem>
             ))}
@@ -129,16 +129,16 @@ export default function UnifiedLeadFilters({
         
         {/* Origin Filter Minimalista */}
         <Select value={originFilter} onValueChange={onOriginChange}>
-          <SelectTrigger className="h-8 text-xs w-[120px] bg-muted/20 border-border/40 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md">
+          <SelectTrigger className="h-9 text-sm w-[120px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-lg">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
             </div>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">Todas as origens</SelectItem>
+            <SelectItem value="all" className="text-sm">Todas as origens</SelectItem>
             {origins.map(origem => (
-              <SelectItem key={origem.id} value={origem.nome} className="text-xs">
+              <SelectItem key={origem.id} value={origem.nome} className="text-sm">
                 {origem.nome}
               </SelectItem>
             ))}

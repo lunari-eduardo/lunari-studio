@@ -6,7 +6,7 @@
  *  • Aba "Meus" usa FormCard (imagem de capa, badge de categoria, métricas).
  *  • Aba "Biblioteca" usa TemplateCard + linha horizontal de chips por categoria
  *    (categorias derivadas dos templates do banco — sem mock).
- *  • CTA "Criar novo formulário" sempre visível como último card da grid em "Meus".
+ *  • CTA "Criar novo formulário" sempre visível como primeiro card da grid em "Meus".
  *  • Filtros client-side: busca + categoria (chips na Biblioteca, select nos Meus).
  *
  * FORA DO ESCOPO DESTA ETAPA:
@@ -153,7 +153,6 @@ export default function FormsListPage() {
     setPreviewingTemplate(template);
   }, []);
 
-  // Converte o template em um Formulario simulado para o preview.
   const previewFormulario: Formulario | null = useMemo(() => {
     if (!previewingTemplate) return null;
     return {
@@ -176,6 +175,7 @@ export default function FormsListPage() {
       expires_at: null,
       cover_url: null,
       enviado_em: null,
+      respondido_em: null,
     };
   }, [previewingTemplate]);
   const handleUseTemplate = useCallback(
@@ -266,11 +266,11 @@ export default function FormsListPage() {
             <EmptyBusca termo={searchTerm || myCategoryFilter} />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {/* CTA para criar novo formulário sempre presente no início */}
+              <CreateFormCard onClick={handleNewForm} />
               {filteredFormularios.map((form) => (
                 <FormCard key={form.id} form={form} />
               ))}
-              {/* CTA para criar novo formulário sempre presente */}
-              <CreateFormCard onClick={handleNewForm} />
             </div>
           )}
         </TabsContent>

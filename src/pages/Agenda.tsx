@@ -53,10 +53,8 @@ import { AgendaOnlinePanel } from '@/components/agenda/agenda-online-panel/Agend
 import { useAppContext } from '@/contexts/AppContext';
 
 
-/** Shell de largura: ano usa 1600px (grade de 12 meses), demais views usam o padrão. */
 function AgendaShell({ full, children }: { full: boolean; children: React.ReactNode }) {
-  if (full) return <div className="w-full">{children}</div>;
-  return <PageContainer variant="wide">{children}</PageContainer>;
+  return <div className={full ? "w-full max-w-[1600px] mx-auto" : "w-full max-w-[79rem] mx-auto"}>{children}</div>;
 }
 
 export default function Agenda() {
@@ -471,7 +469,7 @@ export default function Agenda() {
   const isYearView = view === 'year';
 
   return (
-    <div className={`w-full mx-auto ${isYearView ? 'max-w-[1600px] px-4 md:px-6' : ''} pb-20 md:pb-10 pt-2`}>
+    <div className="w-full mx-auto px-4 md:px-6 pb-20 md:pb-10 pt-2">
       <AgendaShell full={isYearView}>
         <AgendaHeader
           view={view}

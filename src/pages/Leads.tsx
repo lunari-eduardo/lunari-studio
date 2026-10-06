@@ -7,7 +7,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { BarChart3, ChevronDown, ChevronUp } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UnderlineTabs, UnderlineTabsContent, UnderlineTabsList, UnderlineTabsTrigger } from "@/components/ui/underline-tabs";
 import { cn } from "@/lib/utils";
 import type { PeriodFilter, PeriodType } from "@/hooks/useLeadMetrics";
 import { useLeads } from "@/hooks/useLeads";
@@ -75,10 +75,10 @@ export default function Leads() {
   }, [leads, searchTerm, originFilter, periodFilter, statuses]);
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col pl-2 md:pl-4">
+    <div className="w-full px-4 md:px-6 h-[calc(100vh-4rem)] flex flex-col">
       <div
         className={cn(
-          "flex-shrink-0 px-2 transition-all duration-300",
+          "flex-shrink-0 transition-all duration-300",
           isMobile ? "pt-2 pb-1" : "pt-3",
         )}
       >
@@ -115,28 +115,28 @@ export default function Leads() {
           )}
         </div>
 
-        <Tabs defaultValue="ativos" className="flex flex-col">
+        <UnderlineTabs defaultValue="ativos" className="flex flex-col">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
-            <TabsList className="w-full lg:w-auto grid grid-cols-3 bg-muted/30 border border-border/20">
-              <TabsTrigger value="ativos" className="relative data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <UnderlineTabsList className="w-full lg:w-auto">
+              <UnderlineTabsTrigger value="ativos">
                 Funil
                 <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
                   {ativosCount}
                 </span>
-              </TabsTrigger>
-              <TabsTrigger value="ganhos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              </UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="ganhos">
                 Ganhos
                 <span className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500/80 px-1.5 py-0.5 rounded-full text-[10px]">
                   {ganhosCount}
                 </span>
-              </TabsTrigger>
-              <TabsTrigger value="perdidos" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              </UnderlineTabsTrigger>
+              <UnderlineTabsTrigger value="perdidos">
                 Perdidos
                 <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
                   {perdidosCount}
                 </span>
-              </TabsTrigger>
-            </TabsList>
+              </UnderlineTabsTrigger>
+            </UnderlineTabsList>
             
             <div className="flex-1 lg:max-w-xl xl:max-w-3xl">
               <UnifiedLeadFilters
@@ -152,25 +152,25 @@ export default function Leads() {
             </div>
           </div>
           
-          <div className="h-[calc(100vh-14rem)] lg:h-[calc(100vh-12rem)] flex flex-col -mx-2 px-2">
-            <TabsContent value="ativos" className="flex-1 overflow-hidden min-h-0 m-0 p-0 outline-none">
+          <div className="h-[calc(100vh-14rem)] lg:h-[calc(100vh-12rem)] flex flex-col">
+            <UnderlineTabsContent value="ativos" className="flex-1 overflow-hidden min-h-0 m-0 p-0 outline-none">
               <LeadsKanban
                 periodFilter={periodFilter}
                 searchTerm={searchTerm}
                 originFilter={originFilter}
                 isMobile={isMobile}
               />
-            </TabsContent>
+            </UnderlineTabsContent>
             
-            <TabsContent value="ganhos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
+            <UnderlineTabsContent value="ganhos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
               <LeadHistoryGrid leads={ganhosList} />
-            </TabsContent>
+            </UnderlineTabsContent>
             
-            <TabsContent value="perdidos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
+            <UnderlineTabsContent value="perdidos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
               <LeadHistoryGrid leads={perdidosList} />
-            </TabsContent>
+            </UnderlineTabsContent>
           </div>
-        </Tabs>
+        </UnderlineTabs>
       </div>
     </div>
   );

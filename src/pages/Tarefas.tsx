@@ -295,16 +295,16 @@ export default function Tarefas() {
   };
 
   return (
-    <div className="page-tarefas-modern h-[calc(100dvh-4rem)] flex flex-col">
+    <div className="w-full page-tarefas-modern h-[calc(100dvh-4rem)] flex flex-col">
       <div className="flex-shrink-0 px-4 md:px-6 pt-3 space-y-2.5">
         <PageHeader
           title="Tarefas"
           description="Kanban e lista operacional do estúdio"
-          className="pb-0"
+          className="pb-0 border-0"
           action={
           <div className="flex items-center gap-1 md:gap-2 flex-wrap">
             <Select value={view} onValueChange={v => { setView(v as any); localStorage.setItem('lunari_tasks_view', v); }}>
-              <SelectTrigger className="h-8 w-[100px] md:w-[120px] text-xs md:text-sm">
+              <SelectTrigger className="h-9 w-[100px] md:w-[120px] text-xs md:text-sm bg-transparent border-border/60">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -312,12 +312,12 @@ export default function Tarefas() {
                 <SelectItem value="list">Lista</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={() => setManageStatusesOpen(true)} className="text-xs md:text-sm">
+            <Button variant="outline" onClick={() => setManageStatusesOpen(true)} className="h-9 text-xs md:text-sm border-border/60 bg-transparent text-foreground hover:bg-muted/50">
               <span className="hidden md:inline">Gerenciar</span>
               <span className="md:hidden">Config</span>
             </Button>
             <UndoButton entries={undo.entries} onUndo={undo.performUndo} />
-            <Button size="sm" onClick={() => openCreate()} className="text-xs md:text-sm">
+            <Button onClick={() => openCreate()} className="h-9 px-4 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm text-xs md:text-sm">
               Nova tarefa
             </Button>
           </div>

@@ -166,29 +166,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* =========================================================================
-   Inputs / Selects in filters
-   ========================================================================= */
-.page-tarefas-modern .glass-filters input,
-.page-tarefas-modern .glass-filters [role="combobox"] {
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.40);
-  backdrop-filter: blur(6px);
-  transition: all 0.2s ease;
-}
 
-.page-tarefas-modern .glass-filters input:focus,
-.page-tarefas-modern .glass-filters [role="combobox"]:focus {
-  background: rgba(255, 255, 255, 0.60);
-  border-color: hsl(var(--lunar-accent) / 0.4);
-  box-shadow: 0 0 0 2px hsl(var(--lunar-accent) / 0.1);
-}
-
-.dark .page-tarefas-modern .glass-filters input,
-.dark .page-tarefas-modern .glass-filters [role="combobox"] {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.10);
-}
 
 /* =========================================================================
    ONDA 0 — Fundação "Silent Luxury"

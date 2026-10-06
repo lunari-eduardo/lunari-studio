@@ -327,7 +327,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                         e.stopPropagation();
                         onWhatsApp(cliente);
                       }}
-                      className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                      className="h-8 w-8 rounded-full transition-colors"
                     >
                       <MessageCircle className="h-3.5 w-3.5" />
                     </Button>
@@ -342,7 +342,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                         e.stopPropagation();
                         onEdit(cliente);
                       }}
-                      className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                      className="h-8 w-8 rounded-full transition-colors"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -355,7 +355,7 @@ export const ClientesTable: React.FC<ClientesTableProps> = ({
                           variant="ghost"
                           size="icon"
                           title="Mais opções"
-                          className="h-8 w-8 rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/40 dark:hover:bg-zinc-700/70 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                          className="h-8 w-8 rounded-full transition-colors"
                         >
                           <MoreHorizontal className="h-3.5 w-3.5" />
                         </Button>

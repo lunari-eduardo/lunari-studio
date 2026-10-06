@@ -69,11 +69,16 @@ export default function TaskFiltersBar({
       {/* Desktop Layout - Single line with all filters */}
       <div className="hidden md:flex items-center gap-3 p-2">
         {/* Search */}
-        
+        <Input 
+          placeholder="Buscar tarefas..." 
+          value={filters.search} 
+          onChange={e => updateFilter('search', e.target.value)} 
+          className="h-9 w-48 text-sm bg-transparent border-border/60" 
+        />
 
         {/* Status Filter */}
         <Select value={filters.status} onValueChange={v => updateFilter('status', v as any)}>
-          <SelectTrigger className="h-8 w-32 text-sm">
+          <SelectTrigger className="h-9 w-32 text-sm bg-transparent border-border/60">
             {filters.status === 'all' ? (
               <span className="text-muted-foreground">Status</span>
             ) : (
@@ -88,7 +93,7 @@ export default function TaskFiltersBar({
 
         {/* Priority Filter */}
         <Select value={filters.priority} onValueChange={v => updateFilter('priority', v as any)}>
-          <SelectTrigger className="h-8 w-32 text-sm">
+          <SelectTrigger className="h-9 w-32 text-sm bg-transparent border-border/60">
             <Flag className="w-3 h-3 mr-1" />
             {filters.priority === 'all' ? (
               <span className="text-muted-foreground">Prioridade</span>
@@ -103,7 +108,7 @@ export default function TaskFiltersBar({
 
         {/* Assignee Filter */}
         <Select value={filters.assignee} onValueChange={v => updateFilter('assignee', v as any)}>
-          <SelectTrigger className="h-8 w-36 text-sm">
+          <SelectTrigger className="h-9 w-36 text-sm bg-transparent border-border/60">
             <User className="w-3 h-3 mr-1" />
             {filters.assignee === 'all' ? (
               <span className="text-muted-foreground">Responsável</span>
@@ -119,7 +124,7 @@ export default function TaskFiltersBar({
 
         {/* Date Range Filter */}
         <Select value={filters.dateRange} onValueChange={v => updateFilter('dateRange', v as any)}>
-          <SelectTrigger className="h-8 w-32 text-sm">
+          <SelectTrigger className="h-9 w-32 text-sm bg-transparent border-border/60">
             <Calendar className="w-3 h-3 mr-1" />
             {filters.dateRange === 'all' ? (
               <span className="text-muted-foreground">Prazo</span>
@@ -133,7 +138,7 @@ export default function TaskFiltersBar({
         </Select>
 
         {/* Clear button */}
-        {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-sm">
+        {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-sm text-foreground hover:bg-muted/50">
             <X className="w-3 h-3 mr-1" />
             Limpar
           </Button>}
@@ -167,7 +172,7 @@ export default function TaskFiltersBar({
               
               <div className="grid grid-cols-2 gap-2">
                 <Select value={filters.status} onValueChange={v => updateFilter('status', v as any)}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-transparent border-border/60">
                     {filters.status === 'all' ? (
                       <span className="text-muted-foreground">Status</span>
                     ) : (
@@ -181,7 +186,7 @@ export default function TaskFiltersBar({
                 </Select>
 
                 <Select value={filters.priority} onValueChange={v => updateFilter('priority', v as any)}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-transparent border-border/60">
                     <Flag className="w-3 h-3 mr-1" />
                     {filters.priority === 'all' ? (
                       <span className="text-muted-foreground">Prioridade</span>
@@ -195,7 +200,7 @@ export default function TaskFiltersBar({
                 </Select>
 
                 <Select value={filters.assignee} onValueChange={v => updateFilter('assignee', v as any)}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-transparent border-border/60">
                     <User className="w-3 h-3 mr-1" />
                     {filters.assignee === 'all' ? (
                       <span className="text-muted-foreground">Responsável</span>
@@ -210,7 +215,7 @@ export default function TaskFiltersBar({
                 </Select>
 
                 <Select value={filters.dateRange} onValueChange={v => updateFilter('dateRange', v as any)}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-transparent border-border/60">
                     <Calendar className="w-3 h-3 mr-1" />
                     {filters.dateRange === 'all' ? (
                       <span className="text-muted-foreground">Prazo</span>
@@ -223,7 +228,7 @@ export default function TaskFiltersBar({
                   </SelectContent>
                 </Select>
               </div>
-              {hasActiveFilters && <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-8 text-sm">
+              {hasActiveFilters && <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-9 text-sm border-border/60 bg-transparent text-foreground hover:bg-muted/50">
                   <X className="w-3 h-3 mr-1" />
                   Limpar Filtros
                 </Button>}

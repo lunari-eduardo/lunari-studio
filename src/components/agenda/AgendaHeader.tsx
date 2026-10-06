@@ -45,10 +45,11 @@ export default function AgendaHeader({
       variant="ghost"
       size="sm"
       onClick={() => onViewChange(viewKey)}
-      className={view === viewKey
-        ? "h-7 flex-1 bg-background text-[12px] font-medium text-foreground shadow-sm hover:bg-background"
-        : "h-7 flex-1 text-[12px] text-muted-foreground hover:bg-background/60 hover:text-foreground"
-      }
+      className={`h-full flex-1 px-3 rounded-md text-xs font-medium transition-all ${
+        view === viewKey
+          ? "bg-muted/50 text-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+      }`}
     >
       {label}
     </Button>
@@ -60,7 +61,7 @@ export default function AgendaHeader({
         variant="outline"
         onClick={onNavigateToday}
         size="sm"
-        className={`${classes.buttonHeight} ${classes.buttonPadding} text-xs`}
+        className={`h-9 px-4 bg-transparent border-border/60 text-foreground hover:bg-muted/50 text-xs`}
       >
         Hoje
       </Button>
@@ -71,7 +72,7 @@ export default function AgendaHeader({
           size="icon"
           onClick={onNavigatePrevious}
           aria-label="Período anterior"
-          className={classes.iconButton}
+          className="h-9 w-9 bg-transparent border-border/60 text-foreground hover:bg-muted/50"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
@@ -85,7 +86,7 @@ export default function AgendaHeader({
           size="icon"
           onClick={onNavigateNext}
           aria-label="Próximo período"
-          className={classes.iconButton}
+          className="h-9 w-9 bg-transparent border-border/60 text-foreground hover:bg-muted/50"
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -94,7 +95,7 @@ export default function AgendaHeader({
   );
 
   const ViewToggleGroup = () => (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border/40 bg-muted/40 p-1 py-0.5">
+    <div className="flex items-center rounded-lg border border-border/60 bg-transparent p-0.5 h-9">
       {viewButtons.map(({ key, label }) => (
         <ViewToggleButton key={key} viewKey={key} label={label} />
       ))}
@@ -124,9 +125,9 @@ export default function AgendaHeader({
         isMobile 
           ? `${classes.iconButton}` 
           : isTablet 
-            ? "h-6 px-3 py-0 my-0 text-xs"
-            : "h-8 px-3 text-xs"
-      }`}
+            ? "h-9 px-3 py-0 my-0 text-xs"
+            : "h-9 px-4 text-xs"
+      } bg-transparent border-border/60 text-foreground hover:bg-muted/50`}
       title={isMobile ? "Gerenciar Horários" : undefined}
     >
       {!hasPro && <Crown className="h-3.5 w-3.5 text-accent-gold" />}
@@ -146,8 +147,8 @@ export default function AgendaHeader({
         isMobile 
           ? `${classes.iconButton}` 
           : isTablet 
-            ? "h-6 px-3 py-0 my-0 text-xs"
-            : "h-8 px-3 text-xs"
+            ? "h-9 px-3 py-0 my-0 text-xs"
+            : "h-9 px-4 text-xs"
       } border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-primary`}
       title={isMobile ? "Agendamento Online" : undefined}
     >

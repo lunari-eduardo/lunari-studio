@@ -221,7 +221,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                     e.stopPropagation();
                     onWhatsApp(cliente);
                   }}
-                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full transition-colors"
                 >
                   <MessageCircle className="h-4 w-4" />
                 </Button>
@@ -236,7 +236,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                     e.stopPropagation();
                     onEdit(cliente);
                   }}
-                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                  className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -249,7 +249,7 @@ export const ClientesGrid: React.FC<ClientesGridProps> = ({
                       variant="ghost"
                       size="icon"
                       title="Mais opções"
-                      className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full bg-zinc-100/90 hover:bg-zinc-200/90 text-zinc-700 hover:text-zinc-950 border border-zinc-200/70 shadow-2xs dark:bg-zinc-800/60 dark:hover:bg-zinc-700/80 dark:text-zinc-300 dark:hover:text-white dark:border-transparent transition-colors"
+                      className="h-10 w-10 min-h-[40px] min-w-[40px] rounded-full transition-colors"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
