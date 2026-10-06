@@ -322,16 +322,11 @@ export default function LeadsKanban({
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all",
-            "bg-card/25 dark:bg-card/[0.04] backdrop-blur-xl border border-white/35 dark:border-white/[0.08]",
-            "shadow-[0_4px_30px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_30px_-4px_rgba(0,0,0,0.3)]",
+            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
+            "bg-transparent", // Coluna completamente limpa, sem fundo cinza encaixotado
             isMobile ? "p-1" : "p-2",
-            isOver && "ring-2 shadow-[0_0_40px_-4px_rgba(0,0,0,0.1)]",
+            isOver && "bg-muted/10 ring-1 ring-border/50" // Apenas um leve respiro no hover da coluna
           )}
-          style={{
-            borderTop: `3px solid ${statusColor}99`,
-            ...(isOver ? { boxShadow: `0 0 0 2px ${statusColor}70, 0 0 40px -4px ${statusColor}30` } : {}),
-          }}
         >
           <div className="flex-1 overflow-y-auto scrollbar-kanban">
             <ul className={cn("pb-2", isMobile ? "space-y-1" : "space-y-2")}>
@@ -437,11 +432,12 @@ export default function LeadsKanban({
 
           <DragOverlay
             dropAnimation={{
-              duration: 200,
+              duration: 300,
               easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
             }}
           >
-            <div className="pointer-events-none rotate-1 scale-[1.04] bg-card/60 dark:bg-card/[0.10] backdrop-blur-[30px] border-[1.5px] border-white/60 dark:border-white/[0.12] rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.6)] ring-1 ring-lunar-accent/20">
+            {/* Sombra ampla e rotacionado, sem bordas chocantes */}
+            <div className="pointer-events-none rotate-2 scale-105 bg-card/60 dark:bg-[#1a1a1a]/60 backdrop-blur-xl border border-white/20 dark:border-white/5 rounded-xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)]">
               {activeId
                 ? (() => {
                     const lead = leads.find((l) => l.id === activeId);
