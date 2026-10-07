@@ -18,6 +18,7 @@ import { useLeadInteractions } from "@/hooks/useLeadInteractions";
 import { useFollowUpSystem } from "@/hooks/useFollowUpSystem";
 import { useAppContext } from "@/contexts/AppContext";
 import { useConfigurationContext } from "@/contexts/ConfigurationContext";
+import { getEtiquetaTokens } from "@/utils/etiquetaColorTokens";
 import { useGlobalConversas } from "@/contexts/ConversasContext";
 import { checkLeadClientDivergence } from "@/utils/leadClientSync";
 import { toast } from "sonner";
@@ -64,14 +65,6 @@ function getOriginDotColor(origin: string): string {
   return "bg-muted-foreground";
 }
 
-function getCategoryColor(categoryName: string) {
-  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16'];
-  let hash = 0;
-  for (let i = 0; i < categoryName.length; i++) {
-    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
 
 export default function LeadCard({
   lead,
@@ -402,11 +395,7 @@ export default function LeadCard({
         {/* Tag de Categoria */}
         {leadCategoria && (
           <div 
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
-            style={{
-              backgroundColor: (leadCategoria.cor || getCategoryColor(leadCategoria.nome)) + '15',
-              color: leadCategoria.cor || getCategoryColor(leadCategoria.nome),
-            }}
+            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${getEtiquetaTokens(leadCategoria.cor).chip}`}
           >
             <span>{leadCategoria.nome}</span>
           </div>

@@ -4,6 +4,9 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useGlobalConversas } from "@/contexts/ConversasContext";
 import { useNavigate } from "react-router-dom";
+import { useConfigurationContext } from "@/contexts/ConfigurationContext";
+import { getEtiquetaTokens } from "@/utils/etiquetaColorTokens";
+
 
 interface SessionClientCellProps {
   clientId?: string;
@@ -25,6 +28,9 @@ export function SessionClientCell({
   const whatsappUrl = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, '')}` : null;
   const conversas = useGlobalConversas();
   const navigate = useNavigate();
+  const { categorias } = useConfigurationContext();
+  const categoryMatch = categoria ? categorias?.find(c => c.nome === categoria) : null;
+  const tokens = getEtiquetaTokens(categoryMatch?.cor);
   const hasConnectedInstance = !!conversas?.connectedInstance;
 
   const handleWhatsappClick = (e: React.MouseEvent) => {
@@ -71,9 +77,14 @@ export function SessionClientCell({
         </div>
         
         {categoria && (
-          <span className="text-xs text-muted-foreground truncate">
-            {categoria}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {categoryMatch?.cor && (
+              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", tokens.dot)} title={categoria} />
+            )}
+            <span className="text-xs text-muted-foreground truncate">
+              {categoria}
+            </span>
+          </div>
         )}
       </div>
     </div>

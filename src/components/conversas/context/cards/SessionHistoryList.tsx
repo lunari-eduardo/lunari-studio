@@ -1,3 +1,5 @@
+import { useConfigurationContext } from "@/contexts/ConfigurationContext";
+import { getEtiquetaTokens } from "@/utils/etiquetaColorTokens";
 import { useState } from 'react';
 import { CalendarDays, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 import type { ContextSessao } from '@/hooks/useConversasContactContext';
@@ -9,6 +11,7 @@ interface SessionHistoryListProps {
 }
 
 export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryListProps) {
+  const { categorias } = useConfigurationContext();
   const [isOpen, setIsOpen] = useState(false);
 
   if (!sessoes || sessoes.length === 0) return null;
@@ -43,7 +46,18 @@ export function SessionHistoryList({ sessoes, onOpenWorkflow }: SessionHistoryLi
             >
               <div className="flex items-start justify-between">
                 <span className="text-[12px] font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">
-                  {sessao.categoria || 'Sessão'} {sessao.pacote ? `- ${sessao.pacote}` : ''}
+                  
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      {sessao.categoria && (() => {
+                        const cat = categorias.find(c => c.nome === sessao.categoria);
+                        if (cat?.cor) {
+                           return <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${getEtiquetaTokens(cat.cor).dot}`} />;
+                        }
+                        return null;
+                      })()}
+                      <span className="truncate">{sessao.categoria || 'Sessão'} {sessao.pacote ? `- ${sessao.pacote}` : ''}</span>
+                    </span>
+
                 </span>
                 <ExternalLink className="h-3.5 w-3.5 text-zinc-400 hover:text-[#B8925F] transition-colors p-0.5 opacity-0 group-hover:opacity-100" />
               </div>

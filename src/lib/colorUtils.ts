@@ -178,9 +178,10 @@ export function getStatusTone(hex: string): StatusTone {
   // Escuro: fundo = hex @ 24%, borda = hex @ 45%
   // Texto: clareia a cor para dar contraste no escuro
   const textDarkHsv = { ...hsv, s: Math.max(hsv.s, 65), v: Math.max(hsv.v, 90) };
-  const textDark = hsvToHex(textDarkHsv.h, textDarkHsv.s, textDarkHsv.v);
+  const textDark = '#FFFFFF';
   const bgDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.24)`;
   const borderDark = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.45)`;
 
   return { bgLight, borderLight, textLight, bgDark, borderDark, textDark };
 }
+

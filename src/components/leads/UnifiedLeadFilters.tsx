@@ -1,6 +1,8 @@
+import { useState, useRef, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Calendar, Search, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Search, MapPin, Filter as FilterIcon, X } from 'lucide-react';
 import type { PeriodType } from '@/hooks/useLeadMetrics';
 import { cn } from '@/lib/utils';
 
@@ -82,6 +84,21 @@ export default function UnifiedLeadFilters({
   origins,
   isMobile = false
 }: UnifiedLeadFiltersProps) {
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Atalho ⌘K / Ctrl+K para focar no campo de busca
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  
   // Encontrar nomes amigáveis para as pílulas
   const activePeriodLabel = PERIOD_OPTIONS.find(p => p.value === periodType)?.label;
   const activeOriginLabel = originFilter !== 'all' ? originFilter : null;
@@ -91,59 +108,88 @@ export default function UnifiedLeadFilters({
     onPeriodChange('last_60_days');
     onSearchChange('');
     onOriginChange('all');
+    setShowMobileFilters(false);
   };
 
   return (
     <div className="flex flex-col gap-2">
       <div className={cn("flex flex-wrap items-center justify-end gap-2", isMobile ? "w-full" : "w-auto")}>
         {/* Search Filter Minimalista */}
-        <div className="relative flex items-center w-full md:w-64">
+        <div className={cn("relative flex items-center", isMobile ? (showMobileFilters ? "w-full" : "flex-1") : "w-64")}>
           <Search className="absolute left-3.5 h-3.5 w-3.5 text-muted-foreground" />
           <Input 
+            ref={searchInputRef}
             placeholder="Buscar leads..." 
             value={searchTerm} 
             onChange={e => onSearchChange(e.target.value)} 
             className="pl-9 h-9 text-[13px] bg-background border-border/50 focus-visible:border-accent-gold focus-visible:ring-1 focus-visible:ring-accent-gold/20 focus-visible:ring-offset-0 rounded-full shadow-sm w-full transition-all" 
           />
           <div className="absolute right-3 flex items-center pointer-events-none">
-            <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50">⌘K</span>
+            <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50 hidden sm:inline-flex">⌘K</span>
           </div>
         </div>
         
+        {isMobile && !showMobileFilters && (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setShowMobileFilters(true)}
+            className="h-9 w-9 rounded-full bg-background border border-border/50 shadow-sm text-muted-foreground hover:text-foreground transition-all flex-shrink-0"
+          >
+            <FilterIcon className="h-4 w-4" />
+          </Button>
+        )}
+
         {/* Period Filter Minimalista */}
-        <Select value={periodType} onValueChange={onPeriodChange}>
-          <SelectTrigger className="h-9 text-[13px] w-[155px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm">
-            <div className="flex items-center gap-2 truncate">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <SelectValue className="truncate" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {PERIOD_OPTIONS.map(option => (
-              <SelectItem key={option.value} value={option.value} className="text-[13px]">
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        {/* Origin Filter Minimalista */}
-        <Select value={originFilter} onValueChange={onOriginChange}>
-          <SelectTrigger className="h-9 text-[13px] w-[155px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm">
-            <div className="flex items-center gap-2 truncate">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <SelectValue placeholder="Origem" className="truncate" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-[13px]">Todas as origens</SelectItem>
-            {origins.map(origem => (
-              <SelectItem key={origem.id} value={origem.nome} className="text-[13px]">
-                {origem.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {(!isMobile || showMobileFilters) && (
+          <>
+            <Select value={periodType} onValueChange={onPeriodChange}>
+              <SelectTrigger className={cn("h-9 text-[13px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm", isMobile ? "w-[calc(50%-0.25rem)]" : "w-[155px]")}>
+                <div className="flex items-center gap-2 truncate">
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <SelectValue className="truncate" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {PERIOD_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value} className="text-[13px]">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Origin Filter Minimalista */}
+            <Select value={originFilter} onValueChange={onOriginChange}>
+              <SelectTrigger className={cn("h-9 text-[13px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm", isMobile ? "w-[calc(50%-0.25rem)]" : "w-[155px]")}>
+                <div className="flex items-center gap-2 truncate">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <SelectValue placeholder="Origem" className="truncate" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-[13px]">Todas as origens</SelectItem>
+                {origins.map(origem => (
+                  <SelectItem key={origem.id} value={origem.nome} className="text-[13px]">
+                    {origem.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {isMobile && showMobileFilters && (
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => setShowMobileFilters(false)}
+                 className="w-full h-8 mt-1 text-muted-foreground text-xs rounded-full"
+               >
+                 <X className="h-3.5 w-3.5 mr-1.5" />
+                 Ocultar filtros
+               </Button>
+            )}
+          </>
+        )}
       </div>
 
       {/* Pílulas de Filtros Ativos (Chips) */}

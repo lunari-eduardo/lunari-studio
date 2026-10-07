@@ -159,11 +159,11 @@ export const CONFIGURATION_STORAGE_KEYS = {
 // ============= DADOS PADRÃO =============
 
 export const DEFAULT_CATEGORIAS: Categoria[] = [
-  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8d", nome: "Gestante" },
-  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8e", nome: "Newborn" },
-  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8f", nome: "Família" },
-  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c90", nome: "Casamento" },
-  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c91", nome: "Aniversário" }
+  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8d", nome: "Gestante", cor: "pink" },
+  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8e", nome: "Newborn", cor: "emerald" },
+  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c8f", nome: "Família", cor: "amber" },
+  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c90", nome: "Casamento", cor: "sky" },
+  { id: "018fded5-6b5c-7a2f-8c3d-9e4f5a6b7c91", nome: "Aniversário", cor: "purple" }
 ];
 
 export const DEFAULT_PACOTES: Pacote[] = [

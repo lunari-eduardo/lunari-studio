@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ConfigSectionHeader from './ConfigSectionHeader';
+
+import { ColorTokenPicker } from '@/components/ui/color-token-picker';
+import { ETIQUETA_COLOR_KEYS } from '@/utils/etiquetaColorTokens';
 import type { Categoria, Pacote } from '@/types/configuration';
 import { LIST_SHELL, ROW_DIVIDER } from '@/lib/dialogTokens';
 
@@ -102,7 +105,15 @@ function InlineEditCategoriaRow({ categoria, onUpdate, onDelete, podeRemover, al
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors group">
+      
+      <ColorTokenPicker
+        value={categoria.cor}
+        onChange={(cor) => onUpdate(categoria.id, { cor })}
+        disabled={isSaving}
+        triggerClassName="border-0 shadow-none hover:bg-transparent px-0 w-auto h-auto focus-visible:ring-0"
+      />
       <div className="flex-1 min-w-0">
+
         {isEditing ? (
           <div className="space-y-0.5">
             <Input
@@ -156,6 +167,7 @@ function InlineEditCategoriaRow({ categoria, onUpdate, onDelete, podeRemover, al
 
 export default function Categorias({ categorias, onAdd, onUpdate, onDelete, pacotes }: CategoriasProps) {
   const [novaCategoria, setNovaCategoria] = useState('');
+  const [novaCor, setNovaCor] = useState<string>('slate');
   const [addError, setAddError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -176,8 +188,9 @@ export default function Categorias({ categorias, onAdd, onUpdate, onDelete, paco
     if (err) { setAddError(err); return; }
     setIsLoading(true);
     try {
-      onAdd({ nome: novaCategoria.trim() } as Omit<Categoria, 'id'>);
+      onAdd({ nome: novaCategoria.trim(), cor: novaCor } as Omit<Categoria, 'id'>);
       setNovaCategoria('');
+      setNovaCor(ETIQUETA_COLOR_KEYS[Math.floor(Math.random() * ETIQUETA_COLOR_KEYS.length)]); // Random next color
       setAddError('');
     } finally {
       setIsLoading(false);
@@ -197,7 +210,15 @@ export default function Categorias({ categorias, onAdd, onUpdate, onDelete, paco
 
       {/* Add form — single compact row */}
       <div className="flex gap-2 items-start">
+        
+        <ColorTokenPicker
+          value={novaCor}
+          onChange={setNovaCor}
+          disabled={isLoading}
+          triggerClassName="h-9 w-9 mt-[2px]"
+        />
         <div className="flex-1 space-y-1">
+
           <Input
             placeholder="Nova categoria..."
             value={novaCategoria}

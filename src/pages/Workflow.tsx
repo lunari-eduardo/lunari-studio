@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +48,19 @@ export default function Workflow() {
 
 function WorkflowContent() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Atalho ⌘K / Ctrl+K para focar no campo de busca
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   const initialOpenSession = searchParams.get("open_session");
   // ── Dados de referência ─────────────────────────────────────────────
   const { getStatusOptions } = useWorkflowStatus();
@@ -323,12 +336,18 @@ function WorkflowContent() {
               <div className="relative flex-1 max-w-sm min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
+                  ref={searchInputRef}
                   type="text"
                   placeholder="Buscar por cliente ou e-mail..."
                   value={filters.searchTerm}
                   onChange={(e) => filters.setSearchTerm(e.target.value)}
                   className="pl-9 h-9 bg-muted/30 hover:bg-muted/50 border-0 rounded-full focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/20 shadow-none transition-colors"
                 />
+                {!filters.searchTerm && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center pointer-events-none">
+                    <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50 hidden sm:inline-flex">⌘K</span>
+                  </div>
+                )}
               </div>
 
               <WorkflowFilters
