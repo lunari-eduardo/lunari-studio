@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -372,7 +372,7 @@ export default function LeadsKanban({
       <div className={cn("flex items-center justify-end gap-2", isMobile ? "px-2 py-1.5" : "px-2 py-2")}>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-sm"
           onClick={() => setConfigModalOpen(true)}
           title="Configurar Follow-up"
           className="h-8 w-8 text-muted-foreground hover:text-foreground"
@@ -383,7 +383,7 @@ export default function LeadsKanban({
           onClick={() => onOpenCreate ? onOpenCreate() : setCreateModalOpen(true)}
           size={isMobile ? "sm" : "sm"}
           className={cn(
-            "gap-1.5 font-semibold bg-lunar-accent hover:bg-lunar-accent/90 text-black",
+            "gap-1.5 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90",
             isMobile ? "h-8 text-xs" : "h-8 text-xs"
           )}
         >

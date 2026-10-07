@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import LeadsKanban from "@/components/leads/LeadsKanban";
 import LeadMetricsCards from "@/components/leads/LeadMetricsCards";
 import UnifiedLeadFilters from "@/components/leads/UnifiedLeadFilters";
@@ -115,9 +115,9 @@ export default function Leads() {
           )}
         </div>
 
-        <UnderlineTabs defaultValue="ativos" className="flex flex-col">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
-            <UnderlineTabsList className="w-full lg:w-auto">
+        <UnderlineTabs defaultValue="ativos" className="flex flex-col w-full">
+          
+            <UnderlineTabsList className="w-full h-auto p-0 bg-transparent border-b border-border rounded-none justify-start gap-1 sm:gap-6 overflow-x-auto no-scrollbar mb-4">
               <UnderlineTabsTrigger value="ativos">
                 Funil
                 <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
@@ -138,7 +138,7 @@ export default function Leads() {
               </UnderlineTabsTrigger>
             </UnderlineTabsList>
             
-            <div className="flex-1 lg:max-w-xl xl:max-w-3xl">
+            <div className="flex justify-end mb-4"><div className="w-full lg:max-w-xl xl:max-w-3xl">
               <UnifiedLeadFilters
                 periodType={periodFilter.periodType}
                 onPeriodChange={handlePeriodChange}

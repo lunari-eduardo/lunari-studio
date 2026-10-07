@@ -1,4 +1,4 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+﻿import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Calendar, Search, MapPin } from 'lucide-react';
 import type { PeriodType } from '@/hooks/useLeadMetrics';
@@ -103,7 +103,7 @@ export default function UnifiedLeadFilters({
             placeholder="Buscar leads..." 
             value={searchTerm} 
             onChange={e => onSearchChange(e.target.value)} 
-            className="pl-8 h-9 text-sm bg-transparent border-border/60 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-lg w-full transition-all" 
+            className="pl-8 h-9 text-sm bg-transparent border-border/60 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 rounded-md shadow-sm w-full transition-all" 
           />
           <div className="absolute right-2.5 flex items-center pointer-events-none">
             <span className="text-[10px] text-muted-foreground font-medium px-1 rounded-sm border border-border/50 bg-background/50">⌘K</span>
@@ -112,7 +112,7 @@ export default function UnifiedLeadFilters({
         
         {/* Period Filter Minimalista */}
         <Select value={periodType} onValueChange={onPeriodChange}>
-          <SelectTrigger className="h-9 text-sm w-[140px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-lg">
+          <SelectTrigger className="h-9 text-sm w-[140px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md shadow-sm">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue />
@@ -129,7 +129,7 @@ export default function UnifiedLeadFilters({
         
         {/* Origin Filter Minimalista */}
         <Select value={originFilter} onValueChange={onOriginChange}>
-          <SelectTrigger className="h-9 text-sm w-[120px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-lg">
+          <SelectTrigger className="h-9 text-sm w-[120px] bg-transparent border-border/60 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md shadow-sm">
             <div className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
