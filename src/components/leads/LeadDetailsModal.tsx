@@ -151,7 +151,7 @@ export default function LeadDetailsModal({
         Usamos max-w-[800px] ou mais em telas grandes. Fundo branco puro. 
       */}
       <SheetContent 
-        className="w-[90vw] sm:max-w-2xl md:max-w-3xl lg:max-w-[850px] p-0 flex flex-col h-full border-l border-border/10 bg-white dark:bg-[#121212] overflow-hidden [&>button:last-child]:hidden shadow-[0_0_50px_rgba(0,0,0,0.1)]"
+        className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-[850px] p-0 flex flex-col h-full border-l border-border/10 bg-white dark:bg-[#121212] overflow-hidden [&>button:last-child]:hidden shadow-[0_0_50px_rgba(0,0,0,0.1)]"
       >
         
         {/* Cabeçalho compacto e responsivo */}
@@ -196,11 +196,9 @@ export default function LeadDetailsModal({
               </Button>
             </LeadActionsPopover>
 
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
-                <X className="h-4 w-4" />
-              </Button>
-            </SheetClose>
+            <Button onClick={() => onOpenChange(false)} variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all">
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 

@@ -81,7 +81,13 @@ export function ActiveBudgetsCard({
             Orçamentos enviados · {activeShares.length}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-3 text-zinc-400">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onOpenDrawer(); }}
+            className="text-[11px] font-medium text-[#B8925F] hover:text-[#C9A87C] flex items-center gap-1 transition-colors px-1"
+          >
+            <Plus className="h-3 w-3" /> Enviar
+          </button>
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </div>
       </div>

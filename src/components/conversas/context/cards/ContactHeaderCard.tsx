@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LeadStatusDropdown } from './LeadStatusDropdown';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useConversasEtiquetas } from '@/hooks/useConversasEtiquetas';
+import { DEFAULT_LEAD_STATUSES } from '@/utils/leadTransformers';
 
 interface Props {
   chat: any;
@@ -59,12 +60,18 @@ export function ContactHeaderCard({ chat, context, onCreateLead, onLinkClient, o
           </h3>
           
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-            {hasOpenLead && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">
-                <Star className="h-2.5 w-2.5 fill-current opacity-70" />
-                Lead
-              </div>
-            )}
+            {hasOpenLead && (() => {
+              const leadStatusObj = DEFAULT_LEAD_STATUSES.find(s => s.key === lead?.status);
+              return (
+                <div 
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium tracking-tight uppercase"
+                  style={leadStatusObj ? { backgroundColor: `${leadStatusObj.color}1A`, color: leadStatusObj.color } : { backgroundColor: 'var(--emerald-50)', color: 'var(--emerald-600)' }}
+                >
+                  <Star className="h-2.5 w-2.5 fill-current opacity-70" />
+                  {leadStatusObj ? leadStatusObj.name : 'Lead'}
+                </div>
+              );
+            })()}
             
             {isClientBase && (
               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-medium tracking-tight">

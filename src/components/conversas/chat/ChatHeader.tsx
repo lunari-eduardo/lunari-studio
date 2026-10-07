@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Header do chat panel — avatar, nome, ações (voltar, telefone, vídeo, notas, mais).
  */
 
@@ -99,7 +99,7 @@ export function ChatHeader({
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#C9A87C]/15 text-[#A58253] dark:bg-[#C9A87C]/20 dark:text-[#D4AF37] border-none shrink-0 uppercase tracking-wider">
                 Cliente
               </span>
-            ) : contatoTipo === 'lead' ? (
+            ) : contatoTipo === 'lead' && !leadStatus ? (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border-none shrink-0 uppercase tracking-wider">
                 Lead
               </span>
