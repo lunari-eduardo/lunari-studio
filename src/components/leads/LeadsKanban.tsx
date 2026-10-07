@@ -343,13 +343,13 @@ export default function LeadsKanban({
           ref={setNodeRef}
           className={cn(
             "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
-            "bg-muted/30", 
+            "bg-muted/40", 
             isMobile ? "p-1.5" : "p-2",
-            isOver ? "bg-muted/50 shadow-inner" : "" 
+            isOver ? "bg-muted/60 shadow-inner" : "" 
           )}
         >
           <div className="flex-1 overflow-y-auto scrollbar-kanban">
-            <ul className={cn("pb-2 h-full", isMobile ? "space-y-1" : "space-y-2")}>
+            <ul className={cn(isMobile ? "space-y-1" : "space-y-2")}>
               {leadsInColumn.map((lead) => (
                 <DraggableLeadCard
                   key={lead.id}
@@ -376,8 +376,8 @@ export default function LeadsKanban({
 
               {leadsInColumn.length === 0 && (
                 <li className={cn(
-                  "text-center text-muted-foreground flex items-center justify-center h-24 border-2 border-dashed border-border/60 rounded-xl bg-transparent mt-1", 
-                  isMobile ? "text-xs" : "text-xs"
+                  "text-center text-muted-foreground flex items-center justify-center h-24 border-2 border-dashed border-border/50 rounded-xl bg-transparent", 
+                  isMobile ? "text-xs" : "text-sm"
                 )}>
                   Nenhum lead neste status
                 </li>

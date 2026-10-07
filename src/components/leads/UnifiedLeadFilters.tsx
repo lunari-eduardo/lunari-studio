@@ -1,4 +1,4 @@
-﻿import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Calendar, Search, MapPin } from 'lucide-react';
 import type { PeriodType } from '@/hooks/useLeadMetrics';
@@ -98,23 +98,23 @@ export default function UnifiedLeadFilters({
       <div className={cn("flex flex-wrap items-center justify-end gap-2", isMobile ? "w-full" : "w-auto")}>
         {/* Search Filter Minimalista */}
         <div className="relative flex items-center w-full md:w-64">
-          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Buscar leads..." 
             value={searchTerm} 
             onChange={e => onSearchChange(e.target.value)} 
-            className="pl-8 h-9 text-sm bg-background border-input focus-visible:border-accent-gold focus-visible:ring-1 focus-visible:ring-accent-gold/20 focus-visible:ring-offset-0 rounded-md shadow-sm w-full transition-all" 
+            className="pl-9 h-10 text-sm bg-background border-border/50 focus-visible:border-accent-gold focus-visible:ring-1 focus-visible:ring-accent-gold/20 focus-visible:ring-offset-0 rounded-full shadow-sm w-full transition-all" 
           />
-          <div className="absolute right-2.5 flex items-center pointer-events-none">
-            <span className="text-[10px] text-muted-foreground font-medium px-1 rounded-sm border border-border/50 bg-background/50">⌘K</span>
+          <div className="absolute right-3 flex items-center pointer-events-none">
+            <span className="text-[10px] text-muted-foreground font-medium px-1.5 py-0.5 rounded-md border border-border/50 bg-background/50">⌘K</span>
           </div>
         </div>
         
         {/* Period Filter Minimalista */}
         <Select value={periodType} onValueChange={onPeriodChange}>
-          <SelectTrigger className="h-9 text-sm w-[140px] bg-background border-input hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md shadow-sm">
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          <SelectTrigger className="h-10 text-sm w-[140px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               <SelectValue />
             </div>
           </SelectTrigger>
@@ -129,9 +129,9 @@ export default function UnifiedLeadFilters({
         
         {/* Origin Filter Minimalista */}
         <Select value={originFilter} onValueChange={onOriginChange}>
-          <SelectTrigger className="h-9 text-sm w-[120px] bg-background border-input hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-md shadow-sm">
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <SelectTrigger className="h-10 text-sm w-[140px] bg-background border-border/50 hover:bg-muted/40 transition-colors focus:ring-0 focus:ring-offset-0 rounded-full shadow-sm">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Origem" />
             </div>
           </SelectTrigger>
