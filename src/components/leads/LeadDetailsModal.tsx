@@ -1,13 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Mail, Phone, MessageSquare, Clock } from "lucide-react";
+import { Calendar, Mail, Phone, MessageSquare, Clock, Pencil } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { Lead } from "@/types/leads";
 import LeadHistoryPanel from "./LeadHistoryPanel";
 import LeadCommercialSection from "./LeadCommercialSection";
+import LeadFormModal from "./LeadFormModal";
+import { useLeads } from "@/hooks/useLeads";
 
 interface LeadDetailsModalProps {
   lead: Lead;
@@ -18,6 +20,8 @@ interface LeadDetailsModalProps {
 }
 
 export default function LeadDetailsModal({ lead, open, onOpenChange, onConvert, onDelete }: LeadDetailsModalProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const { updateLead } = useLeads();
   const timeAgo = useMemo(() => {
     try {
       return formatDistanceToNowStrict(new Date(lead.dataCriacao), {
@@ -31,6 +35,23 @@ export default function LeadDetailsModal({ lead, open, onOpenChange, onConvert, 
 
   const isConverted = lead.status === "convertido";
   const isLost = lead.status === "perdido";
+
+  if (isEditing) {
+    return (
+      <LeadFormModal
+        open={true}
+        onOpenChange={(v) => {
+          if (!v) setIsEditing(false);
+        }}
+        mode="edit"
+        initial={lead}
+        onSubmit={async (data) => {
+          await updateLead(lead.id, data);
+          setIsEditing(false);
+        }}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -135,6 +156,10 @@ export default function LeadDetailsModal({ lead, open, onOpenChange, onConvert, 
                 Excluir Lead
               </Button>
             )}
+            <Button variant="outline" onClick={() => setIsEditing(true)} className="px-4 ml-auto">
+              <Pencil className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
           </div>
         </div>
       </DialogContent>

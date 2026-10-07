@@ -14,250 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      lua_dna_artifacts: {
-        Row: {
-          content: string | null
-          content_hash: string | null
-          created_at: string
-          extraction_status: string
-          id: string
-          kind: string
-          message_id: string
-          metadata: Json
-          source_id: string
-        }
-        Insert: {
-          content?: string | null
-          content_hash?: string | null
-          created_at?: string
-          extraction_status?: string
-          id?: string
-          kind: string
-          message_id: string
-          metadata?: Json
-          source_id: string
-        }
-        Update: {
-          content?: string | null
-          content_hash?: string | null
-          created_at?: string
-          extraction_status?: string
-          id?: string
-          kind?: string
-          message_id?: string
-          metadata?: Json
-          source_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lua_dna_artifacts_source_id_fkey"
-            columns: ["source_id"]
-            isOneToOne: false
-            referencedRelation: "lua_dna_sources"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lua_dna_profiles: {
-        Row: {
-          attributes: Json
-          created_at: string
-          derived_from: Json
-          id: string
-          learning_metrics: Json
-          status: string
-          updated_at: string
-          user_id: string
-          version: number
-          voice_summary: string | null
-        }
-        Insert: {
-          attributes?: Json
-          created_at?: string
-          derived_from?: Json
-          id?: string
-          learning_metrics?: Json
-          status?: string
-          updated_at?: string
-          user_id: string
-          version?: number
-          voice_summary?: string | null
-        }
-        Update: {
-          attributes?: Json
-          created_at?: string
-          derived_from?: Json
-          id?: string
-          learning_metrics?: Json
-          status?: string
-          updated_at?: string
-          user_id?: string
-          version?: number
-          voice_summary?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lua_dna_profiles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lua_dna_sources: {
-        Row: {
-          chat_id: string
-          created_at: string
-          error_details: string | null
-          id: string
-          processed_at: string | null
-          retention_until: string
-          snapshot: Json
-          source_hash: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          chat_id: string
-          created_at?: string
-          error_details?: string | null
-          id?: string
-          processed_at?: string | null
-          retention_until: string
-          snapshot: Json
-          source_hash: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          chat_id?: string
-          created_at?: string
-          error_details?: string | null
-          id?: string
-          processed_at?: string | null
-          retention_until?: string
-          snapshot?: Json
-          source_hash?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lua_dna_sources_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lua_generation_audit: {
-        Row: {
-          chat_id: string | null
-          context_hash: string | null
-          created_at: string
-          dna_version: number | null
-          id: string
-          latency_ms: number | null
-          model: string
-          output_hash: string | null
-          status: string
-          tokens_usage: Json | null
-          user_id: string
-        }
-        Insert: {
-          chat_id?: string | null
-          context_hash?: string | null
-          created_at?: string
-          dna_version?: number | null
-          id?: string
-          latency_ms?: number | null
-          model: string
-          output_hash?: string | null
-          status: string
-          tokens_usage?: Json | null
-          user_id: string
-        }
-        Update: {
-          chat_id?: string | null
-          context_hash?: string | null
-          created_at?: string
-          dna_version?: number | null
-          id?: string
-          latency_ms?: number | null
-          model?: string
-          output_hash?: string | null
-          status?: string
-          tokens_usage?: Json | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lua_generation_audit_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lua_studio_knowledge: {
-        Row: {
-          created_at: string
-          hours: string | null
-          id: string
-          notes: string | null
-          pix_reference: string | null
-          policies: string | null
-          services: string | null
-          socials: string | null
-          updated_at: string
-          user_id: string
-          version: number
-          websites: string | null
-        }
-        Insert: {
-          created_at?: string
-          hours?: string | null
-          id?: string
-          notes?: string | null
-          pix_reference?: string | null
-          policies?: string | null
-          services?: string | null
-          socials?: string | null
-          updated_at?: string
-          user_id: string
-          version?: number
-          websites?: string | null
-        }
-        Update: {
-          created_at?: string
-          hours?: string | null
-          id?: string
-          notes?: string | null
-          pix_reference?: string | null
-          policies?: string | null
-          services?: string | null
-          socials?: string | null
-          updated_at?: string
-          user_id?: string
-          version?: number
-          websites?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lua_studio_knowledge_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       account_fingerprints: {
         Row: {
           created_at: string
@@ -634,6 +390,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
         ]
@@ -2580,6 +2343,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cliente_creditos_ledger_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cliente_creditos_ledger_session_id_consumo_fkey"
             columns: ["session_id_consumo"]
             isOneToOne: false
@@ -2611,6 +2381,7 @@ export type Database = {
       }
       clientes: {
         Row: {
+          avatar_url: string | null
           bairro: string | null
           cep: string | null
           cidade: string | null
@@ -2636,6 +2407,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          avatar_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -2661,6 +2433,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          avatar_url?: string | null
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
@@ -2732,6 +2505,13 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "clientes_documentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clientes_familia: {
@@ -2768,6 +2548,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_familia_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
         ]
@@ -2903,6 +2690,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "clientes_sessoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clientes_sessoes_galeria_id_fkey"
             columns: ["galeria_id"]
             isOneToOne: false
@@ -3018,6 +2812,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_transacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
           {
@@ -3370,6 +3171,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cobrancas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cobrancas_galeria_id_fkey"
             columns: ["galeria_id"]
             isOneToOne: false
@@ -3651,6 +3459,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contratos_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -3667,10 +3482,9 @@ export type Database = {
           contato_nome: string | null
           contato_phone_normalized: string | null
           created_at: string
+          etiquetas: string[] | null
           id: string
           instance_id: string
-          last_inbound_at: string | null
-          last_read_at: string | null
           lead_id: string | null
           mute: boolean
           pin: string
@@ -3691,10 +3505,9 @@ export type Database = {
           contato_nome?: string | null
           contato_phone_normalized?: string | null
           created_at?: string
+          etiquetas?: string[] | null
           id?: string
           instance_id: string
-          last_inbound_at?: string | null
-          last_read_at?: string | null
           lead_id?: string | null
           mute?: boolean
           pin?: string
@@ -3715,10 +3528,9 @@ export type Database = {
           contato_nome?: string | null
           contato_phone_normalized?: string | null
           created_at?: string
+          etiquetas?: string[] | null
           id?: string
           instance_id?: string
-          last_inbound_at?: string | null
-          last_read_at?: string | null
           lead_id?: string | null
           mute?: boolean
           pin?: string
@@ -3734,6 +3546,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "conversas_chats_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversas_chats_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "conversas_chats_contato_id_fkey"
             columns: ["contato_id"]
             isOneToOne: false
@@ -3741,10 +3567,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversas_chats_contato_id_fkey"
+            columns: ["contato_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["conversas_contato_id"]
+          },
+          {
             foreignKeyName: "conversas_chats_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "conversas_instancias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversas_chats_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -3809,7 +3649,41 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "conversas_contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      conversas_etiquetas: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       conversas_instancias: {
         Row: {
@@ -3861,13 +3735,17 @@ export type Database = {
       }
       conversas_mensagens: {
         Row: {
+          audio_transcript: string | null
           chat_id: string
           content: string
           created_at: string
           direction: string
+          edited_at: string | null
           evolution_msg_id: string | null
           id: string
           instance_id: string
+          is_deleted: boolean
+          is_edited: boolean
           is_forwarded: boolean | null
           media_filename: string | null
           media_mime_type: string | null
@@ -3884,13 +3762,17 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audio_transcript?: string | null
           chat_id: string
           content?: string
           created_at?: string
           direction: string
+          edited_at?: string | null
           evolution_msg_id?: string | null
           id?: string
           instance_id: string
+          is_deleted?: boolean
+          is_edited?: boolean
           is_forwarded?: boolean | null
           media_filename?: string | null
           media_mime_type?: string | null
@@ -3907,13 +3789,17 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audio_transcript?: string | null
           chat_id?: string
           content?: string
           created_at?: string
           direction?: string
+          edited_at?: string | null
           evolution_msg_id?: string | null
           id?: string
           instance_id?: string
+          is_deleted?: boolean
+          is_edited?: boolean
           is_forwarded?: boolean | null
           media_filename?: string | null
           media_mime_type?: string | null
@@ -4077,55 +3963,55 @@ export type Database = {
       }
       conversas_templates: {
         Row: {
+          ativo: boolean | null
+          categoria: string | null
+          categoria_id: string | null
           conteudo: string
           created_at: string
+          emojis_sugeridos: boolean | null
+          etapa: string | null
           id: string
           nome: string
-          categoria: string | null
+          ordem: number | null
+          palavras_chave: Json | null
           updated_at: string
           user_id: string
+          uso_interno: boolean | null
           variaveis: Json | null
-                  categoria_id: string | null
-          etapa: string | null
-          palavras_chave: Json | null
-          ativo: boolean
-          ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
         }
         Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          categoria_id?: string | null
           conteudo: string
           created_at?: string
+          emojis_sugeridos?: boolean | null
+          etapa?: string | null
           id?: string
           nome: string
-          categoria?: string | null
+          ordem?: number | null
+          palavras_chave?: Json | null
           updated_at?: string
           user_id: string
+          uso_interno?: boolean | null
           variaveis?: Json | null
-                  categoria_id?: string | null
-          etapa?: string | null
-          palavras_chave?: Json | null
-          ativo?: boolean
-          ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
         }
         Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          categoria_id?: string | null
           conteudo?: string
           created_at?: string
+          emojis_sugeridos?: boolean | null
+          etapa?: string | null
           id?: string
           nome?: string
-          categoria?: string | null
+          ordem?: number | null
+          palavras_chave?: Json | null
           updated_at?: string
           user_id?: string
+          uso_interno?: boolean | null
           variaveis?: Json | null
-                  categoria_id?: string | null
-          etapa?: string | null
-          palavras_chave?: Json | null
-          ativo?: boolean
-          ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
         }
         Relationships: [
           {
@@ -4134,7 +4020,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "categorias"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       conversas_webhook_events: {
@@ -4544,8 +4430,6 @@ export type Database = {
           is_system_status: boolean | null
           nome: string
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -4557,8 +4441,6 @@ export type Database = {
           is_system_status?: boolean | null
           nome: string
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           updated_at?: string
           user_id: string
         }
@@ -4570,8 +4452,6 @@ export type Database = {
           is_system_status?: boolean | null
           nome?: string
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -4656,9 +4536,7 @@ export type Database = {
           id: string
           is_system: boolean | null
           nome: string
-          ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean | null
+          ordem: number | null
         }
         Insert: {
           created_at?: string | null
@@ -4666,9 +4544,7 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           nome: string
-          ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean | null
+          ordem?: number | null
         }
         Update: {
           created_at?: string | null
@@ -4676,9 +4552,7 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           nome?: string
-          ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean | null
+          ordem?: number | null
         }
         Relationships: []
       }
@@ -5169,6 +5043,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "formularios_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "formularios_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -5345,8 +5226,6 @@ export type Database = {
           id: string
           nome: string
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -5357,8 +5236,6 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           updated_at?: string
           user_id: string
         }
@@ -5369,8 +5246,6 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -5630,6 +5505,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "galerias_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
         ]
@@ -6441,6 +6323,8 @@ export type Database = {
       leads: {
         Row: {
           arquivado: boolean | null
+          categoria_ia_id: string | null
+          categoria_manual_id: string | null
           cliente_id: string | null
           created_at: string
           data_contato: string | null
@@ -6470,6 +6354,8 @@ export type Database = {
         }
         Insert: {
           arquivado?: boolean | null
+          categoria_ia_id?: string | null
+          categoria_manual_id?: string | null
           cliente_id?: string | null
           created_at?: string
           data_contato?: string | null
@@ -6499,6 +6385,8 @@ export type Database = {
         }
         Update: {
           arquivado?: boolean | null
+          categoria_ia_id?: string | null
+          categoria_manual_id?: string | null
           cliente_id?: string | null
           created_at?: string
           data_contato?: string | null
@@ -6528,10 +6416,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "leads_categoria_ia_id_fkey"
+            columns: ["categoria_ia_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_categoria_manual_id_fkey"
+            columns: ["categoria_manual_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
         ]
@@ -6631,6 +6540,218 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      lua_dna_artifacts: {
+        Row: {
+          content: string | null
+          content_hash: string | null
+          created_at: string
+          extraction_status: string
+          id: string
+          kind: string
+          message_id: string
+          metadata: Json
+          source_id: string
+        }
+        Insert: {
+          content?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extraction_status?: string
+          id?: string
+          kind: string
+          message_id: string
+          metadata?: Json
+          source_id: string
+        }
+        Update: {
+          content?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extraction_status?: string
+          id?: string
+          kind?: string
+          message_id?: string
+          metadata?: Json
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lua_dna_artifacts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lua_dna_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lua_dna_profiles: {
+        Row: {
+          attributes: Json
+          created_at: string
+          derived_from: Json
+          id: string
+          learning_metrics: Json
+          status: string
+          updated_at: string
+          user_id: string
+          version: number
+          voice_summary: string | null
+        }
+        Insert: {
+          attributes?: Json
+          created_at?: string
+          derived_from?: Json
+          id?: string
+          learning_metrics?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+          version?: number
+          voice_summary?: string | null
+        }
+        Update: {
+          attributes?: Json
+          created_at?: string
+          derived_from?: Json
+          id?: string
+          learning_metrics?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+          voice_summary?: string | null
+        }
+        Relationships: []
+      }
+      lua_dna_sources: {
+        Row: {
+          chat_id: string
+          created_at: string
+          error_details: string | null
+          id: string
+          processed_at: string | null
+          retention_until: string
+          snapshot: Json
+          source_hash: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          created_at?: string
+          error_details?: string | null
+          id?: string
+          processed_at?: string | null
+          retention_until: string
+          snapshot: Json
+          source_hash: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          created_at?: string
+          error_details?: string | null
+          id?: string
+          processed_at?: string | null
+          retention_until?: string
+          snapshot?: Json
+          source_hash?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lua_generation_audit: {
+        Row: {
+          chat_id: string | null
+          context_hash: string | null
+          created_at: string
+          dna_version: number | null
+          id: string
+          latency_ms: number | null
+          model: string
+          output_hash: string | null
+          status: string
+          tokens_usage: Json | null
+          user_id: string
+        }
+        Insert: {
+          chat_id?: string | null
+          context_hash?: string | null
+          created_at?: string
+          dna_version?: number | null
+          id?: string
+          latency_ms?: number | null
+          model: string
+          output_hash?: string | null
+          status: string
+          tokens_usage?: Json | null
+          user_id: string
+        }
+        Update: {
+          chat_id?: string | null
+          context_hash?: string | null
+          created_at?: string
+          dna_version?: number | null
+          id?: string
+          latency_ms?: number | null
+          model?: string
+          output_hash?: string | null
+          status?: string
+          tokens_usage?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lua_studio_knowledge: {
+        Row: {
+          created_at: string
+          hours: string | null
+          id: string
+          notes: string | null
+          pix_reference: string | null
+          policies: string | null
+          services: string | null
+          socials: string | null
+          updated_at: string
+          user_id: string
+          version: number
+          websites: string | null
+        }
+        Insert: {
+          created_at?: string
+          hours?: string | null
+          id?: string
+          notes?: string | null
+          pix_reference?: string | null
+          policies?: string | null
+          services?: string | null
+          socials?: string | null
+          updated_at?: string
+          user_id: string
+          version?: number
+          websites?: string | null
+        }
+        Update: {
+          created_at?: string
+          hours?: string | null
+          id?: string
+          notes?: string | null
+          pix_reference?: string | null
+          policies?: string | null
+          services?: string | null
+          socials?: string | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+          websites?: string | null
         }
         Relationships: []
       }
@@ -6857,6 +6978,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_shares_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
           {
@@ -7595,8 +7723,6 @@ export type Database = {
           id: string
           nome: string
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           updated_at: string
           user_id: string
         }
@@ -7606,8 +7732,6 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           updated_at?: string
           user_id: string
         }
@@ -7617,8 +7741,6 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -7671,6 +7793,7 @@ export type Database = {
           cidade_uf: string | null
           cpf_cnpj: string | null
           created_at: string
+          custom_domain: string | null
           deletion_requested_at: string | null
           email: string | null
           empresa: string | null
@@ -7680,6 +7803,7 @@ export type Database = {
           logo_url: string | null
           nicho: string | null
           nome: string | null
+          public_namespace: string | null
           referral_code: string | null
           referred_by: string | null
           site_redes_sociais: string[] | null
@@ -7701,6 +7825,7 @@ export type Database = {
           cidade_uf?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          custom_domain?: string | null
           deletion_requested_at?: string | null
           email?: string | null
           empresa?: string | null
@@ -7710,6 +7835,7 @@ export type Database = {
           logo_url?: string | null
           nicho?: string | null
           nome?: string | null
+          public_namespace?: string | null
           referral_code?: string | null
           referred_by?: string | null
           site_redes_sociais?: string[] | null
@@ -7731,6 +7857,7 @@ export type Database = {
           cidade_uf?: string | null
           cpf_cnpj?: string | null
           created_at?: string
+          custom_domain?: string | null
           deletion_requested_at?: string | null
           email?: string | null
           empresa?: string | null
@@ -7740,6 +7867,7 @@ export type Database = {
           logo_url?: string | null
           nicho?: string | null
           nome?: string | null
+          public_namespace?: string | null
           referral_code?: string | null
           referred_by?: string | null
           site_redes_sociais?: string[] | null
@@ -8145,8 +8273,6 @@ export type Database = {
           media: Json
           not_helpful_count: number
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           pergunta: string
           published: boolean
           resposta: string
@@ -8166,8 +8292,6 @@ export type Database = {
           media?: Json
           not_helpful_count?: number
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           pergunta: string
           published?: boolean
           resposta: string
@@ -8187,8 +8311,6 @@ export type Database = {
           media?: Json
           not_helpful_count?: number
           ordem?: number
-          emojis_sugeridos?: boolean
-          uso_interno?: boolean
           pergunta?: string
           published?: boolean
           resposta?: string
@@ -9195,7 +9317,40 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cliente_creditos_ledger_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      v_crm_clientes_resumo: {
+        Row: {
+          a_receber: number | null
+          avatar_url: string | null
+          categoria_recente: string | null
+          conversas_contato_id: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          dependente_nome: string | null
+          dependente_tipo: string | null
+          email: string | null
+          id: string | null
+          nome: string | null
+          nome_checkout: string | null
+          origem: string | null
+          sessoes_count: number | null
+          telefone: string | null
+          total_faturado: number | null
+          total_pago: number | null
+          ultima_sessao_data: string | null
+          updated_at: string | null
+          user_id: string | null
+          whatsapp: string | null
+        }
+        Relationships: []
       }
       v_infinitepay_latency: {
         Row: {
@@ -9280,6 +9435,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_transacoes_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "v_crm_clientes_resumo"
             referencedColumns: ["id"]
           },
           {
@@ -9625,6 +9787,10 @@ export type Database = {
         Args: { p_galeria_id: string }
         Returns: Json
       }
+      get_conversas_cliente_context: {
+        Args: { p_cliente_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_current_correlation_id: { Args: never; Returns: string }
       get_formulario_resposta_publica: {
         Args: { p_token: string }
@@ -9870,8 +10036,6 @@ export type Database = {
           media: Json
           not_helpful_count: number
           ordem: number
-          emojis_sugeridos: boolean
-          uso_interno: boolean
           pergunta: string
           published: boolean
           resposta: string

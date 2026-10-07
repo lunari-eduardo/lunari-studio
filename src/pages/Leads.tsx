@@ -166,7 +166,7 @@ export default function Leads() {
                 </Button>
                 <Button
                   onClick={() => setKanbanCreateOpen(true)}
-                  className="h-9 px-4 gap-1.5 text-[13px] font-semibold shadow-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-full transition-all"
+                  className="h-9 px-4 gap-1.5 text-[13px] font-semibold shadow-sm bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-lunar-accent dark:text-zinc-900 dark:hover:bg-[#C5A028] rounded-full transition-all"
                 >
                   + {isMobile ? "Novo" : "Novo Lead"}
                 </Button>

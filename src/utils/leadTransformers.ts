@@ -33,6 +33,8 @@ export function supabaseLeadToFrontend(row: SupabaseLead): Lead {
     scheduledAppointmentId: row.scheduled_appointment_id || undefined,
     motivoPerda: row.motivo_perda || undefined,
     perdidoEm: row.perdido_em || undefined,
+    categoria_manual_id: row.categoria_manual_id || undefined,
+    categoria_ia_id: row.categoria_ia_id || undefined,
     historicoStatus: (row.historico_status as Lead['historicoStatus']) || [],
   };
 }
@@ -63,6 +65,8 @@ export function frontendLeadToSupabase(
     scheduled_appointment_id: lead.scheduledAppointmentId || null,
     motivo_perda: lead.motivoPerda || null,
     perdido_em: lead.perdidoEm || null,
+    categoria_manual_id: lead.categoria_manual_id || null,
+    categoria_ia_id: lead.categoria_ia_id || null,
     historico_status: (lead.historicoStatus || []) as unknown as Tables<'leads'>['historico_status'],
   };
 }
@@ -93,6 +97,8 @@ export function frontendLeadUpdatesToSupabase(
   if (updates.scheduledAppointmentId !== undefined) result.scheduled_appointment_id = updates.scheduledAppointmentId || null;
   if (updates.motivoPerda !== undefined) result.motivo_perda = updates.motivoPerda || null;
   if (updates.perdidoEm !== undefined) result.perdido_em = updates.perdidoEm || null;
+  if (updates.categoria_manual_id !== undefined) result.categoria_manual_id = updates.categoria_manual_id || null;
+  if (updates.categoria_ia_id !== undefined) result.categoria_ia_id = updates.categoria_ia_id || null;
   if (updates.historicoStatus !== undefined) result.historico_status = updates.historicoStatus;
 
   return result as Partial<Tables<'leads'>>;
