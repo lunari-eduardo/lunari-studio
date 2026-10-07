@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import LeadsKanban from "@/components/leads/LeadsKanban";
 import LeadMetricsCards from "@/components/leads/LeadMetricsCards";
 import UnifiedLeadFilters from "@/components/leads/UnifiedLeadFilters";
@@ -6,7 +6,7 @@ import LeadHistoryGrid from "@/components/leads/LeadHistoryGrid";
 import { useAppContext } from "@/contexts/AppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { BarChart3, ChevronDown, ChevronUp, Filter, CheckCircle, XCircle } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronUp, Filter, CheckCircle, XCircle, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { PeriodFilter, PeriodType } from "@/hooks/useLeadMetrics";
@@ -25,8 +25,9 @@ export default function Leads() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
-  const [showMetrics, setShowMetrics] = useState(!isMobile);
+  const [showMetrics, setShowMetrics] = useState(true);
   const [kanbanCreateOpen, setKanbanCreateOpen] = useState(false);
+  const [kanbanConfigOpen, setKanbanConfigOpen] = useState(false);
 
   const handlePeriodChange = (periodType: PeriodType) => {
     setPeriodFilter({ periodType });
@@ -93,22 +94,23 @@ export default function Leads() {
             </p>
           </div>
 
-          {/* Botão de métricas (apenas mobile) */}
-          {isMobile && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowMetrics(!showMetrics)}
-              className="h-8 px-2 text-muted-foreground"
-            >
-              <BarChart3 className="h-4 w-4" />
-              {showMetrics ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
-            </Button>
-          )}
+          {/* Botão de métricas */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowMetrics(!showMetrics)}
+            className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors bg-muted/20 hover:bg-muted/40"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline-block ml-2 text-xs font-medium">
+              {showMetrics ? "Ocultar Métricas" : "Mostrar Métricas"}
+            </span>
+            {showMetrics ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+          </Button>
         </div>
 
         <div className="flex flex-col xl:flex-row xl:items-start gap-4 mb-4">
-          {(!isMobile || showMetrics) && (
+          {(!isMobile || showMetrics) && showMetrics && (
             <div className="flex-1 min-w-0 transition-all duration-300 animate-in slide-in-from-top-2">
               <LeadMetricsCards periodFilter={periodFilter} isMobile={isMobile} isCollapsed={isMobile && !showMetrics} />
             </div>
@@ -116,8 +118,8 @@ export default function Leads() {
         </div>
 
         <Tabs defaultValue="ativos" className="flex flex-col w-full">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
-            <TabsList className="flex items-center gap-2 bg-transparent border-none p-0 h-auto w-full lg:w-auto overflow-x-auto no-scrollbar justify-start">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4">
+            <TabsList className="flex items-center gap-2 bg-transparent border-none p-0 h-auto w-full xl:w-auto overflow-x-auto no-scrollbar justify-start">
               <TabsTrigger value="ativos" className="group h-9 px-3 rounded-md border border-input bg-background shadow-sm data-[state=active]:border-accent-gold data-[state=active]:bg-accent-gold/10 data-[state=active]:text-accent-gold text-muted-foreground hover:text-foreground transition-all">
                 <Filter className="mr-2 h-4 w-4" /> Funil
                 <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-accent-gold group-data-[state=active]:text-white px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-colors">
@@ -138,17 +140,37 @@ export default function Leads() {
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex-1 lg:max-w-xl xl:max-w-3xl">
-              <UnifiedLeadFilters
-                periodType={periodFilter.periodType}
-                onPeriodChange={handlePeriodChange}
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                originFilter={originFilter}
-                onOriginChange={setOriginFilter}
-                origins={origens}
-                isMobile={isMobile}
-              />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 xl:max-w-4xl">
+              <div className="flex-1 min-w-0">
+                <UnifiedLeadFilters
+                  periodType={periodFilter.periodType}
+                  onPeriodChange={handlePeriodChange}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  originFilter={originFilter}
+                  onOriginChange={setOriginFilter}
+                  origins={origens}
+                  isMobile={isMobile}
+                />
+              </div>
+              
+              <div className="flex items-center gap-2 mt-2 sm:mt-0 justify-end flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="icon-sm"
+                  onClick={() => setKanbanConfigOpen(true)}
+                  title="Configurar Follow-up"
+                  className="h-9 w-9 rounded-md bg-background border border-input shadow-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => setKanbanCreateOpen(true)}
+                  className="h-9 gap-1.5 font-semibold shadow-sm bg-foreground text-background hover:bg-foreground/90 rounded-md"
+                >
+                  + {isMobile ? "Novo" : "Novo Lead"}
+                </Button>
+              </div>
             </div>
           </div>
           
@@ -159,6 +181,11 @@ export default function Leads() {
                 searchTerm={searchTerm}
                 originFilter={originFilter}
                 isMobile={isMobile}
+                hideHeader={true}
+                createModalOpen={kanbanCreateOpen}
+                setCreateModalOpen={setKanbanCreateOpen}
+                configModalOpen={kanbanConfigOpen}
+                setConfigModalOpen={setKanbanConfigOpen}
               />
             </TabsContent>
             

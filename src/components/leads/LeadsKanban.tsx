@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +41,11 @@ export interface LeadsKanbanProps {
   originFilter?: string;
   isMobile?: boolean;
   onOpenCreate?: () => void;
+  createModalOpen?: boolean;
+  setCreateModalOpen?: (open: boolean) => void;
+  configModalOpen?: boolean;
+  setConfigModalOpen?: (open: boolean) => void;
+  hideHeader?: boolean;
 }
 
 export default function LeadsKanban({
@@ -49,6 +54,11 @@ export default function LeadsKanban({
   originFilter = "all",
   isMobile = false,
   onOpenCreate,
+  createModalOpen: externalCreateModalOpen,
+  setCreateModalOpen: externalSetCreateModalOpen,
+  configModalOpen: externalConfigModalOpen,
+  setConfigModalOpen: externalSetConfigModalOpen,
+  hideHeader = false,
 }: LeadsKanbanProps) {
   const navigate = useNavigate();
   const { leads, addLead, updateLead, deleteLead, convertToClient } = useLeads();
@@ -57,9 +67,17 @@ export default function LeadsKanban({
   const { addInteraction } = useLeadInteractions();
   const { origens, setSelectedClientForScheduling } = useAppContext();
   const { toast } = useToast();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  
+  const [internalCreateModalOpen, setInternalCreateModalOpen] = useState(false);
+  const createModalOpen = externalCreateModalOpen !== undefined ? externalCreateModalOpen : internalCreateModalOpen;
+  const setCreateModalOpen = externalSetCreateModalOpen || setInternalCreateModalOpen;
+
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [configModalOpen, setConfigModalOpen] = useState(false);
+
+  const [internalConfigModalOpen, setInternalConfigModalOpen] = useState(false);
+  const configModalOpen = externalConfigModalOpen !== undefined ? externalConfigModalOpen : internalConfigModalOpen;
+  const setConfigModalOpen = externalSetConfigModalOpen || setInternalConfigModalOpen;
+
   const [schedulingModalOpen, setSchedulingModalOpen] = useState(false);
   const [leadToSchedule, setLeadToSchedule] = useState<Lead | null>(null);
   const [schedulingLead, setSchedulingLead] = useState<Lead | null>(null);
@@ -324,15 +342,14 @@ export default function LeadsKanban({
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out border",
-            "bg-muted/5", 
+            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
+            "bg-muted/30", 
             isMobile ? "p-1.5" : "p-2",
-            isOver ? "bg-muted/10 shadow-inner" : "" 
+            isOver ? "bg-muted/50 shadow-inner" : "" 
           )}
-          style={{ borderColor: `${statusColor}25` }}
         >
           <div className="flex-1 overflow-y-auto scrollbar-kanban">
-            <ul className={cn("pb-2", isMobile ? "space-y-1" : "space-y-2")}>
+            <ul className={cn("pb-2 h-full", isMobile ? "space-y-1" : "space-y-2")}>
               {leadsInColumn.map((lead) => (
                 <DraggableLeadCard
                   key={lead.id}
@@ -358,7 +375,10 @@ export default function LeadsKanban({
               ))}
 
               {leadsInColumn.length === 0 && (
-                <li className={cn("text-center text-lunar-textSecondary", isMobile ? "text-xs py-4" : "text-sm py-8")}>
+                <li className={cn(
+                  "text-center text-muted-foreground flex items-center justify-center h-24 border-2 border-dashed border-border/60 rounded-xl bg-transparent mt-1", 
+                  isMobile ? "text-xs" : "text-xs"
+                )}>
                   Nenhum lead neste status
                 </li>
               )}
@@ -371,27 +391,29 @@ export default function LeadsKanban({
   return (
     <div className="flex flex-col h-full">
       {/* Header do Kanban — config discreta + novo lead dourado */}
-      <div className={cn("flex items-center justify-end gap-2", isMobile ? "px-2 py-1.5" : "px-2 py-2")}>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          onClick={() => setConfigModalOpen(true)}
-          title="Configurar Follow-up"
-          className="h-8 w-8 rounded-md bg-background border border-input shadow-sm text-muted-foreground hover:text-foreground"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
-        <Button
-          onClick={() => onOpenCreate ? onOpenCreate() : setCreateModalOpen(true)}
-          size={isMobile ? "sm" : "sm"}
-          className={cn(
-            "gap-1.5 font-semibold shadow-sm bg-foreground text-background hover:bg-foreground/90 rounded-md",
-            isMobile ? "h-8 text-xs" : "h-8 text-xs"
-          )}
-        >
-          + {isMobile ? "Novo" : "Novo Lead"}
-        </Button>
-      </div>
+      {!hideHeader && (
+        <div className={cn("flex items-center justify-end gap-2", isMobile ? "px-2 py-1.5" : "px-2 py-2")}>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setConfigModalOpen(true)}
+            title="Configurar Follow-up"
+            className="h-8 w-8 rounded-md bg-background border border-input shadow-sm text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={() => onOpenCreate ? onOpenCreate() : setCreateModalOpen(true)}
+            size={isMobile ? "sm" : "sm"}
+            className={cn(
+              "gap-1.5 font-semibold shadow-sm bg-foreground text-background hover:bg-foreground/90 rounded-md",
+              isMobile ? "h-8 text-xs" : "h-8 text-xs"
+            )}
+          >
+            + {isMobile ? "Novo" : "Novo Lead"}
+          </Button>
+        </div>
+      )}
 
       {/* Kanban Board Container - Optimized for mobile scroll */}
       <div className="flex-1 relative overflow-hidden">

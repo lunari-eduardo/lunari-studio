@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Send, CheckCircle, XCircle, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useLeadMetrics, type PeriodFilter } from '@/hooks/useLeadMetrics';
@@ -27,43 +27,49 @@ export default function LeadMetricsCards({
     title: 'Total de Leads',
     value: metrics.totalLeads,
     icon: Users,
-    color: 'text-muted-foreground'
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted/60'
   }, {
     title: 'Orçamentos Enviados',
     value: metrics.leadsEnviados,
     icon: Send,
-    color: 'text-muted-foreground'
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted/60'
   }, {
     title: 'Leads Fechados',
     value: metrics.leadsFechados,
     icon: CheckCircle,
-    color: 'text-muted-foreground'
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-500/10'
   }, {
     title: 'Leads Perdidos',
     value: metrics.leadsPerdidos,
     icon: XCircle,
-    color: 'text-muted-foreground'
+    iconColor: 'text-destructive',
+    iconBg: 'bg-destructive/10'
   }, {
     title: 'Taxa de Conversão',
     value: `${metrics.taxaConversao}%`,
     icon: TrendingUp,
-    color: 'text-muted-foreground',
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted/60',
     subtitle: metrics.leadsEnviados > 0 ? `${metrics.leadsFechados}/${metrics.leadsEnviados}` : '0/0'
   }, {
     title: 'Top Motivo Perda',
     value: topMotivoLabel || 'N/A',
     icon: AlertTriangle,
-    color: 'text-muted-foreground',
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted/60',
     isText: true
   }];
 
   if (!hasData) {
     return <Card className={cn(
-      "bg-card/40 dark:bg-card/[0.05] backdrop-blur-sm border-white/30 dark:border-white/[0.08]", 
+      "bg-background/90 backdrop-blur-sm border-border/50 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.02)]", 
       isMobile ? "p-3" : "p-4",
       className
     )}>
-        <div className="text-center text-lunar-textSecondary">
+        <div className="text-center text-muted-foreground">
           <Users className={cn("mx-auto mb-2 opacity-50", isMobile ? "h-6 w-6" : "h-8 w-8")} />
           <p className={cn(isMobile ? "text-xs" : "text-sm")}>Nenhum lead encontrado no período selecionado</p>
         </div>
@@ -71,7 +77,7 @@ export default function LeadMetricsCards({
   }
 
   return <div className={cn(
-    "grid gap-2", 
+    "grid gap-3", 
     isMobile 
       ? "grid-cols-2 sm:grid-cols-3" 
       : "grid-cols-1 sm:grid-cols-2 md:grid-cols-6",
@@ -79,10 +85,10 @@ export default function LeadMetricsCards({
   )}>
       {cards.map((card, index) => {
       const Icon = card.icon;
-      return <Card key={index} className="bg-card/20 backdrop-blur-sm border-border/30 hover:bg-card/40 transition-all rounded-xl shadow-none">
+      return <Card key={index} className="bg-background/90 backdrop-blur-sm border-border/50 transition-all rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
             <CardContent className={cn(
               "flex flex-col justify-between",
-              isMobile ? "px-3 py-2.5" : "px-4 py-3",
+              isMobile ? "px-3 py-3" : "px-4 py-4",
               "h-full gap-2"
             )}>
               <div className="flex items-start justify-between w-full">
@@ -92,9 +98,13 @@ export default function LeadMetricsCards({
                 )}>
                   {card.title}
                 </p>
-                <div className="flex-shrink-0 opacity-50">
+                <div className={cn(
+                  "flex-shrink-0 flex items-center justify-center rounded-full",
+                  isMobile ? "w-6 h-6" : "w-8 h-8",
+                  card.iconBg
+                )}>
                   <Icon className={cn(
-                    card.color,
+                    card.iconColor,
                     isMobile ? "h-3.5 w-3.5" : "h-4 w-4"
                   )} />
                 </div>
@@ -112,7 +122,7 @@ export default function LeadMetricsCards({
                     </span> : card.value}
                 </p>
                 {card.subtitle && (
-                   <p className="text-[10px] text-muted-foreground mt-0.5">
+                   <p className="text-[11px] font-medium text-muted-foreground mt-1">
                      {card.subtitle}
                    </p>
                 )}
