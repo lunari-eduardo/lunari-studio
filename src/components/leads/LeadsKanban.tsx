@@ -65,6 +65,7 @@ export default function LeadsKanban({
   const [schedulingLead, setSchedulingLead] = useState<Lead | null>(null);
   const [lossReasonModalOpen, setLossReasonModalOpen] = useState(false);
   const [leadForLossReason, setLeadForLossReason] = useState<Lead | null>(null);
+  const [optimisticStatuses, setOptimisticStatuses] = useState<Record<string, string>>({});
   
   // Envio de orçamento
   const [sendProposalModalOpen, setSendProposalModalOpen] = useState(false);
@@ -123,10 +124,11 @@ export default function LeadsKanban({
       groups[s.key] = [];
     });
     filteredLeads.forEach((lead) => {
-      (groups[lead.status] ||= []).push(lead);
+      const status = optimisticStatuses[lead.id] || lead.status;
+      (groups[status] ||= []).push(lead);
     });
     return groups;
-  }, [filteredLeads, statuses]);
+  }, [filteredLeads, statuses, optimisticStatuses]);
   const handleMoveToHistory = (lead: Lead) => {
     updateLead(lead.id, {
       arquivado: true,
@@ -408,19 +410,30 @@ export default function LeadsKanban({
             if (activeId && overId) {
               const current = leads.find((lead) => lead.id === activeId);
               if (current && current.status !== overId) {
+                // Aplica a mudança visualmente antes mesmo da query terminar
+                setOptimisticStatuses(prev => ({ ...prev, [activeId]: overId }));
+                
                 handleStatusChange(current, overId);
+                
                 // Haptic de confirmação ao mover para nova coluna
                 if (typeof navigator !== "undefined" && "vibrate" in navigator) {
                   navigator.vibrate([20, 10, 20]);
                 }
+
+                // Limpa o estado otimista depois que o backend deve ter atualizado
+                setTimeout(() => {
+                  setOptimisticStatuses(prev => {
+                    const next = { ...prev };
+                    delete next[activeId];
+                    return next;
+                  });
+                }, 3000);
               }
             }
-            // Delay clearing activeId to let the optimistic cache update
-            // from onMutate settle first, preventing the card from flashing
-            // back to its original column
-            requestAnimationFrame(() => setActiveId(null));
+            // Limpa o ID ativo no mesmo frame para que o React renderize o elemento
+            // na nova coluna e a animação do DragOverlay termine nela
+            setActiveId(null);
           }}
-          onDragCancel={() => setActiveId(null)}
         >
           {/* Kanban Columns - Enhanced mobile scrolling */}
           <div className="absolute inset-0 overflow-x-auto overflow-y-hidden scrollbar-kanban">
