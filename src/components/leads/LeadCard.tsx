@@ -13,6 +13,7 @@ import { useLeadStatuses } from "@/hooks/useLeadStatuses";
 import { useLeadInteractions } from "@/hooks/useLeadInteractions";
 import { useFollowUpSystem } from "@/hooks/useFollowUpSystem";
 import { useAppContext } from "@/contexts/AppContext";
+import { useGlobalConversas } from "@/contexts/ConversasContext";
 import { checkLeadClientDivergence } from "@/utils/leadClientSync";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -81,18 +82,27 @@ export default function LeadCard({
   const { addInteraction } = useLeadInteractions();
   const { config } = useFollowUpSystem();
   const { clientes } = useAppContext();
+  const conversasContext = useGlobalConversas();
+  const chats = conversasContext?.chats || [];
 
-  // Check CRM client status and calculate dot color
-  const crmDot = useMemo(() => {
-    if (!lead.clienteId) return { show: false };
-    const client = clientes.find((c) => c.id === lead.clienteId);
-    if (!client) return { show: true, color: "bg-red-500", title: "Cliente não encontrado" };
-    const divergence = checkLeadClientDivergence(lead);
-    if (divergence.hasDivergence) {
-      return { show: true, color: "bg-amber-500", title: "Dados desatualizados" };
+  const client = useMemo(() => {
+    return lead.clienteId ? clientes.find((c) => c.id === lead.clienteId) : null;
+  }, [lead.clienteId, clientes]);
+
+  const avatarUrl = useMemo(() => {
+    if (client?.avatar_url) return client.avatar_url;
+    
+    // Fallback para a foto do WhatsApp
+    const phoneToFind = (lead.whatsapp || lead.telefone || "").replace(/\D/g, "");
+    if (phoneToFind) {
+      const chat = chats.find(c => {
+        const chatPhone = (c.contato_phone_normalized || "").replace(/\D/g, "");
+        return chatPhone && chatPhone.includes(phoneToFind);
+      });
+      if (chat?.contato_avatar) return chat.contato_avatar;
     }
-    return { show: true, color: "bg-emerald-500", title: "Vinculado ao CRM" };
-  }, [lead, clientes]);
+    return null;
+  }, [client, lead.whatsapp, lead.telefone, chats]);
 
   // Timestamp da última alteração real
   const lastUpdateIso = useMemo(() => {
@@ -214,20 +224,17 @@ export default function LeadCard({
     >
       {/* Cabeçalho: Avatar Neutro + Nome + Menu */}
       <div className="flex items-start gap-3 mb-3">
-        {/* Avatar Neutro Ultra Elegante */}
+        {/* Avatar Neutro Ultra Elegante ou Foto do WhatsApp */}
         <div
           className={cn(
-            "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+            "relative flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden",
             "bg-muted/40 text-muted-foreground"
           )}
         >
-          <span className="text-[10px] font-medium tracking-wider">{initials}</span>
-          {/* Ponto CRM sobreposto */}
-          {crmDot.show && (
-            <div
-              className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card", crmDot.color)}
-              title={crmDot.title}
-            />
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={lead.nome} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-[10px] font-medium tracking-wider">{initials}</span>
           )}
         </div>
 
