@@ -237,12 +237,6 @@ export function useClientesServerPagination() {
       setClientes(cached.data);
       setTotalCount(cached.totalCount);
       setIsLoading(false);
-
-      // Dispara prefetch da próxima página se houver
-      const totalPages = Math.ceil(cached.totalCount / pageSize);
-      if (currentPage < totalPages) {
-        prefetchNextPage(currentPage + 1, pageSize);
-      }
       return;
     }
 
@@ -252,16 +246,10 @@ export function useClientesServerPagination() {
     if (result) {
       setClientes(result.data);
       setTotalCount(result.totalCount);
-
-      // Dispara prefetch da próxima página se houver
-      const totalPages = Math.ceil(result.totalCount / pageSize);
-      if (currentPage < totalPages) {
-        prefetchNextPage(currentPage + 1, pageSize);
-      }
     }
 
     setIsLoading(false);
-  }, [currentPage, pageSize, filtersSignature, fetchPage, prefetchNextPage]);
+  }, [currentPage, pageSize, filtersSignature, fetchPage]);
 
   useEffect(() => {
     loadCurrentPage();

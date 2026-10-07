@@ -466,7 +466,7 @@ export default function Sidebar({ hideBottomNav }: SidebarProps = {}) {
 
     { to: '/app/agenda', icon: <CalendarDays size={ICON_SIZE} {...stroke} />, label: 'Agenda' },
     { to: '/app/conversas', icon: <MessageCircle size={ICON_SIZE} {...stroke} />, label: 'Conversas', isPro: true },
-    { to: '/app/leads', icon: <Funnel size={ICON_SIZE} {...stroke} />, label: 'Leads', isPro: true, adminOnly: true } as NavItemProps,
+    { to: '/app/leads', icon: <Funnel size={ICON_SIZE} {...stroke} />, label: 'Leads', isPro: true },
     { to: '/app/clientes', icon: <UsersRound size={ICON_SIZE} {...stroke} />, label: 'Clientes' },
 
     // Produção
@@ -480,7 +480,6 @@ export default function Sidebar({ hideBottomNav }: SidebarProps = {}) {
       to: '/app/comercial',
       icon: <FileText size={ICON_SIZE} {...stroke} />,
       label: 'Propostas',
-      adminOnly: true,
       groupLabel: 'Comercial',
       subItems: [
         { to: '/app/comercial/biblioteca', label: 'Biblioteca', icon: <BookOpen size={12} strokeWidth={1.6} /> },

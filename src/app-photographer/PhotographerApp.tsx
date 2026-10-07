@@ -282,18 +282,16 @@ export default function PhotographerApp() {
                 <Route path="clientes" element={<Clientes />} />
                 <Route path="clientes/:id" element={<ClienteDetalhe />} />
                 <Route path="leads" element={
-                  <RequireAdmin>
-                    <PlanRestrictionGuard entitlement="leads"><Leads /></PlanRestrictionGuard>
-                  </RequireAdmin>
+                  <PlanRestrictionGuard entitlement="leads"><Leads /></PlanRestrictionGuard>
                 } />
                 <Route path="comercial">
-                  <Route index element={<RequireAdmin><ComercialOverviewPage /></RequireAdmin>} />
-                  <Route path="biblioteca" element={<RequireAdmin><BibliotecaComercialPage /></RequireAdmin>} />
-                  <Route path="construtor/:id" element={<RequireAdmin><EditorPropostaPage /></RequireAdmin>} />
+                  <Route index element={<ComercialOverviewPage />} />
+                  <Route path="biblioteca" element={<BibliotecaComercialPage />} />
+                  <Route path="construtor/:id" element={<EditorPropostaPage />} />
                   <Route path="estrategia" element={<RequireAdmin><EstrategiaComercialPage /></RequireAdmin>} />
-                  <Route path="compartilhamentos" element={<RequireAdmin><CompartilhamentosComercialPage /></RequireAdmin>} />
-                  <Route path="compartilhamentos/:shareId" element={<RequireAdmin><ShareAnalysisPage /></RequireAdmin>} />
-                  <Route path="relatorios" element={<RequireAdmin><RelatoriosComercialPage /></RequireAdmin>} />
+                  <Route path="compartilhamentos" element={<CompartilhamentosComercialPage />} />
+                  <Route path="compartilhamentos/:shareId" element={<ShareAnalysisPage />} />
+                  <Route path="relatorios" element={<RelatoriosComercialPage />} />
                   <Route path="briefing" element={
                     <RequireAdmin>
                       <PlanRestrictionGuard entitlement="forms">
