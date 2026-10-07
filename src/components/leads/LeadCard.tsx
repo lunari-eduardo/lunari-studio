@@ -318,9 +318,15 @@ export default function LeadCard({
 
   return (
     <li
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target?.closest('[data-no-drag="true"]')) {
+          setShowDetails(true);
+        }
+      }}
       className={cn(
-        "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out",
-        isDragging ? "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing" : "cursor-grab",
+        "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out cursor-pointer",
+        isDragging && "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing",
         !isDragging && "active:scale-[0.99]",
         "bg-background border border-border/50 shadow-[0_2px_12px_rgba(0,0,0,0.04)]",
         "hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
