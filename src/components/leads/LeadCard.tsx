@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, MessageCircle, Calendar, Send, Clock, RotateCcw, UserCheck } from "lucide-react";
@@ -64,6 +64,15 @@ function getOriginDotColor(origin: string): string {
   return "bg-muted-foreground";
 }
 
+function getCategoryColor(categoryName: string) {
+  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ec4899', '#06b6d4', '#f43f5e', '#84cc16'];
+  let hash = 0;
+  for (let i = 0; i < categoryName.length; i++) {
+    hash = categoryName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
 export default function LeadCard({
   lead,
   onDelete,
@@ -90,6 +99,7 @@ export default function LeadCard({
   const { categorias } = useConfigurationContext();
   const navigate = useNavigate();
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const conversasContext = useGlobalConversas();
   const chats = conversasContext?.chats || [];
 
@@ -102,6 +112,8 @@ export default function LeadCard({
     if (!categoryId) return null;
     return categorias?.find(c => c.id === categoryId) || null;
   }, [lead.categoria_manual_id, lead.categoria_ia_id, categorias]);
+
+  useEffect(() => { setAvatarError(false); }, [lead.whatsapp, lead.telefone, client]);
 
   const avatarUrl = useMemo(() => {
     if (client?.avatar_url) return client.avatar_url;
@@ -340,8 +352,8 @@ export default function LeadCard({
             "bg-muted/40 text-muted-foreground"
           )}
         >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={lead.nome} className="w-full h-full object-cover" />
+          {avatarUrl && !avatarError ? (
+            <img src={avatarUrl} alt={lead.nome} className="w-full h-full object-cover" onError={() => setAvatarError(true)} />
           ) : (
             <span className="text-[10px] font-medium tracking-wider">{initials}</span>
           )}
@@ -392,8 +404,8 @@ export default function LeadCard({
           <div 
             className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium"
             style={{
-              backgroundColor: leadCategoria.cor ? `${leadCategoria.cor}15` : 'rgba(156, 163, 175, 0.15)',
-              color: leadCategoria.cor || '#9ca3af',
+              backgroundColor: (leadCategoria.cor || getCategoryColor(leadCategoria.nome)) + '15',
+              color: leadCategoria.cor || getCategoryColor(leadCategoria.nome),
             }}
           >
             <span>{leadCategoria.nome}</span>
