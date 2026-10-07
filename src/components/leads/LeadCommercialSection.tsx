@@ -18,9 +18,10 @@ interface LeadCommercialSectionProps {
   leadId: string;
   leadName: string;
   leadPhone?: string | null;
+  minimalStyle?: boolean;
 }
 
-export default function LeadCommercialSection({ leadId, leadName, leadPhone }: LeadCommercialSectionProps) {
+export default function LeadCommercialSection({ leadId, leadName, leadPhone, minimalStyle = false }: LeadCommercialSectionProps) {
   const { profile } = useUserProfile();
   const { shares, isLoading: isLoadingShares } = useLeadShares(leadId);
   const { materials, isLoading: isLoadingMaterials } = useMaterials();
@@ -54,36 +55,36 @@ export default function LeadCommercialSection({ leadId, leadName, leadPhone }: L
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium text-lunar-text">Orçamentos e Propostas</h3>
-        <Button onClick={handleOpenSend} size="sm" variant="outline" className="gap-2">
-          <Send className="h-4 w-4" />
-          Enviar Orçamento
+    <div className={minimalStyle ? "space-y-2" : "space-y-4"}>
+      <div className={minimalStyle ? "flex justify-end mb-2" : "flex items-center justify-between"}>
+        {!minimalStyle && <h3 className="font-medium text-lunar-text">Orçamentos e Propostas</h3>}
+        <Button onClick={handleOpenSend} size="sm" variant="outline" className={minimalStyle ? "h-8 text-xs font-medium rounded-lg" : "gap-2"}>
+          {!minimalStyle && <Send className="h-4 w-4" />}
+          {minimalStyle ? "Enviar Orçamento" : "Enviar Orçamento"}
         </Button>
       </div>
 
       {isLoadingShares ? (
         <div className="py-4 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : shares.length === 0 ? (
-        <div className="bg-lunar-surface border border-dashed border-lunar-border rounded-lg p-6 text-center text-sm text-lunar-textSecondary">
+        <div className={minimalStyle ? "text-center text-[13px] text-muted-foreground italic py-3" : "bg-lunar-surface border border-dashed border-lunar-border rounded-lg p-6 text-center text-sm text-lunar-textSecondary"}>
           Nenhum orçamento foi enviado para este lead ainda.
         </div>
       ) : (
         <div className="space-y-3">
           {shares.map(share => (
-            <div key={share.id} className="bg-lunar-surface border border-lunar-border rounded-lg p-3 flex flex-col gap-2">
+            <div key={share.id} className={minimalStyle ? "flex flex-col gap-2 p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl" : "bg-lunar-surface border border-lunar-border rounded-lg p-3 flex flex-col gap-2"}>
               <div className="flex items-start justify-between">
                 <div>
-                  <h4 className="font-medium text-sm text-lunar-text">{share.material?.title || 'Proposta'}</h4>
-                  <p className="text-xs text-lunar-textSecondary">
+                  <h4 className="font-medium text-[13px] text-foreground">{share.material?.title || 'Proposta'}</h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Enviado há {formatDistanceToNow(new Date(share.created_at), { locale: ptBR })}
                   </p>
                 </div>
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 text-xs text-primary"
+                  className="h-8 text-[11px] font-medium text-[#D4AF37] hover:text-[#C5A028] hover:bg-[#D4AF37]/10"
                   onClick={() => {
                     const baseUrl = getPublicShareBaseUrl({
                       namespace: profile?.public_namespace,

@@ -1,56 +1,41 @@
 import { useState, useMemo } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, MessageCircle, TrendingUp, FileText, UserPlus, Plus } from 'lucide-react';
 import { useLeadInteractions } from '@/hooks/useLeadInteractions';
 import { useLeadShares } from '@/hooks/useLeadShares';
 import type { Lead } from '@/types/leads';
 import type { LeadInteraction } from '@/types/leadInteractions';
+import { cn } from '@/lib/utils';
 
 interface LeadHistoryPanelProps {
   lead: Lead;
 }
 
-const InteractionIcon = ({ tipo }: { tipo: LeadInteraction['tipo'] }) => {
+const InteractionIcon = ({ tipo, className }: { tipo: LeadInteraction['tipo'], className?: string }) => {
+  const baseProps = { className: cn("w-3.5 h-3.5", className), strokeWidth: 2 };
   switch (tipo) {
-    case 'criacao': return <UserPlus className="h-4 w-4" />;
-    case 'mudanca_status': return <TrendingUp className="h-4 w-4" />;
-    case 'conversa': return <MessageCircle className="h-4 w-4" />;
-    case 'orcamento': return <FileText className="h-4 w-4" />;
-    case 'followup': return <Clock className="h-4 w-4" />;
-    default: return <MessageCircle className="h-4 w-4" />;
+    case 'criacao': return <UserPlus {...baseProps} />;
+    case 'mudanca_status': return <TrendingUp {...baseProps} />;
+    case 'conversa': return <MessageCircle {...baseProps} />;
+    case 'orcamento': return <FileText {...baseProps} />;
+    case 'followup': return <Clock {...baseProps} />;
+    default: return <MessageCircle {...baseProps} />;
   }
 };
 
-const InteractionBadge = ({ tipo, automatica }: { tipo: LeadInteraction['tipo']; automatica: boolean }) => {
-  const getVariant = () => {
-    if (tipo === 'followup') return 'destructive';
-    if (automatica) return 'secondary';
-    return 'default';
-  };
-
-  const getLabel = () => {
-    switch (tipo) {
-      case 'criacao': return 'Criado';
-      case 'mudanca_status': return 'Status';
-      case 'conversa': return 'Conversa';
-      case 'orcamento': return 'Orçamento';
-      case 'followup': return 'Follow-up';
-      case 'manual': return 'Manual';
-      default: return 'Interação';
-    }
-  };
-
-  return (
-    <Badge variant={getVariant()} className="text-xs">
-      {getLabel()}
-    </Badge>
-  );
+const getLabel = (tipo: LeadInteraction['tipo']) => {
+  switch (tipo) {
+    case 'criacao': return 'Criado';
+    case 'mudanca_status': return 'Status Alterado';
+    case 'conversa': return 'Conversa';
+    case 'orcamento': return 'Orçamento';
+    case 'followup': return 'Follow-up';
+    case 'manual': return 'Manual';
+    default: return 'Interação';
+  }
 };
 
 export default function LeadHistoryPanel({ lead }: LeadHistoryPanelProps) {
@@ -64,11 +49,9 @@ export default function LeadHistoryPanel({ lead }: LeadHistoryPanelProps) {
   const interactions = useMemo(() => {
     const baseInteractions = getInteractionsForLead(lead);
     
-    // Converte os envios de orçamentos em "interações falsas" para a timeline
     const shareInteractions: LeadInteraction[] = shares.flatMap(share => {
       const events: LeadInteraction[] = [];
       
-      // Evento de envio
       events.push({
         id: `share-${share.id}`,
         leadId: lead.id,
@@ -79,13 +62,12 @@ export default function LeadHistoryPanel({ lead }: LeadHistoryPanelProps) {
         automatica: true
       });
       
-      // Eventos de visualização (pega o primeiro acesso de cada sessão)
       if (share.sessions && share.sessions.length > 0) {
         share.sessions.forEach((session: any) => {
           events.push({
             id: `session-${session.id}`,
             leadId: lead.id,
-            tipo: 'conversa', // Usando conversa como ícone genérico de interação do lead
+            tipo: 'conversa',
             descricao: 'O cliente abriu o orçamento',
             detalhes: `Proposta: ${share.material?.title || 'Proposta'}`,
             timestamp: session.created_at,
@@ -132,113 +114,105 @@ export default function LeadHistoryPanel({ lead }: LeadHistoryPanelProps) {
   };
 
   return (
-    <Card className="bg-lunar-surface border-lunar-border/60">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-lunar-text">
-            Histórico de Interações
-          </CardTitle>
+    <div className="w-full flex flex-col pt-2">
+      <div className="flex justify-end mb-6">
+        {!isAddingInteraction && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => setIsAddingInteraction(!isAddingInteraction)}
-            className="h-8"
+            onClick={() => setIsAddingInteraction(true)}
+            className="h-8 text-[12px] text-muted-foreground hover:text-foreground font-medium rounded-lg px-3"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Adicionar
+            + Adicionar interação
           </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Add Manual Interaction */}
-        {isAddingInteraction && (
-          <div className="space-y-2 p-3 bg-lunar-bg rounded-md border border-lunar-border/60">
-            <Textarea
-              placeholder="Descreva a interação com o lead..."
-              value={newInteraction}
-              onChange={(e) => setNewInteraction(e.target.value)}
-              className="min-h-[80px]"
-            />
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleAddManualInteraction}>
-                Salvar
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setIsAddingInteraction(false);
-                  setNewInteraction('');
-                }}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </div>
         )}
+      </div>
 
-        {/* Interactions List */}
-        <ScrollArea className="h-[300px]">
-          {interactions.length === 0 ? (
-            <div className="text-center py-8 text-lunar-textSecondary text-sm">
-              Nenhuma interação registrada ainda
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {interactions.map((interaction) => (
-                <div
-                  key={interaction.id}
-                  className="flex gap-3 p-3 bg-lunar-bg rounded-md border border-lunar-border/40"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    <div className="p-1 bg-lunar-surface rounded-full border border-lunar-border/60">
-                      <InteractionIcon tipo={interaction.tipo} />
-                    </div>
+      {isAddingInteraction && (
+        <div className="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl mb-6">
+          <Textarea
+            placeholder="Descreva a interação com o lead..."
+            value={newInteraction}
+            onChange={(e) => setNewInteraction(e.target.value)}
+            className="min-h-[80px] bg-white dark:bg-black resize-none border-border/40 focus-visible:ring-1 focus-visible:ring-[#D4AF37] focus-visible:border-[#D4AF37]"
+          />
+          <div className="flex gap-2 justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setIsAddingInteraction(false);
+                setNewInteraction('');
+              }}
+              className="h-8 text-xs font-medium rounded-lg"
+            >
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleAddManualInteraction} className="h-8 text-xs bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white font-medium rounded-lg px-4">
+              Salvar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {interactions.length === 0 ? (
+        <div className="text-left text-muted-foreground italic text-[13px] py-4 px-2">
+          Nenhuma interação registrada ainda.
+        </div>
+      ) : (
+        <div className="relative border-l border-border/30 ml-4 space-y-8 pb-4">
+          {interactions.map((interaction, index) => {
+            const isFollowUp = interaction.tipo === 'followup';
+            const isManual = !interaction.automatica && interaction.tipo === 'manual';
+            const isOrcamento = interaction.tipo === 'orcamento';
+            
+            return (
+              <div key={interaction.id} className="relative pl-6">
+                {/* Timeline Dot */}
+                <div className={cn(
+                  "absolute -left-[13px] top-1 w-6 h-6 rounded-full flex items-center justify-center border-4 border-white dark:border-[#121212]",
+                  isFollowUp ? "bg-[#D4AF37] text-white" : 
+                  isOrcamento ? "bg-zinc-900 text-white dark:bg-white dark:text-black" : 
+                  isManual ? "bg-emerald-500 text-white" : 
+                  "bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
+                )}>
+                  <InteractionIcon tipo={interaction.tipo} className="w-2.5 h-2.5 text-current" />
+                </div>
+                
+                {/* Content */}
+                <div className="flex flex-col pt-0.5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[13px] font-semibold text-foreground tracking-tight">
+                      {getLabel(interaction.tipo)}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground/60">
+                      há {formatDistanceToNowStrict(new Date(interaction.timestamp), { locale: ptBR })}
+                    </span>
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <InteractionBadge 
-                        tipo={interaction.tipo} 
-                        automatica={interaction.automatica} 
-                      />
-                      <span className="text-xs text-lunar-textSecondary">
-                        {formatDistanceToNowStrict(new Date(interaction.timestamp), {
-                          addSuffix: true,
-                          locale: ptBR
-                        })}
-                      </span>
-                    </div>
-                    
-                    <p className="text-sm text-lunar-text">
-                      {interaction.descricao}
+                  <p className="text-[13px] text-muted-foreground leading-relaxed">
+                    {interaction.descricao}
+                  </p>
+                  
+                  {interaction.detalhes && (
+                    <p className="text-[12px] text-muted-foreground/80 mt-1.5 italic">
+                      {interaction.detalhes}
                     </p>
-                    
-                    {interaction.detalhes && (
-                      <p className="text-xs text-lunar-textSecondary mt-1">
-                        {interaction.detalhes}
-                      </p>
-                    )}
-                    
-                    {interaction.statusAnterior && interaction.statusNovo && (
-                      <div className="flex items-center gap-2 mt-2 text-xs">
-                        <Badge variant="outline" className="text-2xs">
-                          {interaction.statusAnterior}
-                        </Badge>
-                        <span className="text-lunar-textSecondary">→</span>
-                        <Badge variant="outline" className="text-2xs">
-                          {interaction.statusNovo}
-                        </Badge>
-                      </div>
-                    )}
-                  </div>
+                  )}
+                  
+                  {interaction.statusAnterior && interaction.statusNovo && (
+                    <div className="flex items-center gap-1.5 mt-2.5 text-[11px] font-medium text-muted-foreground">
+                      <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{interaction.statusAnterior}</span>
+                      <span>→</span>
+                      <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">{interaction.statusNovo}</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
