@@ -198,8 +198,8 @@ export default function LeadCard({
         "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out",
         isDragging ? "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing" : "cursor-grab",
         !isDragging && "active:scale-[0.99]",
-        "bg-card/20 backdrop-blur-md border border-border/30 shadow-sm",
-        "hover:bg-card/40 hover:border-border/50 hover:shadow-md"
+        "bg-background border border-border/50 shadow-[0_2px_12px_rgba(0,0,0,0.04)]",
+        "hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
       )}
       style={dndStyle}
       ref={dndRef as any}

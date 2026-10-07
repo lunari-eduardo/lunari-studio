@@ -119,28 +119,28 @@ export default function Leads() {
 
         <Tabs defaultValue="ativos" className="flex flex-col w-full">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mb-4">
-            <TabsList className="flex items-center gap-2 bg-transparent border-none p-0 h-auto w-full xl:w-auto overflow-x-auto no-scrollbar justify-start">
-              <TabsTrigger value="ativos" className="group h-10 px-4 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 text-muted-foreground hover:text-foreground transition-all">
-                <Filter className="mr-2 h-4 w-4" /> Funil
-                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-blue-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors">
+            <TabsList className="flex items-center gap-2 bg-transparent border-none p-0 py-1 h-auto w-full xl:w-auto overflow-x-auto no-scrollbar justify-start">
+              <TabsTrigger value="ativos" className="group h-9 px-3.5 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-blue-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 text-muted-foreground hover:text-foreground transition-all text-[13px]">
+                <Filter className="mr-2 h-3.5 w-3.5" /> Funil
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-blue-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors">
                   {ativosCount}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="ganhos" className="group h-10 px-4 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-emerald-200 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-600 text-muted-foreground hover:text-foreground transition-all">
-                <CheckCircle className="mr-2 h-4 w-4 group-data-[state=inactive]:text-emerald-500" /> Ganhos
-                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-emerald-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors">
+              <TabsTrigger value="ganhos" className="group h-9 px-3.5 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-emerald-200 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-600 text-muted-foreground hover:text-foreground transition-all text-[13px]">
+                <CheckCircle className="mr-2 h-3.5 w-3.5 group-data-[state=inactive]:text-emerald-500" /> Ganhos
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-emerald-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors">
                   {ganhosCount}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="perdidos" className="group h-10 px-4 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-red-200 data-[state=active]:bg-red-50 data-[state=active]:text-red-600 text-muted-foreground hover:text-foreground transition-all">
-                <XCircle className="mr-2 h-4 w-4 group-data-[state=inactive]:text-red-500" /> Perdidos
-                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-red-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[11px] font-semibold transition-colors">
+              <TabsTrigger value="perdidos" className="group h-9 px-3.5 rounded-full border border-border/50 bg-background shadow-sm data-[state=active]:border-red-200 data-[state=active]:bg-red-50 data-[state=active]:text-red-600 text-muted-foreground hover:text-foreground transition-all text-[13px]">
+                <XCircle className="mr-2 h-3.5 w-3.5 group-data-[state=inactive]:text-red-500" /> Perdidos
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-red-500 group-data-[state=active]:text-white px-2 py-0.5 rounded-full text-[10px] font-semibold transition-colors">
                   {perdidosCount}
                 </span>
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 xl:max-w-4xl">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 xl:max-w-4xl pb-1">
               <div className="flex-1 min-w-0">
                 <UnifiedLeadFilters
                   periodType={periodFilter.periodType}
@@ -160,13 +160,13 @@ export default function Leads() {
                   size="icon-sm"
                   onClick={() => setKanbanConfigOpen(true)}
                   title="Configurar Follow-up"
-                  className="h-10 w-10 rounded-full bg-background border border-border/50 shadow-sm text-muted-foreground hover:text-foreground transition-all"
+                  className="h-9 w-9 rounded-full bg-background border border-border/50 shadow-sm text-muted-foreground hover:text-foreground transition-all"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
                 <Button
                   onClick={() => setKanbanCreateOpen(true)}
-                  className="h-10 px-4 gap-1.5 font-semibold shadow-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-full transition-all"
+                  className="h-9 px-4 gap-1.5 text-[13px] font-semibold shadow-sm bg-zinc-900 text-white hover:bg-zinc-800 rounded-full transition-all"
                 >
                   + {isMobile ? "Novo" : "Novo Lead"}
                 </Button>
