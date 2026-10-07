@@ -6,8 +6,8 @@ import LeadHistoryGrid from "@/components/leads/LeadHistoryGrid";
 import { useAppContext } from "@/contexts/AppContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { BarChart3, ChevronDown, ChevronUp } from "lucide-react";
-import { UnderlineTabs, UnderlineTabsContent, UnderlineTabsList, UnderlineTabsTrigger } from "@/components/ui/underline-tabs";
+import { BarChart3, ChevronDown, ChevronUp, Filter, CheckCircle, XCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { PeriodFilter, PeriodType } from "@/hooks/useLeadMetrics";
 import { useLeads } from "@/hooks/useLeads";
@@ -115,30 +115,30 @@ export default function Leads() {
           )}
         </div>
 
-        <UnderlineTabs defaultValue="ativos" className="flex flex-col w-full">
-          
-            <UnderlineTabsList className="w-full h-auto p-0 bg-transparent border-b border-border rounded-none justify-start gap-1 sm:gap-6 overflow-x-auto no-scrollbar mb-4">
-              <UnderlineTabsTrigger value="ativos">
-                Funil
-                <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
+        <Tabs defaultValue="ativos" className="flex flex-col w-full">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+            <TabsList className="flex items-center gap-2 bg-transparent border-none p-0 h-auto w-full lg:w-auto overflow-x-auto no-scrollbar justify-start">
+              <TabsTrigger value="ativos" className="group h-9 px-3 rounded-md border border-input bg-background shadow-sm data-[state=active]:border-accent-gold data-[state=active]:bg-accent-gold/10 data-[state=active]:text-accent-gold text-muted-foreground hover:text-foreground transition-all">
+                <Filter className="mr-2 h-4 w-4" /> Funil
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-accent-gold group-data-[state=active]:text-white px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-colors">
                   {ativosCount}
                 </span>
-              </UnderlineTabsTrigger>
-              <UnderlineTabsTrigger value="ganhos">
-                Ganhos
-                <span className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500/80 px-1.5 py-0.5 rounded-full text-[10px]">
+              </TabsTrigger>
+              <TabsTrigger value="ganhos" className="group h-9 px-3 rounded-md border border-input bg-background shadow-sm data-[state=active]:border-emerald-500 data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-500 text-muted-foreground hover:text-foreground transition-all">
+                <CheckCircle className="mr-2 h-4 w-4" /> Ganhos
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-emerald-500 group-data-[state=active]:text-white px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-colors">
                   {ganhosCount}
                 </span>
-              </UnderlineTabsTrigger>
-              <UnderlineTabsTrigger value="perdidos">
-                Perdidos
-                <span className="ml-2 bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full text-[10px]">
+              </TabsTrigger>
+              <TabsTrigger value="perdidos" className="group h-9 px-3 rounded-md border border-input bg-background shadow-sm data-[state=active]:border-destructive data-[state=active]:bg-destructive/10 data-[state=active]:text-destructive text-muted-foreground hover:text-foreground transition-all">
+                <XCircle className="mr-2 h-4 w-4" /> Perdidos
+                <span className="ml-2 bg-muted text-muted-foreground group-data-[state=active]:bg-destructive group-data-[state=active]:text-white px-1.5 py-0.5 rounded-md text-[10px] font-semibold transition-colors">
                   {perdidosCount}
                 </span>
-              </UnderlineTabsTrigger>
-            </UnderlineTabsList>
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="flex justify-end mb-4"><div className="w-full lg:max-w-xl xl:max-w-3xl">
+            <div className="flex-1 lg:max-w-xl xl:max-w-3xl">
               <UnifiedLeadFilters
                 periodType={periodFilter.periodType}
                 onPeriodChange={handlePeriodChange}
@@ -153,24 +153,24 @@ export default function Leads() {
           </div>
           
           <div className="h-[calc(100vh-14rem)] lg:h-[calc(100vh-12rem)] flex flex-col">
-            <UnderlineTabsContent value="ativos" className="flex-1 overflow-hidden min-h-0 m-0 p-0 outline-none">
+            <TabsContent value="ativos" className="flex-1 overflow-hidden min-h-0 m-0 p-0 outline-none">
               <LeadsKanban
                 periodFilter={periodFilter}
                 searchTerm={searchTerm}
                 originFilter={originFilter}
                 isMobile={isMobile}
               />
-            </UnderlineTabsContent>
+            </TabsContent>
             
-            <UnderlineTabsContent value="ganhos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
+            <TabsContent value="ganhos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
               <LeadHistoryGrid leads={ganhosList} />
-            </UnderlineTabsContent>
+            </TabsContent>
             
-            <UnderlineTabsContent value="perdidos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
+            <TabsContent value="perdidos" className="flex-1 overflow-y-auto min-h-0 m-0 p-0 outline-none custom-scrollbar">
               <LeadHistoryGrid leads={perdidosList} />
-            </UnderlineTabsContent>
+            </TabsContent>
           </div>
-        </UnderlineTabs>
+        </Tabs>
       </div>
     </div>
   );

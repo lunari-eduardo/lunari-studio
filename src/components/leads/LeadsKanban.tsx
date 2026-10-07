@@ -373,11 +373,11 @@ export default function LeadsKanban({
       {/* Header do Kanban — config discreta + novo lead dourado */}
       <div className={cn("flex items-center justify-end gap-2", isMobile ? "px-2 py-1.5" : "px-2 py-2")}>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon-sm"
           onClick={() => setConfigModalOpen(true)}
           title="Configurar Follow-up"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 rounded-md bg-background border border-input shadow-sm text-muted-foreground hover:text-foreground"
         >
           <Settings className="h-4 w-4" />
         </Button>
@@ -385,7 +385,7 @@ export default function LeadsKanban({
           onClick={() => onOpenCreate ? onOpenCreate() : setCreateModalOpen(true)}
           size={isMobile ? "sm" : "sm"}
           className={cn(
-            "gap-1.5 font-semibold shadow-sm bg-primary text-primary-foreground hover:bg-primary/90",
+            "gap-1.5 font-semibold shadow-sm bg-foreground text-background hover:bg-foreground/90 rounded-md",
             isMobile ? "h-8 text-xs" : "h-8 text-xs"
           )}
         >
