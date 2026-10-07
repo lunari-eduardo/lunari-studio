@@ -47,8 +47,8 @@ export default function AgendaHeader({
       onClick={() => onViewChange(viewKey)}
       className={`h-full flex-1 px-3 rounded-md text-xs font-medium transition-all ${
         view === viewKey
-          ? "bg-muted/50 text-foreground shadow-sm"
-          : "text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+          ? "bg-background text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {label}
@@ -95,7 +95,7 @@ export default function AgendaHeader({
   );
 
   const ViewToggleGroup = () => (
-    <div className="flex items-center rounded-lg border border-border/60 bg-transparent p-0.5 h-9">
+    <div className="flex items-center rounded-lg bg-muted/40 p-1 h-9">
       {viewButtons.map(({ key, label }) => (
         <ViewToggleButton key={key} viewKey={key} label={label} />
       ))}
@@ -127,7 +127,7 @@ export default function AgendaHeader({
           : isTablet 
             ? "h-9 px-3 py-0 my-0 text-xs"
             : "h-9 px-4 text-xs"
-      } bg-transparent border-border/60 text-foreground hover:bg-muted/50`}
+      } `}
       title={isMobile ? "Gerenciar Horários" : undefined}
     >
       {!hasPro && <Crown className="h-3.5 w-3.5 text-accent-gold" />}
@@ -149,7 +149,7 @@ export default function AgendaHeader({
           : isTablet 
             ? "h-9 px-3 py-0 my-0 text-xs"
             : "h-9 px-4 text-xs"
-      } border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-primary`}
+      } `}
       title={isMobile ? "Agendamento Online" : undefined}
     >
       <Globe className="h-3.5 w-3.5" />
