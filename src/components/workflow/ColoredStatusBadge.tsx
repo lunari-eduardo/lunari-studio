@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useWorkflowStatus } from "@/hooks/useWorkflowStatus";
 import { getContrastColor, getStatusTone } from "@/lib/colorUtils";
-import { useTheme } from "next-themes";
+
 import { cn } from "@/lib/utils";
 
 type ColoredStatusBadgeProps = {
@@ -18,7 +18,7 @@ export function ColoredStatusBadge({
   variant
 }: ColoredStatusBadgeProps) {
   const { getStatusColor, workflowStatuses } = useWorkflowStatus();
-  const { resolvedTheme } = useTheme();
+  
 
   // Compatibilidade com código legado
   const actualVariant = variant || (showBackground ? "solid" : "text");
@@ -61,17 +61,25 @@ export function ColoredStatusBadge({
 
   if (actualVariant === "soft") {
     const tone = getStatusTone(statusColor);
-    const isDark = resolvedTheme === "dark";
     
     return (
       <div 
-        className={cn("px-2.5 h-8 rounded-full border flex items-center gap-2 text-xs font-semibold whitespace-nowrap", className)}
+        className={cn(
+          "px-2.5 h-8 rounded-full border flex items-center gap-2 text-xs font-semibold whitespace-nowrap",
+          "bg-[var(--bg-light)] dark:bg-[var(--bg-dark)]",
+          "border-[var(--border-light)] dark:border-[var(--border-dark)]",
+          "text-[var(--text-light)] dark:text-[var(--text-dark)]",
+          className
+        )}
         title={displayText}
         style={{ 
-          backgroundColor: isDark ? tone.bgDark : tone.bgLight,
-          borderColor: isDark ? tone.borderDark : tone.borderLight,
-          color: isDark ? tone.textDark : tone.textLight
-        }}
+          '--bg-light': tone.bgLight,
+          '--bg-dark': tone.bgDark,
+          '--border-light': tone.borderLight,
+          '--border-dark': tone.borderDark,
+          '--text-light': tone.textLight,
+          '--text-dark': '#FFFFFF',
+        } as React.CSSProperties}
       >
         <span 
           className="w-2 h-2 rounded-full shrink-0 ring-2 ring-white/60 dark:ring-black/20" 
@@ -106,3 +114,5 @@ export function ColoredStatusBadge({
     </span>
   );
 }
+
+

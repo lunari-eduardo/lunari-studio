@@ -65,7 +65,7 @@ export function SelectionTab({
 }: SelectionTabProps) {
   const [isCodesCollapsed, setIsCodesCollapsed] = useState(false);
   const [codeFormat, setCodeFormat] = useState<CodeFormat>('windows');
-  const [codeScopeFilter, setCodeScopeFilter] = useState<'all' | 'favorites' | 'commented'>('all');
+  const [codeScopeFilter, setCodeScopeFilter] = useState<'all' | 'favorites'>('all');
 
   const commentedPhotos = useMemo(() => {
     return selectedPhotos.filter(p => p.comment && p.comment.trim().length > 0);
@@ -75,11 +75,8 @@ export function SelectionTab({
     if (codeScopeFilter === 'favorites') {
       return favoritePhotos;
     }
-    if (codeScopeFilter === 'commented') {
-      return commentedPhotos;
-    }
     return selectedPhotos;
-  }, [selectedPhotos, favoritePhotos, commentedPhotos, codeScopeFilter]);
+  }, [selectedPhotos, favoritePhotos, codeScopeFilter]);
 
   const generatedCode = useMemo(() => {
     return generateSearchCode(photosForCode, codeFormat);
@@ -343,8 +340,8 @@ export function SelectionTab({
                     </Select>
                   </div>
 
-                  {/* Alternador Todas vs Favoritas vs Comentadas */}
-                  {(favoritePhotos.length > 0 || commentedPhotos.length > 0) && (
+                  {/* Alternador Todas vs Favoritas */}
+                  {favoritePhotos.length > 0 && (
                     <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border/50 shrink-0">
                       <button
                         type="button"
@@ -358,39 +355,36 @@ export function SelectionTab({
                       >
                         Todas ({selectedPhotos.length})
                       </button>
-                      {favoritePhotos.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCodeScopeFilter('favorites')}
-                          className={cn(
-                            'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
-                            codeScopeFilter === 'favorites'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          <Heart className="h-3 w-3 text-red-500 fill-current" />
-                          Favoritas ({favoritePhotos.length})
-                        </button>
-                      )}
-                      {commentedPhotos.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCodeScopeFilter('commented')}
-                          className={cn(
-                            'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
-                            codeScopeFilter === 'commented'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          <MessageCircle className="h-3 w-3 text-blue-500" />
-                          Comentadas ({commentedPhotos.length})
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCodeScopeFilter('favorites')}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
+                          codeScopeFilter === 'favorites'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        <Heart className="h-3 w-3 text-red-500 fill-current" />
+                        Favoritas ({favoritePhotos.length})
+                      </button>
                     </div>
                   )}
                 </div>
+
+                {commentedPhotos.length > 0 && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs">
+                    <MessageCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-medium">
+                        {commentedPhotos.length} {commentedPhotos.length === 1 ? 'foto possui observação' : 'fotos possuem observações'}.
+                      </p>
+                      <p className="opacity-90">
+                        Verifique as observações da seleção na aba Fotos.
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {codeFormatDescriptions[codeFormat]}

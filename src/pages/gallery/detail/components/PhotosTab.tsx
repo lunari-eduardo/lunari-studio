@@ -106,22 +106,50 @@ export function PhotosTab({
         })}
       </div>
 
-      {/* Photos Grid */}
+      {/* Photos Grid or List */}
       {currentPhotosList.length > 0 ? (
-        <MasonryGrid gap={photoSpacing}>
-          {currentPhotosList.map((photo, index) => (
-            <MasonryItem key={photo.id} photoWidth={photo.width} photoHeight={photo.height}>
-              <PhotoCard
-                photo={photo}
-                isSelected={photo.isSelected}
-                allowComments={allowComments}
-                readOnly
-                onSelect={() => {}}
-                onViewFullscreen={() => onViewFullscreen(index)}
-              />
-            </MasonryItem>
-          ))}
-        </MasonryGrid>
+        activePhotoFilter === 'selected' ? (
+          <div className="space-y-3 animate-fade-in">
+            {currentPhotosList.map((photo, index) => (
+              <div key={photo.id} className="flex gap-4 p-3 rounded-xl border border-border/50 bg-card/40 hover:bg-muted/40 transition-colors">
+                <div 
+                  className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg overflow-hidden bg-muted cursor-pointer relative group"
+                  onClick={() => onViewFullscreen(index)}
+                >
+                  <img src={photo.thumbnailUrl} className="w-full h-full object-cover" alt={photo.originalFilename} />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                     <span className="text-white text-xs font-medium bg-black/50 px-2 py-1 rounded-md">Ampliar</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 py-1 flex flex-col">
+                  <h4 className="text-sm font-medium text-foreground truncate">{photo.originalFilename}</h4>
+                  {photo.comment ? (
+                    <div className="mt-2 text-sm text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 whitespace-pre-wrap">
+                      {photo.comment}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground/60 italic">Sem observações</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <MasonryGrid gap={photoSpacing}>
+            {currentPhotosList.map((photo, index) => (
+              <MasonryItem key={photo.id} photoWidth={photo.width} photoHeight={photo.height}>
+                <PhotoCard
+                  photo={photo}
+                  isSelected={photo.isSelected}
+                  allowComments={allowComments}
+                  readOnly
+                  onSelect={() => {}}
+                  onViewFullscreen={() => onViewFullscreen(index)}
+                />
+              </MasonryItem>
+            ))}
+          </MasonryGrid>
+        )
       ) : (
         <div className="text-center py-16 lunari-card">
           <Image className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
