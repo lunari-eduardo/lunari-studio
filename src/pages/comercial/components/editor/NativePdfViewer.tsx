@@ -5,9 +5,11 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { AlertTriangle, Download, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Configura o worker do pdf.js via unpkg para garantir estabilidade máxima
-// independentemente de como o empacotador (Vite/Webpack) resolve assets.
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configura o worker do pdf.js via Vite (self-hosted) para não depender de CDN externo
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface NativePdfViewerProps {
   url: string;

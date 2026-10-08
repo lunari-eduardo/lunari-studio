@@ -25,9 +25,14 @@ export function normalizeBlock(raw: any): BlockData | null {
   // V2 nativo: garante id e content
   if (BLOCK_REGISTRY[type]) {
     const def = BLOCK_REGISTRY[type];
+    const rawContent = raw.content ?? raw.data ?? {};
+    if (rawContent.title_regular && !rawContent.title) {
+      rawContent.title = rawContent.title_regular;
+    }
+    
     const normalized = withId({
       ...raw,
-      content: raw.content ?? raw.data ?? {},
+      content: rawContent,
     });
 
     // Fallback de variantes legadas da capa
@@ -54,7 +59,7 @@ export function normalizeBlock(raw: any): BlockData | null {
         type: 'CoverBlock',
         content: {
           eyebrow: '',
-          title: d.title || '',
+          title: d.title || d.title_regular || '',
           title_italic: '',
           subtitle: d.subtitle || '',
           photographer_name: '',
@@ -70,7 +75,7 @@ export function normalizeBlock(raw: any): BlockData | null {
         type: 'EditorialBlock',
         content: {
           eyebrow: '',
-          title: d.title || 'Sobre o Estúdio',
+          title: d.title || d.title_regular || 'Sobre o Estúdio',
           title_italic: '',
           body: d.text || '',
           vertical_label: '',
@@ -103,7 +108,7 @@ export function normalizeBlock(raw: any): BlockData | null {
           packages: [
             {
               id: crypto.randomUUID(),
-              name: d.title || d.name || 'Pacote',
+              name: d.title || d.title_regular || d.name || 'Pacote',
               price,
               price_unit: 'sessão',
               badge: d.highlight ? 'Mais escolhido' : '',
@@ -120,7 +125,7 @@ export function normalizeBlock(raw: any): BlockData | null {
         type: 'Gallery',
         content: {
           eyebrow: '',
-          title: d.title || 'Portfólio',
+          title: d.title || d.title_regular || 'Portfólio',
           caption: '',
           images: Array.isArray(d.images)
             ? d.images.map((img: any) => ({
@@ -137,7 +142,7 @@ export function normalizeBlock(raw: any): BlockData | null {
     case 'text':
       return withId({
         type: 'text',
-        content: { title: d.title || '', body: d.body || '' },
+        content: { title: d.title || d.title_regular || '', body: d.body || '' },
         props: { align: 'center', background: 'white' },
       });
 

@@ -50,9 +50,6 @@ export default function BibliotecaComercialPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Propostas</h1>
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100 hidden sm:inline-flex">
-              Admin Only
-            </Badge>
           </div>
           <p className="text-muted-foreground text-sm mt-1 max-w-xl">
             Acompanhe o desempenho de suas propostas, contratos e portfólios compartilhados com seus clientes.

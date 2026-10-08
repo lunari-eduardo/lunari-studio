@@ -173,6 +173,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
     setSelectedPdf(null);
     setSelectedPacoteIds([]);
     setAiRefs([]);
+    setIsUploadingPdf(false);
   };
 
   const handleCloseModal = () => {
@@ -267,7 +268,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
           canvas.height = viewport.height;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            await page.render({ canvasContext: ctx, viewport }).promise;
+            await page.render({ canvasContext: ctx, viewport } as any).promise;
             const coverBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
             if (coverBlob) {
               const coverFile = new File([coverBlob], `${Date.now()}-cover.jpg`, { type: 'image/jpeg' });

@@ -73,27 +73,6 @@ export function StepTemplateGallery({
                   </div>
                 </div>
               </button>
-              <button
-                type="button"
-                title="Desativar este modelo"
-                className="absolute top-1.5 right-1.5 h-7 w-7 rounded-md bg-background/80 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 items-center justify-center hidden sm:flex"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (!window.confirm(`Desativar o modelo "${template.name}"? Ele deixa de aparecer na galeria.`)) return;
-                  const { error } = await (supabase as any)
-                    .from('proposal_templates')
-                    .update({ is_active: false })
-                    .eq('id', template.id);
-                  if (error) {
-                    toast.error('Erro ao desativar modelo: ' + error.message);
-                  } else {
-                    toast.success('Modelo desativado.');
-                    queryClient.invalidateQueries({ queryKey: ['proposal-templates'] });
-                  }
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
             </div>
           ))}
         </div>

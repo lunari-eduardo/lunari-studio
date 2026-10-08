@@ -20,11 +20,6 @@ const DEFAULT_TEMPLATE = [
     id: 'pricing-1',
     content: { eyebrow: 'Investimento', title: 'Pacotes', packages: [] },
   },
-  {
-    type: 'CTABlock',
-    id: 'cta-1',
-    content: { cta_text: 'Vamos conversar?', links: [] },
-  },
 ];
 
 export interface CommercialMaterial {
