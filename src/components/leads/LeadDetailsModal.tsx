@@ -1,6 +1,8 @@
 import { Sheet, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { 
   Mail, Phone, Clock, Check, MessageCircle, FileText, 
   MoreVertical, X, Copy, CalendarDays, Lock, User, Calendar, Tag, ChevronDown, ChevronRight 
@@ -47,6 +49,10 @@ export default function LeadDetailsModal({
   onScheduleClient, onMarkAsScheduled, onViewAppointment, onSendProposal, onMoveToHistory
 }: LeadDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingObs, setIsEditingObs] = useState(false);
+  const [obsText, setObsText] = useState(lead.observacoes || "");
+  const [isSavingObs, setIsSavingObs] = useState(false);
+  
   const { updateLead } = useLeads();
   const { statuses } = useLeadStatuses();
   
@@ -143,6 +149,20 @@ export default function LeadDetailsModal({
       action: onScheduleClient || (() => {})
     };
   }
+
+  const handleSaveObs = async () => {
+    try {
+      setIsSavingObs(true);
+      await updateLead(lead.id, { observacoes: obsText });
+      setIsEditingObs(false);
+      toast.success("Observações atualizadas com sucesso");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar observações");
+    } finally {
+      setIsSavingObs(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -339,18 +359,38 @@ export default function LeadDetailsModal({
                     <FileText className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
                     Observações
                   </h3>
-                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="h-7 text-[11px] text-muted-foreground hover:text-foreground font-medium rounded-lg">
-                    {lead.observacoes ? "Editar" : "+ Adicionar"}
-                  </Button>
-                </div>
-                
-                <div className="bg-transparent border border-border/30 rounded-xl p-4 min-h-[60px] hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 transition-colors cursor-text" onClick={() => !lead.observacoes && setIsEditing(true)}>
-                  {lead.observacoes ? (
-                    <p className="text-[13px] text-foreground whitespace-pre-wrap leading-relaxed">{lead.observacoes}</p>
-                  ) : (
-                    <p className="text-[13px] text-muted-foreground italic">Nenhuma observação adicionada.</p>
+                  {!isEditingObs && (
+                    <Button variant="ghost" size="sm" onClick={() => { setIsEditingObs(true); setObsText(lead.observacoes || ""); }} className="h-7 text-[11px] text-muted-foreground hover:text-foreground font-medium rounded-lg">
+                      {lead.observacoes ? "Editar" : "+ Adicionar"}
+                    </Button>
                   )}
                 </div>
+                
+                {isEditingObs ? (
+                  <div className="bg-transparent border border-[#D4AF37]/50 rounded-xl p-3 min-h-[60px] transition-colors focus-within:ring-1 focus-within:ring-[#D4AF37]/50">
+                    <Textarea
+                      autoFocus
+                      value={obsText}
+                      onChange={(e) => setObsText(e.target.value)}
+                      placeholder="Adicione uma observação sobre este lead..."
+                      className="min-h-[80px] border-none bg-transparent shadow-none focus-visible:ring-0 p-0 text-[13px] resize-none"
+                    />
+                    <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-border/30">
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditingObs(false)} disabled={isSavingObs} className="h-7 text-[11px]">Cancelar</Button>
+                      <Button size="sm" onClick={handleSaveObs} disabled={isSavingObs} className="h-7 text-[11px] bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-lg">
+                        {isSavingObs ? "Salvando..." : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-transparent border border-border/30 rounded-xl p-4 min-h-[60px] hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 transition-colors cursor-text" onClick={() => { setIsEditingObs(true); setObsText(lead.observacoes || ""); }}>
+                    {lead.observacoes ? (
+                      <p className="text-[13px] text-foreground whitespace-pre-wrap leading-relaxed">{lead.observacoes}</p>
+                    ) : (
+                      <p className="text-[13px] text-muted-foreground italic">Nenhuma observação adicionada.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

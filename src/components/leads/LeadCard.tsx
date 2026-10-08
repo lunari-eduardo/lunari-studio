@@ -472,6 +472,12 @@ export default function LeadCard({
         onOpenChange={setShowDetails}
         onConvert={onConvertToClient}
         onDelete={onDelete}
+        onStartConversation={handleStartConversation}
+        onScheduleClient={onScheduleClient}
+        onMarkAsScheduled={onMarkAsScheduled}
+        onViewAppointment={onViewAppointment}
+        onSendProposal={onSendProposal}
+        onMoveToHistory={onMoveToHistory}
       />
     </li>
   );
