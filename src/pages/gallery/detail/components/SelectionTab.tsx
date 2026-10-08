@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,14 +65,21 @@ export function SelectionTab({
 }: SelectionTabProps) {
   const [isCodesCollapsed, setIsCodesCollapsed] = useState(false);
   const [codeFormat, setCodeFormat] = useState<CodeFormat>('windows');
-  const [codeScopeFilter, setCodeScopeFilter] = useState<'all' | 'favorites'>('all');
+  const [codeScopeFilter, setCodeScopeFilter] = useState<'all' | 'favorites' | 'commented'>('all');
+
+  const commentedPhotos = useMemo(() => {
+    return selectedPhotos.filter(p => p.comment && p.comment.trim().length > 0);
+  }, [selectedPhotos]);
 
   const photosForCode = useMemo(() => {
     if (codeScopeFilter === 'favorites') {
       return favoritePhotos;
     }
+    if (codeScopeFilter === 'commented') {
+      return commentedPhotos;
+    }
     return selectedPhotos;
-  }, [selectedPhotos, favoritePhotos, codeScopeFilter]);
+  }, [selectedPhotos, favoritePhotos, commentedPhotos, codeScopeFilter]);
 
   const generatedCode = useMemo(() => {
     return generateSearchCode(photosForCode, codeFormat);
@@ -335,8 +343,8 @@ export function SelectionTab({
                     </Select>
                   </div>
 
-                  {/* Alternador Todas vs Favoritas */}
-                  {favoritePhotos.length > 0 && (
+                  {/* Alternador Todas vs Favoritas vs Comentadas */}
+                  {(favoritePhotos.length > 0 || commentedPhotos.length > 0) && (
                     <div className="flex items-center gap-1 bg-muted/40 p-0.5 rounded-lg border border-border/50 shrink-0">
                       <button
                         type="button"
@@ -350,19 +358,36 @@ export function SelectionTab({
                       >
                         Todas ({selectedPhotos.length})
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setCodeScopeFilter('favorites')}
-                        className={cn(
-                          'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
-                          codeScopeFilter === 'favorites'
-                            ? 'bg-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        <Heart className="h-3 w-3 text-red-500 fill-current" />
-                        Favoritas ({favoritePhotos.length})
-                      </button>
+                      {favoritePhotos.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCodeScopeFilter('favorites')}
+                          className={cn(
+                            'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
+                            codeScopeFilter === 'favorites'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          <Heart className="h-3 w-3 text-red-500 fill-current" />
+                          Favoritas ({favoritePhotos.length})
+                        </button>
+                      )}
+                      {commentedPhotos.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCodeScopeFilter('commented')}
+                          className={cn(
+                            'px-2.5 py-1 rounded-md text-xs font-medium transition-colors inline-flex items-center gap-1',
+                            codeScopeFilter === 'commented'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          <MessageCircle className="h-3 w-3 text-blue-500" />
+                          Comentadas ({commentedPhotos.length})
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

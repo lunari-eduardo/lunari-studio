@@ -80,12 +80,11 @@ export function useSupabaseLeads() {
     queryFn: async () => {
       if (!userId) return [];
 
-      // Usar .or() para incluir leads onde arquivado é false OU null
+      // Removemos o filtro de arquivado.eq.false para que os leads arquivados (que vão pro Histórico) sejam carregados e exibidos nas abas de Ganhos/Perdidos.
       const { data, error } = await supabase
         .from('leads')
         .select('*')
         .eq('user_id', userId)
-        .or('arquivado.eq.false,arquivado.is.null')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
