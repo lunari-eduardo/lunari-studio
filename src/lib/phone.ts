@@ -33,3 +33,47 @@ export function normalizeBrPhone(phone: string | null | undefined): string | nul
 
   return null;
 }
+
+/**
+ * Normaliza o número especificamente para as regras da API do WhatsApp no Brasil:
+ * - DDD 11 a 28: WhatsApp EXIGE o 9º dígito (13 dígitos total: 55 + DD + 9 + 8 dígitos).
+ * - DDD 31 a 99: WhatsApp IGNORA o 9º dígito (12 dígitos total: 55 + DD + 8 dígitos).
+ * Esta função força esse padrão para garantir match exato entre o CRM e a API de WhatsApp.
+ */
+export function normalizeWhatsApp(phone: string | null | undefined): string | null {
+  let normalized = normalizeBrPhone(phone);
+  if (!normalized) {
+    // Fallback se não for formato BR (ex: número internacional)
+    const digitsOnly = phone?.replace(/\D/g, '');
+    return digitsOnly ? digitsOnly : null;
+  }
+  
+  if (normalized.startsWith('55')) {
+    const ddd = parseInt(normalized.substring(2, 4), 10);
+    
+    // DDD > 30: Força 8 dígitos (sem o 9)
+    if (ddd > 30 && normalized.length === 13 && normalized[4] === '9') {
+      return normalized.substring(0, 4) + normalized.substring(5);
+    }
+    
+    // DDD <= 28: Força 9 dígitos (com o 9)
+    if (ddd <= 28 && normalized.length === 12) {
+      return normalized.substring(0, 4) + '9' + normalized.substring(4);
+    }
+  }
+  
+  return normalized;
+}
+
+/**
+ * Retorna o link oficial e pronto do wa.me usando as regras corretas de normalização.
+ */
+export function getWhatsAppLink(phone: string | null | undefined, message?: string): string | null {
+  const normalized = normalizeWhatsApp(phone);
+  if (!normalized) return null;
+  let url = `https://wa.me/${normalized}`;
+  if (message) {
+    url += `?text=${encodeURIComponent(message)}`;
+  }
+  return url;
+}

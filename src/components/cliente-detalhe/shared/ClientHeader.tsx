@@ -50,15 +50,14 @@ export function ClientHeader({ cliente, onBack }: ClientHeaderProps) {
 
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
         {whatsapp && (
-          <Button asChild variant="outline" size="sm" className="h-8 shrink-0 whitespace-nowrap text-xs">
-            <a
-              href={`https://wa.me/${whatsapp.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageCircle className="mr-1.5 h-3.5 w-3.5 text-accent-gold" />
-              WhatsApp
-            </a>
+          <Button variant="outline" size="sm" className="h-8 shrink-0 whitespace-nowrap text-xs" onClick={() => {
+            import('@/lib/phone').then(({ getWhatsAppLink }) => {
+              const link = getWhatsAppLink(whatsapp);
+              if (link) window.open(link, '_blank');
+            });
+          }}>
+            <MessageCircle className="mr-1.5 h-3.5 w-3.5 text-accent-gold" />
+            WhatsApp
           </Button>
         )}
         {cliente.email && (

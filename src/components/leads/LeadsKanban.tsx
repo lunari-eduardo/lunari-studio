@@ -22,14 +22,13 @@ import { useLeads } from "@/hooks/useLeads";
 import { useLeadStatuses } from "@/hooks/useLeadStatuses";
 import { useLeadInteractions } from "@/hooks/useLeadInteractions";
 import { useAppContext } from "@/contexts/AppContext";
-import { useMaterials } from "@/hooks/useMaterials";
 import LeadCard from "./LeadCard";
 import LeadFormModal from "./LeadFormModal";
 import DraggableLeadCard from "./DraggableLeadCard";
 import FollowUpConfigModal from "./FollowUpConfigModal";
 import LeadSchedulingModal from "./LeadSchedulingModal";
 import LeadLossReasonModal from "./LeadLossReasonModal";
-import { DynamicShareModal } from "./LeadCommercialSection";
+import { SendBudgetDrawer } from "@/components/conversas/context/modals/SendBudgetDrawer";
 import type { Lead } from "@/types/leads";
 import type { PeriodFilter } from "@/hooks/useLeadMetrics";
 import { convertPeriodTypeToFilter, filterLeadsByPeriod, shouldLeadBeInHistory } from "@/utils/leadFilters";
@@ -62,7 +61,6 @@ export default function LeadsKanban({
 }: LeadsKanbanProps) {
   const navigate = useNavigate();
   const { leads, addLead, updateLead, deleteLead, convertToClient } = useLeads();
-  const { materials } = useMaterials();
   const { statuses, getConvertedKey } = useLeadStatuses();
   const { addInteraction } = useLeadInteractions();
   const { origens, setSelectedClientForScheduling } = useAppContext();
@@ -88,7 +86,6 @@ export default function LeadsKanban({
   // Envio de orçamento
   const [sendProposalModalOpen, setSendProposalModalOpen] = useState(false);
   const [leadForProposal, setLeadForProposal] = useState<Lead | null>(null);
-  const activeMaterials = useMemo(() => materials.filter(m => m.status === 'active' && !!m.current_version?.published_at), [materials]);
 
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -573,7 +570,8 @@ export default function LeadsKanban({
 
       {/* Share Proposal Modal */}
       {leadForProposal && (
-        <DynamicShareModal
+        <SendBudgetDrawer
+          mode="leads"
           isOpen={sendProposalModalOpen}
           onClose={() => {
             setSendProposalModalOpen(false);
@@ -581,8 +579,7 @@ export default function LeadsKanban({
           }}
           leadId={leadForProposal.id}
           leadName={leadForProposal.nome}
-          leadPhone={leadForProposal.telefone}
-          materials={activeMaterials}
+          leadPhone={leadForProposal.telefone || undefined}
         />
       )}
     </div>

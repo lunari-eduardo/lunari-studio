@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useGlobalConversas } from "@/contexts/ConversasContext";
 import { useNavigate } from "react-router-dom";
+import { getWhatsAppLink } from "@/lib/phone";
 import { useConfigurationContext } from "@/contexts/ConfigurationContext";
 import { getEtiquetaTokens } from "@/utils/etiquetaColorTokens";
 
@@ -25,7 +26,7 @@ export function SessionClientCell({
   whatsapp,
   className 
 }: SessionClientCellProps) {
-  const whatsappUrl = whatsapp ? `https://wa.me/55${whatsapp.replace(/\D/g, '')}` : null;
+  const whatsappUrl = whatsapp ? getWhatsAppLink(whatsapp) : null;
   const conversas = useGlobalConversas();
   const navigate = useNavigate();
   const { categorias } = useConfigurationContext();

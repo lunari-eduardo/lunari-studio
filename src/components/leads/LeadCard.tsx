@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MoreVertical, MessageCircle, Calendar, Send, Clock, RotateCcw, UserCheck } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeBrPhone } from "@/lib/phone";
+import { normalizeBrPhone, normalizeWhatsApp, getWhatsAppLink } from "@/lib/phone";
 import { useNavigate } from "react-router-dom";
 import type { Lead } from "@/types/leads";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -171,17 +171,16 @@ export default function LeadCard({
   const handleStartConversation = async () => {
     try {
       const telefone = lead.whatsapp || lead.telefone || "";
-      const normalizedPhone = normalizeBrPhone(telefone);
+      const normalizedPhone = normalizeWhatsApp(telefone);
       
       const { instanceViewState, connectedInstance } = conversasContext || {};
       const isConnected = instanceViewState === 'ready' && !!connectedInstance;
 
       if (!isConnected || !normalizedPhone) {
         // Fallback: abre no WhatsApp Web (comportamento atual)
-        const onlyNumbers = telefone.replace(/\D/g, "");
         const mensagem = `Olá ${lead.nome}! 😊\n\nVi que você demonstrou interesse em nossos serviços. Como posso ajudá-lo(a)?`;
-        const link = `https://wa.me/55${onlyNumbers}?text=${encodeURIComponent(mensagem)}`;
-        window.open(link, "_blank");
+        const link = getWhatsAppLink(telefone, mensagem);
+        if (link) window.open(link, "_blank");
         addInteraction(lead.id, "conversa", "Conversa iniciada via WhatsApp Web", false);
         if (lead.status === "novo_interessado") {
           onRequestMove?.("aguardando");
@@ -191,10 +190,9 @@ export default function LeadCard({
 
       // WhatsApp Conectado no Lunari: procura chat existente
       setIsStartingChat(true);
-      const chatPhoneToFind = normalizedPhone.replace(/\D/g, "");
       const existingChat = chats.find(c => {
-        const cPhone = (c.contato_phone_normalized || "").replace(/\D/g, "");
-        return cPhone && cPhone.includes(chatPhoneToFind);
+        const cPhone = normalizeWhatsApp(c.contato_phone_normalized);
+        return cPhone && cPhone === normalizedPhone;
       });
 
       if (existingChat) {

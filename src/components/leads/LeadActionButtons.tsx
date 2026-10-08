@@ -5,6 +5,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { useLeadInteractions } from "@/hooks/useLeadInteractions";
 import { useOrcamentos } from "@/hooks/useOrcamentos";
 import type { Lead } from "@/types/leads";
+import { getWhatsAppLink } from "@/lib/phone";
 
 interface LeadActionButtonsProps {
   lead: Lead;
@@ -42,12 +43,11 @@ export default function LeadActionButtons({ lead }: LeadActionButtonsProps) {
 
     // Create WhatsApp link with simple message
     const telefone = lead.whatsapp || lead.telefone || "";
-    const cleanPhone = telefone.replace(/\D/g, "");
-    const message = encodeURIComponent(`Olá ${lead.nome}! Tudo bem?`);
-    const whatsappUrl = `https://wa.me/55${cleanPhone}?text=${message}`;
+    const message = `Olá ${lead.nome}! Tudo bem?`;
+    const whatsappUrl = getWhatsAppLink(telefone, message);
 
     // Open WhatsApp
-    window.open(whatsappUrl, "_blank");
+    if (whatsappUrl) window.open(whatsappUrl, "_blank");
 
     // Move lead to "negociacao" status
     updateLead(lead.id, {

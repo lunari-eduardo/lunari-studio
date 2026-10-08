@@ -10,7 +10,7 @@
 import { useEffect, useCallback, useState, useId } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Contato, ContatoUpdate } from '@/modules/conversas/types';
-import { normalizeBrPhone } from '@/lib/phone';
+import { normalizeBrPhone, normalizeWhatsApp } from '@/lib/phone';
 
 const DEBUG = false;
 
@@ -24,7 +24,7 @@ export interface UseConversasContatosReturn {
   /** Busca contato por phone_normalized exato */
   getContatoByPhone: (phoneNormalized: string) => Contato | undefined;
 
-  /** Busca contato mais próximo (fallback sem +) */
+  /** Busca contato usando as regras de normalização do WhatsApp */
   getContatoByPhoneRaw: (phoneRaw: string) => Contato | undefined;
 
   /** Atualiza nome e tipo do contato */
@@ -171,17 +171,17 @@ export function useConversasContatos(): UseConversasContatosReturn {
 
   const getContatoByPhoneRaw = useCallback(
     (phoneRaw: string): Contato | undefined => {
-      const normalized = normalizeBrPhone(phoneRaw)?.replace(/^\+/, '') ?? null;
+      const normalized = normalizeWhatsApp(phoneRaw);
       // Try exact match first
       if (normalized) {
         const exact = getContatoByPhone(normalized);
         if (exact) return exact;
-        // Fallback: match without country code
+        // Fallback: match without country code or 9th digit differences just in case
         const digits = normalized.replace(/^55/, '');
-        return contatos.find(c =>
-          c.phone_normalized.endsWith(digits) ||
-          c.phone_raw.replace(/\D/g, '').endsWith(digits),
-        );
+        return contatos.find(c => {
+          const cPhone = normalizeWhatsApp(c.phone_normalized) || c.phone_raw.replace(/\D/g, '');
+          return cPhone.endsWith(digits);
+        });
       }
       return undefined;
     },
