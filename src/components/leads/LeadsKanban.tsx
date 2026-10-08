@@ -417,6 +417,7 @@ export default function LeadsKanban({
         <DndContext
           sensors={sensors}
           collisionDetection={rectIntersection}
+          autoScroll={{ layoutShiftCompensation: false }}
           onDragStart={(e) => {
             setActiveId(String(e.active.id));
             // Haptic leve ao iniciar drag (mobile)
