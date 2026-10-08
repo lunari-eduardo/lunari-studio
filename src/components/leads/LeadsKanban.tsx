@@ -345,7 +345,7 @@ export default function LeadsKanban({
             isOver ? "bg-muted/60 shadow-inner" : "" 
           )}
         >
-          <div className="flex-1 overflow-y-auto scrollbar-kanban">
+          <div className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-kanban">
             <ul className={cn(isMobile ? "space-y-1" : "space-y-2")}>
               {leadsInColumn.map((lead) => (
                 <DraggableLeadCard

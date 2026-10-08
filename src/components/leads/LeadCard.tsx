@@ -323,7 +323,7 @@ export default function LeadCard({
         }
       }}
       className={cn(
-        "relative overflow-hidden rounded-[14px] p-3.5 select-none touch-none transform-gpu group transition-all duration-300 ease-out cursor-pointer",
+        "relative overflow-hidden rounded-[14px] p-3.5 select-none transform-gpu group transition-all duration-300 ease-out cursor-pointer",
         isDragging && "opacity-50 scale-[0.98] z-50 shadow-2xl ring-1 ring-lunar-accent/30 cursor-grabbing",
         !isDragging && "active:scale-[0.99]",
         "bg-background border border-border/50 shadow-[0_2px_12px_rgba(0,0,0,0.04)]",
