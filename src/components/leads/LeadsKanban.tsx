@@ -339,14 +339,17 @@ export default function LeadsKanban({
         <div
           ref={setNodeRef}
           className={cn(
-            "flex-1 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
+            "flex-1 min-h-0 overflow-hidden flex flex-col rounded-2xl transition-all duration-300 ease-out",
             "bg-muted/40", 
             isMobile ? "p-1.5" : "p-2",
             isOver ? "bg-muted/60 shadow-inner" : "" 
           )}
         >
-          <div className="flex-1 overflow-y-auto overscroll-y-contain scrollbar-kanban">
-            <ul className={cn(isMobile ? "space-y-1" : "space-y-2")}>
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-kanban">
+            <ul 
+              className={cn(isMobile ? "space-y-1" : "space-y-2")}
+              style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+            >
               {leadsInColumn.map((lead) => (
                 <DraggableLeadCard
                   key={lead.id}
