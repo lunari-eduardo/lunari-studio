@@ -187,6 +187,17 @@ export default function LeadActionsPopover({
           )}
 
           <div className="border-t pt-1 mt-1">
+            {(isConverted || isLost) && !lead.arquivado && onMoveToHistory && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 h-8 text-muted-foreground hover:text-foreground"
+                onClick={() => handleAction(onMoveToHistory)}
+              >
+                <Archive className="h-4 w-4" />
+                Mover para Histórico
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

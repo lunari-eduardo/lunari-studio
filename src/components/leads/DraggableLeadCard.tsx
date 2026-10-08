@@ -35,6 +35,7 @@ export default function DraggableLeadCard(props: {
       onViewAppointment={rest.onViewAppointment}
       onDirectScheduling={rest.onDirectScheduling}
       onSendProposal={rest.onSendProposal}
+      onMoveToHistory={rest.onMoveToHistory}
       dndRef={setNodeRef as any}
       dndListeners={listeners}
       dndAttributes={attributes}

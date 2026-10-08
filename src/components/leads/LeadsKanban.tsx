@@ -368,6 +368,7 @@ export default function LeadsKanban({
                     setLeadForProposal(lead);
                     setSendProposalModalOpen(true);
                   }}
+                  onMoveToHistory={() => handleMoveToHistory(lead)}
                 />
               ))}
 
