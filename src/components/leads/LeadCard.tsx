@@ -466,19 +466,21 @@ export default function LeadCard({
 
       <LeadActionButtons lead={lead} />
 
-      <LeadDetailsModal
-        lead={lead}
-        open={showDetails}
-        onOpenChange={setShowDetails}
-        onConvert={onConvertToClient}
-        onDelete={onDelete}
-        onStartConversation={handleStartConversation}
-        onScheduleClient={onScheduleClient}
-        onMarkAsScheduled={onMarkAsScheduled}
-        onViewAppointment={onViewAppointment}
-        onSendProposal={onSendProposal}
-        onMoveToHistory={onMoveToHistory}
-      />
+      <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+        <LeadDetailsModal
+          lead={lead}
+          open={showDetails}
+          onOpenChange={setShowDetails}
+          onConvert={onConvertToClient}
+          onDelete={onDelete}
+          onStartConversation={handleStartConversation}
+          onScheduleClient={onScheduleClient}
+          onMarkAsScheduled={onMarkAsScheduled}
+          onViewAppointment={onViewAppointment}
+          onSendProposal={onSendProposal}
+          onMoveToHistory={onMoveToHistory}
+        />
+      </div>
     </li>
   );
 }
