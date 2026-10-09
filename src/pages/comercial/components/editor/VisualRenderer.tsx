@@ -182,6 +182,10 @@ function getTypographyPropKey(fieldKey: string): string {
                 key={block.id || `block-${index}`}
                 id={`section-block-${index}`}
                 data-section-index={index}
+                className={cn(
+                  "relative w-full overflow-hidden [&>div>section]:h-full [&>div>section]:min-h-0 [&>div>div]:h-full [&>div>div]:min-h-0",
+                  isPortrait ? 'aspect-[29/41]' : 'aspect-[16/10]'
+                )}
               >
                 {content}
               </div>
@@ -195,7 +199,8 @@ function getTypographyPropKey(fieldKey: string): string {
               data-section-index={index}
               onClick={() => onSelectBlock(index)}
               className={cn(
-                'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px]',
+                'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full overflow-hidden [&>div>section]:h-full [&>div>section]:min-h-0 [&>div>div]:h-full [&>div>div]:min-h-0',
+                isPortrait ? 'aspect-[29/41]' : 'aspect-[16/10]',
                 isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_rgba(200,106,70,0.1)]' : 'hover:outline-primary/30'
               )}
             >
