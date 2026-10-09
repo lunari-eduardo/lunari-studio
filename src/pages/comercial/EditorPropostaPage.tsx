@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { EditorSidebar } from './components/editor/EditorSidebar';
 import { PropertiesSidebar } from './components/editor/PropertiesSidebar';
 import { VisualRenderer } from './components/editor/VisualRenderer';
-import { getProposalOrientation } from './blocks/types';
 import { useMaterialPublicLink } from '@/hooks/useMaterialPublicLink';
 import { useR2Upload } from '@/hooks/useR2Upload';
 import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
@@ -168,6 +167,9 @@ export default function EditorMaterialPage() {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)+/g, '') || 'modelo';
 
+      const { instantiateTemplateBlocks } = await import('./blocks/normalization');
+      const sanitizedBlocks = instantiateTemplateBlocks(editorState.blocks);
+
       const { error } = await (supabase as any)
         .from('proposal_templates')
         .insert({
@@ -175,7 +177,7 @@ export default function EditorMaterialPage() {
           name: templateName.trim(),
           description: `Modelo salvo da proposta "${editorState.title}".`,
           tags: [],
-          blocks_json: [...editorState.blocks, { type: 'global_settings', data: editorState.globalSettings }],
+          blocks_json: [...sanitizedBlocks, { type: 'global_settings', data: editorState.globalSettings }],
           design_tokens: editorState.globalSettings?.design_tokens ?? null,
           is_active: true,
         });
@@ -257,8 +259,8 @@ export default function EditorMaterialPage() {
 
   // Orientação da proposta (retrato por padrão para formato editorial/A4/mobile)
   const proposalOrientation = React.useMemo(() => {
-    return getProposalOrientation(editorState?.blocks, editorState?.globalSettings);
-  }, [editorState?.blocks, editorState?.globalSettings]);
+    return editorState?.orientation || 'portrait';
+  }, [editorState?.orientation]);
 
   const isPortrait = proposalOrientation === 'portrait';
 

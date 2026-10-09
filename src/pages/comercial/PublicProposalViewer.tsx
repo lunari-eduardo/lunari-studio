@@ -5,7 +5,6 @@ import { useTrackedMaterial } from '@/hooks/useTrackedMaterial';
 import { useShareTracking } from '@/hooks/useShareTracking';
 import { NativePdfViewer } from './components/editor/NativePdfViewer';
 import { VisualRenderer } from './components/editor/VisualRenderer';
-import { getProposalOrientation } from './blocks/types';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { PublicThemeWrapper } from '@/components/shared/PublicThemeWrapper';
 
@@ -139,7 +138,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
   }
 
   // Orientação da proposta para apresentação refinada
-  const proposalOrientation = getProposalOrientation(blocks, contentData?.settings);
+  const proposalOrientation = materialInfo?.orientation || 'portrait';
 
   return (
     <PublicThemeWrapper 

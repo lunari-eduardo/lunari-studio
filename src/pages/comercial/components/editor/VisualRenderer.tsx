@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded } from '../../blocks/design';
-import { CoverOrientation, getProposalOrientation } from '../../blocks/types';
+import { CoverOrientation } from '../../blocks/types';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
 import { BlockObserver } from './blocks/helpers';
@@ -49,8 +49,8 @@ export function VisualRenderer({
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
 
-  // Resolução unificada da orientação da proposta (lida do bloco de capa ou informada explicitamente)
-  const resolvedOrientation = getProposalOrientation(blocks, undefined, orientation);
+  // Resolução unificada da orientação da proposta
+  const resolvedOrientation = orientation || 'portrait';
   const isPortrait = resolvedOrientation === 'portrait';
 
 // Mapeia chaves de campos para as propriedades canônicas do CoverTypography

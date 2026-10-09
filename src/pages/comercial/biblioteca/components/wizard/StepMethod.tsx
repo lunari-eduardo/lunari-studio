@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import { LayoutTemplate, FileText } from 'lucide-react';
 
 interface StepMethodProps {
-  creationMethod: 'ai' | 'template' | 'db-template' | 'pdf' | null;
-  setCreationMethod: (method: 'ai' | 'template' | 'db-template' | 'pdf') => void;
+  creationMethod: 'db-template' | 'pdf' | null;
+  setCreationMethod: (method: 'db-template' | 'pdf') => void;
 }
 
 export function StepMethod({ creationMethod, setCreationMethod }: StepMethodProps) {

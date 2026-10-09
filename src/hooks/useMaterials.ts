@@ -28,6 +28,7 @@ export interface CommercialMaterial {
   title: string;
   categoria_id: string | null;
   cover_image_url: string | null;
+  orientation: 'portrait' | 'landscape';
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
@@ -77,7 +78,7 @@ export function useMaterials() {
   });
 
   const createMaterial = useMutation({
-    mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string }) => {
+    mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url, orientation = 'portrait' }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string; orientation?: 'portrait' | 'landscape' }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
@@ -89,6 +90,7 @@ export function useMaterials() {
           title,
           categoria_id: categoria_id || null,
           cover_image_url: cover_image_url || null,
+          orientation,
         })
         .select()
         .single();
@@ -104,9 +106,9 @@ export function useMaterials() {
           .eq('template_id', template_id)
           .single();
         if (!tmplError && template && template.blocks_json) {
-          finalContent = template.blocks_json;
+          const { instantiateTemplateBlocks } = await import('@/pages/comercial/blocks/normalization');
+          finalContent = instantiateTemplateBlocks(template.blocks_json);
           // Preserva os design tokens do template dentro do bloco sintético global_settings
-          // (a coluna content é o único armazenamento da versão)
           if (template.design_tokens) {
             finalContent = [
               ...finalContent.filter((b: any) => b?.type !== 'global_settings'),
@@ -115,6 +117,7 @@ export function useMaterials() {
           }
         }
       }
+
 
       // 2. Criar a versão 1 com template
       const { error: verError } = await (supabase as any)
@@ -227,6 +230,7 @@ export function useMaterials() {
           title: `Cópia de ${original.title}`,
           categoria_id: original.categoria_id,
           cover_image_url: original.cover_image_url,
+          orientation: original.orientation,
         })
         .select()
         .single();

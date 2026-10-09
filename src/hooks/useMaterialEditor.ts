@@ -23,6 +23,8 @@ export interface MaterialEditorState {
   blocks: BlockData[];
   pdfUrl?: string;
   globalSettings: Record<string, any>;
+  /** Orientação do material (novo) */
+  orientation: 'portrait' | 'landscape';
   /** URL da capa persistida em `commercial_materials.cover_image_url`. */
   coverImageUrl?: string | null;
   /** Contador de mutações locais desde a carga (usado para conciliar saves) */
@@ -222,6 +224,7 @@ export function useMaterialEditor(materialId: string | undefined) {
         blocks,
         pdfUrl,
         globalSettings,
+        orientation: material.orientation || 'portrait',
         coverImageUrl: material.cover_image_url ?? null,
         revision: 0,
       };

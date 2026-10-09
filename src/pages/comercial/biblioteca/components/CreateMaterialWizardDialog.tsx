@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import { useCreateMaterialWizard } from '../hooks/useCreateMaterialWizard';
 import { StepMethod } from './wizard/StepMethod';
-import { StepAiBriefing } from './wizard/StepAiBriefing';
 import { StepTemplateGallery } from './wizard/StepTemplateGallery';
 import { StepPdfUpload } from './wizard/StepPdfUpload';
-import { StepCategory } from './wizard/StepCategory';
+import { StepOrientation } from './wizard/StepOrientation';
 
 interface CreateMaterialWizardDialogProps {
   isOpen: boolean;
@@ -22,6 +21,8 @@ export function CreateMaterialWizardDialog({
   const {
     step,
     setStep,
+    selectedOrientation,
+    setSelectedOrientation,
     selectedCategoria,
     setSelectedCategoria,
     customTitle,
@@ -30,16 +31,6 @@ export function CreateMaterialWizardDialog({
     setCreationMethod,
     selectedDbTemplate,
     setSelectedDbTemplate,
-    briefing,
-    setBriefing,
-    selectedPacoteIds,
-    setSelectedPacoteIds,
-    aiRefs,
-    setAiRefs,
-    isUploadingRef,
-    addRefImages,
-    addRefPdf,
-    addRefText,
     fileInputRef,
     selectedPdf,
     setSelectedPdf,
@@ -50,10 +41,13 @@ export function CreateMaterialWizardDialog({
     handleCloseModal,
     handleCreate,
     isPendingCreate,
-    isGenerating,
-    profile,
-    pacotes,
+    isUploadingPdf,
   } = wizard;
+
+  const filteredTemplates = useMemo(() => {
+    if (!selectedOrientation) return dbTemplates;
+    return dbTemplates.filter(t => t.orientation === selectedOrientation);
+  }, [dbTemplates, selectedOrientation]);
 
   return (
     <Dialog
@@ -67,10 +61,9 @@ export function CreateMaterialWizardDialog({
           <DialogTitle className="text-xl">Nova Proposta</DialogTitle>
           <DialogDescription>
             {step === 'method' && 'Escolha como deseja iniciar a criação.'}
+            {step === 'orientation' && 'Escolha a orientação do seu documento.'}
             {step === 'template-gallery' && 'Escolha um modelo premium para iniciar.'}
             {step === 'pdf-upload' && 'Faça o upload do seu arquivo PDF estático.'}
-            {step === 'ai-briefing' && 'Conte sobre a sessão para a IA escrever a proposta.'}
-            {step === 'category' && 'Selecione a categoria para este material comercial.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,61 +75,39 @@ export function CreateMaterialWizardDialog({
           />
         )}
 
-        {/* ─── PASSO IA: Briefing para geração ─── */}
-        {step === 'ai-briefing' && (
-          <StepAiBriefing
-            onBack={() => setStep('method')}
-            selectedCategoria={selectedCategoria}
-            setSelectedCategoria={setSelectedCategoria}
-            categorias={categorias}
-            isLoadingCategorias={isLoadingCategorias}
-            customTitle={customTitle}
-            setCustomTitle={setCustomTitle}
-            briefing={briefing}
-            setBriefing={setBriefing}
-            profile={profile}
-            pacotes={pacotes}
-            selectedPacoteIds={selectedPacoteIds}
-            setSelectedPacoteIds={setSelectedPacoteIds}
-            aiRefs={aiRefs}
-            setAiRefs={setAiRefs}
-            isUploadingRef={isUploadingRef}
-            addRefImages={addRefImages}
-            addRefPdf={addRefPdf}
-            addRefText={addRefText}
+        {/* ─── PASSO 2 (Modelo): Escolher Orientação ─── */}
+        {step === 'orientation' && (
+          <StepOrientation
+            selectedOrientation={selectedOrientation}
+            setSelectedOrientation={setSelectedOrientation}
           />
         )}
 
-        {/* ─── PASSO 3: Galeria de Templates do Banco ─── */}
+        {/* ─── PASSO 3 (Modelo): Galeria de Templates do Banco ─── */}
         {step === 'template-gallery' && (
           <StepTemplateGallery
-            onBack={() => setStep('method')}
+            onBack={() => setStep('orientation')}
             isLoadingDbTemplates={isLoadingDbTemplates}
-            dbTemplates={dbTemplates}
+            dbTemplates={filteredTemplates}
             selectedDbTemplate={selectedDbTemplate}
             setSelectedDbTemplate={setSelectedDbTemplate}
+            categorias={categorias}
+            isLoadingCategorias={isLoadingCategorias}
+            selectedCategoria={selectedCategoria}
+            setSelectedCategoria={setSelectedCategoria}
+            customTitle={customTitle}
+            setCustomTitle={setCustomTitle}
+            onSubmit={handleCreate}
           />
         )}
 
-        {/* ─── PASSO 3B: Upload de PDF ─── */}
+        {/* ─── PASSO 2 (PDF): Upload de PDF ─── */}
         {step === 'pdf-upload' && (
           <StepPdfUpload
             onBack={() => setStep('method')}
             selectedPdf={selectedPdf}
             setSelectedPdf={setSelectedPdf}
             fileInputRef={fileInputRef}
-          />
-        )}
-
-        {/* ─── PASSO FINAL: Selecionar Categoria ─── */}
-        {step === 'category' && (
-          <StepCategory
-            onBack={() => {
-              if (creationMethod === 'db-template') setStep('template-gallery');
-              else if (creationMethod === 'pdf') setStep('pdf-upload');
-              else if (creationMethod === 'ai') setStep('ai-briefing');
-              else setStep('method');
-            }}
             categorias={categorias}
             isLoadingCategorias={isLoadingCategorias}
             selectedCategoria={selectedCategoria}
@@ -155,10 +126,8 @@ export function CreateMaterialWizardDialog({
           {step === 'method' && (
             <Button
               onClick={() => {
-                if (creationMethod === 'db-template') setStep('template-gallery');
+                if (creationMethod === 'db-template') setStep('orientation');
                 else if (creationMethod === 'pdf') setStep('pdf-upload');
-                else if (creationMethod === 'ai') setStep('ai-briefing');
-                else setStep('category');
               }}
               disabled={!creationMethod}
               className="gap-2"
@@ -168,57 +137,49 @@ export function CreateMaterialWizardDialog({
             </Button>
           )}
 
-          {step === 'ai-briefing' && (
+          {step === 'orientation' && (
             <Button
-              onClick={handleCreate}
-              disabled={!selectedCategoria || isPendingCreate || isGenerating}
+              onClick={() => setStep('template-gallery')}
+              disabled={!selectedOrientation}
               className="gap-2"
             >
-              {isPendingCreate || isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {isGenerating ? 'Gerando com IA…' : isPendingCreate ? 'Criando…' : 'Gerar e Criar'}
+              Continuar
+              <ChevronRight size={16} />
             </Button>
           )}
 
           {step === 'template-gallery' && (
             <Button
-              onClick={() => setStep('category')}
-              disabled={!selectedDbTemplate}
+              onClick={handleCreate}
+              disabled={!selectedDbTemplate || !selectedCategoria || isPendingCreate}
               className="gap-2"
             >
-              Continuar
-              <ChevronRight size={16} />
+              {isPendingCreate ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                <>
+                  Criar Proposta
+                </>
+              )}
             </Button>
           )}
 
           {step === 'pdf-upload' && (
             <Button
-              onClick={() => setStep('category')}
-              disabled={!selectedPdf}
-              className="gap-2"
-            >
-              Continuar
-              <ChevronRight size={16} />
-            </Button>
-          )}
-
-          {step === 'category' && (
-            <Button
               onClick={handleCreate}
-              disabled={!selectedCategoria || isPendingCreate || isGenerating}
+              disabled={!selectedPdf || !selectedCategoria || isPendingCreate || isUploadingPdf}
               className="gap-2"
             >
-              {isPendingCreate || isGenerating ? (
+              {isPendingCreate || isUploadingPdf ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {creationMethod === 'ai' ? 'Gerando com IA...' : 'Criando...'}
+                  Criando...
                 </>
               ) : (
                 <>
-                  {creationMethod === 'ai' && <Sparkles className="h-4 w-4" />}
                   Criar Proposta
                 </>
               )}

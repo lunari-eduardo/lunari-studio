@@ -3241,6 +3241,7 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           id: string
+          orientation: string | null
           status: string
           title: string
           updated_at: string
@@ -3252,6 +3253,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          orientation?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -3263,6 +3265,7 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           id?: string
+          orientation?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -7920,6 +7923,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          orientation: string | null
           preview_html_path: string | null
           tags: string[] | null
           template_id: string
@@ -7933,6 +7937,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          orientation?: string | null
           preview_html_path?: string | null
           tags?: string[] | null
           template_id: string
@@ -7946,6 +7951,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          orientation?: string | null
           preview_html_path?: string | null
           tags?: string[] | null
           template_id?: string

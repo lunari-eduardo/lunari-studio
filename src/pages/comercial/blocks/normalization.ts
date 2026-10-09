@@ -168,3 +168,65 @@ export function normalizeBlocks(raw: any[] | null | undefined): BlockData[] {
   }
   return out;
 }
+
+/**
+ * Instancia os blocos de um modelo garantindo que:
+ * 1. IDs sejam renovados (evitando colisão de chaves no React e estado compartilhado).
+ * 2. Dados pessoais sejam limpos, mantendo a estrutura e design visual.
+ * 3. Chaves internas de listas (pacotes, imagens, faq) sejam renovadas.
+ */
+export function instantiateTemplateBlocks(rawBlocks: any[]): any[] {
+  if (!Array.isArray(rawBlocks)) return [];
+  
+  return rawBlocks.map(block => {
+    if (!block || typeof block !== 'object') return block;
+    if (block.type === 'global_settings') return block; // Preserva configurações globais sem ID
+
+    const newId = `${block.type}-${crypto.randomUUID().slice(0, 8)}`;
+    
+    // Deep clone content and props to avoid reference sharing
+    const content = block.content ? JSON.parse(JSON.stringify(block.content)) : {};
+    const props = block.props ? JSON.parse(JSON.stringify(block.props)) : {};
+
+    // Remove personal data surgically
+    if (block.type === 'CoverBlock') {
+      content.photographer_name = '';
+      if (content.btnLink && content.btnLink.includes('wa.me')) {
+        content.btnLink = '';
+      }
+    } else if (block.type === 'EditorialBlock') {
+      content.vertical_label = '';
+      // Renova IDs internos
+      if (Array.isArray(content.details)) {
+        content.details = content.details.map((d: any) => ({
+          ...d,
+          id: crypto.randomUUID()
+        }));
+      }
+    } else if (block.type === 'EditorialComposition') {
+      content.side_label = '';
+    } else if (block.type === 'PricingTable') {
+      // Renova IDs internos para não compartilhar estado de edição em arrays
+      if (Array.isArray(content.packages)) {
+        content.packages = content.packages.map((pkg: any) => ({
+          ...pkg,
+          id: crypto.randomUUID()
+        }));
+      }
+    } else if (block.type === 'Gallery') {
+      if (Array.isArray(content.images)) {
+        content.images = content.images.map((img: any) => ({
+          ...img,
+          id: crypto.randomUUID()
+        }));
+      }
+    }
+
+    return {
+      ...block,
+      id: newId,
+      content,
+      props
+    };
+  });
+}
