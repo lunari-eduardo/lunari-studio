@@ -297,41 +297,6 @@ export function PropertiesSidebar({
                 </div>
               )}
 
-              {/* Controle de Orientação da Capa (segmentado com ícones) */}
-              {(block.type === 'CoverBlock' || block.type === 'cover') && (
-                <div className="space-y-2 pb-3 border-b border-border/60">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-                    <RectangleVertical className="h-3.5 w-3.5" /> Orientação
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setProps({ orientation: 'portrait' })}
-                      className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                        (props.orientation ?? 'portrait') === 'portrait'
-                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                          : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40'
-                      }`}
-                    >
-                      <RectangleVertical className="h-4 w-4" />
-                      Retrato
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProps({ orientation: 'landscape' })}
-                      className={`flex items-center justify-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-all ${
-                        props.orientation === 'landscape'
-                          ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                          : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40'
-                      }`}
-                    >
-                      <RectangleHorizontal className="h-4 w-4" />
-                      Paisagem
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Imagens principais vinculadas ao content (ex: Capa, Composição Editorial) */}
               {visualContentFields.map((field) => (
                 <div key={field.key} className="space-y-2 pb-3 border-b border-border/60">

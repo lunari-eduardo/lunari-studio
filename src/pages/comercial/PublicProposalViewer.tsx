@@ -156,7 +156,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
           mode="public"
           onCtaClick={({ label }) => handleWhatsAppClick(label)}
           designTokens={designTokens}
-          orientation={proposalOrientation}
+
           onSectionView={(blockId, blockType, position) => {
             trackEvent('section_view', { blockId, blockType, position });
           }}

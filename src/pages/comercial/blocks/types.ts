@@ -6,8 +6,6 @@ export type CoverVariant =
   | 'editorial-diptych'
   | 'floating-frame';
 
-export type CoverOrientation = 'portrait' | 'landscape';
-
 export interface CoverTypography {
   eyebrowSize?: number;
   titleSize?: number;
@@ -32,7 +30,6 @@ export interface CoverBlockData {
 
 export interface CoverBlockProps {
   variant?: CoverVariant;
-  orientation?: CoverOrientation;
   align?: 'left' | 'center' | 'right' | 'justify';
   background?: string;
   text_color?: string;

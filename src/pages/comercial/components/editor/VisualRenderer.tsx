@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded } from '../../blocks/design';
-import { CoverOrientation } from '../../blocks/types';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
 import { BlockObserver } from './blocks/helpers';
@@ -28,8 +27,6 @@ export interface VisualRendererProps {
   inlineEditing?: boolean;
   /** Edição granular de campo por camada pontuada ("details.0.label", "props.photo_a.image_ref"). */
   onUpdateField?: (index: number, path: string, value: any) => void;
-  /** Orientação da proposta: 'portrait' (editorial/mobile/A4) ou 'landscape' (ampla/widescreen). */
-  orientation?: CoverOrientation;
 }
 
 export function VisualRenderer({
@@ -43,15 +40,10 @@ export function VisualRenderer({
   designTokens,
   inlineEditing = false,
   onUpdateField,
-  orientation,
 }: VisualRendererProps) {
   const isEditing = mode === 'edit';
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
-
-  // Resolução unificada da orientação da proposta
-  const resolvedOrientation = orientation || 'portrait';
-  const isPortrait = resolvedOrientation === 'portrait';
 
 // Mapeia chaves de campos para as propriedades canônicas do CoverTypography
 function getTypographyPropKey(fieldKey: string): string {
@@ -110,10 +102,8 @@ function getTypographyPropKey(fieldKey: string): string {
         className={cn(
           '@container bg-white relative transition-all duration-500 origin-top flex flex-col w-full',
           viewMode === 'desktop'
-            ? isPortrait
-              ? 'max-w-full md:max-w-[580px] rounded-none md:rounded-xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
-              : 'max-w-full md:max-w-5xl rounded-none md:rounded-sm overflow-hidden shadow-none md:shadow-2xl border-0'
-            : 'max-w-[375px] h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
+            ? 'max-w-full md:max-w-4xl h-auto min-h-screen rounded-none md:rounded-xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
+            : 'max-w-[375px] h-auto min-h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
         style={{
           ...tokensToCssVars(designTokens),
@@ -144,7 +134,7 @@ function getTypographyPropKey(fieldKey: string): string {
                     data={block.content || block.data}
                     props={{
                       ...block.props,
-                      orientation: block.props?.orientation ?? resolvedOrientation,
+                      orientation: block.props?.orientation ?? 'portrait',
                     }}
                     onCtaClick={onCtaClick}
                   />
@@ -183,8 +173,8 @@ function getTypographyPropKey(fieldKey: string): string {
                 id={`section-block-${index}`}
                 data-section-index={index}
                 className={cn(
-                  "relative w-full overflow-hidden [&>div>section]:h-full [&>div>section]:min-h-0 [&>div>div]:h-full [&>div>div]:min-h-0",
-                  isPortrait ? 'aspect-[29/41]' : 'aspect-[16/10]'
+                  "relative w-full h-auto",
+                  (block.type === 'cover' || block.type === 'CoverBlock') && "min-h-screen"
                 )}
               >
                 {content}
@@ -199,8 +189,8 @@ function getTypographyPropKey(fieldKey: string): string {
               data-section-index={index}
               onClick={() => onSelectBlock(index)}
               className={cn(
-                'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full overflow-hidden [&>div>section]:h-full [&>div>section]:min-h-0 [&>div>div]:h-full [&>div>div]:min-h-0',
-                isPortrait ? 'aspect-[29/41]' : 'aspect-[16/10]',
+                'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full h-auto',
+                (block.type === 'cover' || block.type === 'CoverBlock') && "min-h-screen",
                 isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_rgba(200,106,70,0.1)]' : 'hover:outline-primary/30'
               )}
             >

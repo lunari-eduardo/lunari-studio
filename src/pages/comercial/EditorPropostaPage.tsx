@@ -502,7 +502,7 @@ export default function EditorMaterialPage() {
                     designTokens={designTokens}
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
-                    orientation={proposalOrientation}
+
                   />
                 </div>
               </div>
@@ -576,7 +576,7 @@ export default function EditorMaterialPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         designTokens={designTokens}
-        orientation={proposalOrientation}
+
       />
 
       {/* MODAL SALVAR COMO MODELO */}
