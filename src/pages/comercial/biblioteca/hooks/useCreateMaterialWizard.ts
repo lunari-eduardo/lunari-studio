@@ -4,9 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMaterials } from '@/hooks/useMaterials';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useConfigurationContext } from '@/contexts/ConfigurationContext';
 import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
 import { toast } from 'sonner';
 import { Step, Categoria, DbTemplate } from '../types';
+import { pacoteToProposalPackage } from '../../blocks/normalization';
 import { pdfjs } from 'react-pdf';
 
 interface UseCreateMaterialWizardProps {
@@ -18,10 +21,11 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createMaterial } = useMaterials();
+  const { profile } = useUserProfile();
+  const { pacotes, produtos } = useConfigurationContext();
 
   // Wizard state
   const [step, setStep] = useState<Step>('method');
-  const [selectedOrientation, setSelectedOrientation] = useState<'portrait' | 'landscape' | null>(null);
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [customTitle, setCustomTitle] = useState('');
   const [creationMethod, setCreationMethod] = useState<'db-template' | 'pdf' | null>(null);
@@ -54,7 +58,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_templates')
-        .select('id, template_id, name, description, tags, preview_html_path, orientation')
+        .select('id, template_id, name, description, tags, preview_html_path')
         .eq('is_active', true);
 
       if (error && error.code !== '42P01') {
@@ -67,7 +71,6 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
 
   const resetModal = () => {
     setStep('method');
-    setSelectedOrientation(null);
     setSelectedCategoria(null);
     setCustomTitle('');
     setCreationMethod(null);
@@ -89,12 +92,18 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
     let initialContent: any = undefined;
 
     if (creationMethod === 'db-template' && selectedDbTemplate) {
+      // Variáveis dinâmicas: o modelo nasce com a assinatura do perfil e os
+      // pacotes reais da categoria escolhida (sem pacotes → mantém os do modelo).
+      const categoriaPacotes = pacotes.filter((p) => p.categoria_id === selectedCategoria?.id);
       createMaterial.mutate(
         {
           title: resolvedTitle,
           categoria_id: selectedCategoria?.id,
           template_id: selectedDbTemplate.template_id,
-          orientation: selectedOrientation || 'portrait',
+          vars: {
+            photographerName: profile?.empresa || profile?.nome || undefined,
+            packages: categoriaPacotes.map((p) => pacoteToProposalPackage(p, produtos)),
+          },
         },
         {
           onSuccess: (data) => {
@@ -151,7 +160,6 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
           categoria_id: selectedCategoria?.id,
           initialContent,
           cover_image_url: initialCoverUrl,
-          orientation: selectedOrientation || 'portrait',
         },
         {
           onSuccess: (data) => {
@@ -167,8 +175,6 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
   return {
     step,
     setStep,
-    selectedOrientation,
-    setSelectedOrientation,
     selectedCategoria,
     setSelectedCategoria,
     customTitle,

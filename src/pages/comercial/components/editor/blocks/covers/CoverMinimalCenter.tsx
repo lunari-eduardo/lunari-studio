@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { EditableText } from '../../../../blocks/EditableText';
 import { EditableImage } from '../../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../../blocks/inlineContext';
-import { fd, fb, alignClass, sectionBg, textColorClass, CtaHandler } from '../helpers';
+import { sectionBg, textColorClass, wideAlign, coverStyles, HERO_MIN_H, CtaHandler } from '../helpers';
 
 /**
- * Capa Minimal Editorial — tipografia centralizada refinada no topo,
- * com moldura fotográfica limpa abaixo. O slot de imagem possui
- * dimensões explícitas governadas por aspect-ratio, independentes
- * do volume de texto.
+ * Capa Minimal Editorial — no estreito, tipografia centralizada sobre uma moldura
+ * fotográfica 3:4; a partir de @2xl, texto (7/12) ao lado da foto 4:5 (5/12).
+ * O slot de imagem é governado por aspect-ratio, independente do volume de texto.
  */
 export function CoverMinimalCenter({
   data,
@@ -36,38 +35,14 @@ export function CoverMinimalCenter({
   const subtitle = data?.subtitle ?? data?.photographer_name;
   const btnText = data?.btnText;
   const hasTitle = !!title || !!titleItalic;
-
-  const isLandscape = props?.orientation === 'landscape';
-  const align = alignClass(props?.align, 'left');
-  const colAlign =
-    props?.align === 'center'
-      ? 'items-center'
-      : props?.align === 'right'
-      ? 'items-end'
-      : 'items-start';
-
-  const typography = props?.typography;
-  const eyebrowStyle = typography?.eyebrowSize ? { fontSize: `${typography.eyebrowSize}px` } : undefined;
-  const titleStyle = {
-    ...fd(),
-    ...(typography?.titleSize ? { fontSize: `${typography.titleSize}px` } : {}),
-  };
-  const italicStyle = typography?.titleItalicSize ? { fontSize: `${typography.titleItalicSize}px` } : undefined;
-  const subtitleStyle = {
-    ...fb(),
-    ...(typography?.subtitleSize ? { fontSize: `${typography.subtitleSize}px` } : {}),
-  };
-  const btnStyle = (typography?.btnTextSize || typography?.ctaSize)
-    ? { fontSize: `${typography.btnTextSize || typography.ctaSize}px` }
-    : undefined;
+  const s = coverStyles(props?.typography);
 
   return (
     <section
       className={cn(
-        'relative overflow-hidden',
-        isLandscape
-          ? 'p-6 @md:p-12 @2xl:p-16 grid grid-cols-1 @2xl:grid-cols-12 gap-8 @2xl:gap-12 min-h-[500px]'
-          : 'p-6 @md:p-12 flex flex-col items-center text-center gap-8 min-h-[640px]',
+        'relative overflow-hidden flex flex-col items-center justify-center gap-8 p-6 @md:p-12 text-center',
+        '@2xl:grid @2xl:grid-cols-12 @2xl:gap-12 @2xl:p-16',
+        HERO_MIN_H,
         sectionBg(props?.background, 'white'),
         textColorClass(props?.text_color, props?.background, 'white')
       )}
@@ -75,10 +50,8 @@ export function CoverMinimalCenter({
       {/* Texto */}
       <div
         className={cn(
-          'flex flex-col justify-center min-w-0 z-10',
-          isLandscape ? '@2xl:col-span-7' : 'max-w-xl mx-auto items-center text-center',
-          isLandscape && colAlign,
-          isLandscape && align
+          'flex flex-col items-center justify-center min-w-0 z-10 max-w-xl @2xl:max-w-none @2xl:col-span-7',
+          wideAlign(props?.align)
         )}
       >
         <EditableText
@@ -86,19 +59,16 @@ export function CoverMinimalCenter({
           {...et('eyebrow', eyebrow)}
           multiline
           className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-60 mb-4"
-          style={eyebrowStyle}
+          style={s.eyebrow}
         />
         <h1
-          className={cn(
-            'text-4xl @md:text-5xl @2xl:text-6xl text-current leading-[1.1] tracking-tight mb-6',
-            isLandscape ? 'max-w-[15ch]' : 'max-w-[18ch]'
-          )}
-          style={titleStyle}
+          className="text-4xl @md:text-5xl @2xl:text-6xl text-current leading-[1.1] tracking-tight mb-6 max-w-[18ch] @2xl:max-w-[15ch]"
+          style={s.title}
         >
           {hasTitle || editable ? (
             <>
               <EditableText {...et('title', title)} placeholder="Título da capa" />
-              <em className="italic opacity-60 block mt-1" style={italicStyle}>
+              <em className="italic opacity-60 block mt-1" style={s.italic}>
                 <EditableText {...et('title_italic', titleItalic)} placeholder="continuação em itálico" />
               </em>
             </>
@@ -111,21 +81,21 @@ export function CoverMinimalCenter({
           {...et('subtitle', subtitle)}
           multiline
           className="text-[var(--pa-taupe,#6D655E)] text-base @md:text-lg max-w-[40ch] mb-8 leading-relaxed font-light"
-          style={subtitleStyle}
+          style={s.subtitle}
         />
         {btnText &&
           (editable ? (
             <div
-              className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-5 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
+              className="bg-[var(--pa-accent,#C86A46)] text-white rounded-[var(--pa-r-btn,0px)] px-8 py-5 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
-              style={btnStyle}
+              style={s.btn}
             >
               <EditableText {...et('btnText', btnText)} placeholder="Texto do botão" />
             </div>
           ) : (
             <Button
-              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-5 h-auto text-sm font-medium tracking-wide"
-              style={btnStyle}
+              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-[var(--pa-r-btn,0px)] px-8 py-5 h-auto text-sm font-medium tracking-wide"
+              style={s.btn}
               onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
             >
               {btnText}
@@ -134,14 +104,7 @@ export function CoverMinimalCenter({
       </div>
 
       {/* Imagem */}
-      <div
-        className={cn(
-          'relative rounded-[2rem] overflow-hidden shadow-2xl',
-          isLandscape
-            ? '@2xl:col-span-5 aspect-[16/10] w-full self-center'
-            : 'w-full max-w-md aspect-[3/4] mx-auto'
-        )}
-      >
+      <div className="relative w-full max-w-md aspect-[3/4] mx-auto overflow-hidden rounded-[var(--pa-r-media,2rem)] shadow-[0_24px_60px_rgba(0,0,0,0.12)] @2xl:col-span-5 @2xl:max-w-none @2xl:aspect-[4/5]">
         <EditableImage
           editable={editable}
           value={data?.image_url || null}

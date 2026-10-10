@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck:changed": "node scripts/typecheck-changed.js",
+    "test:proposals": "node -e \"require('jiti')(process.cwd() + '/', { alias: { '@': require('path').resolve('src') } })('./scripts/test_template_instantiation.ts')\"",
     "preview": "vite preview",
     "gen:module": "bun run scripts/generate-module.ts",
     "audit:ai": "bun scripts/ai-surface-audit.ts",

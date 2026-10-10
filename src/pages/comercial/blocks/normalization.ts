@@ -1,5 +1,7 @@
-import { BlockData } from '@/hooks/useMaterialEditor';
-import { BLOCK_REGISTRY } from './registryDefinitions';
+import type { BlockData } from '@/hooks/useMaterialEditor';
+import type { Pacote, Produto } from '@/types/configuration';
+import { formatCurrency } from '@/utils/currencyUtils';
+import { BLOCK_REGISTRY, packageItem } from './registryDefinitions';
 
 // Tipos V1 legados mapeados na normalização
 const V1_COVER = 'cover';
@@ -8,6 +10,12 @@ const V1_PACKAGE = 'package';
 const V1_PORTFOLIO = 'portfolio';
 
 export const BLOCK_UNKNOWN_FALLBACK_TITLE = 'Conteúdo (formato antigo)';
+
+/** Variantes de raiz usadas nos seeds de proposal_templates → variantes atuais. */
+const SEED_ROOT_VARIANTS = new Map([
+  ['gradient_parallax', 'hero-full'],
+  ['row_list_with_photo', 'numbered-editorial'],
+]);
 
 function withId(block: Partial<BlockData>): BlockData {
   return {
@@ -34,6 +42,12 @@ export function normalizeBlock(raw: any): BlockData | null {
       ...raw,
       content: rawContent,
     });
+
+    // Seeds antigos declaram a variante na raiz do bloco (fora de props)
+    const rootVariant = SEED_ROOT_VARIANTS.get(raw.variant);
+    if (rootVariant && !normalized.props?.variant) {
+      normalized.props = { ...normalized.props, variant: rootVariant };
+    }
 
     // Fallback de variantes legadas da capa
     if (type === 'CoverBlock' && normalized.props) {
@@ -146,6 +160,15 @@ export function normalizeBlock(raw: any): BlockData | null {
         props: { align: 'center', background: 'white' },
       });
 
+    // Alias de modelos antigos: contato vira o CTA de fechamento
+    case 'ContactBlock':
+      return withId({
+        id: raw.id,
+        type: 'CTABlock',
+        content: { cta_text: raw.content?.title || d.title || 'Vamos conversar?', body: '', btnText: '', phone: '', links: [] },
+        props: { background: 'cream' },
+      });
+
     default:
       console.warn("%s", `Tipo de bloco desconhecido na normalização: ${type}`, raw);
       // Tipo desconhecido: preserva como bloco de texto livre para não perder conteúdo
@@ -169,64 +192,90 @@ export function normalizeBlocks(raw: any[] | null | undefined): BlockData[] {
   return out;
 }
 
+/** Variáveis do fotógrafo injetadas no modelo no momento da instanciação. */
+export interface TemplateVars {
+  /** Assinatura (perfil: empresa || nome). Ausente = campos de assinatura limpos. */
+  photographerName?: string;
+  /** Pacotes reais da categoria, já no formato da PricingTable. Vazio = mantém os do modelo. */
+  packages?: Record<string, any>[];
+}
+
+/**
+ * Pacote cadastrado (Configurações) → item da PricingTable.
+ * O preço é texto de vitrine da proposta, não um valor financeiro persistido.
+ */
+export function pacoteToProposalPackage(p: Pacote, produtos: Produto[] = []) {
+  const nomeProduto = new Map(produtos.map((pr) => [pr.id, pr.nome]));
+  const min = p.duracao_minutos ?? 0;
+  const features = [
+    min >= 60
+      ? `${(min / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}h de sessão`
+      : min > 0 ? `${min} min de sessão` : '',
+    p.fotos_incluidas > 0 ? `${p.fotos_incluidas} fotos incluídas` : '',
+    ...(p.produtosIncluidos ?? []).map(({ produtoId, quantidade }) => {
+      const nome = nomeProduto.get(produtoId);
+      return nome ? (quantidade > 1 ? `${quantidade}× ${nome}` : nome) : '';
+    }),
+  ].filter(Boolean);
+  return { ...packageItem(), name: p.nome, price: formatCurrency(p.valor_base), features };
+}
+
+const renewIds = (list: unknown) =>
+  Array.isArray(list) ? list.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : list;
+
 /**
  * Instancia os blocos de um modelo garantindo que:
  * 1. IDs sejam renovados (evitando colisão de chaves no React e estado compartilhado).
- * 2. Dados pessoais sejam limpos, mantendo a estrutura e design visual.
- * 3. Chaves internas de listas (pacotes, imagens, faq) sejam renovadas.
+ * 2. Dados do autor do modelo sejam limpos, mantendo a estrutura e o design visual.
+ * 3. Chaves internas de listas (pacotes, imagens, detalhes) sejam renovadas.
+ * 4. As variáveis do fotógrafo (assinatura, pacotes reais) alimentem o modelo.
  */
-export function instantiateTemplateBlocks(rawBlocks: any[]): any[] {
+export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars = {}): any[] {
   if (!Array.isArray(rawBlocks)) return [];
-  
+  const signature = vars.photographerName?.trim() ?? '';
+  const realPackages = vars.packages?.length ? vars.packages : null;
+
   return rawBlocks.map(block => {
     if (!block || typeof block !== 'object') return block;
     if (block.type === 'global_settings') return block; // Preserva configurações globais sem ID
 
     const newId = `${block.type}-${crypto.randomUUID().slice(0, 8)}`;
-    
-    // Deep clone content and props to avoid reference sharing
+
+    // Deep clone: instâncias do mesmo modelo nunca compartilham referências
     const content = block.content ? JSON.parse(JSON.stringify(block.content)) : {};
     const props = block.props ? JSON.parse(JSON.stringify(block.props)) : {};
 
-    // Remove personal data surgically
-    if (block.type === 'CoverBlock') {
-      content.photographer_name = '';
-      if (content.btnLink && content.btnLink.includes('wa.me')) {
-        content.btnLink = '';
-      }
-    } else if (block.type === 'EditorialBlock') {
-      content.vertical_label = '';
-      // Renova IDs internos
-      if (Array.isArray(content.details)) {
-        content.details = content.details.map((d: any) => ({
-          ...d,
-          id: crypto.randomUUID()
-        }));
-      }
-    } else if (block.type === 'EditorialComposition') {
-      content.side_label = '';
-    } else if (block.type === 'PricingTable') {
-      // Renova IDs internos para não compartilhar estado de edição em arrays
-      if (Array.isArray(content.packages)) {
-        content.packages = content.packages.map((pkg: any) => ({
-          ...pkg,
-          id: crypto.randomUUID()
-        }));
-      }
-    } else if (block.type === 'Gallery') {
-      if (Array.isArray(content.images)) {
-        content.images = content.images.map((img: any) => ({
-          ...img,
-          id: crypto.randomUUID()
-        }));
-      }
+    switch (block.type) {
+      case 'CoverBlock':
+        content.photographer_name = signature;
+        if (typeof content.btnLink === 'string' && content.btnLink.includes('wa.me')) content.btnLink = '';
+        break;
+      case 'EditorialBlock':
+        content.vertical_label = signature;
+        content.details = renewIds(content.details);
+        break;
+      case 'EditorialComposition':
+        content.side_label = signature;
+        break;
+      case 'PricingTable':
+        content.packages = renewIds(realPackages ?? content.packages);
+        break;
+      case 'Gallery':
+        content.images = renewIds(content.images);
+        break;
+      case 'TestimonialBlock':
+        // Depoimentos do autor do modelo nunca chegam ao cliente final como se fossem reais.
+        content.items = [];
+        break;
+      case 'CTABlock':
+        content.phone = '';
+        content.links = [];
+        break;
+      case 'FooterTerms':
+        content.copyright = signature ? `© ${new Date().getFullYear()} ${signature}` : '';
+        break;
     }
 
-    return {
-      ...block,
-      id: newId,
-      content,
-      props
-    };
+    return { ...block, id: newId, content, props };
   });
 }

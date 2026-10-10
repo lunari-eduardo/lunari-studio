@@ -68,13 +68,6 @@ export function PricingClassic({
   const packages: any[] = c.packages || [];
   const align = alignClass(props?.align, 'center');
 
-  const colsClass =
-    packages.length === 1
-      ? 'grid-cols-1 max-w-md mx-auto'
-      : packages.length === 2
-      ? 'grid-cols-1 @2xl:grid-cols-2 max-w-[760px] mx-auto'
-      : 'grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3';
-
   return (
     <section
       className={cn(
@@ -90,12 +83,13 @@ export function PricingClassic({
           className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-50 mb-4"
         />
         <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl mb-12" style={fd()} />
-        <div className={cn('grid gap-8', align, colsClass)}>
+        <div className="pa-pkg-grid">
           {packages.map((pkg: any, idx: number) => (
             <div
               key={pkg.id || idx}
               className={cn(
-                'border border-black/5 shadow-sm p-8 rounded-2xl bg-[var(--pa-white,#FDFBF7)] text-current flex flex-col relative overflow-hidden',
+                // Cartão é superfície "white" do tema: texto próprio, legível também em seções escuras
+                'border border-black/5 shadow-[0_4px_30px_rgba(0,0,0,0.06)] p-8 rounded-[var(--pa-r-card,1rem)] bg-[var(--pa-white,#FDFBF7)] text-[var(--pa-on-white,#1A1714)] flex flex-col relative overflow-hidden',
                 align
               )}
             >
@@ -112,14 +106,16 @@ export function PricingClassic({
               />
               <p className="text-xl text-[var(--pa-accent,#7A5C42)] mb-6">
                 <EditableText {...et(`packages.${idx}.price`, pkg.price)} placeholder="R$" />
-                <span className="text-sm opacity-50 font-light">
-                  /<EditableText {...et(`packages.${idx}.price_unit`, pkg.price_unit)} placeholder="un." />
-                </span>
+                {(pkg.price_unit || editable) && (
+                  <span className="text-sm opacity-50 font-light">
+                    /<EditableText {...et(`packages.${idx}.price_unit`, pkg.price_unit)} placeholder="un." />
+                  </span>
+                )}
               </p>
 
               {/* Imagem do pacote */}
               {!props?.hide_images && (pkg.image_ref || editable) && (
-                <div className="h-36 w-full mb-6 rounded-xl overflow-hidden relative bg-black/5">
+                <div className="h-36 w-full mb-6 rounded-[var(--pa-r-media,0.75rem)] overflow-hidden relative bg-black/5">
                   <EditableImage
                     editable={editable}
                     value={pkg.image_ref || null}
@@ -142,7 +138,7 @@ export function PricingClassic({
               {!props?.hide_cta && (
                 <Button
                   variant="outline"
-                  className="w-full bg-[#2C2825] border-transparent text-white hover:bg-[#2C2825]/80 hover:text-white rounded-xl transition-colors"
+                  className="w-full bg-[var(--pa-ink,#2C2825)] border-transparent text-[var(--pa-on-ink,#FFFFFF)] hover:bg-[var(--pa-ink,#2C2825)] hover:opacity-90 hover:text-[var(--pa-on-ink,#FFFFFF)] rounded-[var(--pa-r-btn,0.75rem)] transition-opacity"
                   onClick={() => onCtaClick?.({ blockType: 'PricingTable', label: pkg.name })}
                 >
                   Selecionar
@@ -178,13 +174,6 @@ export function PricingCardsMinimal({
   const packages: any[] = c.packages || [];
   const align = alignClass(props?.align, 'center');
 
-  const colsClass =
-    packages.length === 1
-      ? 'grid-cols-1 max-w-sm mx-auto'
-      : packages.length === 2
-      ? 'grid-cols-1 @2xl:grid-cols-2 max-w-[760px] mx-auto'
-      : 'grid-cols-1 @2xl:grid-cols-2 @4xl:grid-cols-3';
-
   return (
     <section
       className={cn(
@@ -201,11 +190,11 @@ export function PricingCardsMinimal({
         />
         <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl mb-16" style={fd()} />
 
-        <div className={cn('grid gap-10 @md:gap-14', align, colsClass)}>
+        <div className="pa-pkg-grid [--pa-pkg-gap:2.5rem] @md:[--pa-pkg-gap:3.5rem]">
           {packages.map((pkg: any, idx: number) => (
             <div key={pkg.id || idx} className={cn('flex flex-col relative text-current', align)}>
               {!props?.hide_images && (pkg.image_ref || editable) && (
-                <div className="aspect-[4/5] w-full mb-8 rounded-3xl overflow-hidden relative bg-black/5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] group/card">
+                <div className="aspect-[4/5] w-full mb-8 rounded-[var(--pa-r-media,1.5rem)] overflow-hidden relative bg-black/5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] group/card">
                   <EditableImage
                     editable={editable}
                     value={pkg.image_ref || null}
@@ -239,9 +228,11 @@ export function PricingCardsMinimal({
 
               <p className="text-xl text-[var(--pa-accent,#7A5C42)] mb-8 font-light">
                 <EditableText {...et(`packages.${idx}.price`, pkg.price)} placeholder="R$" />
-                <span className="text-sm opacity-50">
-                  /<EditableText {...et(`packages.${idx}.price_unit`, pkg.price_unit)} placeholder="un." />
-                </span>
+                {(pkg.price_unit || editable) && (
+                  <span className="text-sm opacity-50">
+                    /<EditableText {...et(`packages.${idx}.price_unit`, pkg.price_unit)} placeholder="un." />
+                  </span>
+                )}
               </p>
 
               <ul className={cn('space-y-4 flex-1 mb-10 text-sm font-light opacity-75', align)}>
@@ -256,7 +247,7 @@ export function PricingCardsMinimal({
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-[80%] bg-transparent border-current/20 text-current hover:bg-current hover:text-white rounded-full transition-all',
+                    'w-[80%] bg-transparent border-current/20 text-current hover:bg-current hover:text-white rounded-[var(--pa-r-btn,9999px)] transition-all',
                     align === 'text-center' ? 'mx-auto' : align === 'text-right' ? 'ml-auto' : 'mr-auto'
                   )}
                   onClick={() => onCtaClick?.({ blockType: 'PricingTable', label: pkg.name })}
@@ -310,7 +301,7 @@ export function PricingNumberedEditorial({
         <EditableText
           as="h2"
           {...et('title', c.title)}
-          className="text-5xl @md:text-7xl @lg:text-8xl uppercase tracking-[0.1em] leading-[1.05] mb-6 text-current"
+          className="text-[length:clamp(2rem,8.5cqi,6rem)] uppercase tracking-[0.1em] leading-[1.05] mb-6 text-current"
           style={fd()}
         />
 
@@ -333,8 +324,7 @@ export function PricingNumberedEditorial({
                     'grid gap-8 @2xl:gap-12 items-start',
                     !props?.hide_images && (pkg.image_ref || editable)
                       ? 'grid-cols-1 @2xl:grid-cols-[1fr_1fr]'
-                      : 'grid-cols-1',
-                    isEven && '@2xl:direction-rtl'
+                      : 'grid-cols-1'
                   )}
                 >
                   {/* Lado do conteúdo */}
@@ -388,7 +378,7 @@ export function PricingNumberedEditorial({
 
                   {/* Lado da foto */}
                   {!props?.hide_images && (pkg.image_ref || editable) && (
-                    <div className={cn('aspect-[4/5] @2xl:aspect-[3/4] overflow-hidden', isEven && '@2xl:order-1')}>
+                    <div className={cn('aspect-[4/5] @2xl:aspect-[3/4] overflow-hidden rounded-[var(--pa-r-media,0px)]', isEven && '@2xl:order-1')}>
                       <EditableImage
                         editable={editable}
                         value={pkg.image_ref || null}

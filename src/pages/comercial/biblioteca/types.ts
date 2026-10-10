@@ -27,10 +27,9 @@ export type DbTemplate = {
   description: string;
   tags: string[];
   preview_html_path: string;
-  orientation: 'portrait' | 'landscape';
 };
 
-export type Step = 'orientation' | 'method' | 'template-gallery' | 'pdf-upload';
+export type Step = 'method' | 'template-gallery' | 'pdf-upload';
 
 export const SESSION_TYPES = [
   'Ensaio Gestante',

@@ -9,7 +9,11 @@ import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
 import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/GalleryAndMiscBlocks';
+import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
+
+// Altura da "tela" onde a capa ancora: viewport real (público/editor) ou a moldura do celular (812px - bordas).
+const HERO_HEIGHT = { desktop: '100svh', mobile: '788px' } as const;
 
 export interface VisualRendererProps {
   blocks: BlockData[];
@@ -95,19 +99,22 @@ function getTypographyPropKey(fieldKey: string): string {
     <div
       className={cn(
         "w-full flex items-start justify-center transition-all duration-300",
-        mode === 'edit' ? "py-2 md:py-4 px-2 md:px-4" : "p-0 md:py-8 md:px-4"
+        mode === 'edit' ? "pt-2 md:pt-4 px-2 md:px-4" : "p-0 md:pt-8 md:px-4"
       )}
+      // Respiro de rolagem fora da arte: a última seção não ganha faixa vazia embaixo
+      style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
     >
       <div
         className={cn(
-          '@container bg-white relative transition-all duration-500 origin-top flex flex-col w-full',
+          'pa-doc @container relative transition-all duration-500 origin-top flex flex-col w-full bg-[var(--pa-white,#FFFFFF)] text-[var(--pa-on-white,#1A1714)]',
           viewMode === 'desktop'
-            ? 'max-w-full md:max-w-4xl h-auto min-h-screen rounded-none md:rounded-xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
+            ? // max-w-5xl: a content-box (64rem - borda) precisa passar de 56rem para os layouts @4xl dispararem
+              'max-w-full md:max-w-5xl h-auto rounded-none md:rounded-2xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
             : 'max-w-[375px] h-auto min-h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
         style={{
           ...tokensToCssVars(designTokens),
-          paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))',
+          ['--pa-hero-h' as any]: HERO_HEIGHT[viewMode],
         }}
       >
         {visibleBlocks.map((block, index) => {
@@ -130,14 +137,7 @@ function getTypographyPropKey(fieldKey: string): string {
                 onView={onSectionView}
               >
                 {(block.type === 'cover' || block.type === 'CoverBlock') && (
-                  <CoverRenderer
-                    data={block.content || block.data}
-                    props={{
-                      ...block.props,
-                      orientation: block.props?.orientation ?? 'portrait',
-                    }}
-                    onCtaClick={onCtaClick}
-                  />
+                  <CoverRenderer data={block.content || block.data} props={block.props} onCtaClick={onCtaClick} />
                 )}
                 {block.type === 'package' && <PackageRenderer data={block.data} onCtaClick={onCtaClick} />}
                 {block.type === 'EditorialBlock' && (
@@ -160,6 +160,11 @@ function getTypographyPropKey(fieldKey: string): string {
                 {block.type === 'DividerBlock' && (
                   <DividerRenderer content={block.content} data={block.data} props={block.props} />
                 )}
+                {block.type === 'TestimonialBlock' && <TestimonialRenderer content={block.content} props={block.props} />}
+                {block.type === 'CTABlock' && (
+                  <CtaRenderer content={block.content} props={block.props} onCtaClick={onCtaClick} />
+                )}
+                {block.type === 'FooterTerms' && <FooterTermsRenderer content={block.content} props={block.props} />}
                 {block.type === 'text' && <DefaultRenderer block={block} />}
               </BlockObserver>
             </InlineEditContext.Provider>
@@ -172,10 +177,7 @@ function getTypographyPropKey(fieldKey: string): string {
                 key={block.id || `block-${index}`}
                 id={`section-block-${index}`}
                 data-section-index={index}
-                className={cn(
-                  "relative w-full h-auto",
-                  (block.type === 'cover' || block.type === 'CoverBlock') && "min-h-screen"
-                )}
+                className="relative w-full h-auto"
               >
                 {content}
               </div>
@@ -190,7 +192,6 @@ function getTypographyPropKey(fieldKey: string): string {
               onClick={() => onSelectBlock(index)}
               className={cn(
                 'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full h-auto',
-                (block.type === 'cover' || block.type === 'CoverBlock') && "min-h-screen",
                 isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_rgba(200,106,70,0.1)]' : 'hover:outline-primary/30'
               )}
             >

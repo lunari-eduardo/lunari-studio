@@ -179,7 +179,7 @@ export function AddImageTile({
       type="button"
       onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
       onDoubleClick={(e) => e.stopPropagation()}
-      className="flex min-h-[120px] flex-col items-center justify-center gap-2 border-2 border-dashed border-white/25 text-white/40 transition-colors hover:border-white/60 hover:text-white/80"
+      className="flex min-h-[120px] w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-current opacity-40 transition-opacity hover:opacity-80"
       title={label}
     >
       {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}

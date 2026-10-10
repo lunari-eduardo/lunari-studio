@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { useCreateMaterialWizard } from '../hooks/useCreateMaterialWizard';
 import { StepMethod } from './wizard/StepMethod';
 import { StepTemplateGallery } from './wizard/StepTemplateGallery';
 import { StepPdfUpload } from './wizard/StepPdfUpload';
-import { StepOrientation } from './wizard/StepOrientation';
 
 interface CreateMaterialWizardDialogProps {
   isOpen: boolean;
@@ -21,8 +20,6 @@ export function CreateMaterialWizardDialog({
   const {
     step,
     setStep,
-    selectedOrientation,
-    setSelectedOrientation,
     selectedCategoria,
     setSelectedCategoria,
     customTitle,
@@ -44,11 +41,6 @@ export function CreateMaterialWizardDialog({
     isUploadingPdf,
   } = wizard;
 
-  const filteredTemplates = useMemo(() => {
-    if (!selectedOrientation) return dbTemplates;
-    return dbTemplates.filter(t => t.orientation === selectedOrientation);
-  }, [dbTemplates, selectedOrientation]);
-
   return (
     <Dialog
       open={isOpen}
@@ -61,7 +53,6 @@ export function CreateMaterialWizardDialog({
           <DialogTitle className="text-xl">Nova Proposta</DialogTitle>
           <DialogDescription>
             {step === 'method' && 'Escolha como deseja iniciar a criação.'}
-            {step === 'orientation' && 'Escolha a orientação do seu documento.'}
             {step === 'template-gallery' && 'Escolha um modelo premium para iniciar.'}
             {step === 'pdf-upload' && 'Faça o upload do seu arquivo PDF estático.'}
           </DialogDescription>
@@ -75,20 +66,12 @@ export function CreateMaterialWizardDialog({
           />
         )}
 
-        {/* ─── PASSO 2 (Modelo): Escolher Orientação ─── */}
-        {step === 'orientation' && (
-          <StepOrientation
-            selectedOrientation={selectedOrientation}
-            setSelectedOrientation={setSelectedOrientation}
-          />
-        )}
-
-        {/* ─── PASSO 3 (Modelo): Galeria de Templates do Banco ─── */}
+        {/* ─── PASSO 2 (Modelo): Galeria de Templates do Banco ─── */}
         {step === 'template-gallery' && (
           <StepTemplateGallery
-            onBack={() => setStep('orientation')}
+            onBack={() => setStep('method')}
             isLoadingDbTemplates={isLoadingDbTemplates}
-            dbTemplates={filteredTemplates}
+            dbTemplates={dbTemplates}
             selectedDbTemplate={selectedDbTemplate}
             setSelectedDbTemplate={setSelectedDbTemplate}
             categorias={categorias}
@@ -126,21 +109,10 @@ export function CreateMaterialWizardDialog({
           {step === 'method' && (
             <Button
               onClick={() => {
-                if (creationMethod === 'db-template') setStep('orientation');
+                if (creationMethod === 'db-template') setStep('template-gallery');
                 else if (creationMethod === 'pdf') setStep('pdf-upload');
               }}
               disabled={!creationMethod}
-              className="gap-2"
-            >
-              Continuar
-              <ChevronRight size={16} />
-            </Button>
-          )}
-
-          {step === 'orientation' && (
-            <Button
-              onClick={() => setStep('template-gallery')}
-              disabled={!selectedOrientation}
               className="gap-2"
             >
               Continuar

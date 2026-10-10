@@ -27,6 +27,10 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { ADDABLE_BLOCK_TYPES, getBlockDef, getBlockName, DEFAULT_BLOCK_ICON } from '../../blocks/registry';
 import { DESIGN_PRESETS, useProposalOutline } from '@/hooks/useProposalAI';
+import type { ProposalDesignTokens } from '../../blocks/design';
+
+// Prévia do canto de cada tema no botão do preset
+const SHAPE_PREVIEW: Record<string, string> = { sharp: 'rounded-none', soft: 'rounded-[3px]', round: 'rounded-full' };
 
 export interface EditorSidebarProps {
   blocks: BlockData[];
@@ -35,8 +39,8 @@ export interface EditorSidebarProps {
   onAddBlock: (type: string) => void;
   onMoveBlock: (index: number, direction: 'up' | 'down') => void;
   onReorderBlocks: (oldIndex: number, newIndex: number) => void;
-  /** Aplica design tokens (paletas do assistente de design) */
-  onApplyDesignTokens?: (tokens: { colors?: Record<string, string>; typography?: { display?: string; body?: string } }) => void;
+  /** Aplica design tokens (temas de layout: paleta + fontes + cantos) */
+  onApplyDesignTokens?: (tokens: ProposalDesignTokens) => void;
   materialTitle?: string;
 }
 
@@ -223,7 +227,7 @@ export function EditorSidebar({
           <div className="mt-4 pt-3 border-t border-border space-y-3">
             <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               <Palette className="h-3 w-3" />
-              Assistente de Design
+              Temas de Layout
             </h3>
 
             <div className="grid grid-cols-2 gap-2">
@@ -235,7 +239,7 @@ export function EditorSidebar({
                   onClick={() => onApplyDesignTokens(preset.tokens)}
                   className="group rounded-lg border border-border p-2 text-left hover:border-primary/50 hover:bg-muted/40 transition-colors"
                 >
-                  <div className="flex gap-1 mb-1.5">
+                  <div className="flex items-center gap-1 mb-1.5">
                     {(['cream', 'accent', 'ink'] as const).map((c) => (
                       <span
                         key={c}
@@ -243,8 +247,15 @@ export function EditorSidebar({
                         style={{ backgroundColor: preset.tokens.colors?.[c] }}
                       />
                     ))}
+                    <span
+                      className={cn('ml-auto h-3.5 w-3.5 border border-foreground/40', SHAPE_PREVIEW[preset.tokens.shape ?? 'soft'])}
+                      aria-hidden
+                    />
                   </div>
                   <span className="text-[10px] font-medium leading-tight block">{preset.name}</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight block truncate">
+                    {preset.tokens.typography?.display} · {preset.tokens.typography?.body}
+                  </span>
                 </button>
               ))}
             </div>

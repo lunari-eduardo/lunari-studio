@@ -1,45 +1,36 @@
-# Lunari Studio - Regras Globais de Desenvolvimento
+# Lunari Studio - Regras Globais e Diretrizes (CLAUDE.md)
 
-Este arquivo define o contrato geral de desenvolvimento do Lunari Studio. Para tarefas complexas, utilize a arquitetura de **Skills** localizada em `.claude/skills/`.
+Este arquivo define o contrato primário de engenharia e UI/UX do Lunari Studio. Aja de acordo com estas regras sempre que interagir com o repositório.
 
-## Arquitetura
-* **Stack Principal**: React 18 + TypeScript + Vite.
-* **Estilização**: Tailwind CSS.
-* **Componentes Base**: shadcn/ui e Radix UI.
-* **BaaS (Backend)**: Supabase (Auth, PostgreSQL, Edge Functions, Storage).
-* **Camada Distribuída**: Cloudflare Workers (quando aplicável para integrações e APIs otimizadas).
-* **PWA**: Vite-plugin-pwa gerenciado com Workbox.
-* **Estado e Contexto**: Uso extensivo de Context Providers e custom hooks que **devem ser respeitados**.
+## 1. Comunicação e Postura
+* **Idioma:** Sempre responda em **Português BR**.
+* Mantenha um tom técnico, objetivo e colaborativo, respeitando a identidade premium e silenciosa da plataforma.
 
-## Organização do Frontend (`src/`)
-A aplicação segue uma forte separação por domínio de negócio na pasta `src/components/` (ex: `admin/`, `agenda/`, `clientes/`, `financas/`, `workflow/`). Os contextos globais ficam em `src/contexts/` e a lógica reaproveitável em `src/hooks/`.
+## 2. Validação e Integridade (Build Cego)
+* **CRÍTICO:** O comando `npm run build` do Vite **NÃO FAZ typecheck** e não acusa variáveis inexistentes.
+* **SEMPRE rode `npm run typecheck:changed`** antes de dar uma tarefa por concluída.
+* Cuidado máximo com componentes globais (ex: `App.tsx`, `Layout.tsx`, `PhotographerApp.tsx`), falhas neles quebram o sistema via ErrorBoundary para todos os usuários.
+* Certifique-se de salvar arquivos em **UTF-8** para prevenir corrupção (Mojibake) em acentuações.
+* Não remova flags estruturais (ex: `hasBottomNav`) sem entender todo o impacto na UI global.
 
-## Regras Inquebráveis
-* **Cálculos Financeiros Backend**: O frontend **NUNCA** deve enviar `valor_pago` ou `valor_total` nos updates de sessão. Esses valores são responsabilidade exclusiva de triggers no banco de dados.
-* **Ordem de Proteção de Rotas**: O onboarding deve ser verificado **antes** da assinatura/paywall dentro do fluxo protegido.
-* **PWA Caching Segura**: Bibliotecas pesadas como `mermaid`, `wasm` e `shiki` **não devem** entrar no precache do Service Worker (`vite.config.ts`).
-* **Segurança de Dados**: Toda nova tabela com dados de usuários deve obrigatoriamente possuir RLS (Row Level Security) apropriado (`auth.uid() = user_id`).
-* **Ecossistema Compartilhado**: O banco de dados é compartilhado com o projeto **Lunari Gallery**. Alterações em recursos compartilhados (clientes, sessões, cobranças) devem considerar o impacto no Gallery.
-* **Ciclo de Vida de Estado**: É vital preservar a limpeza de estado dos Context Providers no evento de logout.
-* **Acesso**: A lógica atual de autorização e planos (`useAccessControl`, `get_access_state()`) não deve ser contornada.
-* **IDs de Sessão**: IDs de sessão do workflow possuem formato textual longo e devem ser tratados como texto, não como UUID.
-* **Cache Busting**: O mecanismo atual injetado via `__BUILD_COMMIT__` deve ser preservado.
+## 3. Design DNA, UI/UX e Ergonomia (Luxo Silencioso)
+* **Paleta Proporção Áurea:** 85% Neutros (fundos limpos/cartões), 12% Preto Grafite (textos base e apoio), 3% Dourado Lunari (`#D4AF37`). Destaque dourado é estrito para status/CTA. **Nunca** crie grandes banners ou blocos inteiros dourados.
+* **Componentes:** Bordas e cartões em `rounded-xl` ou `rounded-2xl`. Sombras suaves amplas (ex: `shadow-[0_4px_30px_rgba(0,0,0,0.06)]`), não use sombras rígidas escuras.
+* **Feedback (Zero Toasts):** Ações corriqueiras (salvar forms/rascunhos) NÃO devem disparar toasts. Use feedback inline discreto (ex: badge verde de "Salvo agora"). Toasts são restritos a falhas graves ou confirmações críticas e destrutivas.
+* **Ergonomia e Rolagem:** 
+  * Áreas de rolagem verticais exigem respiro no rodapé: `style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}`.
+  * Para documentos dinâmicos (A4, formulários extensos), nunca bloqueie a altura num `flex-row` que corte o texto. Utilize containers de bloco (`mx-auto h-auto`).
 
-## Código Legado (Atenção)
-* **Assinaturas**: Stripe possui estruturas legadas no banco e código (`plans`, `subscriptions`) que **não devem ser reutilizadas** como fonte atual de billing. O **Asaas** é o provedor definitivo e atual.
-* **Integrações de Pagamento**: A função `infinitepay-create-link` é legada. A implementação recomendada e atual é baseada em JWT (`gestao-infinitepay-create-link`).
-* **Finanças**: A tabela `financial_items` é legada e foi substituída por `fin_items_master`.
-* Não utilize estruturas legadas como base para implementar novas funcionalidades.
+## 4. Arquitetura e Banco de Dados (Inquebráveis)
+* **Cálculos Financeiros:** O frontend **NUNCA** recalcula ou envia chaves como `valor_pago`, `valor_total` ou `status_financeiro`. Tudo é resolvido de forma estrita via triggers no PostgreSQL.
+* **Upload de Mídias (R2):** Fotos e arquivos grandes DEVEM ser eviados ao **Cloudflare R2** via `useR2Upload`. Supabase Storage é apenas para pequenos avatares ou legados.
+* **RLS Mandatório:** Tabelas com informações de usuários exigem política restrita de isolamento de tenants (`auth.uid() = user_id`).
+* **Ecossistema Compartilhado:** Banco é compartilhado com o **Lunari Gallery**. Qualquer alteração em sessão, cliente ou foto deve ser retrocompatível para não derrubar galerias públicas de fotógrafos.
+* **Acesso / Planos:** A checagem de onboarding ocorre antes de paywall. Não contorne hooks como `useAccessControl`.
+* **IDs de Sessão:** São gerados em strings textuais longas (não-UUID).
 
-## Regras de Segurança e Mudança
-**Princípio de Menor Mudança**: Quando uma tarefa puder ser resolvida com uma alteração localizada, **não refatore** ou reestruture partes não solicitadas do sistema.
-Antes de modificar código crítico, busque a implementação existente e entenda as dependências em vez de reescrever do zero.
+## 5. Código Legado (Não Reutilizar)
+* **Billing/Pagamentos:** **Asaas** é o provedor atual. Códigos referentes ao Stripe (`plans`, `subscriptions`) e links `infinitepay-create-link` (use `gestao-infinitepay-create-link`) são legados estruturais.
+* **Tabelas de Finanças:** A tabela `financial_items` é legada e substituída pela atual `fin_items_master`.
 
-## Skills Disponíveis
-Para tarefas específicas, consulte as instruções em `.claude/skills/`:
-* `lunari-change-safety`: **Leitura Obrigatória** para orientações de como alterar código sem gerar regressões sistêmicas.
-* `lunari-core-db`: Regras e contexto sobre o Postgres, tabelas, RLS e RPCs (Supabase).
-* `lunari-billing-access`: Regras sobre autenticação, onboarding, planos (Asaas) e paywall.
-* `lunari-workflow-engine`: Regras cruciais do módulo central de Sessões, Agenda e cálculos do Workflow.
-* `lunari-ui-pwa`: Instruções sobre Tailwind, shadcn/ui, perfomance e Service Workers.
-* `lunari-edge-integrations`: Contexto sobre os Cloudflare Workers (APIs, R2, propostas IA, previews).
+Para instruções avançadas de domínios específicos, leia as **Skills** localizadas em `.agents/skills/`.

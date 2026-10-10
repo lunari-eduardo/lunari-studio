@@ -14,8 +14,6 @@ import {
   Type,
   Layout,
   Palette,
-  RectangleVertical,
-  RectangleHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -33,6 +31,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
 import { getBlockDef, getBlockName, BlockField } from '../../blocks/registry';
+import { pacoteToProposalPackage } from '../../blocks/normalization';
+import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
 import { uploadProposalImage } from '../../blocks/uploadImage';
 
@@ -65,7 +65,7 @@ function isActionField(field: BlockField): boolean {
 function isVisualField(field: BlockField): boolean {
   if (isActionField(field)) return false;
   if (field.kind === 'image' || field.kind === 'color' || field.kind === 'align') return true;
-  if (['background', 'style', 'layout', 'text_color', 'hide_images', 'orientation'].includes(field.key)) return true;
+  if (['background', 'style', 'layout', 'text_color', 'hide_images'].includes(field.key)) return true;
   return false;
 }
 
@@ -88,7 +88,7 @@ export function PropertiesSidebar({
   onInteractionStart,
   onInteractionEnd,
 }: PropertiesSidebarProps) {
-  const { pacotes } = useConfigurationContext();
+  const { pacotes, produtos } = useConfigurationContext();
   const [activeTab, setActiveTab] = useState<string>('content');
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -105,17 +105,8 @@ export function PropertiesSidebar({
     onUpdateBlock(blockIndex, { props: { ...props, ...updates } });
   };
 
-  const importPackage = (pacote: any) => {
-    const features = (pacote.descricao ? String(pacote.descricao).split('\n').map((s: string) => s.trim()).filter(Boolean) : []);
-    const newItem = {
-      id: crypto.randomUUID(),
-      name: pacote.nome || 'Pacote',
-      price: pacote.valor != null ? `R$ ${Number(pacote.valor).toLocaleString('pt-BR')}` : '',
-      price_unit: 'sessão',
-      badge: '',
-      features: Array.isArray(pacote.itens) && pacote.itens.length > 0 ? pacote.itens : features,
-    };
-    setContent({ packages: [...(content.packages ?? []), newItem] });
+  const importPackage = (pacote: Pacote) => {
+    setContent({ packages: [...(content.packages ?? []), pacoteToProposalPackage(pacote, produtos)] });
     setIsPackageModalOpen(false);
   };
 
@@ -142,7 +133,7 @@ export function PropertiesSidebar({
 
   const contentFields = allFields.filter(isContentField);
   const visualContentFields = allFields.filter(isVisualField);
-  const visualLayoutFields = allLayoutFields.filter(f => isVisualField(f) && f.key !== 'orientation');
+  const visualLayoutFields = allLayoutFields.filter(isVisualField);
   const actionFields = [
     ...allFields.filter(isActionField),
     ...allLayoutFields.filter(isActionField),
@@ -496,21 +487,24 @@ export function PropertiesSidebar({
                 Nenhum pacote cadastrado nas configurações.
               </div>
             ) : (
-              pacotes.map((pacote: any) => (
-                <div
-                  key={pacote.id}
-                  onClick={() => importPackage(pacote)}
-                  className="flex flex-col p-4 border rounded-xl hover:border-primary cursor-pointer transition-colors"
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-sm">{pacote.nome}</span>
-                    <span className="font-bold text-sm text-primary">R$ {pacote.valor}</span>
+              pacotes.map((pacote) => {
+                const preview = pacoteToProposalPackage(pacote, produtos);
+                return (
+                  <div
+                    key={pacote.id}
+                    onClick={() => importPackage(pacote)}
+                    className="flex flex-col p-4 border rounded-xl hover:border-primary cursor-pointer transition-colors"
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-semibold text-sm">{preview.name}</span>
+                      <span className="font-bold text-sm text-primary">{preview.price}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {preview.features.join(' · ') || 'Sem itens inclusos'}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {pacote.descricao || 'Sem descrição'}
-                  </p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </DialogContent>

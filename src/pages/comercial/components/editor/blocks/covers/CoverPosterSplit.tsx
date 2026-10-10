@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { EditableText } from '../../../../blocks/EditableText';
 import { EditableImage } from '../../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../../blocks/inlineContext';
-import { fd, fb, textColorClass, CtaHandler } from '../helpers';
+import { textColorClass, coverStyles, HERO_MIN_H, CtaHandler } from '../helpers';
 
 /**
- * Capa Poster Split — Foto de sangria parcial em coluna lateral ou base,
- * com painel tipográfico de forte contraste editorial.
- * Grid de 12 colunas: foto ocupa 5, texto ocupa 7.
+ * Capa Poster — foto full-bleed como fundo com véu creme no topo e título
+ * tipográfico gigante em caixa alta. O título escala pela largura do
+ * container (cqi), então palavras longas nunca estouram no celular.
  */
 export function CoverPosterSplit({
   data,
@@ -35,37 +35,10 @@ export function CoverPosterSplit({
   const subtitle = data?.subtitle;
   const photographerName = data?.photographer_name;
   const btnText = data?.btnText;
-
-  const typography = props?.typography;
-  const eyebrowStyle = typography?.eyebrowSize ? { fontSize: `${typography.eyebrowSize}px` } : undefined;
-  const titleStyle = {
-    ...fd(),
-    ...(typography?.titleSize ? { fontSize: `${typography.titleSize}px` } : {}),
-  };
-  const italicStyle = typography?.titleItalicSize ? { fontSize: `${typography.titleItalicSize}px` } : undefined;
-  const subtitleStyle = {
-    ...fb(),
-    ...(typography?.subtitleSize ? { fontSize: `${typography.subtitleSize}px` } : {}),
-  };
-  const btnStyle = (typography?.btnTextSize || typography?.ctaSize)
-    ? { fontSize: `${typography.btnTextSize || typography.ctaSize}px` }
-    : undefined;
-  const photographerStyle = {
-    ...fb(),
-    ...((typography?.photographer_nameSize || typography?.photographerSize)
-      ? { fontSize: `${typography.photographer_nameSize || typography.photographerSize}px` }
-      : {}),
-  };
-
-  const isPortrait = (props?.orientation ?? 'portrait') === 'portrait';
+  const s = coverStyles(props?.typography);
 
   return (
-    <section
-      className={cn(
-        "relative flex flex-col overflow-hidden",
-        isPortrait ? "min-h-[680px] @md:min-h-[820px]" : "min-h-[520px] @md:min-h-[640px]"
-      )}
-    >
+    <section className={cn('relative flex flex-col overflow-hidden', HERO_MIN_H)}>
       {/* Foto full-bleed como fundo */}
       <EditableImage
         editable={editable}
@@ -87,10 +60,7 @@ export function CoverPosterSplit({
       />
 
       {/* Conteúdo sobre o gradiente */}
-      <div className={cn(
-        "relative z-10 flex flex-col items-center text-center flex-1 px-6 pt-10",
-        isPortrait ? "@md:px-10 @md:pt-16" : "@md:px-16 pt-12 @md:pt-20"
-      )}>
+      <div className="relative z-10 flex flex-col items-center text-center flex-1 px-6 pt-10 @md:px-12 @md:pt-16 @2xl:pt-20">
         {/* Ornamento vertical */}
         <div className="w-[1px] h-8 bg-[var(--pa-accent,#7A5C42)] mb-6" />
 
@@ -99,22 +69,20 @@ export function CoverPosterSplit({
           as="p"
           {...et('eyebrow', eyebrow)}
           className="text-[9px] @md:text-[10px] font-medium tracking-[0.35em] uppercase text-[var(--pa-taupe,#8C7B6E)] mb-6 @md:mb-10"
-          style={eyebrowStyle}
+          style={s.eyebrow}
         />
 
-        {/* Título gigante */}
+        {/* Título gigante, fluido pela largura do container */}
         <h1
           className={cn(
-            isPortrait
-              ? 'text-4xl @md:text-6xl uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[14ch]'
-              : 'text-5xl @md:text-7xl @2xl:text-8xl uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[12ch]',
+            'text-[length:clamp(2.25rem,9cqi,6rem)] uppercase tracking-[0.12em] leading-[1.05] mb-4 @md:mb-6 max-w-[14ch]',
             textColorClass(props?.text_color, props?.background, 'white')
           )}
-          style={titleStyle}
+          style={s.title}
         >
           <EditableText {...et('title', title)} placeholder="TÍTULO" />
           {titleItalic && (
-            <em className="italic opacity-70 block text-[0.6em] tracking-[0.06em] mt-1" style={italicStyle}>
+            <em className="italic opacity-70 block text-[0.6em] tracking-[0.06em] mt-1" style={s.italic}>
               <EditableText {...et('title_italic', titleItalic)} />
             </em>
           )}
@@ -126,7 +94,7 @@ export function CoverPosterSplit({
           {...et('subtitle', subtitle)}
           multiline
           className="text-[10px] @md:text-xs tracking-[0.25em] uppercase text-[var(--pa-taupe,#8C7B6E)] max-w-[40ch] leading-relaxed"
-          style={subtitleStyle}
+          style={s.subtitle}
         />
 
         {/* Botão CTA */}
@@ -134,16 +102,16 @@ export function CoverPosterSplit({
           <div className="mt-8">
             {editable ? (
               <div
-                className="bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
+                className="bg-[var(--pa-accent,#C86A46)] text-white rounded-[var(--pa-r-btn,0px)] px-8 py-6 text-sm font-medium tracking-wide cursor-text inline-flex items-center justify-center"
                 onClick={(e) => e.stopPropagation()}
-                style={btnStyle}
+                style={s.btn}
               >
                 <EditableText {...et('btnText', btnText)} placeholder="Texto do botão" />
               </div>
             ) : (
               <Button
-                className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
-                style={btnStyle}
+                className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-[var(--pa-r-btn,0px)] px-8 py-6 h-auto text-sm font-medium tracking-wide"
+                style={s.btn}
                 onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
               >
                 {btnText}
@@ -159,7 +127,7 @@ export function CoverPosterSplit({
           as="p"
           {...et('photographer_name', photographerName)}
           className="text-[9px] @md:text-[10px] tracking-[0.3em] uppercase text-white/80"
-          style={photographerStyle}
+          style={s.photographer}
         />
       </div>
     </section>

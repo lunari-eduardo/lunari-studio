@@ -1,4 +1,6 @@
-import { instantiateTemplateBlocks } from '../src/pages/comercial/blocks/normalization';
+// Rodar: npm run test:proposals
+import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock } from '../src/pages/comercial/blocks/normalization';
+import { onColor } from '../src/pages/comercial/blocks/design';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -96,6 +98,46 @@ async function runTests() {
   // 4. Global settings preserved without ID modification
   const gs1 = instance1.find((b: any) => b.type === 'global_settings');
   assert(gs1.data.design_tokens.colors.primary === '#000', 'Global settings must be preserved');
+
+  // 5. Variáveis dinâmicas: assinatura do perfil + pacotes reais da categoria
+  const pacote = {
+    id: 'pac-1', nome: 'Ensaio Gestante', categoria_id: 'cat-1', valor_base: 1490, valor_foto_extra: 0,
+    fotos_incluidas: 30, duracao_minutos: 120, produtosIncluidos: [{ produtoId: 'prod-1', quantidade: 2 }],
+  };
+  const realPkg = pacoteToProposalPackage(pacote, [{ id: 'prod-1', nome: 'Álbum 30x30', preco_custo: 0, preco_venda: 0 }]);
+  assert(realPkg.name === 'Ensaio Gestante', 'Package name must come from pacote.nome');
+  assert(realPkg.price.replace(/\s/g, ' ') === 'R$ 1.490,00', `Price must be BRL formatted (got ${realPkg.price})`);
+  assert(realPkg.features.join('|') === '2h de sessão|30 fotos incluídas|2× Álbum 30x30', `Features mismatch: ${realPkg.features}`);
+
+  const closingTemplate = [
+    ...mockTemplateBlocks,
+    { type: 'TestimonialBlock', id: 't', content: { title: 'Depoimentos', items: [{ id: 'x', quote: 'Fictício', author: 'Autor do modelo' }] } },
+    { type: 'CTABlock', id: 'c', content: { cta_text: 'Vamos?', phone: '+55 51 98765-4321', links: [{ id: 'l', label: '@autor', href: 'https://x' }] } },
+    { type: 'FooterTerms', id: 'f', content: { copyright: '© Autor do modelo' } },
+  ];
+  const hydrated = instantiateTemplateBlocks(closingTemplate, { photographerName: '  Estúdio Luz ', packages: [realPkg] });
+  const byType = (t: string) => hydrated.find((b: any) => b.type === t);
+  assert(byType('CoverBlock').content.photographer_name === 'Estúdio Luz', 'Signature must hydrate the cover');
+  assert(byType('EditorialBlock').content.vertical_label === 'Estúdio Luz', 'Signature must hydrate the vertical label');
+  const pkgs = byType('PricingTable').content.packages;
+  assert(pkgs.length === 1 && pkgs[0].name === 'Ensaio Gestante', 'Real packages must replace template demo packages');
+  assert(pkgs[0].id !== realPkg.id, 'Hydrated package ids must be fresh');
+  assert(byType('TestimonialBlock').content.items.length === 0, 'Template testimonials must never reach the client');
+  assert(byType('CTABlock').content.phone === '' && byType('CTABlock').content.links.length === 0, 'Template author contacts must be cleaned');
+  assert(/^© \d{4} Estúdio Luz$/.test(byType('FooterTerms').content.copyright), 'Footer must be signed with the profile');
+
+  const noPkgs = instantiateTemplateBlocks(mockTemplateBlocks, { packages: [] });
+  assert(noPkgs.find((b: any) => b.type === 'PricingTable').content.packages[0].name === 'Básico', 'No real packages keeps the template ones');
+
+  // 6. Seeds antigos: variante na raiz, ContactBlock e blocos de fechamento registrados
+  assert(normalizeBlock({ type: 'CoverBlock', variant: 'gradient_parallax', content: {} })!.props!.variant === 'hero-full', 'Root cover variant must map');
+  assert(normalizeBlock({ type: 'PricingTable', variant: 'row_list_with_photo', content: {} })!.props!.variant === 'numbered-editorial', 'Root pricing variant must map');
+  assert(normalizeBlock({ type: 'ContactBlock', id: 'k', content: { title: 'Fale comigo' } })!.type === 'CTABlock', 'ContactBlock must alias to CTABlock');
+  assert(normalizeBlock({ type: 'TestimonialBlock', content: { items: [] } })!.type === 'TestimonialBlock', 'TestimonialBlock must be a registered type');
+
+  // 7. Contraste automático do tema (fundo "creme" escuro do Noir pede texto claro)
+  assert(onColor('#232019', '#141210', '#F5F2EC') === '#F5F2EC', 'Dark surface must get light text');
+  assert(onColor('#FDFBF7', '#2C2825', '#FFFFFF') === '#2C2825', 'Light surface must get ink text');
 
   console.log('✅ All tests passed successfully!');
 }

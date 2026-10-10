@@ -137,9 +137,6 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
     );
   }
 
-  // Orientação da proposta para apresentação refinada
-  const proposalOrientation = materialInfo?.orientation || 'portrait';
-
   return (
     <PublicThemeWrapper 
       primaryColor={(result as any).theme?.primaryColor || undefined} 
@@ -156,7 +153,6 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
           mode="public"
           onCtaClick={({ label }) => handleWhatsAppClick(label)}
           designTokens={designTokens}
-
           onSectionView={(blockId, blockType, position) => {
             trackEvent('section_view', { blockId, blockType, position });
           }}

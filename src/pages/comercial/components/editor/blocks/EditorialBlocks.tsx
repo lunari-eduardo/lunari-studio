@@ -36,7 +36,7 @@ export function EditorialOverlapBlend({
       label={label}
       alt={label}
       onCommit={(url) => inline?.set(`props.${slotKey}.image_ref`, url)}
-      className="rounded-[3px] overflow-hidden"
+      className="rounded-[var(--pa-r-media,3px)] overflow-hidden"
       style={style}
     />
   );
@@ -91,7 +91,7 @@ export function EditorialOverlapBlend({
               className="text-3xl @md:text-4xl @2xl:text-5xl @3xl:text-[3.5rem] font-light leading-[1.05] tracking-[0.03em] mb-8 @2xl:mb-10 text-current"
               style={fd()}
             >
-              <EditableText {...et('title', c.title)} placeholder="Título" />
+              <EditableText {...et('title', c.title)} placeholder="Título" />{' '}
               <em className="italic opacity-60">
                 <EditableText {...et('title_italic', c.title_italic)} placeholder="em itálico" />
               </em>
@@ -220,7 +220,7 @@ export function EditorialSplitPortrait({
           </div>
 
           {/* Coluna da foto */}
-          <div className="aspect-[4/5] overflow-hidden w-full max-w-md mx-auto @2xl:max-w-none rounded-xl @2xl:rounded-none">
+          <div className="aspect-[4/5] overflow-hidden w-full max-w-md mx-auto @2xl:max-w-none rounded-[var(--pa-r-media,0.75rem)] @2xl:rounded-[var(--pa-r-media,0px)]">
             <EditableImage
               editable={editable}
               value={photoRef}

@@ -77,13 +77,95 @@ export function GalleryRenderer({
     inline?.set('images', [...images, ...newImages]);
   };
 
-  const ratioStyle = (img: any): React.CSSProperties | undefined => {
-    if (!img.ratio || img.ratio === 'auto') return undefined;
-    return { aspectRatio: img.ratio.replace('/', ' / ') };
-  };
+  const commitAt = (idx: number) => (url: string) => inline?.set(`images.${idx}.image_ref`, url);
+  const addTile = editable && <AddImageTile onAdd={addImage} onAddMultiple={addMultipleImages} />;
+
+  // No público, slots vazios (comuns em modelos recém-criados) não viram caixas; sem fotos, a seção some.
+  const shown = images.map((img, idx) => ({ img, idx })).filter(({ img }) => editable || img?.image_ref);
+  if (!editable && shown.length === 0) return null;
+
+  // Todos os modos crescem verticalmente com o número de fotos — nada é cortado por altura de "página".
+  let grid: React.ReactNode;
+  if (layout === 'editorial-rows') {
+    // Linhas justificadas: proporção real de cada foto, linhas fecham a largura (CSS em .pa-justified)
+    grid = (
+      <div className="pa-justified">
+        {shown.map(({ img, idx }) => (
+          <EditableImage
+            key={img.id || idx}
+            editable={editable}
+            value={img.image_ref || null}
+            label="Foto"
+            alt="Foto do portfólio"
+            fill={false}
+            className="rounded-[var(--pa-r-media,2px)] overflow-hidden"
+            imgClassName="w-auto"
+            onCommit={commitAt(idx)}
+          />
+        ))}
+        {addTile}
+      </div>
+    );
+  } else if (layout === 'grid') {
+    // Grade de proporção fixa: célula normal usa a proporção escolhida (padrão 4:5);
+    // células "alta"/"larga" preenchem a área do span. grid-flow-dense fecha os buracos.
+    grid = (
+      <div className="grid grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4 gap-3 grid-flow-dense">
+        {shown.map(({ img, idx }) => {
+          const span = img.span === 'tall_2rows' ? 'row-span-2' : img.span === 'wide_2cols' ? 'col-span-2' : '';
+          const ratio = img.ratio && img.ratio !== 'auto' ? img.ratio : '4/5';
+          return (
+            <div
+              key={img.id || idx}
+              className={cn('relative overflow-hidden rounded-[var(--pa-r-media,2px)] bg-black/5', span, span && 'min-h-[10rem]')}
+              style={span ? undefined : { aspectRatio: ratio.replace('/', ' / ') }}
+            >
+              <EditableImage
+                editable={editable}
+                value={img.image_ref || null}
+                label="Foto"
+                alt="Foto do portfólio"
+                className="absolute inset-0 w-full h-full"
+                imgClassName="object-cover w-full h-full"
+                onCommit={commitAt(idx)}
+              />
+            </div>
+          );
+        })}
+        {addTile}
+      </div>
+    );
+  } else {
+    // Masonry (padrão): colunas com a proporção real de cada foto
+    grid = (
+      <div className="columns-2 @2xl:columns-3 @4xl:columns-4 gap-3">
+        {shown.map(({ img, idx }) => (
+          <div key={img.id || idx} className="mb-3 break-inside-avoid rounded-[var(--pa-r-media,2px)] overflow-hidden bg-black/5 relative">
+            <EditableImage
+              editable={editable}
+              value={img.image_ref || null}
+              label="Foto"
+              alt="Foto do portfólio"
+              fill={false}
+              imgClassName="w-full h-auto block"
+              onCommit={commitAt(idx)}
+            />
+          </div>
+        ))}
+        {addTile && <div className="mb-3 break-inside-avoid">{addTile}</div>}
+      </div>
+    );
+  }
 
   return (
-    <section className={cn('py-16 @md:py-24 px-6 @md:px-14', sectionBg(props?.background, 'dark'), align)}>
+    <section
+      className={cn(
+        'py-16 @md:py-24 px-6 @md:px-14',
+        sectionBg(props?.background, 'dark'),
+        textColorClass(props?.text_color, props?.background, 'dark'),
+        align
+      )}
+    >
       <div className="max-w-[1000px] mx-auto">
         <EditableText
           as="p"
@@ -92,59 +174,7 @@ export function GalleryRenderer({
         />
         <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl mb-4" style={fd()} />
         <EditableText as="p" {...et('caption', c.caption)} className="italic opacity-50 mb-12" style={fd()} />
-
-        {layout === 'masonry' ? (
-          <div className="columns-2 @2xl:columns-3 @4xl:columns-4 gap-3">
-            {images.map((img: any, idx: number) => (
-              <div key={img.id || idx} className="mb-3 break-inside-avoid rounded-sm overflow-hidden bg-white/5 relative">
-                <EditableImage
-                  editable={editable}
-                  value={img.image_ref || null}
-                  label="Foto"
-                  alt="Foto do portfólio"
-                  fill={false}
-                  imgClassName="w-full h-auto"
-                  onCommit={(url) => inline?.set(`images.${idx}.image_ref`, url)}
-                />
-              </div>
-            ))}
-            {editable && (
-              <div className="mb-3 break-inside-avoid">
-                <AddImageTile onAdd={addImage} onAddMultiple={addMultipleImages} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4 gap-3">
-            {images.map((img: any, idx: number) => {
-              const ratio = img.ratio && img.ratio !== 'auto' ? img.ratio : null;
-              return (
-                <div
-                  key={img.id || idx}
-                  className={cn(
-                    'rounded-sm overflow-hidden bg-white/5 relative',
-                    img.span === 'tall_2rows' && 'row-span-2',
-                    img.span === 'wide_2cols' && 'col-span-2'
-                  )}
-                  style={ratio ? ratioStyle(img) : undefined}
-                >
-                  <EditableImage
-                    editable={editable}
-                    value={img.image_ref || null}
-                    label="Foto"
-                    alt="Foto do portfólio"
-                    fill={!!ratio}
-                    imgClassName={ratio ? 'object-cover' : 'w-full h-auto'}
-                    className={ratio ? 'absolute inset-0 w-full h-full' : 'w-full'}
-                    publicEmptyClassName={ratio ? undefined : 'w-full py-16'}
-                    onCommit={(url) => inline?.set(`images.${idx}.image_ref`, url)}
-                  />
-                </div>
-              );
-            })}
-            {editable && <AddImageTile onAdd={addImage} onAddMultiple={addMultipleImages} />}
-          </div>
-        )}
+        {grid}
       </div>
     </section>
   );
@@ -168,14 +198,16 @@ export function DividerRenderer({
   });
   const c = content || data || {};
   const style = props?.style || 'hairline';
+  // Linhas usam bg-current: a cor de texto do tema garante o contraste em qualquer fundo
+  const surface = cn(sectionBg(props?.background, 'cream'), textColorClass(props?.text_color, props?.background, 'cream'));
 
   if (style === 'spaced') {
-    return <section className={cn('py-12 @md:py-20', sectionBg(props?.background, 'cream'))} />;
+    return <section className={cn('py-12 @md:py-20', surface)} />;
   }
 
   if (style === 'ornament') {
     return (
-      <section className={cn('py-10 @md:py-16 flex flex-col items-center gap-4', sectionBg(props?.background, 'cream'))}>
+      <section className={cn('py-10 @md:py-16 flex flex-col items-center gap-4', surface)}>
         <div className="flex items-center gap-4 w-full max-w-[200px]">
           <div className="flex-1 h-[0.5px] bg-current opacity-20" />
           <div className="w-2 h-2 rotate-45 border border-current opacity-20" />
@@ -195,7 +227,7 @@ export function DividerRenderer({
 
   // hairline (default)
   return (
-    <section className={cn('py-6 @md:py-10 px-6 @md:px-14', sectionBg(props?.background, 'cream'))}>
+    <section className={cn('py-6 @md:py-10 px-6 @md:px-14', surface)}>
       <div className="max-w-[900px] mx-auto">
         <div className="flex items-center gap-6">
           <div className="flex-1 h-[0.5px] bg-current opacity-15" />

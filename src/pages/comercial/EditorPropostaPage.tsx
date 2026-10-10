@@ -257,40 +257,17 @@ export default function EditorMaterialPage() {
     return () => observer.disconnect();
   }, [editorState?.format]);
 
-  // Orientação da proposta (retrato por padrão para formato editorial/A4/mobile)
-  const proposalOrientation = React.useMemo(() => {
-    return editorState?.orientation || 'portrait';
-  }, [editorState?.orientation]);
-
-  const isPortrait = proposalOrientation === 'portrait';
-
-  // Escala automática proporcional para visualização confortável em desktop
+  // Escala automática: a arte é um documento fluido de largura nominal 64rem
+  // (max-w-5xl do VisualRenderer). No desktop do editor ele é reduzido para caber
+  // entre as colunas, preservando a composição de desktop (container queries).
   const autoScale = React.useMemo(() => {
-    if (viewMode !== 'desktop') return 1;
-    const { width, height } = canvasDimensions;
-    if (!width || !height) return 1;
-
-    // Dimensões nominais de referência da proposta de acordo com a orientação
-    // Retrato: 580px nominais (editorial / A4 / mobile)
-    // Paisagem: 1024px nominais (apresentação widescreen)
-    const DOC_NOMINAL_WIDTH = isPortrait ? 580 : 1024;
-    const PAGE_TARGET_HEIGHT = isPortrait ? 820 : 640;
-
-    // Padding de respiro confortável ao redor da página
-    const PADDING_X = isPortrait ? 48 : 64;
-    const PADDING_Y = 48;
-
-    const availableW = Math.max(320, width - PADDING_X);
-    const availableH = Math.max(320, height - PADDING_Y);
-
-    const scaleW = availableW / DOC_NOMINAL_WIDTH;
-    const scaleH = availableH / PAGE_TARGET_HEIGHT;
-
-    // Escala ideal ajustada entre 0.55 e 1.0:
-    // No modo retrato, a leitura é vertical contínua, logo a escala preserva nitidez máxima (100%)
-    const idealScale = isPortrait ? Math.min(scaleW, 1.0) : Math.min(scaleW, scaleH);
-    return Number(Math.min(1.0, Math.max(0.55, idealScale)).toFixed(2));
-  }, [viewMode, canvasDimensions, isPortrait]);
+    if (viewMode !== 'desktop' || !canvasDimensions.width) return 1;
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; // html usa 90%
+    const DOC_NOMINAL_WIDTH = 64 * rem;
+    const PADDING_X = 6 * rem; // p-8 do canvas + px-4 do renderer, nos dois lados
+    const scale = (canvasDimensions.width - PADDING_X) / DOC_NOMINAL_WIDTH;
+    return Number(Math.min(1, Math.max(0.55, scale)).toFixed(2));
+  }, [viewMode, canvasDimensions.width]);
 
   // Seleção de bloco com scroll suave até a seção
   const handleSelectBlock = useCallback((index: number) => {
@@ -502,7 +479,6 @@ export default function EditorMaterialPage() {
                     designTokens={designTokens}
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
-
                   />
                 </div>
               </div>
@@ -576,7 +552,6 @@ export default function EditorMaterialPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         designTokens={designTokens}
-
       />
 
       {/* MODAL SALVAR COMO MODELO */}

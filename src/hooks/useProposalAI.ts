@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { ProposalDesignTokens } from '@/pages/comercial/blocks/design';
 
 // ============================================================
 // IA DO CONSTRUTOR DE PROPOSTAS
@@ -146,30 +147,32 @@ export function useProposalOutline() {
   return { suggest, isLoading };
 }
 
-// Paletas prontas para o assistente de design (aplicam design_tokens)
-export const DESIGN_PRESETS: { name: string; description: string; tokens: NonNullable<GeneratedProposal['design_tokens']> }[] = [
+// Temas de layout: paleta + par tipográfico + cantos. Nunca ditam proporção da página.
+export const DESIGN_PRESETS: { name: string; description: string; tokens: ProposalDesignTokens }[] = [
   {
     name: 'Editorial Lunari (PDF)',
-    description: 'Fiel ao modelo de referência, tons areia e serifado clássico',
+    description: 'Fiel ao modelo de referência, tons areia, serifado clássico e cantos retos',
     tokens: {
-      colors: { 
-        cream: '#FDFBF7', 
-        linen: '#F0E9E1', 
-        stone: '#D8C7B8', 
-        taupe: '#8A7364', 
-        accent: '#7A5C42', 
-        ink: '#2C2825', 
-        white: '#FFFFFF' 
+      colors: {
+        cream: '#FDFBF7',
+        linen: '#F0E9E1',
+        stone: '#D8C7B8',
+        taupe: '#8A7364',
+        accent: '#7A5C42',
+        ink: '#2C2825',
+        white: '#FFFFFF'
       },
       typography: { display: 'Cormorant Garamond', body: 'Jost' },
+      shape: 'sharp',
     },
   },
   {
     name: 'Terracota Moderno',
-    description: 'Acolhedor, destaque em terracota e Inter',
+    description: 'Acolhedor, destaque em terracota, Inter e cantos suaves',
     tokens: {
       colors: { cream: '#FDFBF7', linen: '#F0E9E1', stone: '#D8C7B8', taupe: '#8A7364', accent: '#C86A46', ink: '#2C2825', white: '#FFFFFF' },
       typography: { display: 'Playfair Display', body: 'Inter' },
+      shape: 'soft',
     },
   },
   {
@@ -178,6 +181,25 @@ export const DESIGN_PRESETS: { name: string; description: string; tokens: NonNul
     tokens: {
       colors: { cream: '#232019', linen: '#3A342A', stone: '#8C7B6E', taupe: '#A89B8C', accent: '#C9A227', ink: '#141210', white: '#F5F2EC' },
       typography: { display: 'Cormorant Garamond', body: 'Jost' },
+      shape: 'sharp',
+    },
+  },
+  {
+    name: 'Romântico Suave',
+    description: 'Tons rosados, serifa literária e cantos arredondados',
+    tokens: {
+      colors: { cream: '#FAF5F2', linen: '#F1E6E1', stone: '#D9C2B8', taupe: '#9A7B70', accent: '#B07A6A', ink: '#2E2523', white: '#FFFFFF' },
+      typography: { display: 'Lora', body: 'Manrope' },
+      shape: 'round',
+    },
+  },
+  {
+    name: 'Minimal Galeria',
+    description: 'Neutro de galeria de arte, geométrico e cantos retos',
+    tokens: {
+      colors: { cream: '#F6F6F4', linen: '#ECECE9', stone: '#BDBDB8', taupe: '#6B6B66', accent: '#1F1F1D', ink: '#111111', white: '#FFFFFF' },
+      typography: { display: 'Jost', body: 'Inter' },
+      shape: 'sharp',
     },
   },
 ];

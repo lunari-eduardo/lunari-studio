@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { TemplateVars } from '@/pages/comercial/blocks/normalization';
 
 // Template padrão de blocos (V2) para um novo material
 const DEFAULT_TEMPLATE = [
@@ -28,7 +29,6 @@ export interface CommercialMaterial {
   title: string;
   categoria_id: string | null;
   cover_image_url: string | null;
-  orientation: 'portrait' | 'landscape';
   status: 'active' | 'archived';
   created_at: string;
   updated_at: string;
@@ -78,7 +78,7 @@ export function useMaterials() {
   });
 
   const createMaterial = useMutation({
-    mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url, orientation = 'portrait' }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string; orientation?: 'portrait' | 'landscape' }) => {
+    mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url, vars }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string; vars?: TemplateVars }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
@@ -90,31 +90,37 @@ export function useMaterials() {
           title,
           categoria_id: categoria_id || null,
           cover_image_url: cover_image_url || null,
-          orientation,
         })
         .select()
         .single();
 
       if (matError) throw matError;
 
-      // 1.5. Resolver o conteúdo inicial
-      let finalContent: any[] = initialContent || DEFAULT_TEMPLATE;
-      if (template_id) {
-        const { data: template, error: tmplError } = await (supabase as any)
-          .from('proposal_templates')
-          .select('blocks_json, design_tokens')
-          .eq('template_id', template_id)
-          .single();
-        if (!tmplError && template && template.blocks_json) {
-          const { instantiateTemplateBlocks } = await import('@/pages/comercial/blocks/normalization');
-          finalContent = instantiateTemplateBlocks(template.blocks_json);
-          // Preserva os design tokens do template dentro do bloco sintético global_settings
-          if (template.design_tokens) {
-            finalContent = [
-              ...finalContent.filter((b: any) => b?.type !== 'global_settings'),
-              { type: 'global_settings', data: { design_tokens: template.design_tokens } },
-            ];
+      // 1.5. Conteúdo inicial: PDF chega pronto; blocos (modelo ou padrão) sempre
+      // passam pelo hidratador — IDs novos, dados do autor limpos, variáveis do fotógrafo.
+      let finalContent: any = initialContent;
+      if (!finalContent) {
+        let source: any[] = DEFAULT_TEMPLATE;
+        let designTokens: any = null;
+        if (template_id) {
+          const { data: template, error: tmplError } = await (supabase as any)
+            .from('proposal_templates')
+            .select('blocks_json, design_tokens')
+            .eq('template_id', template_id)
+            .single();
+          if (!tmplError && template?.blocks_json) {
+            source = template.blocks_json;
+            designTokens = template.design_tokens;
           }
+        }
+        const { instantiateTemplateBlocks } = await import('@/pages/comercial/blocks/normalization');
+        finalContent = instantiateTemplateBlocks(source, vars);
+        // Preserva os design tokens do template dentro do bloco sintético global_settings
+        if (designTokens) {
+          finalContent = [
+            ...finalContent.filter((b: any) => b?.type !== 'global_settings'),
+            { type: 'global_settings', data: { design_tokens: designTokens } },
+          ];
         }
       }
 
@@ -230,7 +236,6 @@ export function useMaterials() {
           title: `Cópia de ${original.title}`,
           categoria_id: original.categoria_id,
           cover_image_url: original.cover_image_url,
-          orientation: original.orientation,
         })
         .select()
         .single();

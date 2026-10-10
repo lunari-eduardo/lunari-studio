@@ -6,6 +6,9 @@ import {
   Type,
   Layout,
   Minus,
+  Quote,
+  MessageCircle,
+  ScrollText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -125,22 +128,9 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'btnLink', label: 'Link do Botão', kind: 'url', placeholder: 'https://wa.me/5511999999999' },
       { key: 'image_url', label: 'Imagem de Capa', kind: 'image' },
     ],
-    layoutFields: [
-      ALIGN_FIELD,
-      backgroundField(),
-      textColorField(),
-      {
-        key: 'orientation',
-        label: 'Orientação',
-        kind: 'select',
-        options: [
-          { value: 'portrait', label: 'Retrato (3:4)' },
-          { value: 'landscape', label: 'Paisagem (16:9)' },
-        ],
-      },
-    ],
+    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
     variants: [
-      { value: 'minimal-center', label: 'Minimal', description: 'Editorial Minimalista (Retrato/Paisagem)' },
+      { value: 'minimal-center', label: 'Minimal', description: 'Editorial Minimalista' },
       { value: 'poster-split', label: 'Poster', description: 'Pôster Tipográfico em Grid' },
       { value: 'seam-side', label: 'Split Lateral', description: 'Costura Lateral 50/50' },
       { value: 'hero-full', label: 'Hero Fotográfico', description: 'Imersivo Full-Bleed' },
@@ -159,7 +149,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         btnLink: '',
         image_url: '',
       },
-      props: { align: 'left', background: 'white', text_color: 'default', orientation: 'portrait' },
+      props: { align: 'left', background: 'white', text_color: 'default' },
     }),
   },
 
@@ -382,6 +372,79 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     factory: () => ({
       content: { eyebrow: '', title: '', title_italic: '', body: '', side_label: '', image_url: '' },
       props: { background: 'cream', layout: 'split-left' },
+    }),
+  },
+
+  TestimonialBlock: {
+    type: 'TestimonialBlock',
+    name: 'Depoimentos',
+    description: 'Prova social de clientes reais',
+    icon: Quote,
+    fields: [
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'O que dizem' },
+      { key: 'title', label: 'Título', kind: 'text', placeholder: 'Depoimentos' },
+      {
+        key: 'items',
+        label: 'Depoimentos',
+        kind: 'list',
+        itemLabel: 'Depoimento',
+        itemFields: [
+          { key: 'quote', label: 'Depoimento', kind: 'textarea', placeholder: 'Nunca imaginei que fotos...' },
+          { key: 'author', label: 'Cliente', kind: 'text', placeholder: 'Nome do cliente' },
+          { key: 'service', label: 'Serviço', kind: 'text', placeholder: 'Ensaio Gestante' },
+        ],
+        itemFactory: testimonialItem,
+      },
+    ],
+    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    factory: () => ({
+      content: { eyebrow: 'O que dizem', title: 'Depoimentos', items: [] },
+      props: { align: 'center', background: 'cream' },
+    }),
+  },
+
+  CTABlock: {
+    type: 'CTABlock',
+    name: 'Chamada Final',
+    description: 'Fechamento com botão de contato',
+    icon: MessageCircle,
+    fields: [
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Próximo passo' },
+      { key: 'cta_text', label: 'Chamada Principal', kind: 'textarea', placeholder: 'Vamos criar algo lindo juntos?' },
+      { key: 'body', label: 'Texto de Apoio', kind: 'textarea', placeholder: 'As datas da temporada são limitadas...' },
+      { key: 'btnText', label: 'Texto do Botão (abre o WhatsApp do perfil)', kind: 'text', placeholder: 'Falar no WhatsApp' },
+      {
+        key: 'links',
+        label: 'Links de Contato',
+        kind: 'list',
+        itemLabel: 'Link',
+        itemFields: [
+          { key: 'label', label: 'Rótulo', kind: 'text', placeholder: '@seuperfil' },
+          { key: 'href', label: 'Endereço (https://, mailto:)', kind: 'url', placeholder: 'https://instagram.com/seuperfil' },
+        ],
+        itemFactory: linkItem,
+      },
+    ],
+    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    factory: () => ({
+      content: { eyebrow: '', cta_text: 'Vamos criar algo lindo juntos?', body: '', btnText: 'Falar no WhatsApp', links: [] },
+      props: { align: 'center', background: 'cream' },
+    }),
+  },
+
+  FooterTerms: {
+    type: 'FooterTerms',
+    name: 'Rodapé e Condições',
+    description: 'Validade, pagamento e assinatura',
+    icon: ScrollText,
+    fields: [
+      { key: 'terms', label: 'Condições (validade, pagamento, reserva)', kind: 'textarea', placeholder: 'Proposta válida por 7 dias. Reserva da data mediante sinal de 30%.' },
+      { key: 'copyright', label: 'Assinatura / Copyright', kind: 'text', placeholder: '© 2026 Seu Estúdio' },
+    ],
+    layoutFields: [backgroundField(), textColorField()],
+    factory: () => ({
+      content: { terms: '', copyright: '' },
+      props: { background: 'white' },
     }),
   },
 };

@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { EditableText } from '../../../../blocks/EditableText';
 import { EditableImage } from '../../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../../blocks/inlineContext';
-import { fd, fb, alignClass, sectionBg, textColorClass, CtaHandler } from '../helpers';
+import { sectionBg, textColorClass, coverStyles, HERO_MIN_H, CtaHandler } from '../helpers';
 
+/** Capa Moldura Fine Art — foto 4:5 em passe-partout flutuante, centralizada em qualquer largura. */
 export function CoverFloatingFrame({
   data,
   props,
@@ -24,52 +25,30 @@ export function CoverFloatingFrame({
     fieldKey: path,
   });
 
-  const isPortrait = (props?.orientation ?? 'portrait') === 'portrait';
-  const aspectClass = isPortrait ? 'aspect-[4/5]' : 'aspect-[16/10]';
-
   const btnText = data?.btnText;
-
-  const typography = props?.typography;
-  const eyebrowStyle = typography?.eyebrowSize ? { fontSize: `${typography.eyebrowSize}px` } : undefined;
-  const titleStyle = {
-    ...fd(),
-    ...(typography?.titleSize ? { fontSize: `${typography.titleSize}px` } : {}),
-  };
-  const italicStyle = typography?.titleItalicSize ? { fontSize: `${typography.titleItalicSize}px` } : undefined;
-  const subtitleStyle = {
-    ...fb(),
-    ...(typography?.subtitleSize ? { fontSize: `${typography.subtitleSize}px` } : {}),
-  };
-  const btnStyle = (typography?.btnTextSize || typography?.ctaSize)
-    ? { fontSize: `${typography.btnTextSize || typography.ctaSize}px` }
-    : undefined;
-  const photographerStyle = {
-    ...fb(),
-    ...((typography?.photographer_nameSize || typography?.photographerSize)
-      ? { fontSize: `${typography.photographer_nameSize || typography.photographerSize}px` }
-      : {}),
-  };
+  const s = coverStyles(props?.typography);
 
   return (
-    <section className={cn(
-      "overflow-hidden flex flex-col items-center",
-      isPortrait ? "py-10 @md:py-16 px-6 @md:px-12 min-h-[640px]" : "py-12 @md:py-20 px-6 @md:px-16 min-h-[520px]",
-      sectionBg(props?.background, 'white'),
-      textColorClass(props?.text_color, props?.background, 'white')
-    )}>
+    <section
+      className={cn(
+        'overflow-hidden flex flex-col items-center justify-center py-10 px-6 @md:py-16 @md:px-12 @2xl:py-20 @2xl:px-16',
+        HERO_MIN_H,
+        sectionBg(props?.background, 'white'),
+        textColorClass(props?.text_color, props?.background, 'white')
+      )}
+    >
       {/* Eyebrow */}
       {(data?.eyebrow || editable) && (
-        <div className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-60 mb-6" style={eyebrowStyle || fb()}>
-          <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="TÍTULO DA COLEÇÃO" style={eyebrowStyle} />
+        <div className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-60 mb-6" style={s.eyebrow}>
+          <EditableText {...et('eyebrow', data?.eyebrow)} placeholder="TÍTULO DA COLEÇÃO" />
         </div>
       )}
 
       {/* Título centralizado */}
-      <div className="text-3xl @md:text-4xl @lg:text-5xl text-center leading-[1.1] tracking-tight max-w-[15ch] mb-2" style={titleStyle}>
-        <EditableText {...et('title', data?.title ?? data?.title_regular)} placeholder="Título da proposta" />
-        {' '}
+      <div className="text-3xl @md:text-4xl @lg:text-5xl text-center leading-[1.1] tracking-tight max-w-[15ch] mb-2" style={s.title}>
+        <EditableText {...et('title', data?.title ?? data?.title_regular)} placeholder="Título da proposta" />{' '}
         {(data?.title_italic || editable) && (
-          <em className="italic opacity-60" style={italicStyle}>
+          <em className="italic opacity-60" style={s.italic}>
             <EditableText {...et('title_italic', data?.title_italic)} placeholder="em itálico" />
           </em>
         )}
@@ -77,15 +56,15 @@ export function CoverFloatingFrame({
 
       {/* Subtítulo */}
       {(data?.subtitle || editable) && (
-        <div className="text-center text-base max-w-[40ch] mb-10 leading-relaxed font-light opacity-80" style={subtitleStyle}>
+        <div className="text-center text-base max-w-[40ch] mb-10 leading-relaxed font-light opacity-80" style={s.subtitle}>
           <EditableText {...et('subtitle', data?.subtitle)} placeholder="Uma breve descrição sobre esta proposta ou galeria de arte." />
         </div>
       )}
 
       {/* Moldura flutuante */}
-      <div className={cn("relative mx-auto w-full", isPortrait ? "max-w-md" : "max-w-2xl")}>
-        <div className="p-3 @md:p-4 bg-white rounded-sm shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
-          <div className={cn("overflow-hidden relative", aspectClass)}>
+      <div className="relative mx-auto w-full max-w-sm @2xl:max-w-md">
+        <div className="p-3 @md:p-4 bg-white rounded-[var(--pa-r-media,0.125rem)] shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
+          <div className="overflow-hidden relative aspect-[4/5]">
             <EditableImage
               editable={editable}
               value={data?.image_url || null}
@@ -103,30 +82,29 @@ export function CoverFloatingFrame({
       {/* Metadados */}
       <div className="mt-8 flex flex-col items-center gap-4">
         {(data?.photographer_name || editable) && (
-          <div className="text-[9px] tracking-[0.3em] uppercase opacity-50" style={photographerStyle}>
+          <div className="text-[9px] tracking-[0.3em] uppercase opacity-50" style={s.photographer}>
             <EditableText {...et('photographer_name', data?.photographer_name)} placeholder="NOME DO FOTÓGRAFO" />
           </div>
         )}
 
         {/* CTA */}
-        {(btnText || editable) && (
-          editable ? (
+        {(btnText || editable) &&
+          (editable ? (
             <div
-              className="inline-flex items-center justify-center bg-[var(--pa-accent,#C86A46)] text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide cursor-text"
-              style={btnStyle}
+              className="inline-flex items-center justify-center bg-[var(--pa-accent,#C86A46)] text-white rounded-[var(--pa-r-btn,0px)] px-8 py-6 h-auto text-sm font-medium tracking-wide cursor-text"
+              style={s.btn}
             >
               <EditableText {...et('btnText', btnText)} placeholder="Acessar proposta" />
             </div>
           ) : (
             <Button
               onClick={() => onCtaClick?.({ blockType: 'cover', label: btnText })}
-              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-none px-8 py-6 h-auto text-sm font-medium tracking-wide"
-              style={btnStyle}
+              className="bg-[var(--pa-accent,#C86A46)] hover:bg-[var(--pa-accent,#C86A46)]/90 text-white rounded-[var(--pa-r-btn,0px)] px-8 py-6 h-auto text-sm font-medium tracking-wide"
+              style={s.btn}
             >
               {btnText}
             </Button>
-          )
-        )}
+          ))}
       </div>
     </section>
   );

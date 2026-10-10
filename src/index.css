@@ -988,3 +988,60 @@ a,
   display: inline-block;
   vertical-align: bottom;
 }
+
+/* ============================================================
+   Proposta como documento fluido (raiz .pa-doc do VisualRenderer)
+   - Nenhuma palavra digitada estoura a largura no celular
+     (`anywhere` também encolhe o min-content de itens de grid/flex).
+   - Títulos balanceados e parágrafos sem viúvas (progressivo).
+   ============================================================ */
+.pa-doc {
+  overflow-wrap: anywhere;
+  /* Fonte de corpo do tema como padrão (independe da fonte do app/visualizador) */
+  font-family: var(--pa-font-body, 'Inter'), 'Inter', system-ui, sans-serif;
+}
+.pa-doc :where(h1, h2, h3) {
+  text-wrap: balance;
+}
+@layer components {
+  /* Títulos herdam a cor da seção/tema: o base do app pinta h1–h6 com --foreground
+     (escuro sobre seções escuras; claro no modo escuro do app). Utilitários text-* ainda vencem. */
+  .pa-doc :where(h1, h2, h3, h4, h5, h6) { color: inherit; }
+}
+.pa-doc :where(p) {
+  text-wrap: pretty;
+}
+
+/* Pacotes: 1 → 2 → 3 colunas pelo container; a última linha fica centralizada. */
+.pa-pkg-grid {
+  --pa-pkg-gap: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--pa-pkg-gap);
+}
+.pa-pkg-grid > * { width: 100%; }
+.pa-pkg-grid > :only-child { width: min(100%, 28rem); }
+@container (min-width: 42rem) {
+  .pa-pkg-grid > * { width: calc((100% - var(--pa-pkg-gap)) / 2); }
+  /* Exatamente dois pacotes: lado a lado em meia largura, mesmo no desktop */
+  .pa-pkg-grid > :first-child:nth-last-child(2),
+  .pa-pkg-grid > :first-child:nth-last-child(2) ~ * { width: min(24rem, calc((100% - var(--pa-pkg-gap)) / 2)); }
+}
+@container (min-width: 56rem) {
+  .pa-pkg-grid > * { width: calc((100% - 2 * var(--pa-pkg-gap)) / 3); }
+}
+
+/* Galeria em linhas justificadas: cada foto mantém a proporção real e as linhas
+   fecham a largura exata, sem JS. Item = <img> (público) ou wrapper do editor. */
+.pa-justified {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pa-justified::after { content: ''; flex-grow: 999; } /* a última linha não estica */
+.pa-justified > * { position: relative; flex: 1 0 auto; height: 11rem; max-width: 100%; }
+.pa-justified > img { object-fit: cover; }
+.pa-justified > * > img { display: block; height: 100%; min-width: 100%; object-fit: cover; }
+@container (min-width: 42rem) { .pa-justified > * { height: 15rem; } }
+@container (min-width: 56rem) { .pa-justified > * { height: 17rem; } }

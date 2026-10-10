@@ -57,7 +57,7 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
       >
         <div className="max-w-[90%] md:max-w-[80%]">
           <h2 
-            className="text-5xl @md:text-7xl @lg:text-[10rem] leading-[0.85] tracking-tight pointer-events-auto"
+            className="text-[length:clamp(3rem,14cqi,10rem)] leading-[0.85] tracking-tight pointer-events-auto"
             style={fd}
           >
             <EditableText {...et('title', c.title)} placeholder="Título" />
