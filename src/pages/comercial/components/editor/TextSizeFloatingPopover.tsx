@@ -15,6 +15,16 @@ const FIELD_BOUNDS: Record<string, { min: number; max: number; default: number; 
   subtitle:          { min: 14, max: 28,  default: 18, label: 'Subtítulo' },
   photographer_name: { min: 9,  max: 18,  default: 11, label: 'Assinatura' },
   btnText:           { min: 11, max: 18,  default: 14, label: 'Botão' },
+  // Demais seções (campos de topo)
+  body:              { min: 12, max: 28,  default: 16, label: 'Texto' },
+  caption:           { min: 12, max: 32,  default: 16, label: 'Legenda' },
+  cta_text:          { min: 24, max: 120, default: 48, label: 'Chamada' },
+  aside:             { min: 14, max: 40,  default: 22, label: 'Frases de destaque' },
+  vertical_label:    { min: 8,  max: 16,  default: 10, label: 'Assinatura' },
+  side_label:        { min: 8,  max: 16,  default: 10, label: 'Rótulo lateral' },
+  label:             { min: 8,  max: 16,  default: 10, label: 'Rótulo' },
+  terms:             { min: 10, max: 18,  default: 12, label: 'Condições' },
+  copyright:         { min: 9,  max: 16,  default: 11, label: 'Assinatura' },
 };
 
 export interface TextSizePopoverProps {

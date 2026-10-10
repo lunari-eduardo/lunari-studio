@@ -20,6 +20,20 @@ export const fluidPx = (px?: number): React.CSSProperties | undefined =>
     ? { fontSize: `clamp(${Math.min(px, Math.max(10, Math.round(px * 0.5)))}px, ${(px / 6.4).toFixed(2)}cqi, ${px}px)` }
     : undefined;
 
+/** Chave do tamanho de um campo em props.typography (as capas mantêm os nomes canônicos antigos). */
+export function typographyKey(fieldKey: string): string {
+  switch (fieldKey) {
+    case 'photographer_name':
+      return 'photographerSize';
+    case 'btnText':
+      return 'ctaSize';
+    case 'title_italic':
+      return 'titleItalicSize';
+    default:
+      return `${fieldKey}Size`;
+  }
+}
+
 /** Estilos tipográficos das capas (fontes do tema + tamanhos do popover). */
 export function coverStyles(t: Record<string, number | undefined> = {}) {
   return {

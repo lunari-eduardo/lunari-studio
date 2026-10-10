@@ -57,6 +57,7 @@ export function PricingClassic({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -154,6 +155,7 @@ export function PricingCardsMinimal({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -253,6 +255,7 @@ export function PricingNumberedEditorial({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -414,6 +417,7 @@ export function PricingMagazine({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];

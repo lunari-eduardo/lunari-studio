@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -75,7 +75,7 @@ const ACTION_FIELD_KEYS = new Set(['btnText', 'btnLink']);
 function fieldGroup(field: BlockField, isProp: boolean): FieldGroup {
   if (field.group) return field.group;
   if (ACTION_FIELD_KEYS.has(field.key) || field.kind === 'url') return 'actions';
-  if (field.kind === 'image') return 'media';
+  if (field.kind === 'image' || field.kind === 'gallery') return 'media';
   if (field.kind === 'list') return 'items';
   if (field.kind === 'align' || field.key === 'layout' || field.key === 'style') return 'layout';
   return isProp ? 'style' : 'text';
@@ -117,18 +117,25 @@ export function PropertiesSidebar({
   const [openGroup, setOpenGroup] = useState<string>('text');
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const uid = useId();
 
   const def = getBlockDef(block.type);
   const content: Record<string, any> = block.content ?? {};
   const props: Record<string, any> = block.props ?? {};
   const palette = { ...DEFAULT_DESIGN_TOKENS.colors, ...(designTokens?.colors ?? {}) };
 
+  // Uploads terminam depois de outras edições: grava sobre a seção mais recente, não a do clique
+  // (só se ainda for a mesma seção: se o fotógrafo trocou de seção no meio, vale o estado capturado)
+  const blockRef = useRef(block);
+  blockRef.current = block;
+  const latest = () => (blockRef.current.id === block.id ? blockRef.current : block);
+
   const setContent = (updates: Record<string, any>) => {
-    onUpdateBlock(blockIndex, { content: { ...content, ...updates } });
+    onUpdateBlock(blockIndex, { content: { ...(latest().content ?? {}), ...updates } });
   };
 
   const setProps = (updates: Record<string, any>) => {
-    onUpdateBlock(blockIndex, { props: { ...props, ...updates } });
+    onUpdateBlock(blockIndex, { props: { ...(latest().props ?? {}), ...updates } });
   };
 
   const importPackage = (pacote: Pacote) => {
@@ -182,7 +189,9 @@ export function PropertiesSidebar({
       summary = summarize(items, content, props);
     } else if (g.key === 'media') {
       const refs = [
-        ...items.map((e) => content[e.field.key]),
+        ...items.flatMap((e) =>
+          e.field.kind === 'gallery' ? (content[e.field.key] ?? []).map((img: any) => img?.image_ref) : [content[e.field.key]]
+        ),
         ...slots.map((s) => props[s.key]?.image_ref),
       ];
       const filled = refs.filter(Boolean).length;
@@ -304,7 +313,7 @@ export function PropertiesSidebar({
                     {g.key === 'media' &&
                       slots.map((slot) => {
                         const current = props[slot.key]?.image_ref ?? null;
-                        const inputId = `upload-${slot.key}-${blockIndex}`;
+                        const inputId = `${uid}-${slot.key}`; // único por instância do painel
                         return (
                           <div key={slot.key} className="space-y-2">
                             <Label className="text-xs text-muted-foreground">{slot.label}</Label>

@@ -20,6 +20,9 @@ interface EditableImageProps {
   fill?: boolean;
   /** Foto de fundo com texto por cima (capas): a ação vazia vai para o canto, acima do texto */
   actionCorner?: boolean;
+  /** Clique simples seleciona a foto (galeria: abre a barra da foto). Duplo clique segue trocando. */
+  onSelect?: (el: HTMLElement) => void;
+  selected?: boolean;
 }
 
 // ============================================================
@@ -43,6 +46,8 @@ export function EditableImage({
   publicEmptyClassName,
   fill = true,
   actionCorner = false,
+  onSelect,
+  selected = false,
 }: EditableImageProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -106,6 +111,14 @@ export function EditableImage({
       // relative por padrão: o selo "Trocar foto" precisa de um ancestral posicionado (absolute do chamador vence)
       className={cn('group/img relative', className)}
       style={style}
+      onClick={
+        onSelect && imgSrc
+          ? (e) => {
+              e.stopPropagation();
+              onSelect(e.currentTarget);
+            }
+          : undefined
+      }
       onDoubleClick={pick}
       title={imgSrc ? 'Trocar foto (ou duplo clique na imagem)' : 'Enviar foto'}
     >
@@ -139,10 +152,20 @@ export function EditableImage({
 
       {imgSrc && (
         <>
+          {/* Seleção (galeria): contorno por dentro — células da grade recortam o que fica fora */}
+          {selected && <div className="pointer-events-none absolute inset-0 z-20 ring-[3px] ring-inset ring-primary" />}
           {/* Leve escurecimento no hover sinaliza que a foto é editável */}
           <div className="absolute inset-0 z-10 bg-black/20 opacity-0 transition-opacity pointer-events-none group-hover/img:opacity-100" />
-          {/* Sempre visível no editor: o fotógrafo vê de imediato que pode trocar a foto */}
-          <div className="absolute right-2 bottom-2 z-20">{pickButton('Trocar foto')}</div>
+          {/* Sempre visível no editor (o fotógrafo vê de imediato que pode trocar a foto); em galerias
+              selecionáveis só no hover, para 20 fotos não virarem 20 pílulas — a barra da foto tem "Trocar" */}
+          <div
+            className={cn(
+              'absolute right-2 bottom-2 z-20',
+              onSelect && 'opacity-0 transition-opacity group-hover/img:opacity-100 focus-within:opacity-100'
+            )}
+          >
+            {pickButton('Trocar foto')}
+          </div>
         </>
       )}
 
@@ -172,16 +195,18 @@ export function AddImageTile({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState('');
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     setIsUploading(true);
     try {
       if (files.length > 1 && onAddMultiple) {
-        const urls = await uploadMultipleProposalImages(files);
-        onAddMultiple(urls);
+        const { urls, failed } = await uploadMultipleProposalImages(files, (done, total) => setProgress(`${done} de ${total}`));
+        if (urls.length) onAddMultiple(urls);
+        if (failed) toast.error(`${failed} foto(s) não foram enviadas. Verifique a conexão e tente de novo.`);
       } else {
         const url = await uploadProposalImage(files[0]);
         onAdd(url);
@@ -191,6 +216,7 @@ export function AddImageTile({
       toast.error('Erro ao enviar imagem. Verifique a conexão e tente novamente.');
     } finally {
       setIsUploading(false);
+      setProgress('');
       e.target.value = '';
     }
   };
@@ -204,7 +230,7 @@ export function AddImageTile({
       title={label}
     >
       {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-      <span className="text-[10px] font-medium tracking-widest uppercase">{isUploading ? 'Enviando…' : label}</span>
+      <span className="text-[10px] font-medium tracking-widest uppercase">{isUploading ? `Enviando ${progress}…` : label}</span>
       <input
         ref={inputRef}
         type="file"

@@ -51,6 +51,7 @@ export function DocumentStylePanel({
   tokens?: ProposalDesignTokens;
   onChange: (tokens: ProposalDesignTokens) => void;
 }) {
+  const titleCaseId = React.useId();
   const colors = { ...DEFAULT_DESIGN_TOKENS.colors, ...(tokens.colors ?? {}) };
   const setColor = (key: ColorKey, value: string) => onChange({ ...tokens, colors: { ...colors, [key]: value } });
   const setTypography = (updates: Partial<NonNullable<ProposalDesignTokens['typography']>>) =>
@@ -150,11 +151,11 @@ export function DocumentStylePanel({
           );
         })}
         <div className="flex items-center justify-between gap-2 pt-1">
-          <Label htmlFor="title-case-upper" className="cursor-pointer text-xs text-muted-foreground">
+          <Label htmlFor={titleCaseId} className="cursor-pointer text-xs text-muted-foreground">
             Títulos em caixa-alta
           </Label>
           <Switch
-            id="title-case-upper"
+            id={titleCaseId}
             checked={tokens.typography?.title_case === 'upper'}
             onCheckedChange={(on) => setTypography({ title_case: on ? 'upper' : undefined })}
           />

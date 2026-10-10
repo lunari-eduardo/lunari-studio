@@ -5,6 +5,7 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage, AddImageTile } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
+import { fillGallerySlots } from '../../../blocks/registryDefinitions';
 
 export function DefaultRenderer({ block }: { block: BlockData }) {
   const inline = useInlineEdit();
@@ -12,6 +13,7 @@ export function DefaultRenderer({ block }: { block: BlockData }) {
     editable: inline?.editable ?? false,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const v = block.content ?? block.data ?? {};
   const align = alignClass(block.props?.align, 'center');
@@ -39,6 +41,9 @@ export function DefaultRenderer({ block }: { block: BlockData }) {
   );
 }
 
+// Tamanho por foto na grade → data-span lido pelo CSS .pa-gal-grid
+const GRID_SPAN: Record<string, string> = { wide_2cols: 'wide', tall_2rows: 'tall', feature_2x2: 'feature' };
+
 export function GalleryRenderer({
   content,
   data,
@@ -54,31 +59,23 @@ export function GalleryRenderer({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const images: any[] = c.images || [];
   const layout = props?.layout ?? 'masonry';
   const align = alignClass(props?.align, 'center');
 
-  const addImage = (url: string) => {
-    inline?.set('images', [
-      ...images,
-      { id: crypto.randomUUID(), image_ref: url, span: 'normal', ratio: 'auto' },
-    ]);
-  };
-
-  const addMultipleImages = (urls: string[]) => {
-    const newImages = urls.map((url) => ({
-      id: crypto.randomUUID(),
-      image_ref: url,
-      span: 'normal',
-      ratio: 'auto',
-    }));
-    inline?.set('images', [...images, ...newImages]);
-  };
+  const addImage = (url: string) => inline?.set('images', fillGallerySlots(images, [url]));
+  const addMultipleImages = (urls: string[]) => inline?.set('images', fillGallerySlots(images, urls));
 
   const commitAt = (idx: number) => (url: string) => inline?.set(`images.${idx}.image_ref`, url);
   const addTile = editable && <AddImageTile onAdd={addImage} onAddMultiple={addMultipleImages} />;
+  // Clique simples numa foto: barra da foto (tamanho/proporção/ordem) — só no editor
+  const selectProps = (idx: number) =>
+    editable && inline?.onSelectImage
+      ? { onSelect: (el: HTMLElement) => inline.onSelectImage!(idx, el), selected: inline.selectedImage === idx }
+      : {};
 
   // No público, slots vazios (comuns em modelos recém-criados) não viram caixas; sem fotos, a seção some.
   const shown = images.map((img, idx) => ({ img, idx })).filter(({ img }) => editable || img?.image_ref);
@@ -101,24 +98,25 @@ export function GalleryRenderer({
             className="rounded-[var(--pa-r-media,2px)] overflow-hidden"
             imgClassName="w-auto"
             onCommit={commitAt(idx)}
+            {...selectProps(idx)}
           />
         ))}
         {addTile}
       </div>
     );
   } else if (layout === 'grid') {
-    // Grade de proporção fixa: célula normal usa a proporção escolhida (padrão 4:5);
-    // células "alta"/"larga" preenchem a área do span. grid-flow-dense fecha os buracos.
+    // Grade: proporção única do bloco (legado migrado no normalizeBlock; padrão 4:5 = 1ª opção do painel) e
+    // tamanho por foto em múltiplos exatos da célula (CSS .pa-gal-grid) — normal, larga, alta e destaque coerentes.
+    const ratio: string = props?.ratio ?? '4/5';
+    const [w, h] = ratio.split('/').map(Number);
     grid = (
-      <div className="grid grid-cols-2 @2xl:grid-cols-3 @4xl:grid-cols-4 gap-3 grid-flow-dense">
-        {shown.map(({ img, idx }) => {
-          const span = img.span === 'tall_2rows' ? 'row-span-2' : img.span === 'wide_2cols' ? 'col-span-2' : '';
-          const ratio = img.ratio && img.ratio !== 'auto' ? img.ratio : '4/5';
-          return (
+      <div className="pa-gal">
+        <div className="pa-gal-grid" style={{ ['--pa-gal-r' as any]: w && h ? h / w : 1.25 }}>
+          {shown.map(({ img, idx }) => (
             <div
               key={img.id || idx}
-              className={cn('relative overflow-hidden rounded-[var(--pa-r-media,2px)] bg-black/5', span, span && 'min-h-[10rem]')}
-              style={span ? undefined : { aspectRatio: ratio.replace('/', ' / ') }}
+              data-span={GRID_SPAN[img.span]}
+              className="relative overflow-hidden rounded-[var(--pa-r-media,2px)] bg-black/5"
             >
               <EditableImage
                 editable={editable}
@@ -128,30 +126,42 @@ export function GalleryRenderer({
                 className="absolute inset-0 w-full h-full"
                 imgClassName="object-cover w-full h-full"
                 onCommit={commitAt(idx)}
+                {...selectProps(idx)}
+              />
+            </div>
+          ))}
+          {addTile}
+        </div>
+      </div>
+    );
+  } else {
+    // Mosaico (padrão): proporção real de cada foto; recorte opcional por foto. Poucas fotos = menos colunas
+    const count = shown.length + (addTile ? 1 : 0);
+    const columns = count <= 1 ? 'columns-1' : count === 2 ? 'columns-2' : 'columns-2 @2xl:columns-3 @4xl:columns-4';
+    grid = (
+      <div className={cn(columns, 'gap-3')}>
+        {shown.map(({ img, idx }) => {
+          const crop = img.ratio && img.ratio !== 'auto' ? String(img.ratio).replace('/', ' / ') : undefined;
+          return (
+            <div
+              key={img.id || idx}
+              className="mb-3 break-inside-avoid rounded-[var(--pa-r-media,2px)] overflow-hidden bg-black/5 relative"
+              style={crop ? { aspectRatio: crop } : undefined}
+            >
+              <EditableImage
+                editable={editable}
+                value={img.image_ref || null}
+                label="Foto"
+                alt="Foto do portfólio"
+                fill={!!crop}
+                className={crop ? 'absolute inset-0 w-full h-full' : undefined}
+                imgClassName={crop ? 'object-cover w-full h-full' : 'w-full h-auto block'}
+                onCommit={commitAt(idx)}
+                {...selectProps(idx)}
               />
             </div>
           );
         })}
-        {addTile}
-      </div>
-    );
-  } else {
-    // Masonry (padrão): colunas com a proporção real de cada foto
-    grid = (
-      <div className="columns-2 @2xl:columns-3 @4xl:columns-4 gap-3">
-        {shown.map(({ img, idx }) => (
-          <div key={img.id || idx} className="mb-3 break-inside-avoid rounded-[var(--pa-r-media,2px)] overflow-hidden bg-black/5 relative">
-            <EditableImage
-              editable={editable}
-              value={img.image_ref || null}
-              label="Foto"
-              alt="Foto do portfólio"
-              fill={false}
-              imgClassName="w-full h-auto block"
-              onCommit={commitAt(idx)}
-            />
-          </div>
-        ))}
         {addTile && <div className="mb-3 break-inside-avoid">{addTile}</div>}
       </div>
     );
@@ -195,6 +205,7 @@ export function DividerRenderer({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
   const c = content || data || {};
   const style = props?.style || 'hairline';

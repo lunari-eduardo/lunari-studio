@@ -25,6 +25,7 @@ export type FieldKind =
   | 'boolean'
   | 'color'
   | 'swatch'          // amostras da paleta do tema + cor livre (fundo da seção)
+  | 'gallery'         // fotos em lote: envio múltiplo + miniaturas reordenáveis
   | 'align';          // controle segmentado esquerda/centro/direita/justificado
 
 /** Grupo do inspector (acordeão). Ausente = inferido pelo tipo do campo (ver PropertiesSidebar). */
@@ -133,6 +134,23 @@ export const packageItem = () => ({
 export const testimonialItem = () => ({ id: crypto.randomUUID(), quote: '', author: '', service: '' });
 export const linkItem = () => ({ id: crypto.randomUUID(), label: '', href: '' });
 export const galleryItem = () => ({ id: crypto.randomUUID(), image_ref: '', span: 'normal', ratio: 'auto' });
+
+/**
+ * Fotos novas ocupam primeiro os espaços vazios do modelo (que guardam o desenho: tamanhos
+ * da grade) e só depois entram no fim da galeria.
+ */
+export function fillGallerySlots(images: Record<string, any>[], urls: string[]): Record<string, any>[] {
+  const queue = [...urls];
+  const next = images.map((img) => (!img?.image_ref && queue.length ? { ...img, image_ref: queue.shift() } : img));
+  return [...next, ...queue.map((url) => ({ ...galleryItem(), image_ref: url }))];
+}
+
+export const GALLERY_SPAN_OPTIONS = [
+  { value: 'normal', label: 'Normal' },
+  { value: 'wide_2cols', label: 'Larga' },
+  { value: 'tall_2rows', label: 'Alta' },
+  { value: 'feature_2x2', label: 'Destaque' },
+];
 export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
 
 export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
@@ -300,35 +318,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Portfólio' },
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Portfólio' },
       { key: 'caption', label: 'Legenda', kind: 'text', placeholder: 'Alguns momentos recentes' },
-      {
-        key: 'images',
-        label: 'Imagens',
-        kind: 'list',
-        itemLabel: 'Imagem',
-        itemFields: [
-          { key: 'image_ref', label: 'Imagem', kind: 'image' },
-          // Tamanho e proporção só valem na disposição "Grade"
-          {
-            key: 'span',
-            label: 'Tamanho na grade',
-            kind: 'select',
-            options: [
-              { value: 'normal', label: 'Normal' },
-              { value: 'tall_2rows', label: 'Alta (2 linhas)' },
-              { value: 'wide_2cols', label: 'Larga (2 colunas)' },
-            ],
-            showIf: ({ props }) => props.layout === 'grid',
-          },
-          {
-            key: 'ratio',
-            label: 'Proporção',
-            kind: 'select',
-            options: IMAGE_RATIO_OPTIONS,
-            showIf: ({ props }) => props.layout === 'grid',
-          },
-        ],
-        itemFactory: galleryItem,
-      },
+      // Envio em lote + miniaturas reordenáveis no painel; tamanho/proporção por foto ficam no canvas (clique na foto)
+      { key: 'images', label: 'Fotos', kind: 'gallery', itemFactory: galleryItem },
     ],
     layoutFields: [
       ALIGN_FIELD,
@@ -336,13 +327,22 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       textColorField(),
       {
         key: 'layout',
-        label: 'Disposição das Fotos',
+        label: 'Disposição das fotos',
         kind: 'select',
         options: [
-          { value: 'masonry', label: 'Masonry (proporção real)' },
-          { value: 'grid', label: 'Grade (proporção fixa)' },
-          { value: 'editorial-rows', label: 'Linhas Justificadas (editorial)' },
+          { value: 'masonry', label: 'Mosaico: proporção real de cada foto' },
+          { value: 'grid', label: 'Grade: proporção única e fotos em destaque' },
+          { value: 'editorial-rows', label: 'Linhas editoriais: fotos lado a lado' },
         ],
+      },
+      {
+        key: 'ratio',
+        label: 'Proporção das fotos',
+        kind: 'select',
+        // 4:5 primeiro: é o padrão da grade quando o bloco ainda não escolheu (o select exibe a 1ª opção)
+        options: ['4/5', '1/1', '4/3', '16/9'].map((v) => IMAGE_RATIO_OPTIONS.find((o) => o.value === v)!),
+        group: 'layout',
+        showIf: ({ props }) => props.layout === 'grid',
       },
     ],
     factory: () => ({
@@ -448,6 +448,11 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    variants: [
+      { value: 'columns', label: 'Colunas', description: 'Todos à vista, em colunas que se acomodam' },
+      { value: 'carousel', label: 'Carrossel', description: 'Um depoimento por vez, em destaque, com setas e deslize' },
+    ],
+    defaultVariant: 'columns',
     factory: () => ({
       content: { eyebrow: 'O que dizem', title: 'Depoimentos', items: [] },
       props: { align: 'center', background: 'cream' },

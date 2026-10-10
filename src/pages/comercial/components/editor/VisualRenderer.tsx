@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, onColor, DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
-import { BlockObserver } from './blocks/helpers';
+import { BlockObserver, typographyKey } from './blocks/helpers';
 import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
@@ -13,7 +13,7 @@ import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/Gall
 import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
 import { InfoRenderer } from './blocks/InfoBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
-import { SectionToolbar, InsertSectionButton } from './CanvasToolbars';
+import { SectionToolbar, InsertSectionButton, GalleryImageToolbar } from './CanvasToolbars';
 
 // Altura da "tela" onde a capa ancora: viewport real (público/editor) ou a moldura do celular (812px - bordas).
 const HERO_HEIGHT = { desktop: '100svh', mobile: '788px' } as const;
@@ -72,20 +72,6 @@ export function VisualRenderer({
       ? { ['--pa-sec-bg' as any]: bg, ['--pa-on-sec' as any]: onColor(bg, palette.ink, palette.white) }
       : undefined;
 
-// Mapeia chaves de campos para as propriedades canônicas do CoverTypography
-function getTypographyPropKey(fieldKey: string): string {
-  switch (fieldKey) {
-    case 'photographer_name':
-      return 'photographerSize';
-    case 'btnText':
-      return 'ctaSize';
-    case 'title_italic':
-      return 'titleItalicSize';
-    default:
-      return `${fieldKey}Size`;
-  }
-}
-
   // Estado do popover de tamanho de texto
   const [textSizeState, setTextSizeState] = useState<{
     fieldKey: string | null;
@@ -106,10 +92,31 @@ function getTypographyPropKey(fieldKey: string): string {
     [activeIndex, onSelectBlock]
   );
 
+  // Foto da galeria selecionada (barra da foto)
+  const [imageSel, setImageSel] = useState<{ blockIndex: number; imageIndex: number; anchorEl: HTMLElement } | null>(null);
+  const closeImageSel = useCallback(() => setImageSel(null), []);
+  const handleSelectImage = useCallback(
+    (blockIndex: number) => (imageIndex: number, anchorEl: HTMLElement) => {
+      setImageSel({ blockIndex, imageIndex, anchorEl });
+      setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 });
+      if (blockIndex !== activeIndex) onSelectBlock(blockIndex, { scroll: false });
+    },
+    [activeIndex, onSelectBlock]
+  );
+  // Popovers guardam o índice da seção: se a ordem muda (mover, duplicar, remover, trocar modelo), fecham
+  const blockOrder = blocks.map((b) => b.id).join('|');
+  React.useEffect(() => {
+    setImageSel(null);
+    setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 });
+  }, [blockOrder]);
+  const selectedGallery = imageSel ? blocks[imageSel.blockIndex] : undefined;
+  const selectedImages: any[] = selectedGallery?.content?.images ?? [];
+  const setImages = (next: any[]) => imageSel && onUpdateField?.(imageSel.blockIndex, 'images', next);
+
   const handleTextSizeChange = useCallback(
     (fieldKey: string, size: number | undefined) => {
       if (textSizeState.blockIndex < 0) return;
-      const propKey = getTypographyPropKey(fieldKey);
+      const propKey = typographyKey(fieldKey);
       onUpdateField?.(textSizeState.blockIndex, `props.typography.${propKey}`, size);
     },
     [textSizeState.blockIndex, onUpdateField]
@@ -153,7 +160,12 @@ function getTypographyPropKey(fieldKey: string): string {
             editable: isEditing && inlineEditing,
             set: (path: string, value: any) => onUpdateField?.(blockIdx, path, value),
             activeTextField: textSizeState.blockIndex === blockIdx ? textSizeState.fieldKey : null,
-            onSelectTextField: handleSelectTextField(blockIdx),
+            // Tamanho de texto só no desktop: o valor é o tamanho cheio (≥640px) e encolhe proporcionalmente
+            // no celular — ajustar na moldura do celular faria o "+" parecer diminuir o texto
+            onSelectTextField: viewMode === 'desktop' ? handleSelectTextField(blockIdx) : undefined,
+            typography: block.props?.typography,
+            selectedImage: imageSel?.blockIndex === blockIdx ? imageSel.imageIndex : null,
+            onSelectImage: handleSelectImage(blockIdx),
           };
 
           const content = (
@@ -220,7 +232,8 @@ function getTypographyPropKey(fieldKey: string): string {
               id={`section-block-${index}`}
               data-section-index={index}
               style={sectionVars(block.props?.background)}
-              onClick={() => onSelectBlock(index)}
+              // Clique na arte seleciona sem rolar: a seção já está à vista, e rolar desviaria o duplo clique de edição
+              onClick={() => onSelectBlock(index, { scroll: false })}
               className={cn(
                 'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full h-auto',
                 isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_rgba(200,106,70,0.1)]' : 'hover:outline-primary/30'
@@ -269,6 +282,30 @@ function getTypographyPropKey(fieldKey: string): string {
         )}
       </div>
 
+      {/* Barra da foto da galeria (clique simples numa foto) */}
+      {isEditing && inlineEditing && imageSel && selectedGallery?.type === 'Gallery' && selectedImages[imageSel.imageIndex] && (
+        <GalleryImageToolbar
+          anchorEl={imageSel.anchorEl}
+          layout={selectedGallery.props?.layout ?? 'masonry'}
+          image={selectedImages[imageSel.imageIndex]}
+          index={imageSel.imageIndex}
+          count={selectedImages.length}
+          onSet={(key, value) => onUpdateField?.(imageSel.blockIndex, `images.${imageSel.imageIndex}.${key}`, value)}
+          onMove={(dir) => {
+            const i = imageSel.imageIndex;
+            const next = [...selectedImages];
+            [next[i], next[i + dir]] = [next[i + dir], next[i]];
+            setImages(next);
+            setImageSel({ ...imageSel, imageIndex: i + dir }); // a foto (mesmo elemento, chave por id) segue selecionada
+          }}
+          onRemove={() => {
+            setImages(selectedImages.filter((_, i) => i !== imageSel.imageIndex));
+            setImageSel(null);
+          }}
+          onClose={closeImageSel}
+        />
+      )}
+
       {/* Popover flutuante de tamanho de texto */}
       {isEditing && inlineEditing && textSizeState.fieldKey && textSizeState.anchorEl && (
         <TextSizeFloatingPopover
@@ -277,7 +314,7 @@ function getTypographyPropKey(fieldKey: string): string {
             if (textSizeState.blockIndex < 0) return undefined;
             const typo = (blocks[textSizeState.blockIndex]?.props as any)?.typography;
             if (!typo) return undefined;
-            const canonicalKey = getTypographyPropKey(textSizeState.fieldKey);
+            const canonicalKey = typographyKey(textSizeState.fieldKey);
             return typo[canonicalKey] ?? typo[`${textSizeState.fieldKey}Size`];
           })()}
           anchorEl={textSizeState.anchorEl}

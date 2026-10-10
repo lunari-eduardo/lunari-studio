@@ -1,9 +1,12 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, Copy, LayoutGrid, Plus, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Camera, Copy, LayoutGrid, Loader2, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { BlockData } from '@/hooks/useMaterialEditor';
-import { getBlockDef, type FieldCtx } from '../../blocks/registry';
+import { getBlockDef, GALLERY_SPAN_OPTIONS, IMAGE_RATIO_OPTIONS, type FieldCtx } from '../../blocks/registry';
+import { uploadProposalImage } from '../../blocks/uploadImage';
 import { BackgroundSwatches, backgroundSwatchColor } from '../../blocks/FieldEditor';
 import { DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
 
@@ -167,20 +170,163 @@ export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSe
 
         {(layout || bgField) && <span className="mx-0.5 h-4 w-px bg-border" aria-hidden />}
 
-        <ToolButton label="Mover para cima" onClick={() => onMove('up')} disabled={index === 0}>
+        <ToolButton label="Mover para cima (Alt+↑)" onClick={() => onMove('up')} disabled={index === 0}>
           <ArrowUp className="h-3.5 w-3.5" />
         </ToolButton>
-        <ToolButton label="Mover para baixo" onClick={() => onMove('down')} disabled={index === count - 1}>
+        <ToolButton label="Mover para baixo (Alt+↓)" onClick={() => onMove('down')} disabled={index === count - 1}>
           <ArrowDown className="h-3.5 w-3.5" />
         </ToolButton>
-        <ToolButton label="Duplicar seção" onClick={onDuplicate}>
+        <ToolButton label="Duplicar seção (Ctrl+D)" onClick={onDuplicate}>
           <Copy className="h-3.5 w-3.5" />
         </ToolButton>
-        <ToolButton label="Remover seção (Ctrl+Z desfaz)" onClick={onRemove} danger>
+        <ToolButton label="Remover seção (Delete)" onClick={onRemove} danger>
           <Trash2 className="h-3.5 w-3.5" />
         </ToolButton>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// BARRA DA FOTO (galeria) — clique simples numa foto no canvas
+// Trocar · tamanho (grade) ou proporção (mosaico) · mover · remover.
+// Portal no body: fora do zoom do canvas, posicionada pela foto.
+// ============================================================
+export interface GalleryImageToolbarProps {
+  anchorEl: HTMLElement;
+  /** Disposição da galeria: define quais ajustes existem para a foto. */
+  layout: string;
+  image: Record<string, any>;
+  index: number;
+  count: number;
+  onSet: (key: string, value: any) => void;
+  onMove: (direction: -1 | 1) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}
+
+const MASONRY_RATIOS = IMAGE_RATIO_OPTIONS.map((o) => ({ ...o, label: o.value === 'auto' ? 'Original' : o.label.replace(/.*\((.*)\)/, '$1') }));
+
+function Segmented({ options, value, onChange, label }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void; label: string }) {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-muted/60 p-0.5" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'h-6 rounded-md px-2 text-[11px] font-medium transition-colors',
+            value === o.value ? 'bg-background text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function GalleryImageToolbar({ anchorEl, layout, image, index, count, onSet, onMove, onRemove, onClose }: GalleryImageToolbarProps) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const [pos, setPos] = React.useState<{ top: number; left: number } | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+
+  // Acompanha a foto (rolagem, redimensionamento e mudança de tamanho na grade)
+  React.useLayoutEffect(() => {
+    const place = () => {
+      if (!anchorEl.isConnected) return onClose();
+      const r = anchorEl.getBoundingClientRect();
+      const h = ref.current?.offsetHeight ?? 40;
+      const top = r.top - h - 10 >= 8 ? r.top - h - 10 : Math.min(r.bottom + 10, window.innerHeight - h - 8);
+      const half = (ref.current?.offsetWidth ?? 360) / 2 + 8;
+      setPos({ top, left: Math.min(Math.max(r.left + r.width / 2, half), window.innerWidth - half) });
+    };
+    place();
+    const ro = new ResizeObserver(place);
+    ro.observe(anchorEl);
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [anchorEl, onClose]);
+
+  // Fecha com Esc ou clique fora (a própria foto reabre/mantém)
+  React.useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!ref.current?.contains(t) && !anchorEl.contains(t)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [anchorEl, onClose]);
+
+  const replace = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      onSet('image_ref', await uploadProposalImage(file));
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao enviar imagem. Verifique a conexão e tente novamente.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      ref={ref}
+      role="toolbar"
+      aria-label="Ajustes da foto"
+      onMouseDown={stop}
+      onClick={stop}
+      className="fixed z-[999] flex -translate-x-1/2 items-center gap-1 rounded-xl border border-border/70 bg-background/95 p-1 text-foreground shadow-[0_4px_30px_rgba(0,0,0,0.14)] backdrop-blur-sm"
+      style={{ top: pos?.top ?? -9999, left: pos?.left ?? 0 }}
+    >
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        disabled={uploading}
+        className="flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium hover:bg-muted disabled:opacity-60"
+      >
+        {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5 text-muted-foreground" />}
+        Trocar
+      </button>
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={replace} />
+
+      {layout === 'grid' && (
+        <Segmented label="Tamanho na grade" options={GALLERY_SPAN_OPTIONS} value={image.span ?? 'normal'} onChange={(v) => onSet('span', v)} />
+      )}
+      {layout === 'masonry' && (
+        <Segmented label="Proporção da foto" options={MASONRY_RATIOS} value={image.ratio ?? 'auto'} onChange={(v) => onSet('ratio', v)} />
+      )}
+
+      <span className="mx-0.5 h-4 w-px bg-border" aria-hidden />
+      <ToolButton label="Mover para trás" onClick={() => onMove(-1)} disabled={index === 0}>
+        <ArrowLeft className="h-3.5 w-3.5" />
+      </ToolButton>
+      <ToolButton label="Mover para frente" onClick={() => onMove(1)} disabled={index === count - 1}>
+        <ArrowRight className="h-3.5 w-3.5" />
+      </ToolButton>
+      <ToolButton label="Remover foto (Ctrl+Z desfaz)" onClick={onRemove} danger>
+        <Trash2 className="h-3.5 w-3.5" />
+      </ToolButton>
+    </div>,
+    document.body
   );
 }
 

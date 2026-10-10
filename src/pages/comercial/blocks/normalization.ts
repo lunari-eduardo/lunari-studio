@@ -63,6 +63,13 @@ export function normalizeBlock(raw: any): BlockData | null {
     if (def.defaultVariant && !normalized.props?.variant) {
       normalized.props = { ...normalized.props, variant: def.defaultVariant };
     }
+
+    // Galeria em grade antiga (proporção por foto): vira a proporção única do bloco, que o painel exibe
+    if (type === 'Gallery' && normalized.props?.layout === 'grid' && !normalized.props.ratio) {
+      const images: any[] = Array.isArray(normalized.content?.images) ? normalized.content.images : [];
+      const legacy = images.find((img) => img?.ratio && img.ratio !== 'auto')?.ratio;
+      if (legacy) normalized.props = { ...normalized.props, ratio: legacy };
+    }
     return normalized;
   }
 

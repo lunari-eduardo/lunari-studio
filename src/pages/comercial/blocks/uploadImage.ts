@@ -7,13 +7,23 @@ export async function uploadProposalImage(file: File): Promise<string> {
 }
 
 /**
- * Upload múltiplo de imagens para propostas.
- * Processa o redimensionamento e o envio em paralelo.
+ * Upload múltiplo de imagens para propostas (em paralelo, na ordem escolhida).
+ * Uma foto que falha não derruba o lote: volta em `failed`.
  */
-export async function uploadMultipleProposalImages(files: FileList | File[]): Promise<string[]> {
+export async function uploadMultipleProposalImages(
+  files: FileList | File[],
+  onProgress?: (done: number, total: number) => void
+): Promise<{ urls: string[]; failed: number }> {
   const fileArray = Array.from(files);
-  const promises = fileArray.map(file => uploadSingleImage(file));
-  return Promise.all(promises);
+  let done = 0;
+  onProgress?.(0, fileArray.length);
+  const results = await Promise.allSettled(
+    fileArray.map((file) =>
+      uploadSingleImage(file).finally(() => onProgress?.(++done, fileArray.length))
+    )
+  );
+  const urls = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+  return { urls, failed: results.length - urls.length };
 }
 
 function uploadSingleImage(file: File): Promise<string> {
@@ -47,8 +57,8 @@ function uploadSingleImage(file: File): Promise<string> {
 
         canvas.toBlob(async (blob) => {
           if (!blob) return reject(new Error('Failed to convert to blob'));
-          const ext = file.name.split('.').pop() || 'jpg';
-          const filename = `${crypto.randomUUID()}.${ext}`;
+          // O canvas sempre gera JPEG: a extensão segue o conteúdo, não o arquivo original
+          const filename = `${crypto.randomUUID()}.jpg`;
 
           try {
             const resizedFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });

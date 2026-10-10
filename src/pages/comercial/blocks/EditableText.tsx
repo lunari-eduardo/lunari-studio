@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useInlineEdit } from './inlineContext';
+import { fluidPx, typographyKey } from '../components/editor/blocks/helpers';
 
 interface EditableTextProps {
   value: string | undefined;
@@ -48,6 +49,9 @@ export function EditableText({
   const clickPointRef = useRef<{ x: number; y: number } | null>(null);
   const text = value ?? '';
   const inline = useInlineEdit();
+  // Tamanho escolhido no popover (props.typography) vale para qualquer bloco, no editor e no público
+  const sizeOverride = fieldKey ? fluidPx(inline?.typography?.[typographyKey(fieldKey)]) : undefined;
+  style = sizeOverride ? { ...style, ...sizeOverride } : style;
 
   // Sincroniza o DOM apenas fora da edição (nunca pula o caret).
   // useLayoutEffect: texto presente já na primeira pintura (sem flash).

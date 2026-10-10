@@ -63,15 +63,23 @@ export default function EditorMaterialPage() {
   const editorSaveDraft = editor.saveDraft;
   const editorUndo = editor.undo;
   const editorRedo = editor.redo;
-  const inlineEditing = viewMode === 'desktop' && editorState?.format === 'blocks';
+  // Edição direto na arte nos dois modos (o B1 do EditableText permitiu liberar o celular)
+  const inlineEditing = editorState?.format === 'blocks';
 
   // Biblioteca de seções: null = fechada; afterIndex ausente = inserir no final
   const [sectionLibrary, setSectionLibrary] = useState<{ afterIndex?: number } | null>(null);
 
   // Trocar modelo
   const [isSwitchTemplateOpen, setIsSwitchTemplateOpen] = useState(false);
-  // Aviso inline "Modelo aplicado · Desfazer": some na próxima mutação (revisão muda)
-  const [appliedNotice, setAppliedNotice] = useState<{ name: string; revision: number } | null>(null);
+  // Aviso inline "… · Desfazer" (troca de modelo, seção removida): some na próxima mutação (revisão muda)
+  const [undoNotice, setUndoNotice] = useState<{ text: string; revision: number } | null>(null);
+  // Atalhos de teclado leem os handlers da renderização atual (definidos após o carregamento)
+  const shortcutsRef = useRef<((e: KeyboardEvent) => void) | null>(null);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => shortcutsRef.current?.(e);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
   const [newSectionIds, setNewSectionIds] = useState<Set<string>>(() => new Set());
   const { data: proposalTemplates = [] } = useProposalTemplates(editorState?.format === 'blocks');
   const sourceTemplateId: string | undefined = editorState?.globalSettings?.source_template_id;
@@ -381,8 +389,11 @@ export default function EditorMaterialPage() {
   };
 
   const handleRemoveBlock = (index: number) => {
+    const removed = editorState.blocks[index];
+    if (!removed) return;
     const nextCount = editorState.blocks.length - 1;
     editor.removeBlock(index);
+    setUndoNotice({ text: `Seção "${getSectionTitle(removed)}" removida`, revision: editorState.revision + 1 });
     setActiveIndex((prev) => (prev > index ? prev - 1 : Math.min(prev, Math.max(0, nextCount - 1))));
   };
 
@@ -409,9 +420,33 @@ export default function EditorMaterialPage() {
     editor.replaceDocument(blocks, settings);
     setActiveIndex(Math.max(0, blocks.findIndex((b) => b.id === activeId)));
     setNewSectionIds(new Set(added));
-    setAppliedNotice({ name: templateName, revision: editorState.revision + 1 });
+    setUndoNotice({ text: `Modelo "${templateName}" aplicado`, revision: editorState.revision + 1 });
   };
-  const showAppliedNotice = appliedNotice?.revision === editorState.revision;
+  const showAppliedNotice = undoNotice?.revision === editorState.revision;
+
+  // ↑/↓ navega seções · Alt+↑/↓ move · Ctrl/Cmd+D duplica · Delete remove (com "Desfazer").
+  // Só com o foco no canvas ou em lugar nenhum: nunca em campos, menus, diálogos ou textos em edição.
+  // Backspace fica de fora: logo após editar um texto o foco volta à página e ele apagaria a seção inteira.
+  shortcutsRef.current = (e) => {
+    if (editorState.format !== 'blocks' || !editorState.blocks.length) return;
+    const target = e.target as HTMLElement;
+    const onCanvas = target === document.body || !!target.closest?.('[data-editor-canvas]');
+    if (!onCanvas || target.isContentEditable || target.closest?.('input, textarea, select, [role="dialog"], [role="menu"]')) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const last = editorState.blocks.length - 1;
+    if (mod && e.key.toLowerCase() === 'd') {
+      e.preventDefault();
+      if (!e.repeat) handleDuplicateBlock(activeIndex); // segurar a tecla não multiplica seções
+    } else if (!mod && e.key === 'Delete') {
+      e.preventDefault();
+      if (!e.repeat) handleRemoveBlock(activeIndex);
+    } else if (!mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      const up = e.key === 'ArrowUp';
+      if (e.altKey) handleMoveBlock(activeIndex, up ? 'up' : 'down');
+      else handleSelectBlock(Math.min(last, Math.max(0, activeIndex + (up ? -1 : 1))));
+    }
+  };
 
   const structurePanel = (
     <EditorSidebar
@@ -534,7 +569,7 @@ export default function EditorMaterialPage() {
                   className="absolute left-1/2 top-3 z-30 -translate-x-1/2 flex items-center gap-2 whitespace-nowrap rounded-full border border-border bg-background/95 py-1 pl-3 pr-1 text-xs text-foreground shadow-[0_4px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Modelo "{appliedNotice!.name}" aplicado
+                  {undoNotice!.text}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -550,6 +585,7 @@ export default function EditorMaterialPage() {
               )}
               <div
                 ref={canvasScrollRef}
+                data-editor-canvas
                 className="flex-1 overflow-y-auto bg-muted/30 relative flex justify-center custom-scrollbar p-4 md:p-8"
                 onPointerEnter={() => {
                   isInteractingWithInspectorRef.current = false;

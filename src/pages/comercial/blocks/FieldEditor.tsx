@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown } from 'lucide-react';
+import { Trash2, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown, UploadCloud, X } from 'lucide-react';
 import { toast } from 'sonner';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   DropdownMenu,
@@ -25,8 +25,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { BlockField, FieldCtx } from './registry';
-import { uploadProposalImage } from './uploadImage';
+import { BlockField, FieldCtx, fillGallerySlots } from './registry';
+import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage';
 import { useAiFieldRewrite } from '@/hooks/useProposalAI';
 import { DEFAULT_DESIGN_TOKENS, isHexColor } from './design';
 
@@ -132,6 +132,7 @@ function FieldLabelWithAi({ field, value, onChange, aiContext, aiKeySuffix }: Fi
 
 export function FieldEditor(props: FieldEditorProps) {
   const { field, value, onChange } = props;
+  const uid = useId();
 
   switch (field.kind) {
     case 'text':
@@ -192,11 +193,11 @@ export function FieldEditor(props: FieldEditorProps) {
     case 'boolean':
       return (
         <div className="flex items-center justify-between py-1.5 gap-2">
-          <Label className="text-xs text-muted-foreground cursor-pointer select-none" htmlFor={field.key}>
+          <Label className="text-xs text-muted-foreground cursor-pointer select-none" htmlFor={uid}>
             {field.label}
           </Label>
           <Switch
-            id={field.key}
+            id={uid}
             checked={Boolean(value)}
             onCheckedChange={(checked) => onChange(checked)}
           />
@@ -259,6 +260,9 @@ export function FieldEditor(props: FieldEditorProps) {
     case 'list':
       return <ListField field={field} value={value} onChange={onChange} ctx={props.ctx} />;
 
+    case 'gallery':
+      return <GalleryField field={field} value={value} onChange={onChange} />;
+
     default:
       return null;
   }
@@ -302,7 +306,7 @@ function AlignField({ field, value, onChange }: { field: BlockField; value: any;
 
 function ImageField({ field, value, onChange }: FieldEditorProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const inputId = `img-${field.key}-${Math.random().toString(36).slice(2, 7)}`;
+  const inputId = useId();
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -448,6 +452,158 @@ export function BackgroundSwatches({
           />
         )}
       </div>
+    </div>
+  );
+}
+
+function SortableThumb({ id, src, onRemove }: { id: string; src?: string; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        'group/thumb relative aspect-square cursor-grab touch-none overflow-hidden rounded-lg border border-border/60 bg-muted/40 active:cursor-grabbing',
+        isDragging && 'z-10 shadow-[0_4px_30px_rgba(0,0,0,0.12)]'
+      )}
+      title="Arraste para reordenar"
+      // O arrasto nativo de imagem do navegador roubaria o gesto do dnd-kit
+      onDragStart={(e) => e.preventDefault()}
+      {...attributes}
+      {...listeners}
+    >
+      {src ? (
+        <img src={src} alt="" className="pointer-events-none h-full w-full object-cover" draggable={false} />
+      ) : (
+        // Espaço do modelo ainda sem foto: a próxima foto enviada entra aqui
+        <span className="flex h-full w-full items-center justify-center border-2 border-dashed border-border text-muted-foreground/50">
+          <ImageIcon className="h-4 w-4" />
+        </span>
+      )}
+      <button
+        type="button"
+        // Isola do arrastar: ponteiro e teclado (Enter/Espaço) aqui removem, não iniciam o arrasto
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        onClick={onRemove}
+        aria-label="Remover foto"
+        title="Remover foto"
+        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 focus-visible:opacity-100 group-hover/thumb:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+/** Fotos da galeria: envio em lote (clique ou arrastar arquivos) + miniaturas reordenáveis. */
+function GalleryField({ field, value, onChange }: FieldEditorProps) {
+  const images: Record<string, any>[] = Array.isArray(value) ? value : [];
+  // O envio leva segundos: ao terminar, as fotos entram na galeria atual (não na de quando começou)
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  const ids = images.map((img, idx) => String(img.id ?? `img-${idx}`));
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  // Único por instância: o painel existe 2x no celular (coluna + gaveta) e o rótulo acionaria o input errado
+  const inputId = useId();
+  const filled = images.filter((img) => img?.image_ref).length;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const upload = async (files: FileList | File[]) => {
+    const list = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    if (!list.length || progress) return;
+    try {
+      const { urls, failed } = await uploadMultipleProposalImages(list, (done, total) => setProgress({ done, total }));
+      if (urls.length) onChange(fillGallerySlots(imagesRef.current, urls));
+      if (failed) toast.error(`${failed} foto(s) não foram enviadas. Verifique a conexão e tente de novo.`);
+    } finally {
+      setProgress(null);
+    }
+  };
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+    onChange(arrayMove(images, ids.indexOf(String(active.id)), ids.indexOf(String(over.id))));
+  };
+
+  return (
+    <div className="space-y-3">
+      <label
+        htmlFor={inputId}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          upload(e.dataTransfer.files);
+        }}
+        className={cn(
+          'flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-3 py-5 text-center transition-colors',
+          dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/30',
+          progress && 'pointer-events-none'
+        )}
+      >
+        {progress ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">
+              Enviando {progress.done} de {progress.total}…
+            </span>
+          </>
+        ) : (
+          <>
+            <UploadCloud className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">Arraste várias fotos ou clique para escolher</span>
+            <span className="text-[11px] text-muted-foreground">JPG, PNG ou WebP · otimizadas automaticamente</span>
+          </>
+        )}
+        <input
+          id={inputId}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          disabled={!!progress}
+          onChange={(e) => {
+            if (e.target.files) upload(e.target.files);
+            e.target.value = '';
+          }}
+        />
+      </label>
+
+      {images.length > 0 && (
+        <>
+          <p className="text-[11px] text-muted-foreground">
+            {filled} {filled === 1 ? 'foto' : 'fotos'}
+            {images.length > filled && ` · ${images.length - filled} ${images.length - filled === 1 ? 'espaço vazio' : 'espaços vazios'}`}
+          </p>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={ids} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-4 gap-1.5">
+                {images.map((img, idx) => (
+                  <SortableThumb
+                    key={ids[idx]}
+                    id={ids[idx]}
+                    src={img?.image_ref || undefined}
+                    onRemove={() => onChange(images.filter((_, i) => i !== idx))}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            Arraste para reordenar. Tamanho e proporção de cada foto: clique nela na arte.
+          </p>
+        </>
+      )}
     </div>
   );
 }

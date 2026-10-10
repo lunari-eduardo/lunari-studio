@@ -1,6 +1,7 @@
 // Rodar: npm run test:proposals
 import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, applyTemplate, isEmptyValue } from '../src/pages/comercial/blocks/normalization';
 import { onColor } from '../src/pages/comercial/blocks/design';
+import { fillGallerySlots } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath } from '../src/pages/comercial/blocks/pricing';
 
 function assert(condition: boolean, message: string) {
@@ -253,6 +254,26 @@ async function runTests() {
   assert(two.blocks.length === 1 && two.blocks[0].id === 'only', 'Extra template pricing group never brings demo prices');
   const lead = applyTemplate([{ type: 'DividerBlock', id: 'd', content: {}, props: {} }, cur[0]], instantiateTemplateBlocks([{ type: 'CoverBlock', content: {} }]));
   assert(lead.blocks.map((b) => b.id).join() === 'd,c', 'Unmatched first section stays first');
+
+  // 14. Galeria: fotos novas ocupam os espaços vazios do modelo antes de entrar no fim
+  const slots = [
+    { id: 's1', image_ref: 'https://me/1.jpg', span: 'normal' },
+    { id: 's2', image_ref: '', span: 'feature_2x2' },
+    { id: 's3', image_ref: '', span: 'wide_2cols' },
+  ];
+  const filledGallery = fillGallerySlots(slots, ['a', 'b', 'c']);
+  assert(filledGallery.map((i) => i.image_ref).join() === 'https://me/1.jpg,a,b,c', 'Uploads fill empty slots in order, then append');
+  assert(filledGallery[1].span === 'feature_2x2' && filledGallery[1].id === 's2', 'Filled slot keeps its template size and id');
+  assert(filledGallery[3].id && filledGallery[3].span === 'normal', 'Extra photos become normal items with ids');
+  assert(slots[1].image_ref === '', 'Gallery input not mutated');
+
+  // 15. Grade antiga: proporção por foto vira a proporção do bloco (painel e arte mostram o mesmo valor)
+  const legacyGrid = normalizeBlock({ type: 'Gallery', content: { images: [{ id: 'a', ratio: 'auto' }, { id: 'b', ratio: '1/1' }] }, props: { layout: 'grid' } })!;
+  assert(legacyGrid.props!.ratio === '1/1', 'Legacy grid ratio migrates to the block');
+  const masonry = normalizeBlock({ type: 'Gallery', content: { images: [{ id: 'a', ratio: '4/3' }] }, props: { layout: 'masonry' } })!;
+  assert(!masonry.props!.ratio, 'Masonry keeps per-photo crops only');
+  const chosen = normalizeBlock({ type: 'Gallery', content: { images: [{ id: 'a', ratio: '1/1' }] }, props: { layout: 'grid', ratio: '16/9' } })!;
+  assert(chosen.props!.ratio === '16/9', 'Chosen block ratio is never overwritten');
 
   console.log('✅ All tests passed successfully!');
 }

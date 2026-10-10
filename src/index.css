@@ -1051,3 +1051,23 @@ a,
 .pa-justified > * > img { display: block; height: 100%; min-width: 100%; object-fit: cover; }
 @container (min-width: 42rem) { .pa-justified > * { height: 15rem; } }
 @container (min-width: 56rem) { .pa-justified > * { height: 17rem; } }
+
+/* Galeria em grade: 1 linha = largura da coluna × proporção do bloco (--pa-gal-r = altura/largura).
+   Normal 1×1, larga 2×1, alta 1×2, destaque 2×2: múltiplos exatos da célula em 2/3/4 colunas.
+   .pa-gal é o container medido (100cqi = largura da galeria, sem o padding da seção). */
+.pa-gal { container-type: inline-size; }
+.pa-gal-grid {
+  --cols: 2;
+  --gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  gap: var(--gap);
+  grid-auto-rows: 12rem; /* sem container queries */
+  grid-auto-rows: calc((100cqi - (var(--cols) - 1) * var(--gap)) / var(--cols) * var(--pa-gal-r, 1.25));
+}
+@container (min-width: 35rem) { .pa-gal-grid { --cols: 3; } }
+@container (min-width: 49rem) { .pa-gal-grid { --cols: 4; } }
+.pa-gal-grid > [data-span="wide"] { grid-column: span 2; }
+.pa-gal-grid > [data-span="tall"] { grid-row: span 2; }
+.pa-gal-grid > [data-span="feature"] { grid-column: span 2; grid-row: span 2; }

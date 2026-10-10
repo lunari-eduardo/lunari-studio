@@ -84,7 +84,9 @@ O problema central não é estético, é **arquitetura de informação**:
 | 1. Trocar modelo (`applyTemplate`, `replaceDocument`, `SwitchTemplateDialog`) | ✅ |
 | 2. Inspector em acordeão (`group`/`showIf`, amostras + cor livre, `DocumentStylePanel`, `duplicateBlock`) | ✅ |
 | 3. Canvas ativo (`SectionToolbar`, `InsertSectionButton`) + `SectionLibraryDialog` | ✅ |
-| 4–6 | pendente |
+| 4. Portfólio (`GalleryField`, `GalleryImageToolbar`, `.pa-gal-grid`, `fillGallerySlots`, upload em lote) | ✅ |
+| 5. Depoimentos: variante `carousel` (scroll-snap nativo, sem autoplay) | ✅ |
+| 6. Tamanho de texto em todos os blocos (`fieldKey` nos `et`, `typography` no contexto; só no desktop), edição na arte no celular, atalhos e "Desfazer" inline ao remover | ✅ |
 
 ## Ordem de execução
 
