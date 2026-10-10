@@ -61,6 +61,9 @@ function contrastRatio(a: string, b: string): number {
   return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
 }
 
+/** Cor livre (#RRGGBB) escolhida pelo fotógrafo, ex.: fundo personalizado de seção. */
+export const isHexColor = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+
 /** Entre a tinta e o branco do tema, a cor de texto de maior contraste sobre o fundo. */
 export function onColor(bg: string, ink: string, white: string): string {
   return contrastRatio(ink, bg) >= contrastRatio(white, bg) ? ink : white;
@@ -103,6 +106,8 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
     // Texto automático por fundo: temas escuros (ex.: Noir) invertem sem quebrar contraste
     ['--pa-on-cream' as any]: onColor(c.cream, c.ink, c.white),
     ['--pa-on-linen' as any]: onColor(c.linen, c.ink, c.white),
+    ['--pa-on-stone' as any]: onColor(c.stone, c.ink, c.white),
+    ['--pa-on-taupe' as any]: onColor(c.taupe, c.ink, c.white),
     ['--pa-on-white' as any]: onColor(c.white, c.ink, c.white),
     ['--pa-on-ink' as any]: onColor(c.ink, c.ink, c.white),
     // Acento sobre superfície "white" (números/preços dos cartões): cai na tinta se o contraste for < 3:1 (ex.: dourado do Noir)

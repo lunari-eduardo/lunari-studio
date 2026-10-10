@@ -29,7 +29,7 @@ export function CoverEditorialDiptych({
   });
 
   const btnText = data?.btnText;
-  const titleVal = data?.title_regular ?? data?.title;
+  const titleVal = data?.title ?? data?.title_regular;
   const s = coverStyles(props?.typography);
 
   const photo = (key: 'image_url' | 'photo_b', label: string, alt: string) => (

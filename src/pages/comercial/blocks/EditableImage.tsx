@@ -18,13 +18,16 @@ interface EditableImageProps {
   publicEmptyClassName?: string;
   /** Modo "preencher" (padrão) ou fluxo natural (masonry usa h-auto) */
   fill?: boolean;
+  /** Foto de fundo com texto por cima (capas): a ação vazia vai para o canto, acima do texto */
+  actionCorner?: boolean;
 }
 
 // ============================================================
 // IMAGEM EDITÁVEL NA ARTE
-// No editor: duplo clique abre o seletor de arquivos, faz o
-// upload otimizado e comite a URL no mesmo caminho usado pela
-// edição de texto (inline.set). Overlay no hover indica a ação.
+// No editor: botão visível ("Enviar foto" / "Trocar foto", 1 clique)
+// ou duplo clique na imagem abrem o seletor, fazem o upload otimizado
+// e comitam a URL pelo mesmo caminho da edição de texto (inline.set).
+// Cores neutras próprias: legível sobre qualquer fundo/tema da proposta.
 // No público: renderiza a imagem (ou o placeholder neutro dado).
 // ============================================================
 
@@ -39,6 +42,7 @@ export function EditableImage({
   style,
   publicEmptyClassName,
   fill = true,
+  actionCorner = false,
 }: EditableImageProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -66,6 +70,20 @@ export function EditableImage({
 
   const imgSrc = value || null;
 
+  // Ação explícita de 1 clique (o duplo clique na imagem continua valendo)
+  const pickButton = (text: string) => (
+    <button
+      type="button"
+      onClick={pick}
+      onDoubleClick={(e) => e.stopPropagation()}
+      disabled={isUploading}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-black/10 bg-white/95 px-3.5 py-1.5 text-[11px] font-semibold tracking-wide text-neutral-800 shadow-[0_4px_20px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-transform hover:scale-[1.04] disabled:opacity-80"
+    >
+      {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+      {isUploading ? 'Enviando…' : text}
+    </button>
+  );
+
   if (!editable) {
     if (imgSrc) {
       return (
@@ -85,10 +103,11 @@ export function EditableImage({
 
   return (
     <div
-      className={cn('group/img', className)}
+      // relative por padrão: o selo "Trocar foto" precisa de um ancestral posicionado (absolute do chamador vence)
+      className={cn('group/img relative', className)}
       style={style}
       onDoubleClick={pick}
-      title="Duplo clique para trocar a imagem"
+      title={imgSrc ? 'Trocar foto (ou duplo clique na imagem)' : 'Enviar foto'}
     >
       {imgSrc ? (
         <img
@@ -100,29 +119,31 @@ export function EditableImage({
       ) : (
         <div
           className={cn(
-            'absolute inset-0 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/25 bg-primary/[0.03] text-primary/50 transition-colors group-hover/img:border-primary/50 group-hover/img:bg-primary/[0.06]',
+            'absolute inset-0 flex flex-col items-center justify-center gap-2.5 border-2 border-dashed border-neutral-400/70 bg-neutral-500/[0.08] transition-colors group-hover/img:border-neutral-500 group-hover/img:bg-neutral-500/[0.14]',
             fill ? '' : 'relative py-10'
           )}
         >
-          {isUploading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
+          {actionCorner ? (
+            // Canto inferior: o topo direito da seção é da barra de ações do canvas
+            <div className="absolute right-3 bottom-3 z-20">{pickButton(label ? `Enviar foto · ${label}` : 'Enviar foto')}</div>
           ) : (
-            <Camera className="h-5 w-5" />
+            <>
+              {label && (
+                <span className="px-3 text-center text-[10px] font-medium uppercase tracking-widest text-neutral-500">{label}</span>
+              )}
+              {pickButton('Enviar foto')}
+            </>
           )}
-          <span className="text-[10px] font-medium tracking-widest uppercase text-center px-2">
-            {isUploading ? 'Enviando…' : label ? `${label} · duplo clique` : 'Enviar imagem'}
-          </span>
         </div>
       )}
 
-      {/* Overlay de hover com a ação */}
       {imgSrc && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 opacity-0 transition-opacity pointer-events-none group-hover/img:opacity-100">
-          <span className="flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-[11px] font-semibold tracking-wide text-neutral-800 shadow-lg">
-            {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-            {isUploading ? 'Enviando…' : 'Trocar imagem'}
-          </span>
-        </div>
+        <>
+          {/* Leve escurecimento no hover sinaliza que a foto é editável */}
+          <div className="absolute inset-0 z-10 bg-black/20 opacity-0 transition-opacity pointer-events-none group-hover/img:opacity-100" />
+          {/* Sempre visível no editor: o fotógrafo vê de imediato que pode trocar a foto */}
+          <div className="absolute right-2 bottom-2 z-20">{pickButton('Trocar foto')}</div>
+        </>
       )}
 
       <input

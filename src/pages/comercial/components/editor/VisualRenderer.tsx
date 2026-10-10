@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
-import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded } from '../../blocks/design';
+import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, onColor, DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
 import { BlockObserver } from './blocks/helpers';
@@ -13,6 +13,7 @@ import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/Gall
 import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
 import { InfoRenderer } from './blocks/InfoBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
+import { SectionToolbar, InsertSectionButton } from './CanvasToolbars';
 
 // Altura da "tela" onde a capa ancora: viewport real (público/editor) ou a moldura do celular (812px - bordas).
 const HERO_HEIGHT = { desktop: '100svh', mobile: '788px' } as const;
@@ -20,7 +21,8 @@ const HERO_HEIGHT = { desktop: '100svh', mobile: '788px' } as const;
 export interface VisualRendererProps {
   blocks: BlockData[];
   activeIndex: number;
-  onSelectBlock: (index: number) => void;
+  /** `scroll: false` seleciona sem rolar o canvas (clique num texto já visível). */
+  onSelectBlock: (index: number, opts?: { scroll?: boolean }) => void;
   viewMode: 'desktop' | 'mobile';
   onSectionView?: (blockId: string, blockType: string, position: number) => void;
   /** 'edit' (padrão): chrome de edição. 'public': sem chrome, CTAs funcionais. */
@@ -33,6 +35,15 @@ export interface VisualRendererProps {
   inlineEditing?: boolean;
   /** Edição granular de campo por camada pontuada ("details.0.label", "props.photo_a.image_ref"). */
   onUpdateField?: (index: number, path: string, value: any) => void;
+  /** Ações do canvas (barra da seção selecionada e "+" entre seções). Ausente = sem esse chrome. */
+  sectionActions?: {
+    move: (index: number, direction: 'up' | 'down') => void;
+    duplicate: (index: number) => void;
+    remove: (index: number) => void;
+    insertAfter: (index: number) => void;
+  };
+  /** Zoom aplicado ao canvas pelo editor: o chrome compensa para manter o tamanho real. */
+  uiScale?: number;
 }
 
 export function VisualRenderer({
@@ -46,12 +57,20 @@ export function VisualRenderer({
   designTokens,
   inlineEditing = false,
   onUpdateField,
+  sectionActions,
+  uiScale = 1,
 }: VisualRendererProps) {
   const isEditing = mode === 'edit';
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
   // Numeração contínua dos pacotes "Revista" entre grupos (ordem real do documento)
   const packageNumberOffsets = computePackageNumberOffsets(visibleBlocks);
+  // Fundo em cor livre: sectionBg/textColorClass leem estas variáveis do wrapper da seção
+  const palette = { ...DEFAULT_DESIGN_TOKENS.colors, ...(designTokens?.colors ?? {}) };
+  const sectionVars = (bg: unknown): React.CSSProperties | undefined =>
+    isHexColor(bg)
+      ? { ['--pa-sec-bg' as any]: bg, ['--pa-on-sec' as any]: onColor(bg, palette.ink, palette.white) }
+      : undefined;
 
 // Mapeia chaves de campos para as propriedades canônicas do CoverTypography
 function getTypographyPropKey(fieldKey: string): string {
@@ -78,15 +97,17 @@ function getTypographyPropKey(fieldKey: string): string {
     (blockIndex: number) => (fieldKey: string | null, anchorEl: HTMLElement | null) => {
       if (fieldKey && anchorEl) {
         setTextSizeState({ fieldKey, anchorEl, blockIndex });
+        // O clique no texto não chega ao wrapper da seção: sem isto o painel lateral ficaria noutra seção
+        if (blockIndex !== activeIndex) onSelectBlock(blockIndex, { scroll: false });
       } else {
         setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 });
       }
     },
-    []
+    [activeIndex, onSelectBlock]
   );
 
   const handleTextSizeChange = useCallback(
-    (fieldKey: string, size: number) => {
+    (fieldKey: string, size: number | undefined) => {
       if (textSizeState.blockIndex < 0) return;
       const propKey = getTypographyPropKey(fieldKey);
       onUpdateField?.(textSizeState.blockIndex, `props.typography.${propKey}`, size);
@@ -114,7 +135,8 @@ function getTypographyPropKey(fieldKey: string): string {
           'pa-doc @container relative transition-all duration-500 origin-top flex flex-col w-full bg-[var(--pa-white,#FFFFFF)] text-[var(--pa-on-white,#1A1714)]',
           viewMode === 'desktop'
             ? // max-w-5xl: a content-box (64rem - borda) precisa passar de 56rem para os layouts @4xl dispararem
-              'max-w-full md:max-w-5xl h-auto rounded-none md:rounded-2xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
+              // overflow-clip (não hidden): recorta os cantos sem virar contêiner de rolagem, então a barra da seção gruda ao rolar
+              'max-w-full md:max-w-5xl h-auto rounded-none md:rounded-2xl overflow-clip shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
             : 'max-w-[375px] h-auto min-h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
         data-title-case={designTokens?.typography?.title_case}
@@ -145,7 +167,7 @@ function getTypographyPropKey(fieldKey: string): string {
                 {(block.type === 'cover' || block.type === 'CoverBlock') && (
                   <CoverRenderer data={block.content || block.data} props={block.props} onCtaClick={onCtaClick} />
                 )}
-                {block.type === 'package' && <PackageRenderer data={block.data} onCtaClick={onCtaClick} />}
+                {block.type === 'package' && <PackageRenderer data={block.data} />}
                 {block.type === 'EditorialBlock' && (
                   <EditorialRenderer content={block.content} data={block.data} props={block.props} />
                 )}
@@ -154,7 +176,6 @@ function getTypographyPropKey(fieldKey: string): string {
                     content={block.content}
                     data={block.data}
                     props={block.props}
-                    onCtaClick={onCtaClick}
                     numberOffset={packageNumberOffsets.get(block)}
                   />
                 )}
@@ -186,6 +207,7 @@ function getTypographyPropKey(fieldKey: string): string {
                 id={`section-block-${index}`}
                 data-section-index={index}
                 className="relative w-full h-auto"
+                style={sectionVars(block.props?.background)}
               >
                 {content}
               </div>
@@ -197,6 +219,7 @@ function getTypographyPropKey(fieldKey: string): string {
               key={block.id || `block-${index}`}
               id={`section-block-${index}`}
               data-section-index={index}
+              style={sectionVars(block.props?.background)}
               onClick={() => onSelectBlock(index)}
               className={cn(
                 'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full h-auto',
@@ -211,13 +234,29 @@ function getTypographyPropKey(fieldKey: string): string {
                 )}
               />
 
+              {/* Barra da seção selecionada: composição, fundo, mover, duplicar, remover */}
+              {isActive && sectionActions && (
+                <SectionToolbar
+                  block={block}
+                  index={blockIdx}
+                  count={blocks.length}
+                  palette={palette}
+                  uiScale={uiScale}
+                  onSetPath={(path, value) => onUpdateField?.(blockIdx, path, value)}
+                  onMove={(dir) => sectionActions.move(blockIdx, dir)}
+                  onDuplicate={() => sectionActions.duplicate(blockIdx)}
+                  onRemove={() => sectionActions.remove(blockIdx)}
+                />
+              )}
+
               {content}
 
-              {/* Dica de edição no bloco ativo */}
-              {isActive && inlineEditing && (
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none rounded-full bg-primary px-3 py-1 text-[10px] font-medium tracking-wide text-primary-foreground shadow-lg whitespace-nowrap">
-                  Duplo clique: edita textos · troca imagens
-                </div>
+              {sectionActions && (
+                <InsertSectionButton
+                  onClick={() => sectionActions.insertAfter(blockIdx)}
+                  uiScale={uiScale}
+                  last={index === visibleBlocks.length - 1}
+                />
               )}
             </div>
           );

@@ -24,7 +24,17 @@ export type FieldKind =
   | 'select'
   | 'boolean'
   | 'color'
+  | 'swatch'          // amostras da paleta do tema + cor livre (fundo da seção)
   | 'align';          // controle segmentado esquerda/centro/direita/justificado
+
+/** Grupo do inspector (acordeão). Ausente = inferido pelo tipo do campo (ver PropertiesSidebar). */
+export type FieldGroup = 'text' | 'items' | 'media' | 'layout' | 'style' | 'actions';
+
+/** Estado atual da seção (variante já resolvida com a padrão) para campos condicionais. */
+export interface FieldCtx {
+  content: Record<string, any>;
+  props: Record<string, any>;
+}
 
 export interface BlockField {
   key: string;
@@ -36,12 +46,19 @@ export interface BlockField {
   itemLabel?: string;
   itemFields?: BlockField[];
   itemFactory?: () => Record<string, any>;
+  group?: FieldGroup;
+  /** Some do painel quando a variante/layout atual não usa o campo (o dado continua salvo). */
+  showIf?: (ctx: FieldCtx) => boolean;
 }
 
 export interface PropImageSlot {
   key: string;
   label: string;
+  showIf?: (ctx: FieldCtx) => boolean;
 }
+
+const variantIn = (...variants: string[]) => ({ props }: FieldCtx) => variants.includes(props.variant);
+const variantNotIn = (...variants: string[]) => ({ props }: FieldCtx) => !variants.includes(props.variant);
 
 export interface BlockDefinition {
   type: string;
@@ -59,22 +76,26 @@ export interface BlockDefinition {
 // Helpers de campos de layout
 export const ALIGN_FIELD: BlockField = { key: 'align', label: 'Alinhamento do Texto', kind: 'align' };
 
+/** Fundos da paleta do tema (além deles, cor livre #RRGGBB). */
 export const BACKGROUND_OPTIONS = [
   { value: 'white', label: 'Branco' },
   { value: 'cream', label: 'Creme' },
   { value: 'linen', label: 'Linho' },
+  { value: 'stone', label: 'Pedra' },
+  { value: 'taupe', label: 'Taupe' },
   { value: 'dark', label: 'Escuro' },
 ];
 
-export const backgroundField = (): BlockField => ({
+export const backgroundField = (showIf?: BlockField['showIf']): BlockField => ({
   key: 'background',
   label: 'Fundo da Seção',
-  kind: 'select',
+  kind: 'swatch',
   options: BACKGROUND_OPTIONS,
+  showIf,
 });
 
 export const TEXT_COLOR_OPTIONS = [
-  { value: 'default', label: 'Padrão (Automático)' },
+  { value: 'default', label: 'Automático' },
   { value: 'dark', label: 'Grafite Escuro' },
   { value: 'black', label: 'Preto Puro' },
   { value: 'light', label: 'Branco / Claro' },
@@ -82,11 +103,12 @@ export const TEXT_COLOR_OPTIONS = [
   { value: 'accent', label: 'Dourado / Acento' },
 ];
 
-export const textColorField = (): BlockField => ({
+export const textColorField = (showIf?: BlockField['showIf']): BlockField => ({
   key: 'text_color',
   label: 'Cor do Texto',
   kind: 'select',
   options: TEXT_COLOR_OPTIONS,
+  showIf,
 });
 
 export const IMAGE_RATIO_OPTIONS = [
@@ -124,12 +146,17 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'title', label: 'Título Principal', kind: 'textarea', placeholder: 'Seu momento merece ser vivido' },
       { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'e lembrado para sempre.' },
       { key: 'subtitle', label: 'Subtítulo', kind: 'textarea', placeholder: 'Fotografias que eternizam...' },
-      { key: 'photographer_name', label: 'Assinatura (Fotógrafo)', kind: 'text', placeholder: 'Camila Ramos · Fotografias' },
+      // Minimal não exibe assinatura (só a usa como subtítulo de reserva)
+      { key: 'photographer_name', label: 'Assinatura (Fotógrafo)', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantNotIn('minimal-center') },
       { key: 'btnText', label: 'Texto do Botão', kind: 'text', placeholder: 'Quero viver essa experiência' },
-      { key: 'btnLink', label: 'Link do Botão', kind: 'url', placeholder: 'https://wa.me/5511999999999' },
       { key: 'image_url', label: 'Imagem de Capa', kind: 'image' },
     ],
-    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    layoutFields: [
+      // Capas com foto de fundo sangrada não usam alinhamento nem fundo da seção
+      { ...ALIGN_FIELD, showIf: variantIn('seam-side', 'minimal-center', 'editorial-diptych') },
+      backgroundField(variantNotIn('poster-split', 'hero-full', 'poster-sky')),
+      textColorField(variantNotIn('hero-full')),
+    ],
     variants: [
       { value: 'minimal-center', label: 'Minimal', description: 'Editorial Minimalista' },
       { value: 'poster-split', label: 'Poster', description: 'Pôster Tipográfico em Grid' },
@@ -165,8 +192,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'title', label: 'Título Principal', kind: 'text', placeholder: 'Uma tarde' },
       { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'só sua.' },
       { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...' },
-      { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias' },
-      { key: 'aside', label: 'Frases de destaque (Retrato em Arco)', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.' },
+      { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantIn('overlap-blend') },
+      { key: 'aside', label: 'Frases de destaque', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.', showIf: variantIn('arch-portrait') },
       {
         key: 'details',
         label: 'Detalhes',
@@ -177,6 +204,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { key: 'value', label: 'Valor', kind: 'text', placeholder: '2 a 8 horas' },
         ],
         itemFactory: detailItem,
+        showIf: variantNotIn('arch-portrait'),
       },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
@@ -188,8 +216,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     ],
     defaultVariant: 'overlap-blend',
     propImageSlots: [
-      { key: 'photo_a', label: 'Foto Principal (Plano de fundo)' },
-      { key: 'photo_b', label: 'Foto Sobreposta (Blend)' },
+      { key: 'photo_a', label: 'Foto Principal', showIf: variantNotIn('text-only') },
+      { key: 'photo_b', label: 'Foto Sobreposta (Blend)', showIf: variantIn('overlap-blend') },
     ],
     factory: () => ({
       content: { eyebrow: '', title: '', title_italic: '', body: '', vertical_label: '', details: [] },
@@ -224,7 +252,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { key: 'price_cash', label: 'Preço à Vista', kind: 'text', placeholder: 'R$ 250,00' },
           { key: 'price_installments', label: 'Parcelamento', kind: 'text', placeholder: '3x de R$ 89,62' },
           { key: 'badge', label: 'Selo (ex: Mais escolhido)', kind: 'text', placeholder: 'Mais escolhido' },
-          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image' },
+          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image', showIf: ({ props }) => !props.hide_images },
           { key: 'features', label: 'Itens inclusos (1 por linha)', kind: 'stringlist', placeholder: '1h de ensaio\n10 fotos digitais' },
         ],
         itemFactory: packageItem,
@@ -234,20 +262,21 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       ALIGN_FIELD,
       backgroundField(),
       textColorField(),
-      { key: 'hide_cta', label: 'Ocultar botão "Selecionar"', kind: 'boolean' },
       { key: 'hide_images', label: 'Ocultar fotos dos pacotes', kind: 'boolean' },
+      // Só o layout Revista lê estes três
       {
         key: 'numbering',
-        label: 'Numeração dos pacotes (Revista)',
+        label: 'Numeração dos pacotes',
         kind: 'select',
         options: [
           { value: 'continue', label: 'Continua do grupo anterior' },
           { value: 'restart', label: 'Recomeça em 01' },
           { value: 'none', label: 'Sem numeração' },
         ],
+        showIf: variantIn('magazine'),
       },
-      { key: 'eyebrow_rules', label: 'Linhas ao lado do rótulo (Revista)', kind: 'boolean' },
-      { key: 'hide_feature_icons', label: 'Ocultar ícones dos itens (Revista)', kind: 'boolean' },
+      { key: 'eyebrow_rules', label: 'Linhas ao lado do rótulo', kind: 'boolean', showIf: variantIn('magazine') },
+      { key: 'hide_feature_icons', label: 'Ocultar ícones dos itens', kind: 'boolean', showIf: variantIn('magazine') },
     ],
     variants: [
       { value: 'cards-classic', label: 'Cards', description: 'Cards lado a lado (padrão)' },
@@ -278,6 +307,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         itemLabel: 'Imagem',
         itemFields: [
           { key: 'image_ref', label: 'Imagem', kind: 'image' },
+          // Tamanho e proporção só valem na disposição "Grade"
           {
             key: 'span',
             label: 'Tamanho na grade',
@@ -287,12 +317,14 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
               { value: 'tall_2rows', label: 'Alta (2 linhas)' },
               { value: 'wide_2cols', label: 'Larga (2 colunas)' },
             ],
+            showIf: ({ props }) => props.layout === 'grid',
           },
           {
             key: 'ratio',
-            label: 'Proporção (no modo grade)',
+            label: 'Proporção',
             kind: 'select',
             options: IMAGE_RATIO_OPTIONS,
+            showIf: ({ props }) => props.layout === 'grid',
           },
         ],
         itemFactory: galleryItem,
@@ -301,6 +333,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     layoutFields: [
       ALIGN_FIELD,
       backgroundField(),
+      textColorField(),
       {
         key: 'layout',
         label: 'Disposição das Fotos',
@@ -340,7 +373,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Separador visual com rótulo opcional',
     icon: Minus,
     fields: [
-      { key: 'label', label: 'Rótulo', kind: 'text', placeholder: 'PACOTE — ESTÚDIO' },
+      { key: 'label', label: 'Rótulo', kind: 'text', placeholder: 'PACOTE — ESTÚDIO', showIf: ({ props }) => props.style !== 'spaced' },
     ],
     layoutFields: [
       {
@@ -441,6 +474,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { key: 'href', label: 'Endereço (https://, mailto:)', kind: 'url', placeholder: 'https://instagram.com/seuperfil' },
         ],
         itemFactory: linkItem,
+        group: 'actions',
       },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],

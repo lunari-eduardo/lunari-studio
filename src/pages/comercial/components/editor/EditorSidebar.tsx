@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
-import { GripVertical, Plus, Sparkles, Palette, Loader2, Check } from 'lucide-react';
+import { GripVertical, Plus, Sparkles, Palette, Loader2, Check, LayoutTemplate, ArrowLeftRight, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DndContext,
   closestCenter,
@@ -25,27 +20,35 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ADDABLE_BLOCK_TYPES, getBlockDef, getBlockName, DEFAULT_BLOCK_ICON } from '../../blocks/registry';
-import { DESIGN_PRESETS, useProposalOutline } from '@/hooks/useProposalAI';
+import { getBlockDef, getBlockName, getSectionTitle, DEFAULT_BLOCK_ICON } from '../../blocks/registry';
+import { useProposalOutline } from '@/hooks/useProposalAI';
 import type { ProposalDesignTokens } from '../../blocks/design';
-
-// Prévia do canto de cada tema no botão do preset
-const SHAPE_PREVIEW: Record<string, string> = { sharp: 'rounded-none', soft: 'rounded-[3px]', round: 'rounded-full' };
+import { DocumentStylePanel } from './DocumentStylePanel';
 
 export interface EditorSidebarProps {
   blocks: BlockData[];
   activeIndex: number;
   onSelectBlock: (index: number) => void;
+  /** Adiciona direto (sugestões da IA). */
   onAddBlock: (type: string) => void;
+  /** Abre a biblioteca de seções (inserção no final). */
+  onOpenSectionLibrary: () => void;
   onMoveBlock: (index: number, direction: 'up' | 'down') => void;
   onReorderBlocks: (oldIndex: number, newIndex: number) => void;
-  /** Aplica design tokens (temas de layout: paleta + fontes + cantos) */
-  onApplyDesignTokens?: (tokens: ProposalDesignTokens) => void;
+  /** Tema atual da proposta (aba Estilo) */
+  designTokens?: ProposalDesignTokens;
+  /** Aplica design tokens (tema pronto, paleta, fontes, cantos) */
+  onApplyDesignTokens: (tokens: ProposalDesignTokens) => void;
   materialTitle?: string;
+  /** Nome do modelo de origem (ausente = proposta personalizada/antiga). */
+  templateName?: string;
+  onSwitchTemplate?: () => void;
+  /** Seções recém-trazidas por uma troca de modelo (texto de exemplo: revisar). */
+  newSectionIds?: Set<string>;
 }
 
 // Item sortable extraído para o dnd-kit (Índice visual numerado)
-function SortableSidebarItem({ block, index, isActive, onSelect }: { block: BlockData, index: number, isActive: boolean, onSelect: () => void }) {
+function SortableSidebarItem({ block, index, isActive, isNew, onSelect }: { block: BlockData, index: number, isActive: boolean, isNew?: boolean, onSelect: () => void }) {
   const {
     attributes,
     listeners,
@@ -64,7 +67,7 @@ function SortableSidebarItem({ block, index, isActive, onSelect }: { block: Bloc
 
   const Icon = getBlockDef(block.type)?.icon ?? DEFAULT_BLOCK_ICON;
   const displayNumber = String(index + 1).padStart(2, '0');
-  const sectionTitle = block.content?.title || block.content?.cta_text || block.content?.eyebrow || block.data?.title || getBlockName(block.type);
+  const sectionTitle = getSectionTitle(block);
 
   return (
     <div 
@@ -93,11 +96,21 @@ function SortableSidebarItem({ block, index, isActive, onSelect }: { block: Bloc
       
       {/* Título e descrição */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0 pr-4">
-        <span className={cn(
-          "text-xs font-semibold leading-tight truncate", 
-          isActive ? "text-primary" : "text-foreground"
-        )}>
-          {sectionTitle}
+        <span className="flex items-center gap-1.5 min-w-0">
+          <span className={cn(
+            "text-xs font-semibold leading-tight truncate",
+            isActive ? "text-primary" : "text-foreground"
+          )}>
+            {sectionTitle}
+          </span>
+          {isNew && (
+            <span
+              className="shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-primary"
+              title="Seção nova do modelo, com texto de exemplo: revise"
+            >
+              Nova
+            </span>
+          )}
         </span>
         <span className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
           {getBlockDef(block.type)?.description ?? getBlockName(block.type)}
@@ -122,9 +135,14 @@ export function EditorSidebar({
   activeIndex,
   onSelectBlock,
   onAddBlock,
+  onOpenSectionLibrary,
   onReorderBlocks,
+  designTokens,
   onApplyDesignTokens,
-  materialTitle
+  materialTitle,
+  templateName,
+  onSwitchTemplate,
+  newSectionIds,
 }: EditorSidebarProps) {
 
   const sensors = useSensors(
@@ -165,14 +183,46 @@ export function EditorSidebar({
   const itemIds = blocks.map((b, i) => b.id || `${b.type}-${i}`);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="p-4 pt-6 pb-2">
-        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-          Estrutura da Proposta
-        </h2>
+    <Tabs defaultValue="sections" className="flex h-full flex-col">
+      {/* Documento: Seções (estrutura) | Estilo (vale para a proposta inteira) */}
+      <div className="shrink-0 px-4 pt-4 pb-1">
+        <TabsList className="grid h-9 w-full grid-cols-2 rounded-xl border border-border/40 bg-muted/50 p-1">
+          <TabsTrigger value="sections" className="gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:shadow-xs">
+            <Layers className="h-3.5 w-3.5" /> Seções
+          </TabsTrigger>
+          <TabsTrigger value="style" className="gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:shadow-xs">
+            <Palette className="h-3.5 w-3.5" /> Estilo
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="sections" className="mt-0 flex flex-1 min-h-0 flex-col data-[state=inactive]:hidden">
+      <div className="px-4 pt-2 pb-2">
+        {onSwitchTemplate && (
+          <button
+            type="button"
+            onClick={onSwitchTemplate}
+            className="group flex w-full items-center gap-2.5 rounded-xl border border-border/70 bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted/40"
+            title="Trocar o modelo mantendo seus textos e fotos"
+          >
+            <LayoutTemplate className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground leading-tight">Modelo</span>
+              <span className="truncate text-xs font-medium text-foreground leading-tight mt-0.5">
+                {templateName ?? 'Personalizado'}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground group-hover:text-primary">
+              <ArrowLeftRight className="h-3 w-3" /> Trocar
+            </span>
+          </button>
+        )}
       </div>
       
-      <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-2 pt-2 custom-scrollbar">
+      <div
+        className="flex-1 overflow-y-auto px-3 space-y-2 pt-2 custom-scrollbar"
+        style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
+      >
         <DndContext 
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -188,6 +238,7 @@ export function EditorSidebar({
                 block={block}
                 index={index}
                 isActive={index === activeIndex}
+                isNew={!!block.id && newSectionIds?.has(block.id)}
                 onSelect={() => onSelectBlock(index)}
               />
             ))}
@@ -195,71 +246,19 @@ export function EditorSidebar({
         </DndContext>
         
         <div className="pt-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full gap-2 border-dashed bg-transparent hover:bg-muted/50 rounded-xl">
-                <Plus className="h-4 w-4" />
-                Adicionar Seção
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-56 rounded-xl">
-              {ADDABLE_BLOCK_TYPES.map((type) => {
-                const def = getBlockDef(type);
-                const Icon = def?.icon ?? DEFAULT_BLOCK_ICON;
-                return (
-                  <DropdownMenuItem key={type} onClick={() => onAddBlock(type)} className="gap-3 py-2 cursor-pointer">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-muted/50">
-                      <Icon className="h-3.5 w-3.5 text-foreground" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{getBlockName(type)}</span>
-                      <span className="text-[10px] text-muted-foreground">{def?.description}</span>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Biblioteca de seções (diálogo com busca): nunca sai da tela */}
+          <Button
+            variant="outline"
+            className="w-full gap-2 border-dashed bg-transparent hover:bg-muted/50 rounded-xl"
+            onClick={onOpenSectionLibrary}
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar Seção
+          </Button>
         </div>
 
-        {/* ASSISTENTE DE DESIGN (paletas + estrutura com IA) */}
-        {onApplyDesignTokens && (
-          <div className="mt-4 pt-3 border-t border-border space-y-3">
-            <h3 className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              <Palette className="h-3 w-3" />
-              Temas de Layout
-            </h3>
-
-            <div className="grid grid-cols-2 gap-2">
-              {DESIGN_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  title={preset.description}
-                  onClick={() => onApplyDesignTokens(preset.tokens)}
-                  className="group rounded-lg border border-border p-2 text-left hover:border-primary/50 hover:bg-muted/40 transition-colors"
-                >
-                  <div className="flex items-center gap-1 mb-1.5">
-                    {(['cream', 'accent', 'ink'] as const).map((c) => (
-                      <span
-                        key={c}
-                        className="h-3.5 w-3.5 rounded-full border border-black/5"
-                        style={{ backgroundColor: preset.tokens.colors?.[c] }}
-                      />
-                    ))}
-                    <span
-                      className={cn('ml-auto h-3.5 w-3.5 border border-foreground/40', SHAPE_PREVIEW[preset.tokens.shape ?? 'soft'])}
-                      aria-hidden
-                    />
-                  </div>
-                  <span className="text-[10px] font-medium leading-tight block">{preset.name}</span>
-                  <span className="text-[9px] text-muted-foreground leading-tight block truncate">
-                    {preset.tokens.typography?.display} · {preset.tokens.typography?.body}
-                  </span>
-                </button>
-              ))}
-            </div>
-
+        {/* ESTRUTURA COM IA */}
+        <div className="mt-4 pt-3 border-t border-border space-y-3">
             <div className="space-y-2">
               <Button
                 variant="ghost"
@@ -310,9 +309,18 @@ export function EditorSidebar({
                 </div>
               )}
             </div>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+      </TabsContent>
+
+      {/* ESTILO GLOBAL (tema, paleta, tipografia, cantos) */}
+      <TabsContent
+        value="style"
+        className="mt-0 flex-1 min-h-0 overflow-y-auto custom-scrollbar"
+        style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
+      >
+        <DocumentStylePanel tokens={designTokens} onChange={onApplyDesignTokens} />
+      </TabsContent>
+    </Tabs>
   );
 }

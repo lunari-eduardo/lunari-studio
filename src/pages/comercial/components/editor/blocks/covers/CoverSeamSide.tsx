@@ -70,7 +70,7 @@ export function CoverSeamSide({
         <h2 className="mb-6 flex flex-col gap-1">
           {(data?.title || data?.title_regular || editable) && (
             <span className={cn(titleSize, 'font-light tracking-tight leading-[1.05]')} style={s.title}>
-              <EditableText {...et('title', data?.title || data?.title_regular)} placeholder="Título da sessão" multiline={false} />
+              <EditableText {...et('title', data?.title ?? data?.title_regular)} placeholder="Título da sessão" multiline={false} />
             </span>
           )}
           {(data?.title_italic || editable) && (

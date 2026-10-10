@@ -12,6 +12,25 @@ import { Step, Categoria, DbTemplate } from '../types';
 import { pacoteToProposalPackage } from '../../blocks/normalization';
 import { pdfjs } from 'react-pdf';
 
+/** Vitrine de modelos ativos (wizard de criação e "Trocar modelo" do editor dividem o cache). */
+export function useProposalTemplates(enabled = true) {
+  return useQuery({
+    queryKey: ['proposal-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('proposal_templates')
+        .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url')
+        .eq('is_active', true);
+
+      if (error && error.code !== '42P01') {
+        console.error('Erro ao buscar templates:', error);
+      }
+      return (data || []) as DbTemplate[];
+    },
+    enabled,
+  });
+}
+
 interface UseCreateMaterialWizardProps {
   isOpen: boolean;
   onClose: () => void;
@@ -53,21 +72,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
   });
 
   // Busca templates do banco
-  const { data: dbTemplates = [], isLoading: isLoadingDbTemplates } = useQuery({
-    queryKey: ['proposal-templates'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('proposal_templates')
-        .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url')
-        .eq('is_active', true);
-
-      if (error && error.code !== '42P01') {
-        console.error('Erro ao buscar templates:', error);
-      }
-      return (data || []) as DbTemplate[];
-    },
-    enabled: isOpen,
-  });
+  const { data: dbTemplates = [], isLoading: isLoadingDbTemplates } = useProposalTemplates(isOpen);
 
   const resetModal = () => {
     setStep('method');

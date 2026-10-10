@@ -4,106 +4,124 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Trash2,
-  ChevronDown,
+  Copy,
   DownloadCloud,
   Loader2,
   Image as ImageIcon,
   MoreVertical,
   MousePointerClick,
-  Sparkles,
   Type,
   Layout,
   Palette,
+  List,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
-import { getBlockDef, getBlockName, BlockField } from '../../blocks/registry';
+import { getBlockDef, getBlockName, getSectionTitle, BlockField, FieldCtx, FieldGroup } from '../../blocks/registry';
 import { pacoteToProposalPackage } from '../../blocks/normalization';
 import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
 import { uploadProposalImage } from '../../blocks/uploadImage';
-import { PROPOSAL_FONTS } from '../../blocks/design';
+import { DEFAULT_DESIGN_TOKENS, isHexColor, type ProposalDesignTokens } from '../../blocks/design';
+import { VariantPicker } from './CanvasToolbars';
 
 export interface PropertiesSidebarProps {
   block: BlockData;
   blockIndex: number;
   onUpdateBlock: (index: number, data: Record<string, any>) => void;
-  onUpdateDesignTokens?: (tokens: any) => void;
   onRemoveBlock: (index: number) => void;
+  onDuplicateBlock?: (index: number) => void;
+  /** Tema atual: cores reais nas amostras de fundo */
+  designTokens?: ProposalDesignTokens;
   /** Contexto para os botões de ajuda de texto com IA */
   aiContext?: {
     materialTitle?: string;
     sessionType?: string;
     tone?: string;
-    designTokens?: any;
   };
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
 }
 
-// Papéis tipográficos do tema (selects da "Tipografia da Proposta")
-const FONT_ROLES = [
-  { key: 'display', label: 'Fonte dos Títulos (Display)', fallback: 'Playfair Display', allowDisplayOnly: true },
-  { key: 'body', label: 'Fonte do Corpo', fallback: 'Inter', allowDisplayOnly: false },
-  { key: 'accent', label: 'Fonte de Destaque (números e preços)', fallback: '', allowDisplayOnly: true },
-] as const;
-
-// Chaves que pertencem à aba de Ações (botões, links, CTAs)
-const ACTION_FIELD_KEYS = new Set(['btnText', 'btnLink', 'hide_cta', 'cta_text', 'cta_link']);
-
-function isActionField(field: BlockField): boolean {
-  if (ACTION_FIELD_KEYS.has(field.key)) return true;
-  if (field.kind === 'url') return true;
-  return false;
-}
-
-function isVisualField(field: BlockField): boolean {
-  if (isActionField(field)) return false;
-  if (field.kind === 'image' || field.kind === 'color' || field.kind === 'align') return true;
-  if (['background', 'style', 'layout', 'text_color', 'hide_images'].includes(field.key)) return true;
-  return false;
-}
-
-function isContentField(field: BlockField): boolean {
-  return !isActionField(field) && !isVisualField(field);
-}
-
 // ============================================================
-// INSPECTOR CONTEXTUAL — Painel lateral direito reestruturado
-// em abas (Conteúdo, Visual, Ações) com cabeçalho fixo.
+// INSPECTOR DA SEÇÃO — acordeão solitário por intenção
+// (Textos, Itens, Fotos, Composição, Estilo, Botões e links).
+// Grupo de cada campo: `field.group` ou inferido abaixo; campos que a
+// variante atual não usa somem (`showIf`). Tema/tipografia são globais
+// e ficam no painel esquerdo (aba Estilo).
 // ============================================================
+
+const GROUPS: { key: FieldGroup; title: string; icon: LucideIcon }[] = [
+  { key: 'text', title: 'Textos', icon: Type },
+  { key: 'items', title: 'Itens', icon: List },
+  { key: 'media', title: 'Fotos', icon: ImageIcon },
+  { key: 'layout', title: 'Composição', icon: Layout },
+  { key: 'style', title: 'Estilo', icon: Palette },
+  { key: 'actions', title: 'Botões e links', icon: MousePointerClick },
+];
+
+const ACTION_FIELD_KEYS = new Set(['btnText', 'btnLink']);
+
+function fieldGroup(field: BlockField, isProp: boolean): FieldGroup {
+  if (field.group) return field.group;
+  if (ACTION_FIELD_KEYS.has(field.key) || field.kind === 'url') return 'actions';
+  if (field.kind === 'image') return 'media';
+  if (field.kind === 'list') return 'items';
+  if (field.kind === 'align' || field.key === 'layout' || field.key === 'style') return 'layout';
+  return isProp ? 'style' : 'text';
+}
+
+type Entry = { field: BlockField; isProp: boolean };
+
+/** Resumo do cabeçalho do grupo: até dois valores legíveis ("Creme · Automático"). */
+function summarize(entries: Entry[], content: Record<string, any>, props: Record<string, any>, lead?: string): string {
+  const parts = lead ? [lead] : [];
+  for (const { field: f, isProp } of entries) {
+    if (parts.length === 2) break;
+    const v = (isProp ? props : content)[f.key];
+    let s = '';
+    if (f.kind === 'swatch') s = isHexColor(v) ? 'Personalizada' : f.options?.find((o) => o.value === v)?.label ?? '';
+    else if (f.kind === 'select') s = f.options?.find((o) => o.value === (v ?? f.options?.[0]?.value))?.label ?? '';
+    else if (f.kind === 'list') {
+      const n = Array.isArray(v) ? v.length : 0;
+      s = `${n} ${(n === 1 ? f.itemLabel ?? 'item' : f.label).toLowerCase()}`;
+    } else if (f.kind === 'text' || f.kind === 'textarea') s = typeof v === 'string' ? v.trim() : '';
+    if (s) parts.push(s);
+  }
+  return parts.join(' · ');
+}
 
 export function PropertiesSidebar({
   block,
   blockIndex,
   onUpdateBlock,
-  onUpdateDesignTokens,
   onRemoveBlock,
+  onDuplicateBlock,
+  designTokens,
   aiContext,
   onInteractionStart,
   onInteractionEnd,
 }: PropertiesSidebarProps) {
   const { pacotes, produtos } = useConfigurationContext();
-  const [activeTab, setActiveTab] = useState<string>('content');
+  // Sem `key` por bloco: o grupo aberto acompanha o fotógrafo de uma seção para outra
+  const [openGroup, setOpenGroup] = useState<string>('text');
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
 
   const def = getBlockDef(block.type);
   const content: Record<string, any> = block.content ?? {};
   const props: Record<string, any> = block.props ?? {};
+  const palette = { ...DEFAULT_DESIGN_TOKENS.colors, ...(designTokens?.colors ?? {}) };
 
   const setContent = (updates: Record<string, any>) => {
     onUpdateBlock(blockIndex, { content: { ...content, ...updates } });
@@ -121,7 +139,7 @@ export function PropertiesSidebar({
   const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsUploading(true);
+    setUploadingSlot(slotKey);
     try {
       const url = await uploadProposalImage(file);
       const slot = { ...((block.props ?? {})[slotKey] ?? {}) };
@@ -130,55 +148,91 @@ export function PropertiesSidebar({
       console.error(err);
       toast.error('Erro ao enviar imagem para a nuvem. Verifique sua conexão e tente novamente.');
     } finally {
-      setIsUploading(false);
+      setUploadingSlot(null);
       e.target.value = '';
     }
   };
 
-  // Separação dos campos do schema nas 3 abas contextuais
-  const allFields = def?.fields ?? [];
-  const allLayoutFields = def?.layoutFields ?? [];
-
-  const contentFields = allFields.filter(isContentField);
-  const visualContentFields = allFields.filter(isVisualField);
-  const visualLayoutFields = allLayoutFields.filter(isVisualField);
-  const actionFields = [
-    ...allFields.filter(isActionField),
-    ...allLayoutFields.filter(isActionField),
-  ];
-
-  const hasSlots = (def?.propImageSlots?.length ?? 0) > 0;
-  const hasVariants = (def?.variants?.length ?? 0) > 0;
+  // Variante resolvida com a padrão: é o que o renderer usa
   const currentVariant = props.variant ?? def?.defaultVariant;
+  const ctx: FieldCtx = { content, props: { ...props, variant: currentVariant } };
+  const visible = (x: { showIf?: (c: FieldCtx) => boolean }) => !x.showIf || x.showIf(ctx);
+
+  const entries: Entry[] = [
+    ...(def?.fields ?? []).filter(visible).map((field) => ({ field, isProp: false })),
+    ...(def?.layoutFields ?? []).filter(visible).map((field) => ({ field, isProp: true })),
+  ];
+  const slots = (def?.propImageSlots ?? []).filter(visible);
+  const hasVariants = (def?.variants?.length ?? 0) > 0;
+  const variantLabel = def?.variants?.find((v) => v.value === currentVariant)?.label;
+
+  const groups = GROUPS.map((g) => {
+    const items = entries.filter((e) => fieldGroup(e.field, e.isProp) === g.key);
+    const extra =
+      (g.key === 'layout' && hasVariants) ||
+      (g.key === 'media' && slots.length > 0) ||
+      (g.key === 'items' && block.type === 'PricingTable');
+    if (!items.length && !extra) return null;
+
+    let title = g.title;
+    let summary: string;
+    if (g.key === 'items') {
+      const lists = items.filter((e) => e.field.kind === 'list');
+      if (lists.length === 1) title = lists[0].field.label;
+      summary = summarize(items, content, props);
+    } else if (g.key === 'media') {
+      const refs = [
+        ...items.map((e) => content[e.field.key]),
+        ...slots.map((s) => props[s.key]?.image_ref),
+      ];
+      const filled = refs.filter(Boolean).length;
+      summary = filled === 0 ? 'sem foto' : refs.length === 1 ? 'com foto' : `${filled} de ${refs.length} fotos`;
+    } else {
+      summary = summarize(items, content, props, g.key === 'layout' ? variantLabel : undefined);
+    }
+    return { ...g, title, summary, items };
+  }).filter((g): g is NonNullable<typeof g> => g !== null);
+
+  const groupKeys = groups.map((g) => g.key as string);
+  const accordionValue = openGroup === '' || groupKeys.includes(openGroup) ? openGroup : groupKeys[0] ?? '';
+
+  const renderField = ({ field, isProp }: Entry, groupTitle: string, withAi: boolean) => (
+    <FieldEditor
+      key={field.key}
+      field={field.kind === 'list' && field.label === groupTitle ? { ...field, label: '' } : field}
+      value={(isProp ? props : content)[field.key]}
+      onChange={(v) => (isProp ? setProps : setContent)({ [field.key]: v })}
+      aiContext={withAi ? { blockType: block.type, ...aiContext } : undefined}
+      ctx={ctx}
+      palette={palette}
+    />
+  );
 
   return (
     <>
-      <div 
+      <div
         className="flex h-full flex-col bg-background select-none"
         onFocusCapture={onInteractionStart}
         onBlurCapture={onInteractionEnd}
         onPointerDownCapture={onInteractionStart}
       >
-        {/* CABEÇALHO CONTEXTUAL FIXO */}
-        <div className="shrink-0 p-4 border-b border-border bg-background">
+        {/* CABEÇALHO FIXO DA SEÇÃO */}
+        <div className="shrink-0 px-4 py-4 border-b border-border bg-background">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
-                Seção {String(blockIndex + 1).padStart(2, '0')}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Seção {String(blockIndex + 1).padStart(2, '0')} · {getBlockName(block.type)}
               </span>
               <h2 className="text-base font-semibold text-foreground tracking-tight truncate mt-0.5">
-                Editando: {block.content?.title || getBlockName(block.type)}
+                {getSectionTitle(block)}
               </h2>
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                {def?.description ?? getBlockName(block.type)}
-              </p>
             </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg"
                   title="Mais opções da seção"
                 >
@@ -186,6 +240,15 @@ export function PropertiesSidebar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onDuplicateBlock && (
+                  <>
+                    <DropdownMenuItem onClick={() => onDuplicateBlock(blockIndex)} className="gap-2 cursor-pointer">
+                      <Copy className="h-4 w-4" />
+                      Duplicar seção
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem
                   onClick={() => onRemoveBlock(blockIndex)}
                   className="text-destructive focus:text-destructive gap-2 cursor-pointer"
@@ -198,263 +261,97 @@ export function PropertiesSidebar({
           </div>
         </div>
 
-        {/* ESTRUTURA DE ABAS CONTEXTUAIS */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="shrink-0 px-4 py-2 border-b border-border bg-background/80 backdrop-blur-sm">
-            <TabsList className="w-full grid grid-cols-3 h-9 bg-muted/50 p-1 rounded-lg border border-border/40">
-              <TabsTrigger 
-                value="content" 
-                className="text-xs font-medium py-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all"
-              >
-                Conteúdo
-              </TabsTrigger>
-              <TabsTrigger 
-                value="visual" 
-                className="text-xs font-medium py-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all"
-              >
-                Visual
-              </TabsTrigger>
-              <TabsTrigger 
-                value="actions" 
-                className="text-xs font-medium py-1 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs transition-all relative flex items-center justify-center gap-1.5"
-              >
-                <span>Ações</span>
-                {actionFields.length > 0 && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                )}
-              </TabsTrigger>
-            </TabsList>
-          </div>
+        {/* GRUPOS (um aberto por vez) */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar select-text" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
+          {groups.length === 0 ? (
+            <p className="py-12 px-6 text-center text-xs text-muted-foreground">Esta seção não tem ajustes.</p>
+          ) : (
+            <Accordion type="single" collapsible value={accordionValue} onValueChange={setOpenGroup}>
+              {groups.map((g) => (
+                <AccordionItem key={g.key} value={g.key} className="border-border/60">
+                  <AccordionTrigger className="gap-3 px-4 py-3.5 text-sm hover:no-underline hover:bg-muted/30 data-[state=open]:bg-muted/20">
+                    <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <g.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="shrink-0 font-medium text-foreground">{g.title}</span>
+                      {g.summary && (
+                        <span className="min-w-0 flex-1 truncate text-right text-xs font-normal text-muted-foreground">
+                          {g.summary}
+                        </span>
+                      )}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 px-4 pb-5 pt-2">
+                    {/* Composição: variantes da seção */}
+                    {g.key === 'layout' && hasVariants && (
+                      <VariantPicker options={def!.variants!} value={currentVariant} onChange={(v) => setProps({ variant: v })} />
+                    )}
 
-          {/* CORPO ROLÁVEL DO INSPECTOR */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar select-text">
-
-            {/* ======================================================== */}
-            {/* ABA 1: CONTEÚDO (Textos, informações, listas estruturadas) */}
-            {/* ======================================================== */}
-            <TabsContent value="content" className="mt-0 space-y-4 outline-none">
-              {/* Botão de importar pacotes cadastrados (apenas Tabela de Preços) */}
-              {block.type === 'PricingTable' && (
-                <Button
-                  variant="outline"
-                  className="w-full border-dashed bg-muted/30 text-primary gap-2 h-9 text-xs"
-                  onClick={() => setIsPackageModalOpen(true)}
-                >
-                  <DownloadCloud className="h-3.5 w-3.5" />
-                  Importar Pacotes Cadastrados
-                </Button>
-              )}
-
-              {contentFields.length > 0 ? (
-                contentFields.map((field) => (
-                  <FieldEditor
-                    key={field.key}
-                    field={field}
-                    value={content[field.key]}
-                    onChange={(v) => setContent({ [field.key]: v })}
-                    aiContext={{ blockType: block.type, ...aiContext }}
-                  />
-                ))
-              ) : (
-                <div className="py-12 px-4 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
-                  <Type className="h-6 w-6 text-muted-foreground/40" />
-                  <p className="font-medium text-foreground/80">Sem campos textuais</p>
-                  <p className="text-[11px] max-w-[220px]">
-                    Esta seção não possui textos configuráveis. Altere a estética na aba Visual.
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* ======================================================== */}
-            {/* ABA 2: VISUAL (Composição, imagens, fundo, tipografia)   */}
-            {/* ======================================================== */}
-            <TabsContent value="visual" className="mt-0 space-y-5 outline-none">
-              {/* Seletor de Variante de Composição */}
-              {hasVariants && (
-                <div className="space-y-2 pb-3 border-b border-border/60">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-                    <Layout className="h-3.5 w-3.5" /> Composição
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {def!.variants!.map((v) => (
-                      <button
-                        key={v.value}
-                        type="button"
-                        onClick={() => setProps({ variant: v.value })}
-                        className={`flex flex-col items-start gap-0.5 p-2.5 rounded-lg border text-left transition-all ${
-                          currentVariant === v.value
-                            ? 'border-primary bg-primary/10 text-primary shadow-xs'
-                            : 'border-border bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40'
-                        }`}
+                    {/* Itens: importar pacotes cadastrados (Tabela de Preços) */}
+                    {g.key === 'items' && block.type === 'PricingTable' && (
+                      <Button
+                        variant="outline"
+                        className="w-full border-dashed gap-2 h-9 text-xs rounded-xl"
+                        onClick={() => setIsPackageModalOpen(true)}
                       >
-                        <span className="text-xs font-medium leading-tight">{v.label}</span>
-                        <span className="text-[10px] leading-tight opacity-70 line-clamp-2">{v.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                        <DownloadCloud className="h-3.5 w-3.5" />
+                        Importar pacotes cadastrados
+                      </Button>
+                    )}
 
-              {/* Imagens principais vinculadas ao content (ex: Capa, Composição Editorial) */}
-              {visualContentFields.map((field) => (
-                <div key={field.key} className="space-y-2 pb-3 border-b border-border/60">
-                  <FieldEditor
-                    field={field}
-                    value={content[field.key]}
-                    onChange={(v) => setContent({ [field.key]: v })}
-                  />
-                </div>
-              ))}
+                    {g.items.map((e) => renderField(e, g.title, g.key === 'text'))}
 
-              {/* Slots de imagens em props (ex: EditorialBlock photo_a/photo_b) */}
-              {hasSlots && (
-                <div className="space-y-4 pb-3 border-b border-border/60">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-                    <ImageIcon className="h-3.5 w-3.5" /> Imagens da Composição
-                  </Label>
-                  <div className="space-y-4">
-                    {def!.propImageSlots!.map((slot) => {
-                      const current = (block.props ?? {})[slot.key]?.image_ref ?? null;
-                      return (
-                        <div key={slot.key} className="space-y-2">
-                          <Label className="text-xs font-medium text-foreground/90">{slot.label}</Label>
-                          <div className="flex gap-3 items-center">
-                            <div className="h-16 w-24 shrink-0 rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
-                              {current ? (
-                                <img src={current} alt={slot.label} className="h-full w-full object-cover" />
-                              ) : (
-                                <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1.5 flex-1">
-                              <Label htmlFor={`upload-${slot.key}-${blockIndex}`} className="cursor-pointer">
-                                <div className="flex h-8 w-full items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-xs hover:bg-accent hover:text-accent-foreground">
-                                  {isUploading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                                  {current ? 'Trocar imagem' : 'Enviar imagem'}
-                                </div>
-                                <input
-                                  type="file"
-                                  id={`upload-${slot.key}-${blockIndex}`}
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) => handleSlotUpload(e, slot.key)}
-                                  disabled={isUploading}
-                                />
-                              </Label>
-                              {current ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full text-xs h-7 text-destructive hover:bg-destructive/10"
-                                  onClick={() => setProps({ [slot.key]: { ...((block.props ?? {})[slot.key] ?? {}), image_ref: null } })}
-                                >
-                                  Remover foto
-                                </Button>
-                              ) : null}
+                    {/* Fotos: slots da composição (ex.: Editorial photo_a/photo_b) */}
+                    {g.key === 'media' &&
+                      slots.map((slot) => {
+                        const current = props[slot.key]?.image_ref ?? null;
+                        const inputId = `upload-${slot.key}-${blockIndex}`;
+                        return (
+                          <div key={slot.key} className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">{slot.label}</Label>
+                            <div className="flex gap-3 items-center">
+                              <div className="h-16 w-24 shrink-0 rounded-xl border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
+                                {current ? (
+                                  <img src={current} alt={slot.label} className="h-full w-full object-cover" />
+                                ) : (
+                                  <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-1.5 flex-1">
+                                <Label htmlFor={inputId} className="cursor-pointer">
+                                  <div className="flex h-8 w-full items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                                    {uploadingSlot === slot.key ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                                    {current ? 'Trocar imagem' : 'Enviar imagem'}
+                                  </div>
+                                  <input
+                                    type="file"
+                                    id={inputId}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleSlotUpload(e, slot.key)}
+                                    disabled={uploadingSlot !== null}
+                                  />
+                                </Label>
+                                {current ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs h-7 text-destructive hover:bg-destructive/10"
+                                    onClick={() => setProps({ [slot.key]: { ...(props[slot.key] ?? {}), image_ref: null } })}
+                                  >
+                                    Remover foto
+                                  </Button>
+                                ) : null}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Controles de Layout e Estilo (fundo, alinhamento, etc.) */}
-              {visualLayoutFields.length > 0 && (
-                <div className="space-y-3 pb-3 border-b border-border/60">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
-                    <Palette className="h-3.5 w-3.5" /> Estilo da Seção
-                  </Label>
-                  <div className="space-y-3">
-                    {visualLayoutFields.map((field) => (
-                      <FieldEditor
-                        key={field.key}
-                        field={field}
-                        value={props[field.key]}
-                        onChange={(v) => setProps({ [field.key]: v })}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Accordion: Tipografia Global da Proposta */}
-              <Collapsible className="space-y-2 pt-1">
-                <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Type className="h-3.5 w-3.5 text-primary" /> Tipografia da Proposta
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 pt-2 pb-2">
-                  {FONT_ROLES.map(({ key, label, fallback, allowDisplayOnly }) => {
-                    const tokens = (aiContext as any)?.designTokens || {};
-                    const current: string = tokens.typography?.[key] || fallback;
-                    const families = Object.entries(PROPOSAL_FONTS).filter(([, f]) => allowDisplayOnly || !f.displayOnly);
-                    return (
-                      <div key={key} className="space-y-1.5">
-                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
-                        <select
-                          className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-primary"
-                          value={current}
-                          onChange={(e) =>
-                            onUpdateDesignTokens?.({
-                              ...tokens,
-                              typography: { ...(tokens.typography || {}), [key]: e.target.value || undefined },
-                            })
-                          }
-                        >
-                          {key === 'accent' && <option value="">Igual aos títulos</option>}
-                          {/* Fonte salva fora do catálogo (ex.: escolhida pela IA) continua visível e selecionada */}
-                          {current && !PROPOSAL_FONTS[current] && <option value={current}>{current}</option>}
-                          {families.map(([family, f]) => (
-                            <option key={family} value={family}>{f.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })}
-                </CollapsibleContent>
-              </Collapsible>
-            </TabsContent>
-
-            {/* ======================================================== */}
-            {/* ABA 3: AÇÕES (Botões, links, chamadas para ação)        */}
-            {/* ======================================================== */}
-            <TabsContent value="actions" className="mt-0 space-y-4 outline-none">
-              {actionFields.length > 0 ? (
-                actionFields.map((field) => {
-                  const isPropField = (def?.layoutFields ?? []).some(f => f.key === field.key);
-                  const value = isPropField ? props[field.key] : content[field.key];
-                  const onChange = isPropField 
-                    ? (v: any) => setProps({ [field.key]: v })
-                    : (v: any) => setContent({ [field.key]: v });
-
-                  return (
-                    <FieldEditor
-                      key={field.key}
-                      field={field}
-                      value={value}
-                      onChange={onChange}
-                      aiContext={{ blockType: block.type, ...aiContext }}
-                    />
-                  );
-                })
-              ) : (
-                <div className="py-12 px-4 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
-                  <MousePointerClick className="h-6 w-6 text-muted-foreground/40" />
-                  <p className="font-medium text-foreground/80">Sem ações nesta seção</p>
-                  <p className="text-[11px] max-w-[220px]">
-                    Esta seção possui propósito exclusivamente editorial ou informativo e não conta com botões interativos.
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-
-          </div>
-        </Tabs>
+                        );
+                      })}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </div>
       </div>
 
       {/* MODAL DE IMPORTAÇÃO DE PACOTES */}

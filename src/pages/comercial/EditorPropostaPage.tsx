@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMaterialEditor } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, MousePointerClick, FileText } from 'lucide-react';
+import { Loader2, Upload, MousePointerClick, FileText, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMaterials } from '@/hooks/useMaterials';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -19,6 +19,10 @@ import { FullscreenPreviewModal } from './components/editor/modals/FullscreenPre
 import { EditorHeader } from './components/editor/modals/EditorHeader';
 import { NativePdfViewer } from './components/editor/NativePdfViewer';
 import { SendProposalModal } from './biblioteca/components/SendProposalModal';
+import { SwitchTemplateDialog, type TemplateSwitch } from './components/editor/modals/SwitchTemplateDialog';
+import { useProposalTemplates } from './biblioteca/hooks/useCreateMaterialWizard';
+import { SectionLibraryDialog } from './components/editor/modals/SectionLibraryDialog';
+import { getSectionTitle } from './blocks/registry';
 
 /** Converte um data URL (geralmente `image/jpeg`) em `File` pronto para upload. */
 function dataUrlToFile(dataUrl: string, fileName: string): File {
@@ -60,6 +64,18 @@ export default function EditorMaterialPage() {
   const editorUndo = editor.undo;
   const editorRedo = editor.redo;
   const inlineEditing = viewMode === 'desktop' && editorState?.format === 'blocks';
+
+  // Biblioteca de seções: null = fechada; afterIndex ausente = inserir no final
+  const [sectionLibrary, setSectionLibrary] = useState<{ afterIndex?: number } | null>(null);
+
+  // Trocar modelo
+  const [isSwitchTemplateOpen, setIsSwitchTemplateOpen] = useState(false);
+  // Aviso inline "Modelo aplicado · Desfazer": some na próxima mutação (revisão muda)
+  const [appliedNotice, setAppliedNotice] = useState<{ name: string; revision: number } | null>(null);
+  const [newSectionIds, setNewSectionIds] = useState<Set<string>>(() => new Set());
+  const { data: proposalTemplates = [] } = useProposalTemplates(editorState?.format === 'blocks');
+  const sourceTemplateId: string | undefined = editorState?.globalSettings?.source_template_id;
+  const currentTemplateName = proposalTemplates.find((t) => t.template_id === sourceTemplateId)?.name;
 
   // Geração/atualização da capa do material.
   // - PDF: ao abrir uma proposta PDF, captura a primeira página e sobe como
@@ -138,12 +154,10 @@ export default function EditorMaterialPage() {
       }
       // 3. Tenta pegar do EditorialBlock (photo_a ou photo_b)
       if (b.type === 'EditorialBlock' && b.props) {
-        if (b.props.photo_a?.image_ref?.url) {
-          coverImageUrl = b.props.photo_a.image_ref.url;
-          break;
-        }
-        if (b.props.photo_b?.image_ref?.url) {
-          coverImageUrl = b.props.photo_b.image_ref.url;
+        // image_ref é a URL (string)
+        const slotUrl = b.props.photo_a?.image_ref || b.props.photo_b?.image_ref;
+        if (typeof slotUrl === 'string' && slotUrl) {
+          coverImageUrl = slotUrl;
           break;
         }
       }
@@ -169,6 +183,8 @@ export default function EditorMaterialPage() {
 
       const { instantiateTemplateBlocks } = await import('./blocks/normalization');
       const sanitizedBlocks = instantiateTemplateBlocks(editorState.blocks);
+      // O modelo de origem é desta proposta, não do modelo novo
+      const { source_template_id: _origin, ...settings } = editorState.globalSettings ?? {};
 
       const { error } = await (supabase as any)
         .from('proposal_templates')
@@ -177,7 +193,7 @@ export default function EditorMaterialPage() {
           name: templateName.trim(),
           description: `Modelo salvo da proposta "${editorState.title}".`,
           tags: [],
-          blocks_json: [...sanitizedBlocks, { type: 'global_settings', data: editorState.globalSettings }],
+          blocks_json: [...sanitizedBlocks, { type: 'global_settings', data: settings }],
           design_tokens: editorState.globalSettings?.design_tokens ?? null,
           is_active: true,
         });
@@ -270,8 +286,9 @@ export default function EditorMaterialPage() {
   }, [viewMode, canvasDimensions.width]);
 
   // Seleção de bloco com scroll suave até a seção
-  const handleSelectBlock = useCallback((index: number) => {
+  const handleSelectBlock = useCallback((index: number, opts?: { scroll?: boolean }) => {
     setActiveIndex(index);
+    if (opts?.scroll === false) return;
     isProgrammaticScrollRef.current = true;
 
     const el = document.getElementById(`section-block-${index}`);
@@ -351,10 +368,50 @@ export default function EditorMaterialPage() {
   const activeBlock = editorState.blocks[activeIndex];
   const designTokens = editorState.globalSettings?.design_tokens;
 
-  const handleAddBlock = (type: string) => {
-    editor.addBlock(type);
-    setActiveIndex(editorState.blocks.length);
+  // A seção nova/movida/duplicada só existe no DOM após o render: seleciona e rola em seguida
+  const selectAfterRender = (index: number) => {
+    setActiveIndex(index);
+    setTimeout(() => handleSelectBlock(index), 60);
   };
+
+  const handleAddBlock = (type: string, afterIndex?: number) => {
+    editor.addBlock(type, afterIndex);
+    setSectionLibrary(null);
+    selectAfterRender(afterIndex !== undefined ? afterIndex + 1 : editorState.blocks.length);
+  };
+
+  const handleRemoveBlock = (index: number) => {
+    const nextCount = editorState.blocks.length - 1;
+    editor.removeBlock(index);
+    setActiveIndex((prev) => (prev > index ? prev - 1 : Math.min(prev, Math.max(0, nextCount - 1))));
+  };
+
+  const handleDuplicateBlock = (index: number) => {
+    editor.duplicateBlock(index);
+    selectAfterRender(index + 1);
+  };
+
+  const handleMoveBlock = (index: number, direction: 'up' | 'down') => {
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= editorState.blocks.length) return;
+    editor.moveBlock(index, direction);
+    selectAfterRender(target);
+  };
+
+  const libraryPositionLabel =
+    sectionLibrary?.afterIndex !== undefined && editorState.blocks[sectionLibrary.afterIndex]
+      ? `logo após "${getSectionTitle(editorState.blocks[sectionLibrary.afterIndex])}"`
+      : 'no final da proposta';
+
+  // Um único passo de histórico; a seleção acompanha a seção ativa pelo id
+  const handleApplyTemplate = ({ blocks, settings, added, templateName }: TemplateSwitch) => {
+    const activeId = editorState.blocks[activeIndex]?.id;
+    editor.replaceDocument(blocks, settings);
+    setActiveIndex(Math.max(0, blocks.findIndex((b) => b.id === activeId)));
+    setNewSectionIds(new Set(added));
+    setAppliedNotice({ name: templateName, revision: editorState.revision + 1 });
+  };
+  const showAppliedNotice = appliedNotice?.revision === editorState.revision;
 
   const structurePanel = (
     <EditorSidebar
@@ -363,12 +420,32 @@ export default function EditorMaterialPage() {
       onSelectBlock={(i) => {
         handleSelectBlock(i);
         setMobilePanel('none');
+        // Selo "Nova" sai quando o fotógrafo abre a seção
+        const selectedId = editorState.blocks[i]?.id;
+        if (selectedId && newSectionIds.has(selectedId)) {
+          setNewSectionIds((prev) => {
+            const next = new Set(prev);
+            next.delete(selectedId);
+            return next;
+          });
+        }
       }}
-      onAddBlock={handleAddBlock}
+      onAddBlock={(type) => handleAddBlock(type)}
+      onOpenSectionLibrary={() => {
+        setMobilePanel('none');
+        setSectionLibrary({});
+      }}
       onMoveBlock={editor.moveBlock}
       onReorderBlocks={editor.reorderBlocks}
-      onApplyDesignTokens={(tokens) => editor.updateGlobalSettings({ design_tokens: tokens })}
+      designTokens={designTokens}
+      onApplyDesignTokens={editor.updateDesignTokens}
       materialTitle={editorState.title}
+      templateName={currentTemplateName}
+      onSwitchTemplate={() => {
+        setMobilePanel('none');
+        setIsSwitchTemplateOpen(true);
+      }}
+      newSectionIds={newSectionIds}
     />
   );
 
@@ -377,13 +454,10 @@ export default function EditorMaterialPage() {
       block={activeBlock}
       blockIndex={activeIndex}
       onUpdateBlock={editor.updateBlock}
-      onUpdateDesignTokens={editor.updateDesignTokens}
-      aiContext={{ materialTitle: editorState.title, designTokens: editorState.globalSettings?.design_tokens }}
-      onRemoveBlock={(index) => {
-        const nextCount = editorState.blocks.length - 1;
-        editor.removeBlock(index);
-        setActiveIndex((prev) => (prev > index ? prev - 1 : Math.min(prev, Math.max(0, nextCount - 1))));
-      }}
+      designTokens={designTokens}
+      aiContext={{ materialTitle: editorState.title }}
+      onDuplicateBlock={handleDuplicateBlock}
+      onRemoveBlock={handleRemoveBlock}
       onInteractionStart={() => {
         isInteractingWithInspectorRef.current = true;
       }}
@@ -432,6 +506,7 @@ export default function EditorMaterialPage() {
             setTemplateName(`${editorState.title} (modelo)`);
             setIsTemplateModalOpen(true);
           }}
+          onOpenSwitchTemplate={() => setIsSwitchTemplateOpen(true)}
           onOpenMobileStructure={() => setMobilePanel('structure')}
           onOpenMobileProperties={() => setMobilePanel('properties')}
           hasActiveBlock={!!activeBlock}
@@ -451,7 +526,29 @@ export default function EditorMaterialPage() {
               </div>
 
               {/* COLUNA CENTRAL: RENDERIZADOR VISUAL */}
-              <div 
+              <div className="relative flex flex-1 min-w-0">
+              {/* Aviso inline da troca de modelo: fixo sobre o canvas (fora da rolagem) */}
+              {showAppliedNotice && (
+                <div
+                  role="status"
+                  className="absolute left-1/2 top-3 z-30 -translate-x-1/2 flex items-center gap-2 whitespace-nowrap rounded-full border border-border bg-background/95 py-1 pl-3 pr-1 text-xs text-foreground shadow-[0_4px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Modelo "{appliedNotice!.name}" aplicado
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 rounded-full px-2 text-xs"
+                    onClick={() => {
+                      editor.undo();
+                      setNewSectionIds(new Set());
+                    }}
+                  >
+                    <Undo2 className="h-3 w-3" /> Desfazer
+                  </Button>
+                </div>
+              )}
+              <div
                 ref={canvasScrollRef}
                 className="flex-1 overflow-y-auto bg-muted/30 relative flex justify-center custom-scrollbar p-4 md:p-8"
                 onPointerEnter={() => {
@@ -461,7 +558,7 @@ export default function EditorMaterialPage() {
                   isInteractingWithInspectorRef.current = false;
                 }}
               >
-                {inlineEditing && (
+                {!showAppliedNotice && inlineEditing && (
                   <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-background/90 border border-border shadow-sm text-[11px] text-muted-foreground pointer-events-none">
                     <MousePointerClick className="h-3 w-3" />
                     Clique para selecionar · Duplo clique para editar o texto
@@ -479,8 +576,16 @@ export default function EditorMaterialPage() {
                     designTokens={designTokens}
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
+                    uiScale={viewMode === 'desktop' ? autoScale : 1}
+                    sectionActions={{
+                      move: handleMoveBlock,
+                      duplicate: handleDuplicateBlock,
+                      remove: handleRemoveBlock,
+                      insertAfter: (index) => setSectionLibrary({ afterIndex: index }),
+                    }}
                   />
                 </div>
+              </div>
               </div>
 
               {/* COLUNA DIREITA: PROPRIEDADES (≥lg) */}
@@ -563,6 +668,27 @@ export default function EditorMaterialPage() {
         onSave={handleSaveAsTemplate}
         isSaving={isSavingTemplate}
       />
+
+      {/* MODAL TROCAR MODELO */}
+      {editorState.format === 'blocks' && (
+        <SwitchTemplateDialog
+          open={isSwitchTemplateOpen}
+          onOpenChange={setIsSwitchTemplateOpen}
+          blocks={editorState.blocks}
+          currentTemplateId={sourceTemplateId}
+          onApply={handleApplyTemplate}
+        />
+      )}
+
+      {/* BIBLIOTECA DE SEÇÕES */}
+      {editorState.format === 'blocks' && (
+        <SectionLibraryDialog
+          open={sectionLibrary !== null}
+          onOpenChange={(open) => !open && setSectionLibrary(null)}
+          onAdd={(type) => handleAddBlock(type, sectionLibrary?.afterIndex)}
+          positionLabel={libraryPositionLabel}
+        />
+      )}
 
       {/* MODAL PERSONALIZAR SLUG */}
       <CustomizeSlugModal

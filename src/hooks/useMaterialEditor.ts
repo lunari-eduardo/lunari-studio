@@ -133,6 +133,8 @@ export function useMaterialEditor(materialId: string | undefined) {
   const savedRef = useRef<{ state: MaterialEditorState; revision: number } | null>(null);
   const stateRef = useRef<MaterialEditorState | null>(null);
   const savingRef = useRef(false);
+  // O autosave tenta de novo a cada 2.5s após falha: avisa por toast uma vez por sequência
+  const draftErrorNotifiedRef = useRef(false);
   // Coalescência do histórico: edições rápidas no mesmo campo viram 1 entrada de undo
   const lastCoalesceRef = useRef<{ key: string; at: number } | null>(null);
 
@@ -203,13 +205,11 @@ export function useMaterialEditor(materialId: string | undefined) {
         pdfUrl = version.content.url;
         globalSettings = version.content.settings || {};
       } else {
+        // global_settings (tema, WhatsApp) sai do conteúdo cru: normalizeBlocks o descarta
+        const raw: any[] = Array.isArray(version.content) ? version.content : [];
+        globalSettings = raw.find((b) => b?.type === 'global_settings')?.data ?? {};
         // Normaliza documentos V1 legados para o modelo V2 unificado (content/props)
-        blocks = normalizeBlocks(version.content);
-        const settingsBlockIndex = blocks.findIndex(b => b.type === 'global_settings');
-        if (settingsBlockIndex !== -1) {
-          globalSettings = blocks[settingsBlockIndex].data || {};
-          blocks.splice(settingsBlockIndex, 1);
-        }
+        blocks = normalizeBlocks(raw);
       }
 
       const loadedState: MaterialEditorState = {
@@ -275,6 +275,11 @@ export function useMaterialEditor(materialId: string | undefined) {
     updateGlobalSettings({ design_tokens: tokens });
   }, [updateGlobalSettings]);
 
+  /** Troca estrutura + configurações num único passo de histórico (troca de modelo: Ctrl+Z desfaz tudo). */
+  const replaceDocument = useCallback((blocks: BlockData[], settings: Record<string, any>) => {
+    mutate(undefined, (prev) => ({ ...prev, blocks, globalSettings: { ...prev.globalSettings, ...settings } }));
+  }, [mutate]);
+
   const updateBlock = useCallback((index: number, dataOrUpdates: Record<string, any>, coalesceKey?: string) => {
     const key = coalesceKey ?? `block-${index}`;
     mutate(key, (prev) => {
@@ -317,6 +322,22 @@ export function useMaterialEditor(materialId: string | undefined) {
       const newBlocks = [...prev.blocks];
       const insertAt = afterIndex !== undefined ? afterIndex + 1 : newBlocks.length;
       newBlocks.splice(insertAt, 0, newBlock);
+      return { ...prev, blocks: newBlocks };
+    });
+  }, [mutate]);
+
+  /** Cópia logo abaixo, com ids novos (bloco e itens de lista) para não colidir chaves. */
+  const duplicateBlock = useCallback((index: number) => {
+    mutate(undefined, (prev) => {
+      const source = prev.blocks[index];
+      if (!source) return prev;
+      const copy: BlockData = JSON.parse(JSON.stringify(source));
+      copy.id = `${source.type}-${crypto.randomUUID().slice(0, 8)}`;
+      for (const list of Object.values(copy.content ?? {})) {
+        if (Array.isArray(list)) list.forEach((item) => item && typeof item === 'object' && 'id' in item && (item.id = crypto.randomUUID()));
+      }
+      const newBlocks = [...prev.blocks];
+      newBlocks.splice(index + 1, 0, copy);
       return { ...prev, blocks: newBlocks };
     });
   }, [mutate]);
@@ -416,17 +437,19 @@ export function useMaterialEditor(materialId: string | undefined) {
         });
       } else {
         // Rascunho da própria versão: update in-place
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from('material_versions')
           .update({ content: contentToSave })
           .eq('id', current.versionId);
+        if (updateError) throw updateError;
       }
 
       if (savedRef.current?.state.title !== current.title) {
-        await (supabase as any)
+        const { error: titleError } = await (supabase as any)
           .from('commercial_materials')
           .update({ title: current.title })
           .eq('id', current.materialId);
+        if (titleError) throw titleError;
       }
 
       if (publish) {
@@ -442,6 +465,7 @@ export function useMaterialEditor(materialId: string | undefined) {
         isPublished: resultingVersion.isPublished,
       }));
       savedRef.current = { state: persistedSnapshot, revision: savedRevision };
+      draftErrorNotifiedRef.current = false;
       const latest = stateRef.current;
       if (latest && latest.revision === savedRevision) {
         setHasChanges(false);
@@ -454,7 +478,12 @@ export function useMaterialEditor(materialId: string | undefined) {
       }
     } catch {
       setSaveStatus('error');
-      toast.error(publish ? 'Erro ao publicar versão' : 'Erro ao salvar rascunho');
+      if (publish) {
+        toast.error('Erro ao publicar versão');
+      } else if (!draftErrorNotifiedRef.current) {
+        draftErrorNotifiedRef.current = true;
+        toast.error('Erro ao salvar rascunho');
+      }
     } finally {
       savingRef.current = false;
     }
@@ -477,7 +506,9 @@ export function useMaterialEditor(materialId: string | undefined) {
     updatePdfUrl,
     updateGlobalSettings,
     updateDesignTokens,
+    replaceDocument,
     addBlock,
+    duplicateBlock,
     removeBlock,
     moveBlock,
     reorderBlocks,

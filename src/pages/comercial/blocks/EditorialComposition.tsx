@@ -4,6 +4,7 @@ import { useInlineEdit } from './inlineContext';
 import { EditableText } from './EditableText';
 import { EditableImage } from './EditableImage';
 import { fontDisplayCss, fontBodyCss } from './design';
+import { sectionBg, textColorClass } from '../components/editor/blocks/helpers';
 
 interface EditorialCompositionProps {
   content: any;
@@ -31,10 +32,8 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
   const fb = useMemo(() => ({ fontFamily: fontBodyCss() }), []);
   
   const layout = p.layout || 'split-left'; // split-left, split-right, full-overlap
-  const isDark = p.background === 'dark';
-  
-  // Cores semânticas baseadas nos tokens
-  const bgTextColor = isDark ? 'text-white' : 'text-[var(--pa-ink,#1A1714)]';
+  // Fundo e texto automático pelos helpers comuns (paleta do tema, Pedra/Taupe e cor livre)
+  const bgTextColor = textColorClass(undefined, p.background, 'white');
   const photoTextColor = 'text-white'; 
 
   const TitleLayer = ({ layerType, className }: { layerType: 'bg' | 'photo', className?: string }) => {
@@ -75,10 +74,7 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
   return (
     <section className={cn(
       "relative min-h-[600px] @md:min-h-[800px] overflow-hidden flex flex-col @md:flex-row editorial-seam-container",
-      p.background === 'cream' && "bg-[var(--pa-cream,#FDFBF7)]",
-      p.background === 'linen' && "bg-[var(--pa-linen,#F0E9E1)]",
-      p.background === 'stone' && "bg-[var(--pa-stone,#D8C7B8)]",
-      p.background === 'dark' && "bg-[var(--pa-ink,#2C2825)]",
+      sectionBg(p.background, 'white'),
       layout === 'split-right' && "flex-col-reverse @md:flex-row-reverse"
     )}>
       

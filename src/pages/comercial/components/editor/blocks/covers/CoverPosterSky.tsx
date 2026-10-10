@@ -47,6 +47,7 @@ export function CoverPosterSky({
         editable={editable}
         value={data?.image_url || null}
         label="Capa"
+        actionCorner
         alt="Capa"
         onCommit={(url) => inline?.set('image_url', url)}
         className="absolute inset-0 w-full h-full"
@@ -73,7 +74,7 @@ export function CoverPosterSky({
           className="mt-6 @md:mt-10 text-[length:clamp(2.75rem,12cqi,7.5rem)] leading-[1.05] tracking-[0.06em] uppercase max-w-[14ch]"
           style={s.title}
         >
-          <EditableText {...et('title', data?.title_regular || data?.title)} placeholder="Entre nós" />
+          <EditableText {...et('title', data?.title ?? data?.title_regular)} placeholder="Entre nós" />
           {(data?.title_italic || editable) && (
             <>
               {' '}

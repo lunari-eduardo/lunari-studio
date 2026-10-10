@@ -1,13 +1,15 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, featureIcon } from '../../../blocks/pricing';
-import { fd, fb, fa, alignClass, sectionBg, textColorClass, CtaHandler } from './helpers';
+import { fd, fb, fa, alignClass, sectionBg, textColorClass } from './helpers';
 
-export function PackageRenderer({ data, onCtaClick }: { data: any; onCtaClick?: CtaHandler }) {
+// Sem botão "Selecionar": a proposta é enviada na conversa com o cliente, que responde por lá
+// (o CTA de WhatsApp do visualizador continua disponível).
+
+export function PackageRenderer({ data }: { data: any }) {
   return (
     <section className="py-16 px-8 bg-white flex flex-col items-center">
       <div className="w-full max-w-md bg-white border border-[var(--pa-linen,#EBE5DF)] rounded-2xl p-8 shadow-sm flex flex-col relative transition-all hover:shadow-md">
@@ -30,17 +32,10 @@ export function PackageRenderer({ data, onCtaClick }: { data: any; onCtaClick?: 
           </p>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-[var(--pa-cream,#F2EFEA)] flex items-center justify-between">
+        <div className="mt-8 pt-6 border-t border-[var(--pa-cream,#F2EFEA)]">
           <span className="text-2xl font-medium text-[var(--pa-ink,#2C2825)]">
             R$ {((data?.price_cents || 129000) / 100).toLocaleString('pt-BR')}
           </span>
-          <Button
-            variant="outline"
-            className="border-[var(--pa-stone,#D8D2CB)] text-[var(--pa-ink,#2C2825)] hover:bg-[var(--pa-white,#FDFBF7)] rounded-none"
-            onClick={() => onCtaClick?.({ blockType: 'package', label: data?.title || 'Pacote' })}
-          >
-            Escolher pacote
-          </Button>
         </div>
       </div>
     </section>
@@ -51,12 +46,10 @@ export function PricingClassic({
   content,
   data,
   props,
-  onCtaClick,
 }: {
   content?: any;
   data?: any;
   props?: any;
-  onCtaClick?: CtaHandler;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -131,23 +124,13 @@ export function PricingClassic({
                 </div>
               )}
 
-              <ul className={cn('space-y-3 flex-1 mb-8', align)}>
+              <ul className={cn('space-y-3 flex-1', align)}>
                 {(pkg.features || []).map((feat: string, i: number) => (
                   <li key={i} className="text-sm font-light opacity-70 border-b border-black/5 pb-2 last:border-0">
                     <EditableText {...et(`packages.${idx}.features.${i}`, feat)} placeholder="Item incluso" />
                   </li>
                 ))}
               </ul>
-
-              {!props?.hide_cta && (
-                <Button
-                  variant="outline"
-                  className="w-full bg-[var(--pa-ink,#2C2825)] border-transparent text-[var(--pa-on-ink,#FFFFFF)] hover:bg-[var(--pa-ink,#2C2825)] hover:opacity-90 hover:text-[var(--pa-on-ink,#FFFFFF)] rounded-[var(--pa-r-btn,0.75rem)] transition-opacity"
-                  onClick={() => onCtaClick?.({ blockType: 'PricingTable', label: pkg.name })}
-                >
-                  Selecionar
-                </Button>
-              )}
             </div>
           ))}
         </div>
@@ -160,12 +143,10 @@ export function PricingCardsMinimal({
   content,
   data,
   props,
-  onCtaClick,
 }: {
   content?: any;
   data?: any;
   props?: any;
-  onCtaClick?: CtaHandler;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -242,26 +223,13 @@ export function PricingCardsMinimal({
                 )}
               </p>
 
-              <ul className={cn('space-y-4 flex-1 mb-10 text-sm font-light opacity-75', align)}>
+              <ul className={cn('space-y-4 flex-1 text-sm font-light opacity-75', align)}>
                 {(pkg.features || []).map((feat: string, i: number) => (
                   <li key={i}>
                     <EditableText {...et(`packages.${idx}.features.${i}`, feat)} placeholder="Item incluso" />
                   </li>
                 ))}
               </ul>
-
-              {!props?.hide_cta && (
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-[80%] bg-transparent border-current/20 text-current hover:bg-current hover:text-white rounded-[var(--pa-r-btn,9999px)] transition-all',
-                    align === 'text-center' ? 'mx-auto' : align === 'text-right' ? 'ml-auto' : 'mr-auto'
-                  )}
-                  onClick={() => onCtaClick?.({ blockType: 'PricingTable', label: pkg.name })}
-                >
-                  Selecionar
-                </Button>
-              )}
             </div>
           ))}
         </div>
@@ -433,13 +401,11 @@ export function PricingMagazine({
   content,
   data,
   props,
-  onCtaClick,
   numberOffset = 0,
 }: {
   content?: any;
   data?: any;
   props?: any;
-  onCtaClick?: CtaHandler;
   numberOffset?: number;
 }) {
   const inline = useInlineEdit();
@@ -509,7 +475,7 @@ export function PricingMagazine({
                 measure
               )}
               style={fb()}
-              placeholder="Escolha a melhor experiência para registrar o que é de vocês."
+              placeholder="Frase de apoio (opcional)"
             />
           )}
         </header>
@@ -651,16 +617,6 @@ export function PricingMagazine({
                         />
                       </p>
                     )}
-                    {!props?.hide_cta && (
-                      <button
-                        type="button"
-                        onClick={() => onCtaClick?.({ blockType: 'PricingTable', label: pkg.name })}
-                        className="mt-6 w-full border border-[var(--pa-stone,#D0C8BC)] rounded-[var(--pa-r-btn,0px)] py-3 text-[11px] uppercase tracking-[0.3em] transition-colors hover:border-transparent hover:bg-[var(--pa-accent-on-white,#6D3C1B)] hover:text-[var(--pa-white,#FFFDFB)]"
-                        style={fb()}
-                      >
-                        Selecionar
-                      </button>
-                    )}
                   </div>
                 </div>
               </article>
@@ -676,24 +632,22 @@ export function PricingTableRenderer({
   content,
   data,
   props,
-  onCtaClick,
   numberOffset,
 }: {
   content?: any;
   data?: any;
   props?: any;
-  onCtaClick?: CtaHandler;
   numberOffset?: number;
 }) {
   const variant = props?.variant || 'cards-classic';
   switch (variant) {
     case 'magazine':
-      return <PricingMagazine content={content} data={data} props={props} onCtaClick={onCtaClick} numberOffset={numberOffset} />;
+      return <PricingMagazine content={content} data={data} props={props} numberOffset={numberOffset} />;
     case 'numbered-editorial':
       return <PricingNumberedEditorial content={content} data={data} props={props} />;
     case 'cards-minimal':
-      return <PricingCardsMinimal content={content} data={data} props={props} onCtaClick={onCtaClick} />;
+      return <PricingCardsMinimal content={content} data={data} props={props} />;
     default:
-      return <PricingClassic content={content} data={data} props={props} onCtaClick={onCtaClick} />;
+      return <PricingClassic content={content} data={data} props={props} />;
   }
 }

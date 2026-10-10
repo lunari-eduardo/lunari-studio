@@ -24,6 +24,7 @@ import {
   Share2,
   ExternalLink,
   Upload,
+  ArrowLeftRight,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ interface EditorHeaderProps {
   onOpenDuplicate: () => void;
   onOpenSlugModal: () => void;
   onOpenTemplateModal: () => void;
+  onOpenSwitchTemplate?: () => void;
   onOpenMobileStructure: () => void;
   onOpenMobileProperties: () => void;
   hasActiveBlock: boolean;
@@ -87,6 +89,7 @@ export function EditorHeader({
   onOpenDuplicate,
   onOpenSlugModal,
   onOpenTemplateModal,
+  onOpenSwitchTemplate,
   onOpenMobileStructure,
   onOpenMobileProperties,
   hasActiveBlock,
@@ -129,6 +132,11 @@ export function EditorHeader({
             {saveStatus === 'saving' ? (
               <span className="text-muted-foreground flex items-center">
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Salvando...
+              </span>
+            ) : saveStatus === 'error' && hasChanges ? (
+              <span className="text-destructive flex items-center gap-1">
+                <div className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                Não salvo · tentando novamente
               </span>
             ) : hasChanges ? (
               <span className="text-amber-600 flex items-center gap-1">
@@ -321,6 +329,11 @@ export function EditorHeader({
             <DropdownMenuItem onClick={onOpenSlugModal} className="gap-2">
               <LinkIcon className="h-4 w-4" /> Personalizar Link Público
             </DropdownMenuItem>
+            {state.format === 'blocks' && onOpenSwitchTemplate && (
+              <DropdownMenuItem onClick={onOpenSwitchTemplate} className="gap-2">
+                <ArrowLeftRight className="h-4 w-4" /> Trocar Modelo
+              </DropdownMenuItem>
+            )}
             {state.format === 'blocks' && (
               <DropdownMenuItem onClick={onOpenTemplateModal} className="gap-2">
                 <LayoutTemplate className="h-4 w-4" /> Salvar como Modelo

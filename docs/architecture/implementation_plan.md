@@ -99,6 +99,10 @@ Cobrir em `scripts/test_template_instantiation.ts` (`npm run test:proposals`).
   bloco `InfoBlock` (`stacked` | `accordion` | `columns`).
 - **Hidratador**: fotos do modelo ficam só na vitrine (`thumbnail_url`); pacotes reais entram
   apenas no 1º bloco de preços (grupos extras do modelo saem para não duplicar).
+- **Sem botão "Selecionar"** nos pacotes: a proposta é enviada na conversa com o cliente.
+- **Fotos no editor** (`EditableImage`): botão visível "Enviar foto"/"Trocar foto" (1 clique, além do
+  duplo clique) em cores neutras próprias; `actionCorner` leva a ação para o canto nas capas com
+  foto de fundo atrás do texto.
 - **Densidade**: cada composição nova funciona nos estados Narrativo (texto longo) e Essencial
   (frases curtas); seeds `entre-nos-narrativo` e `entre-nos-essencial`.
 

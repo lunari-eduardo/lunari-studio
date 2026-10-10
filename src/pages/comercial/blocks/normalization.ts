@@ -34,10 +34,12 @@ export function normalizeBlock(raw: any): BlockData | null {
   if (BLOCK_REGISTRY[type]) {
     const def = BLOCK_REGISTRY[type];
     const rawContent = raw.content ?? raw.data ?? {};
-    if (rawContent.title_regular && !rawContent.title) {
-      rawContent.title = rawContent.title_regular;
+    // Migra o legado uma única vez: `title` vira a única fonte (senão limpar o título reabre o antigo)
+    if (rawContent.title_regular !== undefined) {
+      rawContent.title ||= rawContent.title_regular;
+      delete rawContent.title_regular;
     }
-    
+
     const normalized = withId({
       ...raw,
       content: rawContent,
@@ -312,4 +314,82 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
 
     return { ...block, id: newId, content, props };
   }).filter((b) => b !== DROP);
+}
+
+/** Chaves de item que só existem por estrutura (slot de galeria, unidade do pacote): não são conteúdo. */
+const STRUCTURAL_KEYS = new Set(['id', 'span', 'ratio', 'price_unit']);
+
+/**
+ * Vazio recursivo: null, texto em branco, lista só de vazios (`['']` do stringlist) e objeto
+ * sem conteúdo real (slot de galeria sem foto). Números e booleanos nunca são vazios.
+ */
+export const isEmptyValue = (v: unknown): boolean =>
+  v == null ||
+  (typeof v === 'string'
+    ? !v.trim()
+    : Array.isArray(v)
+    ? v.every(isEmptyValue)
+    : typeof v === 'object'
+    ? Object.entries(v as object).every(([k, x]) => STRUCTURAL_KEYS.has(k) || isEmptyValue(x))
+    : false);
+
+export interface TemplateSwitchResult {
+  blocks: BlockData[];
+  /** Ids das seções da proposta sem par no modelo (mantidas logo após a seção que as precedia). */
+  unmatched: string[];
+  /** Ids das seções novas trazidas pelo modelo (texto de exemplo do autor: revisar). */
+  added: string[];
+}
+
+/**
+ * Troca de modelo preservando o que o fotógrafo preencheu.
+ * `templateBlocks` = `instantiateTemplateBlocks(blocks_json, { photographerName })`, SEM `packages`
+ * (a regra de pacotes reais do hidratador apagaria grupos de preços e quebraria o pareamento).
+ *
+ * - Pareamento por tipo e ordem: cada seção do modelo pega a próxima seção ainda livre do mesmo tipo.
+ * - content: do modelo, e todo valor não vazio da proposta vence (textos, listas, fotos).
+ * - props: do modelo (variante, layout, fundo…; ajustes finos de tamanho da variante antiga caem),
+ *   exceto as fotos dos slots `photo_a/photo_b`, que ganham a geometria do modelo.
+ * - Grupo de preços do modelo sem par é descartado se a proposta já tem pacotes (preço de exemplo nunca vai ao cliente).
+ * - Nada da proposta é descartado: seção sem par entra logo após a seção que a precedia.
+ */
+export function applyTemplate(current: BlockData[], templateBlocks: any[]): TemplateSwitchResult {
+  const pool = new Map<string, BlockData[]>();
+  for (const b of current) pool.set(b.type, [...(pool.get(b.type) ?? []), b]);
+  const hasRealPackages = current.some((b) => b.type === 'PricingTable' && !isEmptyValue(b.content?.packages));
+  const placed = new Map<BlockData, BlockData>(); // seção da proposta → seção no resultado
+  const added: string[] = [];
+  const out: BlockData[] = [];
+
+  for (const t of normalizeBlocks(templateBlocks)) {
+    const cur = pool.get(t.type)?.shift();
+    if (!cur) {
+      if (t.type === 'PricingTable' && hasRealPackages) continue;
+      added.push(t.id!);
+      out.push(t);
+      continue;
+    }
+    const content: Record<string, any> = { ...t.content };
+    for (const [k, v] of Object.entries(cur.content ?? {})) if (!isEmptyValue(v)) content[k] = v;
+    const props: Record<string, any> = { ...t.props };
+    for (const k of ['photo_a', 'photo_b']) {
+      const ref = cur.props?.[k]?.image_ref;
+      if (ref) props[k] = { ...(t.props?.[k] ?? cur.props?.[k]), image_ref: ref };
+    }
+    const merged = { ...t, id: cur.id ?? t.id, content, props };
+    placed.set(cur, merged);
+    out.push(merged);
+  }
+
+  const unmatched: string[] = [];
+  let anchor: BlockData | undefined;
+  for (const b of current) {
+    if (!placed.has(b)) {
+      unmatched.push(b.id!);
+      out.splice(anchor ? out.indexOf(placed.get(anchor)!) + 1 : 0, 0, b);
+      placed.set(b, b);
+    }
+    anchor = b;
+  }
+  return { blocks: out, unmatched, added };
 }

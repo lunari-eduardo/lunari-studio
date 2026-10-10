@@ -14,6 +14,11 @@ export function getBlockName(type: string): string {
   return BLOCK_REGISTRY[type]?.name ?? 'Seção';
 }
 
+/** Nome da seção na lista de estrutura: o título digitado, senão o nome do tipo. */
+export function getSectionTitle(block: BlockData): string {
+  return block.content?.title || block.content?.cta_text || block.content?.eyebrow || block.data?.title || getBlockName(block.type);
+}
+
 export const ADDABLE_BLOCK_TYPES = Object.keys(BLOCK_REGISTRY).filter((t) => t !== 'text');
 
 export function createBlock(type: string): BlockData {

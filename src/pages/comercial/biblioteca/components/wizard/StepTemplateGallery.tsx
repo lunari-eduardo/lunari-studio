@@ -6,6 +6,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { DbTemplate, Categoria } from '../../types';
 
+/** Cartão de modelo da vitrine (wizard de criação e "Trocar modelo" do editor). */
+export function TemplateCard({
+  template,
+  selected,
+  onSelect,
+  badge,
+}: {
+  template: DbTemplate;
+  selected: boolean;
+  onSelect: () => void;
+  badge?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative flex flex-col rounded-xl border-2 overflow-hidden text-left transition-all',
+        selected ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/50'
+      )}
+    >
+      {badge && (
+        <span className="absolute left-2 top-2 z-10 rounded-full bg-background/95 px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
+          {badge}
+        </span>
+      )}
+      <button type="button" onClick={onSelect} className="flex flex-col flex-1 text-left">
+        <div className="h-24 w-full bg-muted flex items-center justify-center border-b border-border overflow-hidden">
+          {template.thumbnail_url ? (
+            <img
+              src={template.thumbnail_url}
+              alt={`Prévia do modelo ${template.name}`}
+              loading="lazy"
+              className="h-full w-full object-cover object-top"
+            />
+          ) : (
+            <LayoutTemplate className="h-6 w-6 text-muted-foreground" />
+          )}
+        </div>
+        <div className="p-3 bg-card">
+          <h4 className="font-medium text-sm text-foreground">{template.name}</h4>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{template.description}</p>
+          <div className="flex gap-1 mt-2 flex-wrap">
+            {template.tags?.slice(0, 2).map((tag) => (
+              <span key={tag} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
 interface StepTemplateGalleryProps {
   onBack: () => void;
   isLoadingDbTemplates: boolean;
@@ -58,45 +111,12 @@ export function StepTemplateGallery({
         ) : (
           <div className="grid grid-cols-2 gap-4 max-h-[250px] overflow-y-auto pr-1">
             {dbTemplates.map((template) => (
-              <div
+              <TemplateCard
                 key={template.id}
-                className={cn(
-                  'relative flex flex-col rounded-xl border-2 overflow-hidden text-left transition-all',
-                  selectedDbTemplate?.id === template.id
-                    ? 'border-primary ring-2 ring-primary/20'
-                    : 'border-border hover:border-primary/50'
-                )}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedDbTemplate(template)}
-                  className="flex flex-col flex-1 text-left"
-                >
-                  <div className="h-24 w-full bg-muted flex items-center justify-center border-b border-border overflow-hidden">
-                    {template.thumbnail_url ? (
-                      <img
-                        src={template.thumbnail_url}
-                        alt={`Prévia do modelo ${template.name}`}
-                        loading="lazy"
-                        className="h-full w-full object-cover object-top"
-                      />
-                    ) : (
-                      <LayoutTemplate className="h-6 w-6 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="p-3 bg-card">
-                    <h4 className="font-medium text-sm text-foreground">{template.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{template.description}</p>
-                    <div className="flex gap-1 mt-2 flex-wrap">
-                      {template.tags?.slice(0, 2).map((tag) => (
-                        <span key={tag} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </button>
-              </div>
+                template={template}
+                selected={selectedDbTemplate?.id === template.id}
+                onSelect={() => setSelectedDbTemplate(template)}
+              />
             ))}
           </div>
         )}

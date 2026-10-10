@@ -34,6 +34,7 @@ export function CoverHeroFull({
         editable={editable}
         value={data?.image_url || null}
         label="Capa"
+        actionCorner
         alt="Capa"
         onCommit={(url) => inline?.set('image_url', url)}
         className="absolute inset-0 w-full h-full"
@@ -51,7 +52,7 @@ export function CoverHeroFull({
         )}
 
         <h1 className="text-4xl @md:text-6xl @lg:text-7xl text-white leading-[1.1] tracking-tight max-w-[15ch] mb-6" style={s.title}>
-          <EditableText {...et('title', data?.title_regular || data?.title)} placeholder="Título da sessão" />{' '}
+          <EditableText {...et('title', data?.title ?? data?.title_regular)} placeholder="Título da sessão" />{' '}
           {(data?.title_italic || editable) && (
             <em className="italic text-white/70" style={s.italic}>
               <EditableText {...et('title_italic', data?.title_italic)} placeholder="em itálico" />

@@ -51,11 +51,13 @@ export function EditableText({
 
   // Sincroniza o DOM apenas fora da edição (nunca pula o caret).
   // useLayoutEffect: texto presente já na primeira pintura (sem flash).
+  // `editable` nas deps: ao virar editável (celular → desktop) o React reaproveita o nó e
+  // remove o texto que era children; sem re-sincronizar, o campo ficaria vazio.
   useLayoutEffect(() => {
     if (editing) return;
     const el = ref.current;
     if (el && el.textContent !== text) el.textContent = text;
-  }, [text, editing]);
+  }, [text, editing, editable]);
 
   // Foca e posiciona o caret DEPOIS de contentEditable estar no DOM
   useEffect(() => {

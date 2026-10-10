@@ -1,5 +1,5 @@
 // Rodar: npm run test:proposals
-import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock } from '../src/pages/comercial/blocks/normalization';
+import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, applyTemplate, isEmptyValue } from '../src/pages/comercial/blocks/normalization';
 import { onColor } from '../src/pages/comercial/blocks/design';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath } from '../src/pages/comercial/blocks/pricing';
 
@@ -200,6 +200,59 @@ async function runTests() {
   assert(withReal.length === 2 && withReal[1].type === 'CTABlock', 'Other blocks are kept in order');
   const demoOnly = instantiateTemplateBlocks(twoGroups);
   assert(demoOnly.filter((b: any) => b.type === 'PricingTable').length === 2, 'Without real packages both demo groups stay');
+
+  // 13. Troca de modelo: estrutura e design do modelo, conteúdo da proposta preservado
+  const cur: any[] = [
+    { type: 'CoverBlock', id: 'c', content: { title: 'Ana & Leo', subtitle: '', image_url: 'https://me/capa.jpg' }, props: { variant: 'hero-full', background: 'dark', typography: { titleSize: 88 } } },
+    { type: 'EditorialBlock', id: 'e', content: { body: 'Meu texto', details: [] }, props: { variant: 'overlap-blend', photo_a: { width_pct: 50, image_ref: 'https://me/a.jpg' } } },
+    { type: 'Gallery', id: 'g', content: { images: [{ id: 'i', image_ref: '', span: 'normal', ratio: 'auto' }] }, props: { layout: 'masonry' } },
+    { type: 'InfoBlock', id: 'tips', content: { items: [{ id: 'a', title: 'Vestir', body: 'Leve' }] }, props: { variant: 'stacked' } },
+    { type: 'InfoBlock', id: 'terms', content: { items: [{ id: 'b', title: 'Pagamento', body: 'Pix' }] }, props: { variant: 'stacked' } },
+    { type: 'PricingTable', id: 'p1', content: { packages: [{ id: 'k1', name: 'Meu pacote', price: 'R$ 900', features: [''] }] }, props: { variant: 'cards-classic' } },
+    { type: 'PricingTable', id: 'p2', content: { packages: [{ id: 'k2', name: 'Externo' }] }, props: { variant: 'cards-classic' } },
+    { type: 'CTABlock', id: 'cta', content: { cta_text: 'Bora?', links: [{ id: 'l', label: '@me', href: 'https://ig' }] }, props: { background: 'dark' } },
+    { type: 'FooterTerms', id: 'f', content: { terms: 'Meus termos' }, props: {} },
+  ];
+  const tpl = instantiateTemplateBlocks([
+    { type: 'CoverBlock', content: { title: 'Entre nós', subtitle: 'Do modelo', image_url: 'https://x/c.jpg' }, props: { variant: 'poster-sky', background: 'white' } },
+    { type: 'EditorialBlock', content: { aside: 'Frase' }, props: { variant: 'arch-portrait', photo_a: { width_pct: 72, image_ref: 'https://x/a.jpg' } } },
+    { type: 'Gallery', content: { images: [{ id: 's', image_ref: 'https://x/1.jpg', span: 'tall_2rows', ratio: '4/5' }] }, props: { layout: 'grid' } },
+    { type: 'PricingTable', content: { title: 'Investimento', packages: [{ id: 'd', name: 'Demo', price: 'R$ 300' }] }, props: { variant: 'magazine' } },
+    { type: 'InfoBlock', content: { title: 'Bom saber', items: [{ id: 't', title: 'Modelo', body: 'Modelo' }] }, props: { variant: 'accordion' } },
+    { type: 'TestimonialBlock', content: { title: 'Depoimentos', items: [] } },
+    { type: 'CTABlock', content: { cta_text: 'Vamos?' }, props: { background: 'cream' } },
+    { type: 'global_settings', data: { design_tokens: {} } },
+  ], { photographerName: 'Estúdio Luz' });
+  const sw = applyTemplate(cur, tpl);
+  const at = (id: string) => sw.blocks.find((b) => b.id === id)!;
+  assert(sw.blocks.map((b) => b.id).join() === `c,e,g,p1,p2,tips,terms,${sw.added[0]},cta,f`, `Switch order: ${sw.blocks.map((b) => b.id)}`);
+  assert(sw.unmatched.join() === 'terms,p2,f', 'Unmatched sections are kept, in document order');
+  assert(sw.added.length === 1 && at(sw.added[0]).type === 'TestimonialBlock', 'Template-only section is added');
+  assert(!sw.blocks.some((b) => b.type === 'global_settings'), 'global_settings never becomes a section');
+  assert(at('c').content!.title === 'Ana & Leo' && at('c').content!.subtitle === 'Do modelo', 'Filled text wins, empty gets template copy');
+  assert(at('c').content!.image_url === 'https://me/capa.jpg' && at('c').content!.photographer_name === 'Estúdio Luz', 'Photo kept, signature hydrated');
+  assert(at('c').props!.variant === 'poster-sky' && at('c').props!.background === 'white' && !at('c').props!.typography, 'Design from template, size overrides dropped');
+  assert(at('e').props!.photo_a.image_ref === 'https://me/a.jpg' && at('e').props!.photo_a.width_pct === 72, 'Slot photo kept with template geometry');
+  assert(at('e').content!.aside === 'Frase' && at('e').content!.body === 'Meu texto', 'Editorial content merged');
+  assert(at('g').content!.images[0].span === 'tall_2rows' && at('g').props!.layout === 'grid', 'Empty gallery takes the template slots');
+  assert(at('p1').content!.packages[0].name === 'Meu pacote' && at('p1').props!.variant === 'magazine', 'Packages kept, template variant applied');
+  assert(at('p2').props!.variant === 'cards-classic', 'Unmatched section is untouched');
+  assert(at('tips').props!.variant === 'accordion' && at('tips').content!.items[0].title === 'Vestir', 'Repeated types pair in order');
+  assert(at('cta').content!.links.length === 1 && at('cta').props!.background === 'cream', 'CTA links kept, template background');
+  assert(!JSON.stringify(sw.blocks).includes('https://x/'), 'Template photos never leak on switch');
+  assert(cur[0].props.typography.titleSize === 88 && cur[0].content.subtitle === '', 'Input blocks are not mutated');
+  assert(isEmptyValue([{ id: 'x', image_ref: '', span: 'wide_2cols', ratio: '4/5' }]) && isEmptyValue(['']) && isEmptyValue({ id: 'k', price_unit: 'sessão', features: [] }), 'Empty kinds');
+  assert(!isEmptyValue([{ id: 'k', name: 'A' }]) && !isEmptyValue(0) && !isEmptyValue(false), 'Item with text, numbers and booleans are content');
+  const two = applyTemplate(
+    [{ type: 'PricingTable', id: 'only', content: { packages: [{ id: 'k', name: 'Real' }] }, props: {} }],
+    instantiateTemplateBlocks([
+      { type: 'PricingTable', content: { packages: [{ id: 'a', name: 'Demo A' }] } },
+      { type: 'PricingTable', content: { packages: [{ id: 'b', name: 'Demo B' }] } },
+    ])
+  );
+  assert(two.blocks.length === 1 && two.blocks[0].id === 'only', 'Extra template pricing group never brings demo prices');
+  const lead = applyTemplate([{ type: 'DividerBlock', id: 'd', content: {}, props: {} }, cur[0]], instantiateTemplateBlocks([{ type: 'CoverBlock', content: {} }]));
+  assert(lead.blocks.map((b) => b.id).join() === 'd,c', 'Unmatched first section stays first');
 
   console.log('✅ All tests passed successfully!');
 }

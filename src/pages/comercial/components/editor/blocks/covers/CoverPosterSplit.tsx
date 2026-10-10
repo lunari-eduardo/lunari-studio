@@ -44,6 +44,7 @@ export function CoverPosterSplit({
         editable={editable}
         value={data?.image_url || null}
         label="Capa"
+        actionCorner
         alt="Capa"
         onCommit={(url) => inline?.set('image_url', url)}
         className="absolute inset-0 w-full h-full"

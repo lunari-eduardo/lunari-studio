@@ -102,6 +102,7 @@ export function useMaterials() {
       if (!finalContent) {
         let source: any[] = DEFAULT_TEMPLATE;
         let designTokens: any = null;
+        let fromTemplate = false;
         if (template_id) {
           const { data: template, error: tmplError } = await (supabase as any)
             .from('proposal_templates')
@@ -111,15 +112,20 @@ export function useMaterials() {
           if (!tmplError && template?.blocks_json) {
             source = template.blocks_json;
             designTokens = template.design_tokens;
+            fromTemplate = true;
           }
         }
         const { instantiateTemplateBlocks } = await import('@/pages/comercial/blocks/normalization');
         finalContent = instantiateTemplateBlocks(source, vars);
-        // Preserva os design tokens do template dentro do bloco sintético global_settings
-        if (designTokens) {
+        // global_settings: design tokens do modelo + modelo de origem (o editor marca o modelo atual em "Trocar modelo")
+        if (fromTemplate) {
+          const settings = finalContent.find((b: any) => b?.type === 'global_settings')?.data ?? {};
           finalContent = [
             ...finalContent.filter((b: any) => b?.type !== 'global_settings'),
-            { type: 'global_settings', data: { design_tokens: designTokens } },
+            {
+              type: 'global_settings',
+              data: { ...settings, ...(designTokens ? { design_tokens: designTokens } : {}), source_template_id: template_id },
+            },
           ];
         }
       }

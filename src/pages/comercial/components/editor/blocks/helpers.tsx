@@ -1,5 +1,5 @@
 import React from 'react';
-import { fontDisplayCss, fontBodyCss, fontAccentCss } from '../../../blocks/design';
+import { fontDisplayCss, fontBodyCss, fontAccentCss, isHexColor } from '../../../blocks/design';
 
 export const fd = () => ({ fontFamily: fontDisplayCss() });
 export const fb = () => ({ fontFamily: fontBodyCss() });
@@ -54,11 +54,17 @@ const WIDE_ALIGN: Record<string, string> = {
 export const wideAlign = (align?: string) => WIDE_ALIGN[align ?? ''] ?? WIDE_ALIGN.left;
 
 export function sectionBg(bg: string | undefined, fallback: string): string {
+  // Cor livre: o wrapper da seção no VisualRenderer define --pa-sec-bg / --pa-on-sec
+  if (isHexColor(bg)) return 'bg-[var(--pa-sec-bg)]';
   switch (bg ?? fallback) {
     case 'cream':
       return 'bg-[var(--pa-cream,#F3F0EA)]';
     case 'linen':
       return 'bg-[var(--pa-linen,#E8DCCB)]';
+    case 'stone':
+      return 'bg-[var(--pa-stone,#C9BFB2)]';
+    case 'taupe':
+      return 'bg-[var(--pa-taupe,#8C7B6E)]';
     case 'dark':
       // Tinta do tema (antes usava --pa-stone, um bege claro sob texto branco)
       return 'bg-[var(--pa-ink,#1A1714)]';
@@ -72,6 +78,8 @@ export function sectionBg(bg: string | undefined, fallback: string): string {
 const AUTO_TEXT: Record<string, string> = {
   cream: 'text-[var(--pa-on-cream,#1A1714)]',
   linen: 'text-[var(--pa-on-linen,#1A1714)]',
+  stone: 'text-[var(--pa-on-stone,#1A1714)]',
+  taupe: 'text-[var(--pa-on-taupe,#FFFFFF)]',
   dark: 'text-[var(--pa-on-ink,#FFFFFF)]',
   white: 'text-[var(--pa-on-white,#1A1714)]',
 };
@@ -82,6 +90,7 @@ export function textColorClass(textColor: string | undefined, bg: string | undef
   if (textColor === 'light') return 'text-white';
   if (textColor === 'warm') return 'text-[var(--pa-taupe,#8C7B6E)]';
   if (textColor === 'accent') return 'text-[var(--pa-accent,#7A5C42)]';
+  if (isHexColor(bg)) return 'text-[var(--pa-on-sec)]';
   return AUTO_TEXT[bg ?? fallbackBg] ?? AUTO_TEXT.white;
 }
 
