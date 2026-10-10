@@ -180,6 +180,17 @@ export function normalizeBlock(raw: any): BlockData | null {
   }
 }
 
+const LEGACY_TYPES = new Set([V1_COVER, V1_ABOUT, V1_PACKAGE, V1_PORTFOLIO, 'ContactBlock']);
+
+/**
+ * Versão pública: mesma normalização do editor (paridade do que o fotógrafo vê com o que o
+ * cliente vê), mas tipos desconhecidos são descartados em vez de virarem o JSON cru em texto.
+ */
+export function normalizePublicBlocks(raw: any[] | null | undefined): BlockData[] {
+  if (!Array.isArray(raw)) return [];
+  return normalizeBlocks(raw.filter((b) => b && (BLOCK_REGISTRY[b.type] || LEGACY_TYPES.has(b.type))));
+}
+
 export function normalizeBlocks(raw: any[] | null | undefined): BlockData[] {
   if (!Array.isArray(raw)) return [];
   const out: BlockData[] = [];
@@ -223,19 +234,29 @@ export function pacoteToProposalPackage(p: Pacote, produtos: Produto[] = []) {
 const renewIds = (list: unknown) =>
   Array.isArray(list) ? list.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : list;
 
+/** Renova ids e esvazia a foto de cada item, mantendo o espaço (slot) para o fotógrafo enviar a sua. */
+const renewIdsWithoutPhotos = (list: unknown) =>
+  Array.isArray(list) ? list.map((item: any) => ({ ...item, id: crypto.randomUUID(), image_ref: '' })) : list;
+
+const clearSlotPhoto = (slot: any) => (slot && typeof slot === 'object' ? { ...slot, image_ref: null } : slot);
+
 /**
  * Instancia os blocos de um modelo garantindo que:
  * 1. IDs sejam renovados (evitando colisão de chaves no React e estado compartilhado).
  * 2. Dados do autor do modelo sejam limpos, mantendo a estrutura e o design visual.
  * 3. Chaves internas de listas (pacotes, imagens, detalhes) sejam renovadas.
  * 4. As variáveis do fotógrafo (assinatura, pacotes reais) alimentem o modelo.
+ * 5. Fotos do modelo fiquem só na vitrine: a proposta nasce com os espaços vazios, para
+ *    nenhum cliente receber fotos que não são do fotógrafo que enviou.
  */
 export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars = {}): any[] {
   if (!Array.isArray(rawBlocks)) return [];
   const signature = vars.photographerName?.trim() ?? '';
   const realPackages = vars.packages?.length ? vars.packages : null;
+  let realPackagesPlaced = false;
+  const DROP = Symbol('drop');
 
-  return rawBlocks.map(block => {
+  return rawBlocks.map((block): any => {
     if (!block || typeof block !== 'object') return block;
     if (block.type === 'global_settings') return block; // Preserva configurações globais sem ID
 
@@ -249,19 +270,32 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
       case 'CoverBlock':
         content.photographer_name = signature;
         if (typeof content.btnLink === 'string' && content.btnLink.includes('wa.me')) content.btnLink = '';
+        content.image_url = '';
+        if ('photo_b' in content) content.photo_b = '';
         break;
       case 'EditorialBlock':
         content.vertical_label = signature;
         content.details = renewIds(content.details);
+        props.photo_a = clearSlotPhoto(props.photo_a);
+        props.photo_b = clearSlotPhoto(props.photo_b);
         break;
       case 'EditorialComposition':
         content.side_label = signature;
+        content.image_url = '';
         break;
       case 'PricingTable':
-        content.packages = renewIds(realPackages ?? content.packages);
+        // Pacotes reais entram UMA vez (no 1º bloco de preços): grupos extras do modelo
+        // (ex.: "Estúdio" + "Estúdio ou externo") sairiam com os mesmos pacotes duplicados.
+        if (realPackages && realPackagesPlaced) return DROP;
+        if (realPackages) realPackagesPlaced = true;
+        content.packages = renewIdsWithoutPhotos(realPackages ?? content.packages);
         break;
       case 'Gallery':
-        content.images = renewIds(content.images);
+        content.images = renewIdsWithoutPhotos(content.images);
+        break;
+      case 'InfoBlock':
+        content.items = renewIds(content.items);
+        content.image_url = '';
         break;
       case 'TestimonialBlock':
         // Depoimentos do autor do modelo nunca chegam ao cliente final como se fossem reais.
@@ -277,5 +311,5 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
     }
 
     return { ...block, id: newId, content, props };
-  });
+  }).filter((b) => b !== DROP);
 }

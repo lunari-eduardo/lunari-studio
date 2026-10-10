@@ -321,6 +321,118 @@ export function EditorialTextOnly({
   );
 }
 
+/**
+ * Sobre · Retrato em Arco — título em caixa-alta, corpo (justificado a partir de @md se
+ * align = justify) e, embaixo, frases de destaque ao lado de um retrato em arco que encosta
+ * na base da seção. Funciona só com frases (essencial), só com corpo (narrativo) ou ambos.
+ */
+export function EditorialArchPortrait({
+  data,
+  content,
+  props,
+}: {
+  data?: any;
+  content?: any;
+  props?: any;
+}) {
+  const inline = useInlineEdit();
+  const editable = inline?.editable ?? false;
+  const et = (path: string, value: string | undefined) => ({
+    editable,
+    value: value ?? '',
+    onCommit: (v: string) => inline?.set(path, v),
+  });
+
+  const c = content || data || {};
+  const p = props || {};
+  const photoRef = p.photo_a?.image_ref || null;
+  const hasPhoto = !!photoRef || editable;
+  const hasAside = !!c.aside?.trim() || editable;
+  // Justificado só com largura para isso: no celular cria "rios" entre as palavras
+  const bodyAlign = p.align === 'justify' ? 'text-left @md:text-justify' : alignClass(p.align, 'left');
+
+  return (
+    <section
+      className={cn(
+        'pt-16 @md:pt-24 px-6 @md:px-14 overflow-hidden',
+        // O arco encosta na base da seção (como no editorial de referência)
+        hasPhoto ? 'pb-0' : 'pb-16 @md:pb-24',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      <div className="max-w-[860px] mx-auto">
+        {(c.eyebrow || editable) && (
+          <EditableText
+            as="p"
+            {...et('eyebrow', c.eyebrow)}
+            className="mb-4 text-center text-[11px] @md:text-xs tracking-[0.32em] uppercase opacity-60"
+            style={fb()}
+            placeholder="Rótulo (opcional)"
+          />
+        )}
+        <EditableText
+          as="h2"
+          {...et('title', c.title)}
+          className="text-center text-[length:clamp(1.75rem,4.5cqi,2.75rem)] leading-[1.15] tracking-[0.14em] uppercase"
+          style={fd()}
+          placeholder="Conheça sua fotógrafa"
+        />
+        {(c.body || editable) && (
+          <EditableText
+            as="div"
+            {...et('body', c.body)}
+            multiline
+            className={cn(
+              'mt-8 @md:mt-12 text-[16px] @md:text-[18px] leading-[1.65] tracking-[0.03em] whitespace-pre-line hyphens-auto opacity-80',
+              bodyAlign
+            )}
+            style={fb()}
+            placeholder="Sua história, seu olhar e o que você valoriza em cada sessão."
+          />
+        )}
+
+        {(hasAside || hasPhoto) && (
+          <div
+            className={cn(
+              'mt-12 @md:mt-16 grid grid-cols-1 gap-10',
+              hasAside && hasPhoto && '@2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] @2xl:gap-12 @2xl:items-end'
+            )}
+          >
+            {hasAside && (
+              <EditableText
+                as="div"
+                {...et('aside', c.aside)}
+                multiline
+                className={cn(
+                  'text-[18px] @md:text-[20px] leading-[1.7] tracking-[0.03em] whitespace-pre-line',
+                  hasPhoto ? '@2xl:pb-24' : 'text-center'
+                )}
+                style={fb()}
+                placeholder={'Toda história\ncomeça com uma memória.'}
+              />
+            )}
+            {hasPhoto && (
+              <div className="relative w-full max-w-sm mx-auto @2xl:max-w-none aspect-[3/4] rounded-t-full overflow-hidden">
+                <EditableImage
+                  editable={editable}
+                  value={photoRef}
+                  label="Retrato"
+                  alt={c.title || 'Retrato'}
+                  onCommit={(url) => inline?.set('props.photo_a.image_ref', url)}
+                  className="absolute inset-0 w-full h-full"
+                  imgClassName="object-cover object-top w-full h-full"
+                  publicEmptyClassName="hidden"
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function EditorialRenderer({
   data,
   content,
@@ -336,6 +448,8 @@ export function EditorialRenderer({
       return <EditorialSplitPortrait data={data} content={content} props={props} />;
     case 'text-only':
       return <EditorialTextOnly data={data} content={content} props={props} />;
+    case 'arch-portrait':
+      return <EditorialArchPortrait data={data} content={content} props={props} />;
     default:
       return <EditorialOverlapBlend data={data} content={content} props={props} />;
   }

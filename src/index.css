@@ -1011,6 +1011,12 @@ a,
 .pa-doc :where(p) {
   text-wrap: pretty;
 }
+/* Tema com títulos em caixa-alta (tokens.typography.title_case = 'upper'): unifica todos os
+   títulos de seção, inclusive o tracking dos blocos, como no editorial de referência. */
+.pa-doc[data-title-case="upper"] h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
 
 /* Pacotes: 1 → 2 → 3 colunas pelo container; a última linha fica centralizada. */
 .pa-pkg-grid {

@@ -8,6 +8,7 @@ import { CoverSeamSide } from './covers/CoverSeamSide';
 import { CoverHeroFull } from './covers/CoverHeroFull';
 import { CoverEditorialDiptych } from './covers/CoverEditorialDiptych';
 import { CoverFloatingFrame } from './covers/CoverFloatingFrame';
+import { CoverPosterSky } from './covers/CoverPosterSky';
 
 // Re-exports para compatibilidade com eventuais imports diretos
 export { CoverMinimalCenter } from './covers/CoverMinimalCenter';
@@ -16,6 +17,7 @@ export { CoverSeamSide } from './covers/CoverSeamSide';
 export { CoverHeroFull } from './covers/CoverHeroFull';
 export { CoverEditorialDiptych } from './covers/CoverEditorialDiptych';
 export { CoverFloatingFrame } from './covers/CoverFloatingFrame';
+export { CoverPosterSky } from './covers/CoverPosterSky';
 
 /**
  * Despachante principal das capas — roteia para o componente
@@ -44,6 +46,8 @@ export function CoverRenderer({
       return <CoverEditorialDiptych data={data} props={props} onCtaClick={onCtaClick} />;
     case 'floating-frame':
       return <CoverFloatingFrame data={data} props={props} onCtaClick={onCtaClick} />;
+    case 'poster-sky':
+      return <CoverPosterSky data={data} props={props} onCtaClick={onCtaClick} />;
     case 'minimal-center':
     default:
       return <CoverMinimalCenter data={data} props={props} onCtaClick={onCtaClick} />;

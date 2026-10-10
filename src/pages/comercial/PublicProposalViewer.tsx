@@ -7,6 +7,7 @@ import { NativePdfViewer } from './components/editor/NativePdfViewer';
 import { VisualRenderer } from './components/editor/VisualRenderer';
 import { Loader2, MessageCircle } from 'lucide-react';
 import { PublicThemeWrapper } from '@/components/shared/PublicThemeWrapper';
+import { normalizePublicBlocks } from './blocks/normalization';
 
 export default function PublicProposalViewer({ mode }: { mode: 'public' | 'tracked' }) {
   const { slug, token } = useParams<{ slug?: string; token?: string }>();
@@ -86,11 +87,17 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
       designTokens = settingsBlock.data?.design_tokens;
       blocks = blocks.filter((b: any) => b.type !== 'global_settings');
     }
+    blocks = normalizePublicBlocks(blocks);
   }
 
   // Lógica do CTA WhatsApp
-  const handleWhatsAppClick = (ctaLabel?: string) => {
-    trackEvent('cta_click', { cta_type: ctaLabel ? 'block_cta' : 'whatsapp' });
+  const handleWhatsAppClick = (ctaLabel?: string, blockType?: string) => {
+    // block_type + label: a análise do compartilhamento sabe QUAL pacote/botão foi clicado
+    trackEvent('cta_click', {
+      cta_type: ctaLabel ? 'block_cta' : 'whatsapp',
+      ...(blockType && { block_type: blockType }),
+      ...(ctaLabel && { label: ctaLabel }),
+    });
 
     if (!userProfile?.whatsapp) {
       alert('O fotógrafo ainda não configurou um número de WhatsApp.');
@@ -151,7 +158,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
           onSelectBlock={() => {}}
           viewMode="desktop"
           mode="public"
-          onCtaClick={({ label }) => handleWhatsAppClick(label)}
+          onCtaClick={({ label, blockType }) => handleWhatsAppClick(label, blockType)}
           designTokens={designTokens}
           onSectionView={(blockId, blockType, position) => {
             trackEvent('section_view', { blockId, blockType, position });

@@ -82,7 +82,9 @@ export function EditableText({
   }, [editing]);
 
   if (!editable) {
-    return React.createElement(Tag, { className, style }, text || null);
+    // Campo vazio fora da edição não deixa buraco (a tag levaria margens/espaçamentos consigo)
+    if (!text.trim()) return null;
+    return React.createElement(Tag, { className, style }, text);
   }
 
   const commit = () => {

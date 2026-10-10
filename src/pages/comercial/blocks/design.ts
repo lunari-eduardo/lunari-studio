@@ -20,6 +20,10 @@ export interface ProposalDesignTokens {
   typography?: {
     display?: string;
     body?: string;
+    /** Serifa de destaque (numeração e preços). Ausente = usa a fonte de títulos. */
+    accent?: string;
+    /** 'upper' = títulos de seção (h2) em caixa-alta espaçada. Ausente = como digitado. */
+    title_case?: 'upper';
   };
   spacing?: {
     section_padding?: string;
@@ -51,14 +55,15 @@ function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** Razão de contraste WCAG entre duas cores hex. */
+function contrastRatio(a: string, b: string): number {
+  const [L1, L2] = [luminance(a), luminance(b)];
+  return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
+}
+
 /** Entre a tinta e o branco do tema, a cor de texto de maior contraste sobre o fundo. */
 export function onColor(bg: string, ink: string, white: string): string {
-  const L = luminance(bg);
-  const contrast = (fg: string) => {
-    const F = luminance(fg);
-    return (Math.max(L, F) + 0.05) / (Math.min(L, F) + 0.05);
-  };
-  return contrast(ink) >= contrast(white) ? ink : white;
+  return contrastRatio(ink, bg) >= contrastRatio(white, bg) ? ink : white;
 }
 
 export const DEFAULT_DESIGN_TOKENS: Required<Pick<ProposalDesignTokens, 'colors'>> = {
@@ -78,10 +83,12 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
   const c = { ...DEFAULT_DESIGN_TOKENS.colors, ...(tokens?.colors ?? {}) };
   const displayFont = tokens?.typography?.display || 'Playfair Display';
   const bodyFont = tokens?.typography?.body || 'Inter';
-  
+  const accentFont = tokens?.typography?.accent;
+
   // Garante carregamento das fontes caso não sejam as padrão
   ensureFontLoaded(displayFont);
   ensureFontLoaded(bodyFont);
+  ensureFontLoaded(accentFont);
 
   const radii = tokens?.shape ? SHAPE_RADII[tokens.shape] : undefined;
 
@@ -98,14 +105,47 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
     ['--pa-on-linen' as any]: onColor(c.linen, c.ink, c.white),
     ['--pa-on-white' as any]: onColor(c.white, c.ink, c.white),
     ['--pa-on-ink' as any]: onColor(c.ink, c.ink, c.white),
+    // Acento sobre superfície "white" (números/preços dos cartões): cai na tinta se o contraste for < 3:1 (ex.: dourado do Noir)
+    ['--pa-accent-on-white' as any]: contrastRatio(c.accent, c.white) >= 3 ? c.accent : onColor(c.white, c.ink, c.white),
     ['--pa-font-display' as any]: displayFont,
     ['--pa-font-body' as any]: bodyFont,
+    // Sem accent a variável não existe e fontAccentCss() cai na fonte de títulos
+    ...(accentFont && { ['--pa-font-accent' as any]: accentFont }),
     ...(radii && {
       ['--pa-r-btn' as any]: radii.btn,
       ['--pa-r-card' as any]: radii.card,
       ['--pa-r-media' as any]: radii.media,
     }),
   };
+}
+
+/** Eixos css2 explícitos: só pesos/itálicos que a família realmente tem (pedido inexistente = HTTP 400). */
+const axes = (weights: number[], italic: boolean) =>
+  italic
+    ? `ital,wght@${[...weights.map((w) => `0,${w}`), ...weights.map((w) => `1,${w}`)].join(';')}`
+    : `wght@${weights.join(';')}`;
+
+/**
+ * Fontes oferecidas nas propostas (fonte única dos selects do editor e do loader).
+ * `displayOnly`: fonte de caixa-alta/títulos, ilegível como corpo.
+ */
+export const PROPOSAL_FONTS: Record<string, { label: string; axes?: string; displayOnly?: boolean }> = {
+  'Playfair Display': { label: 'Playfair Display (Serifada Elegante)', axes: axes([400, 500, 600, 700], true) },
+  'Cormorant Garamond': { label: 'Cormorant Garamond (Editorial Clássica)', axes: axes([300, 400, 500, 600, 700], true) },
+  Italiana: { label: 'Italiana (Caixa-alta Fina)', displayOnly: true },
+  Lora: { label: 'Lora (Literária)', axes: axes([400, 500, 600, 700], true) },
+  Inter: { label: 'Inter (Moderna Neutra)', axes: axes([300, 400, 500, 600, 700], false) },
+  Jost: { label: 'Jost (Geométrica Limpa)', axes: axes([300, 400, 500, 600, 700], true) },
+  Montserrat: { label: 'Montserrat (Contemporânea)', axes: axes([300, 400, 500, 600, 700], true) },
+  Manrope: { label: 'Manrope', axes: axes([300, 400, 500, 600, 700], false) },
+  'Open Sans': { label: 'Open Sans', axes: axes([300, 400, 500, 600, 700], true) },
+};
+
+/** URL css2 de uma família; desconhecida (dados antigos) vai sem eixo, que é sempre válido. */
+export function googleFontUrl(fontFamily: string): string {
+  const family = encodeURIComponent(fontFamily).replace(/%20/g, '+');
+  const spec = PROPOSAL_FONTS[fontFamily]?.axes;
+  return `https://fonts.googleapis.com/css2?family=${family}${spec ? `:${spec}` : ''}&display=swap`;
 }
 
 const loadedFonts = new Set<string>();
@@ -120,17 +160,21 @@ export function ensureFontLoaded(fontFamily?: string): void {
   if (loadedFonts.has(key)) return;
   loadedFonts.add(key);
 
-  const defaultFonts = ['playfair-display', 'inter', 'manrope'];
-  if (defaultFonts.includes(key)) return; // já carregadas pelo app
+  // Únicas carregadas pelo index.html (Playfair NÃO é: antes caía em Georgia)
+  if (key === 'inter' || key === 'manrope') return;
 
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily).replace(/%20/g, '+')}:wght@300;400;500;600;700&display=swap`;
+  link.href = googleFontUrl(fontFamily);
   document.head.appendChild(link);
 }
 
 export function fontDisplayCss(): string {
   return "var(--pa-font-display, 'Playfair Display'), 'Playfair Display', Georgia, serif";
+}
+
+export function fontAccentCss(): string {
+  return "var(--pa-font-accent, var(--pa-font-display, 'Playfair Display')), 'Playfair Display', Georgia, serif";
 }
 
 export function fontBodyCss(): string {

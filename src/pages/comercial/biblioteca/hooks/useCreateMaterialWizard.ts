@@ -58,7 +58,7 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_templates')
-        .select('id, template_id, name, description, tags, preview_html_path')
+        .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url')
         .eq('is_active', true);
 
       if (error && error.code !== '42P01') {

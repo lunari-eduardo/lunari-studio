@@ -72,8 +72,17 @@ export function StepTemplateGallery({
                   onClick={() => setSelectedDbTemplate(template)}
                   className="flex flex-col flex-1 text-left"
                 >
-                  <div className="h-24 w-full bg-muted flex items-center justify-center border-b border-border">
-                    <LayoutTemplate className="h-6 w-6 text-muted-foreground" />
+                  <div className="h-24 w-full bg-muted flex items-center justify-center border-b border-border overflow-hidden">
+                    {template.thumbnail_url ? (
+                      <img
+                        src={template.thumbnail_url}
+                        alt={`Prévia do modelo ${template.name}`}
+                        loading="lazy"
+                        className="h-full w-full object-cover object-top"
+                      />
+                    ) : (
+                      <LayoutTemplate className="h-6 w-6 text-muted-foreground" />
+                    )}
                   </div>
                   <div className="p-3 bg-card">
                     <h4 className="font-medium text-sm text-foreground">{template.name}</h4>

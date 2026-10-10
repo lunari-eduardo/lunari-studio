@@ -9,6 +9,7 @@ import {
   Quote,
   MessageCircle,
   ScrollText,
+  ListChecks,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -110,7 +111,7 @@ export const packageItem = () => ({
 export const testimonialItem = () => ({ id: crypto.randomUUID(), quote: '', author: '', service: '' });
 export const linkItem = () => ({ id: crypto.randomUUID(), label: '', href: '' });
 export const galleryItem = () => ({ id: crypto.randomUUID(), image_ref: '', span: 'normal', ratio: 'auto' });
-export const faqItem = () => ({ id: crypto.randomUUID(), question: '', answer: '' });
+export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
 
 export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
   CoverBlock: {
@@ -136,6 +137,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'hero-full', label: 'Hero Fotográfico', description: 'Imersivo Full-Bleed' },
       { value: 'editorial-diptych', label: 'Díptico', description: 'Díptico Editorial' },
       { value: 'floating-frame', label: 'Moldura', description: 'Moldura Flutuante Fine Art' },
+      { value: 'poster-sky', label: 'Pôster Editorial', description: 'Foto sangrada, título no topo e assinatura no rodapé' },
     ],
     defaultVariant: 'minimal-center',
     factory: () => ({
@@ -164,6 +166,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'só sua.' },
       { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...' },
       { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias' },
+      { key: 'aside', label: 'Frases de destaque (Retrato em Arco)', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.' },
       {
         key: 'details',
         label: 'Detalhes',
@@ -181,6 +184,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'overlap-blend', label: 'Fotos Sobrepostas', description: 'Duas fotos com blend mode (padrão)' },
       { value: 'split-portrait', label: 'Split Retrato', description: 'Texto à esquerda + foto retrato à direita' },
       { value: 'text-only', label: 'Só Texto', description: 'Texto estilizado sem fotos' },
+      { value: 'arch-portrait', label: 'Retrato em Arco', description: 'Sobre você: texto, frases de destaque e retrato em arco' },
     ],
     defaultVariant: 'overlap-blend',
     propImageSlots: [
@@ -207,6 +211,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Investimento' },
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Pacotes' },
+      { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Escolha a melhor experiência para registrar o que é de vocês.' },
       {
         key: 'packages',
         label: 'Pacotes',
@@ -231,11 +236,24 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       textColorField(),
       { key: 'hide_cta', label: 'Ocultar botão "Selecionar"', kind: 'boolean' },
       { key: 'hide_images', label: 'Ocultar fotos dos pacotes', kind: 'boolean' },
+      {
+        key: 'numbering',
+        label: 'Numeração dos pacotes (Revista)',
+        kind: 'select',
+        options: [
+          { value: 'continue', label: 'Continua do grupo anterior' },
+          { value: 'restart', label: 'Recomeça em 01' },
+          { value: 'none', label: 'Sem numeração' },
+        ],
+      },
+      { key: 'eyebrow_rules', label: 'Linhas ao lado do rótulo (Revista)', kind: 'boolean' },
+      { key: 'hide_feature_icons', label: 'Ocultar ícones dos itens (Revista)', kind: 'boolean' },
     ],
     variants: [
       { value: 'cards-classic', label: 'Cards', description: 'Cards lado a lado (padrão)' },
       { value: 'cards-minimal', label: 'Cards Minimalistas', description: 'Design limpo sem bordas e foto arredondada' },
       { value: 'numbered-editorial', label: 'Editorial Numerado', description: 'Lista numerada com fotos e hairlines' },
+      { value: 'magazine', label: 'Revista', description: 'Cartões com foto lateral, numeração e preço à vista/parcelado' },
     ],
     defaultVariant: 'cards-classic',
     factory: () => ({
@@ -429,6 +447,40 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     factory: () => ({
       content: { eyebrow: '', cta_text: 'Vamos criar algo lindo juntos?', body: '', btnText: 'Falar no WhatsApp', links: [] },
       props: { align: 'center', background: 'cream' },
+    }),
+  },
+
+  InfoBlock: {
+    type: 'InfoBlock',
+    name: 'Informações e Guia',
+    description: 'Dicas, condições, pagamento e prazos',
+    icon: ListChecks,
+    fields: [
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Antes da sessão' },
+      { key: 'title', label: 'Título da Seção (opcional)', kind: 'text', placeholder: 'Guia do ensaio' },
+      { key: 'image_url', label: 'Imagem de abertura (opcional)', kind: 'image' },
+      {
+        key: 'items',
+        label: 'Itens',
+        kind: 'list',
+        itemLabel: 'Item',
+        itemFields: [
+          { key: 'title', label: 'Título', kind: 'text', placeholder: 'O que vestir' },
+          { key: 'body', label: 'Texto', kind: 'textarea', placeholder: 'Peças leves, de tons neutros...' },
+        ],
+        itemFactory: infoItem,
+      },
+    ],
+    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    variants: [
+      { value: 'stacked', label: 'Guia', description: 'Título e texto em sequência, como um guia impresso' },
+      { value: 'accordion', label: 'Sanfona', description: 'Títulos visíveis e texto ao clicar: ideal para textos longos' },
+      { value: 'columns', label: 'Colunas', description: 'Duas colunas: ideal para textos curtos' },
+    ],
+    defaultVariant: 'stacked',
+    factory: () => ({
+      content: { eyebrow: '', title: '', image_url: '', items: [] },
+      props: { align: 'left', background: 'white' },
     }),
   },
 

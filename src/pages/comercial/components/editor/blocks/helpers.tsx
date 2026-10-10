@@ -1,8 +1,10 @@
 import React from 'react';
-import { fontDisplayCss, fontBodyCss } from '../../../blocks/design';
+import { fontDisplayCss, fontBodyCss, fontAccentCss } from '../../../blocks/design';
 
 export const fd = () => ({ fontFamily: fontDisplayCss() });
 export const fb = () => ({ fontFamily: fontBodyCss() });
+/** Serifa de destaque do tema (numeração, preços); sem accent = fonte de títulos. */
+export const fa = () => ({ fontFamily: fontAccentCss() });
 
 export type CtaHandler = (ctx: { blockType: string; label?: string }) => void;
 

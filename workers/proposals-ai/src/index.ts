@@ -199,10 +199,10 @@ ${pkgSummary}
 
 ${referenceSection}Gere uma proposta completa com os blocos V2 do Lunari.
 CATÁLOGO DE VARIANTES DISPONÍVEIS (SEMPRE especifique no "props": { "variant": "..." } de cada bloco):
-- CoverBlock: "minimal-center", "poster-split", "seam-side", "hero-full", "editorial-diptych", "floating-frame"
-- EditorialBlock: "text-only", "with-details"
+- CoverBlock: "minimal-center", "poster-split", "seam-side", "hero-full", "editorial-diptych", "floating-frame", "poster-sky"
+- EditorialBlock: "overlap-blend", "split-portrait", "text-only", "arch-portrait" (arch-portrait: use "aside" com 2 a 4 frases curtas, uma por linha)
 - EditorialComposition: "split-left", "split-right", "floating", "masonry"
-- PricingTable: "grid", "cards", "minimal"
+- PricingTable: "cards-classic", "cards-minimal", "numbered-editorial", "magazine" (magazine: preencha "price_installments" quando houver parcelamento)
 - Gallery: "grid", "masonry"
 - DividerBlock: "line", "icon"
 
@@ -210,10 +210,10 @@ Formato JSON exato:
 {
   "blocks": [
     { "type": "CoverBlock", "props": { "variant": "poster-split", "orientation": "portrait" }, "content": { "eyebrow", "title", "title_italic", "subtitle", "photographer_name", "btnText", "image_url": "" } },
-    { "type": "EditorialBlock", "props": { "variant": "with-details" }, "content": { "eyebrow", "title", "title_italic", "body", "vertical_label", "details": [{ "label", "value" }] } },
+    { "type": "EditorialBlock", "props": { "variant": "overlap-blend" }, "content": { "eyebrow", "title", "title_italic", "body", "vertical_label", "details": [{ "label", "value" }] } },
     { "type": "EditorialComposition", "props": { "variant": "masonry" }, "content": { "eyebrow", "title", "title_italic", "body", "side_label", "image_url": "" } },
     { "type": "Gallery", "props": { "variant": "grid" }, "content": { "eyebrow", "title", "caption", "images": [ { "span": "normal|tall_2rows|wide_2cols", "ratio": "auto" } ] } },
-    { "type": "PricingTable", "props": { "variant": "cards" }, "content": { "eyebrow", "title", "packages": [{ "name", "price", "price_unit", "badge", "features": [] }] } },
+    { "type": "PricingTable", "props": { "variant": "cards-classic" }, "content": { "eyebrow", "title", "packages": [{ "name", "price", "price_unit", "badge", "features": [] }] } },
     { "type": "DividerBlock", "props": { "variant": "icon" }, "content": { "label": "opcional" } }
   ],
   "design_tokens": { "colors": { "cream", "linen", "stone", "taupe", "accent", "ink" }, "typography": { "display": "Cormorant Garamond", "body": "Jost" } }

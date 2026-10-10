@@ -27,6 +27,8 @@ export type DbTemplate = {
   description: string;
   tags: string[];
   preview_html_path: string;
+  /** Miniatura da vitrine (as fotos do modelo só aparecem aqui, nunca na proposta criada). */
+  thumbnail_url?: string | null;
 };
 
 export type Step = 'method' | 'template-gallery' | 'pdf-upload';

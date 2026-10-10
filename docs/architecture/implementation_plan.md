@@ -78,7 +78,30 @@ Cobrir em `scripts/test_template_instantiation.ts` (`npm run test:proposals`).
 | 3. Tipografia fluida (`cqi`/`clamp`, `fluidPx`, `overflow-wrap`) e capas por container | ✅ |
 | 4. Temas de layout (fontes + cantos) e contraste automático | ✅ |
 | Blocos de fechamento: Depoimentos, Chamada Final, Rodapé e Condições | ✅ |
+| Editorial "Entre Nós" (ver seção 7) | ✅ |
 
-Próximos passos sugeridos: thumbnails reais dos modelos no wizard (hoje ícone), tracking
-de páginas do PDF (`NativePdfViewer`), variáveis do cliente (`{{cliente.nome}}`, validade)
-e importação verificável de PDF de orçamento → `TemplateVars` (Fase 5 do refactor plan).
+## 7. Editorial "Entre Nós" (referência: PDF "Sessão casal")
+
+- **Fontes**: `PROPOSAL_FONTS` (`blocks/design.ts`) é a fonte única do loader e dos selects;
+  cada família pede só os eixos que existe (`googleFontUrl`). Playfair não é carregada pelo
+  `index.html` (só Inter/Manrope).
+- **Tema**: `typography.accent` (`--pa-font-accent`, helper `fa()`; ausente = fonte de títulos)
+  e `typography.title_case: 'upper'` (`data-title-case` na raiz → `h2` em caixa-alta).
+  `--pa-accent-on-white` = acento com contraste ≥ 3:1 sobre o cartão, senão a tinta.
+  Preset "Areia Editorial".
+- **Campo vazio não deixa buraco**: `EditableText` público e vazio → `null`.
+- **Paridade**: o público roda `normalizePublicBlocks` (mesma normalização do editor; tipos
+  desconhecidos são descartados em vez de virar JSON em texto).
+- **Pacotes "Revista"** (`PricingTable` `magazine`): regras puras em `blocks/pricing.ts`
+  (`displayPrice`/`priceEditPath` em todas as variantes, `featureIcon` por palavra-chave,
+  `computePackageNumberOffsets` para numerar continuamente entre grupos).
+- **Composições**: capa `poster-sky`, `EditorialBlock` `arch-portrait` (+ campo `aside`),
+  bloco `InfoBlock` (`stacked` | `accordion` | `columns`).
+- **Hidratador**: fotos do modelo ficam só na vitrine (`thumbnail_url`); pacotes reais entram
+  apenas no 1º bloco de preços (grupos extras do modelo saem para não duplicar).
+- **Densidade**: cada composição nova funciona nos estados Narrativo (texto longo) e Essencial
+  (frases curtas); seeds `entre-nos-narrativo` e `entre-nos-essencial`.
+
+Próximos passos sugeridos: `InfoBlock` na geração por IA, tracking de páginas do PDF
+(`NativePdfViewer`), variáveis do cliente (`{{cliente.nome}}`, validade), aceite do pacote
+gravado no CRM e exportação da proposta web em PDF (A4).

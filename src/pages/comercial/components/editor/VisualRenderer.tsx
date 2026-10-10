@@ -8,8 +8,10 @@ import { BlockObserver } from './blocks/helpers';
 import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
+import { computePackageNumberOffsets } from '../../blocks/pricing';
 import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/GalleryAndMiscBlocks';
 import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
+import { InfoRenderer } from './blocks/InfoBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
 
 // Altura da "tela" onde a capa ancora: viewport real (público/editor) ou a moldura do celular (812px - bordas).
@@ -48,6 +50,8 @@ export function VisualRenderer({
   const isEditing = mode === 'edit';
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
+  // Numeração contínua dos pacotes "Revista" entre grupos (ordem real do documento)
+  const packageNumberOffsets = computePackageNumberOffsets(visibleBlocks);
 
 // Mapeia chaves de campos para as propriedades canônicas do CoverTypography
 function getTypographyPropKey(fieldKey: string): string {
@@ -93,7 +97,8 @@ function getTypographyPropKey(fieldKey: string): string {
   React.useEffect(() => {
     ensureFontLoaded(designTokens?.typography?.display);
     ensureFontLoaded(designTokens?.typography?.body);
-  }, [designTokens?.typography?.display, designTokens?.typography?.body]);
+    ensureFontLoaded(designTokens?.typography?.accent);
+  }, [designTokens?.typography?.display, designTokens?.typography?.body, designTokens?.typography?.accent]);
 
   return (
     <div
@@ -112,6 +117,7 @@ function getTypographyPropKey(fieldKey: string): string {
               'max-w-full md:max-w-5xl h-auto rounded-none md:rounded-2xl overflow-hidden shadow-none md:shadow-[0_16px_70px_rgba(0,0,0,0.12)] border-0 md:border md:border-black/5'
             : 'max-w-[375px] h-auto min-h-[812px] max-h-[85vh] overflow-y-auto rounded-[3rem] border-[12px] border-zinc-900 custom-scrollbar shadow-2xl'
         )}
+        data-title-case={designTokens?.typography?.title_case}
         style={{
           ...tokensToCssVars(designTokens),
           ['--pa-hero-h' as any]: HERO_HEIGHT[viewMode],
@@ -149,6 +155,7 @@ function getTypographyPropKey(fieldKey: string): string {
                     data={block.data}
                     props={block.props}
                     onCtaClick={onCtaClick}
+                    numberOffset={packageNumberOffsets.get(block)}
                   />
                 )}
                 {block.type === 'EditorialComposition' && (
@@ -165,6 +172,7 @@ function getTypographyPropKey(fieldKey: string): string {
                   <CtaRenderer content={block.content} props={block.props} onCtaClick={onCtaClick} />
                 )}
                 {block.type === 'FooterTerms' && <FooterTermsRenderer content={block.content} props={block.props} />}
+                {block.type === 'InfoBlock' && <InfoRenderer content={block.content} props={block.props} />}
                 {block.type === 'text' && <DefaultRenderer block={block} />}
               </BlockObserver>
             </InlineEditContext.Provider>

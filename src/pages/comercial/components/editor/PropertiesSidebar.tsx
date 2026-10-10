@@ -35,6 +35,7 @@ import { pacoteToProposalPackage } from '../../blocks/normalization';
 import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
 import { uploadProposalImage } from '../../blocks/uploadImage';
+import { PROPOSAL_FONTS } from '../../blocks/design';
 
 export interface PropertiesSidebarProps {
   block: BlockData;
@@ -52,6 +53,13 @@ export interface PropertiesSidebarProps {
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
 }
+
+// Papéis tipográficos do tema (selects da "Tipografia da Proposta")
+const FONT_ROLES = [
+  { key: 'display', label: 'Fonte dos Títulos (Display)', fallback: 'Playfair Display', allowDisplayOnly: true },
+  { key: 'body', label: 'Fonte do Corpo', fallback: 'Inter', allowDisplayOnly: false },
+  { key: 'accent', label: 'Fonte de Destaque (números e preços)', fallback: '', allowDisplayOnly: true },
+] as const;
 
 // Chaves que pertencem à aba de Ações (botões, links, CTAs)
 const ACTION_FIELD_KEYS = new Set(['btnText', 'btnLink', 'hide_cta', 'cta_text', 'cta_link']);
@@ -381,55 +389,33 @@ export function PropertiesSidebar({
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-3 pt-2 pb-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Fonte dos Títulos (Display)</Label>
-                    <select 
-                      className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-primary"
-                      value={(aiContext as any)?.designTokens?.typography?.display || 'Playfair Display'}
-                      onChange={(e) => {
-                        const currentTokens = (aiContext as any)?.designTokens || {};
-                        onUpdateDesignTokens?.({
-                          ...currentTokens,
-                          typography: {
-                            ...(currentTokens.typography || {}),
-                            display: e.target.value
+                  {FONT_ROLES.map(({ key, label, fallback, allowDisplayOnly }) => {
+                    const tokens = (aiContext as any)?.designTokens || {};
+                    const current: string = tokens.typography?.[key] || fallback;
+                    const families = Object.entries(PROPOSAL_FONTS).filter(([, f]) => allowDisplayOnly || !f.displayOnly);
+                    return (
+                      <div key={key} className="space-y-1.5">
+                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</Label>
+                        <select
+                          className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-primary"
+                          value={current}
+                          onChange={(e) =>
+                            onUpdateDesignTokens?.({
+                              ...tokens,
+                              typography: { ...(tokens.typography || {}), [key]: e.target.value || undefined },
+                            })
                           }
-                        });
-                      }}
-                    >
-                      <option value="Playfair Display">Playfair Display (Serifada Elegante)</option>
-                      <option value="Cormorant Garamond">Cormorant Garamond (Editorial Clássica)</option>
-                      <option value="Inter">Inter (Moderna Neutra)</option>
-                      <option value="Jost">Jost (Geométrica Limpa)</option>
-                      <option value="Montserrat">Montserrat (Contemporânea)</option>
-                      <option value="Lora">Lora (Literária)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">Fonte do Corpo</Label>
-                    <select 
-                      className="w-full bg-background border border-input rounded-md px-3 py-1.5 text-xs text-foreground focus-visible:ring-1 focus-visible:ring-primary"
-                      value={(aiContext as any)?.designTokens?.typography?.body || 'Inter'}
-                      onChange={(e) => {
-                        const currentTokens = (aiContext as any)?.designTokens || {};
-                        onUpdateDesignTokens?.({
-                          ...currentTokens,
-                          typography: {
-                            ...(currentTokens.typography || {}),
-                            body: e.target.value
-                          }
-                        });
-                      }}
-                    >
-                      <option value="Inter">Inter (Altamente Legível)</option>
-                      <option value="Jost">Jost (Minimalista)</option>
-                      <option value="Playfair Display">Playfair Display</option>
-                      <option value="Montserrat">Montserrat</option>
-                      <option value="Manrope">Manrope</option>
-                      <option value="Open Sans">Open Sans</option>
-                    </select>
-                  </div>
+                        >
+                          {key === 'accent' && <option value="">Igual aos títulos</option>}
+                          {/* Fonte salva fora do catálogo (ex.: escolhida pela IA) continua visível e selecionada */}
+                          {current && !PROPOSAL_FONTS[current] && <option value={current}>{current}</option>}
+                          {families.map(([family, f]) => (
+                            <option key={family} value={family}>{f.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
                 </CollapsibleContent>
               </Collapsible>
             </TabsContent>

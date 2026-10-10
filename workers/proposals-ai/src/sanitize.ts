@@ -13,9 +13,9 @@ export const BLOCK_TYPES = [
 
 const STRING_FIELDS: Record<string, string[]> = {
   CoverBlock: ['eyebrow', 'title', 'title_italic', 'subtitle', 'photographer_name', 'btnText', 'btnLink', 'image_url'],
-  EditorialBlock: ['eyebrow', 'title', 'title_italic', 'body', 'vertical_label'],
+  EditorialBlock: ['eyebrow', 'title', 'title_italic', 'body', 'vertical_label', 'aside'],
   EditorialComposition: ['eyebrow', 'title', 'title_italic', 'body', 'side_label', 'image_url'],
-  PricingTable: ['eyebrow', 'title'],
+  PricingTable: ['eyebrow', 'title', 'subtitle'],
   Gallery: ['eyebrow', 'title', 'caption'],
   DividerBlock: ['label'],
   text: ['title', 'body'],
@@ -31,10 +31,12 @@ const VALID_VARIANTS: Record<string, string[]> = {
     'hero-full',
     'editorial-diptych',
     'floating-frame',
+    'poster-sky',
   ],
-  EditorialBlock: ['text-only', 'with-details'],
+  // Mesmos valores do BLOCK_REGISTRY do frontend (o 1º é o padrão do bloco)
+  EditorialBlock: ['overlap-blend', 'split-portrait', 'text-only', 'arch-portrait'],
   EditorialComposition: ['split-left', 'split-right', 'floating', 'masonry'],
-  PricingTable: ['grid', 'cards', 'minimal'],
+  PricingTable: ['cards-classic', 'cards-minimal', 'numbered-editorial', 'magazine'],
   Gallery: ['grid', 'masonry'],
   DividerBlock: ['line', 'icon'],
   text: ['default']

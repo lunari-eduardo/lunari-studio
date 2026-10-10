@@ -150,6 +150,23 @@ export function useProposalOutline() {
 // Temas de layout: paleta + par tipográfico + cantos. Nunca ditam proporção da página.
 export const DESIGN_PRESETS: { name: string; description: string; tokens: ProposalDesignTokens }[] = [
   {
+    name: 'Areia Editorial',
+    description: 'Revista em tons de areia e chocolate: títulos finos em caixa-alta, serifa nos números e cantos retos',
+    tokens: {
+      colors: {
+        cream: '#F6EFE7',
+        linen: '#EDE3D8',
+        stone: '#D0C8BC',
+        taupe: '#9B6338',
+        accent: '#6D3C1B',
+        ink: '#251910',
+        white: '#FFFDFB',
+      },
+      typography: { display: 'Italiana', body: 'Jost', accent: 'Cormorant Garamond', title_case: 'upper' },
+      shape: 'sharp',
+    },
+  },
+  {
     name: 'Editorial Lunari (PDF)',
     description: 'Fiel ao modelo de referência, tons areia, serifado clássico e cantos retos',
     tokens: {
