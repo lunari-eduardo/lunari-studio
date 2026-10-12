@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeBlocks } from './blocks/normalization';
+import { PROPOSAL_COLLECTIONS, templateCollection } from './blocks/collections';
 import { ProposalDesignTokens } from './blocks/design';
 import { VisualRenderer } from './components/editor/VisualRenderer';
 import { TemplateCard } from './biblioteca/components/wizard/StepTemplateGallery';
@@ -57,6 +58,14 @@ export default function NovaPropostaPage() {
     handleCreate,
     isPendingCreate,
   } = wizard;
+
+  // Etapa de decisão: modelos padrão ou uma coleção temática (ex.: Natal), pela tag do modelo
+  const [collectionTab, setCollectionTab] = useState('');
+  const collectionTabs = useMemo(
+    () => [...new Set(dbTemplates.map((t) => templateCollection(t.tags)).filter((c): c is string => !!c))],
+    [dbTemplates]
+  );
+  const visibleTemplates = dbTemplates.filter((t) => (templateCollection(t.tags) ?? '') === collectionTab);
 
   const templatePreview = useProposalTemplatePreview(selectedDbTemplate?.template_id);
   const previewBlocks = useMemo(
@@ -147,18 +156,40 @@ export default function NovaPropostaPage() {
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 custom-scrollbar">
+            {collectionTabs.length > 0 && (
+              <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-background p-1" role="tablist" aria-label="Tipo de modelo">
+                {[{ key: '', label: 'Modelos padrão' }, ...collectionTabs.map((key) => ({ key, label: PROPOSAL_COLLECTIONS[key].label }))].map((tab) => (
+                  <Button
+                    key={tab.key || 'padrao'}
+                    size="sm"
+                    role="tab"
+                    aria-selected={collectionTab === tab.key}
+                    variant={collectionTab === tab.key ? 'secondary' : 'ghost'}
+                    className="flex-1"
+                    onClick={() => {
+                      if (tab.key === collectionTab) return;
+                      setCollectionTab(tab.key);
+                      setSelectedDbTemplate(null); // a prévia nunca mostra um modelo de outra aba
+                    }}
+                  >
+                    {tab.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
             {isLoadingDbTemplates ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 {[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-52 rounded-xl" />)}
               </div>
-            ) : dbTemplates.length === 0 ? (
+            ) : visibleTemplates.length === 0 ? (
               <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-5 py-10 text-center text-sm text-muted-foreground">
                 <LayoutTemplate className="h-6 w-6" />
                 Nenhum modelo está disponível agora.
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                {dbTemplates.map((template) => (
+                {visibleTemplates.map((template) => (
                   <TemplateCard
                     key={template.id}
                     template={template}

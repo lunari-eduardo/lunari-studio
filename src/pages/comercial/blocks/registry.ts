@@ -21,18 +21,20 @@ export function getSectionTitle(block: BlockData): string {
 
 export const ADDABLE_BLOCK_TYPES = Object.keys(BLOCK_REGISTRY).filter((t) => t !== 'text');
 
-export function createBlock(type: string): BlockData {
+export function createBlock(type: string, collection?: string): BlockData {
   const def = BLOCK_REGISTRY[type];
   const id = `${type}-${crypto.randomUUID().slice(0, 8)}`;
   if (!def) {
     return { type, id, content: {} };
   }
   const { content, props } = def.factory();
+  // Numa proposta de coleção temática, a seção nova já nasce com a 1ª variante da coleção
+  const variant = collection ? def.variants?.find((v) => v.collection === collection)?.value : undefined;
   return {
     type,
     id,
     content: JSON.parse(JSON.stringify(content)),
-    props: JSON.parse(JSON.stringify(props ?? {})),
+    props: { ...JSON.parse(JSON.stringify(props ?? {})), ...(variant && { variant }) },
   };
 }
 

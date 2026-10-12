@@ -148,7 +148,8 @@ export function useProposalOutline() {
 }
 
 // Temas de layout: paleta + par tipográfico + cantos. Nunca ditam proporção da página.
-export const DESIGN_PRESETS: { name: string; description: string; tokens: ProposalDesignTokens }[] = [
+// `collection`: tema exclusivo de uma coleção temática (pages/comercial/blocks/collections.ts)
+export const DESIGN_PRESETS: { name: string; description: string; tokens: ProposalDesignTokens; collection?: string }[] = [
   {
     name: 'Areia Editorial',
     description: 'Revista em tons de areia e chocolate: títulos finos em caixa-alta, serifa nos números e cantos retos',
@@ -168,6 +169,7 @@ export const DESIGN_PRESETS: { name: string; description: string; tokens: Propos
   },
   {
     name: 'Natal Editorial',
+    collection: 'natal',
     description: 'Marfim, caramelo e verde muito escuro: serifa de alto contraste, itálicos em destaque e caligrafia na capa',
     tokens: {
       colors: {
@@ -184,6 +186,7 @@ export const DESIGN_PRESETS: { name: string; description: string; tokens: Propos
   },
   {
     name: 'Natal Vinho',
+    collection: 'natal',
     description: 'A mesma base marfim do Natal Editorial, com destaques em vinho profundo',
     tokens: {
       colors: {

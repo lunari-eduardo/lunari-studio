@@ -5,6 +5,7 @@ import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, featureIcon } from '../../../blocks/pricing';
 import { fd, fb, fa, alignClass, sectionBg, textColorClass } from './helpers';
+import { PricingPhotoCards, PricingPhotoRows, PricingArchCards } from './PricingCollectionBlocks';
 
 // Sem botão "Selecionar": a proposta é enviada na conversa com o cliente, que responde por lá
 // (o CTA de WhatsApp do visualizador continua disponível).
@@ -645,6 +646,12 @@ export function PricingTableRenderer({
 }) {
   const variant = props?.variant || 'cards-classic';
   switch (variant) {
+    case 'photo-cards':
+      return <PricingPhotoCards content={content} data={data} props={props} />;
+    case 'photo-rows':
+      return <PricingPhotoRows content={content} data={data} props={props} />;
+    case 'arch-cards':
+      return <PricingArchCards content={content} data={data} props={props} />;
     case 'magazine':
       return <PricingMagazine content={content} data={data} props={props} numberOffset={numberOffset} />;
     case 'numbered-editorial':

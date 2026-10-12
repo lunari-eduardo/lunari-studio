@@ -318,7 +318,8 @@ export function useMaterialEditor(materialId: string | undefined) {
 
   const addBlock = useCallback((type: string, afterIndex?: number) => {
     mutate(undefined, (prev) => {
-      const newBlock = createBlock(type);
+      // Proposta de coleção temática (ex.: Natal): a seção nasce com a variante da coleção
+      const newBlock = createBlock(type, prev.globalSettings?.collection);
       const newBlocks = [...prev.blocks];
       const insertAt = afterIndex !== undefined ? afterIndex + 1 : newBlocks.length;
       newBlocks.splice(insertAt, 0, newBlock);

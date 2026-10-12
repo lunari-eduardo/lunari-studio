@@ -22,6 +22,21 @@ export function featureIcon(text: string): LucideIcon | null {
 }
 
 /**
+ * Preço editorial ("R$" pequeno, valor grande, centavos menores): "R$ 1.190" / "R$ 35,00".
+ * Texto em outro formato ("A partir de R$ 490") = null: é exibido como foi digitado.
+ */
+export function splitPrice(text: string): { currency: string; amount: string; cents?: string } | null {
+  const m = /^\s*(R\$)\s*(\d{1,3}(?:\.\d{3})+|\d+)(,\d{1,2})?\s*$/.exec(text || '');
+  return m ? { currency: m[1], amount: m[2], cents: m[3] } : null;
+}
+
+/** Item que começa com quantidade ("10 fotografias digitais") → número em destaque + rótulo; senão null. */
+export function splitLeadingNumber(text: string): { num: string; label: string } | null {
+  const m = /^\s*(\d{1,4})\s+(\S.*)$/.exec(text || '');
+  return m ? { num: m[1], label: m[2].trim() } : null;
+}
+
+/**
  * Deslocamento da numeração de cada PricingTable "magazine": continua de um grupo para o
  * outro ("01 02 | 03") mesmo quando pacotes são adicionados/removidos. 'restart' zera;
  * 'none' oculta e não consome números.

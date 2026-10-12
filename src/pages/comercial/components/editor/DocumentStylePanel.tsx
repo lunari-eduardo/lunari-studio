@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DESIGN_PRESETS } from '@/hooks/useProposalAI';
+import { forCollection, useProposalCollection } from '../../blocks/collections';
 import {
   DEFAULT_DESIGN_TOKENS,
   PROPOSAL_FONTS,
@@ -73,6 +74,9 @@ export function DocumentStylePanel({
   onChange: (tokens: ProposalDesignTokens) => void;
 }) {
   const titleCaseId = React.useId();
+  const collection = useProposalCollection();
+  // Proposta de coleção temática: temas dela; modelo padrão: os padrão (o aplicado nunca some)
+  const presets = forCollection(DESIGN_PRESETS, collection, (p) => sameColors(tokens.colors, p.tokens.colors));
   const colors = { ...DEFAULT_DESIGN_TOKENS.colors, ...(tokens.colors ?? {}) };
   const setColor = (key: ColorKey, value: string) => onChange({ ...tokens, colors: { ...colors, [key]: value } });
   const setTypography = (updates: Partial<NonNullable<ProposalDesignTokens['typography']>>) =>
@@ -84,7 +88,7 @@ export function DocumentStylePanel({
       <section className="space-y-3">
         <SectionTitle>Temas prontos</SectionTitle>
         <div className="grid grid-cols-2 gap-2">
-          {DESIGN_PRESETS.map((preset) => {
+          {presets.map((preset) => {
             const active = sameColors(tokens.colors, preset.tokens.colors);
             return (
               <button

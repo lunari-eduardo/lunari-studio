@@ -300,6 +300,7 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         if (realPackages && realPackagesPlaced) return DROP;
         if (realPackages) realPackagesPlaced = true;
         content.packages = renewIdsWithoutPhotos(realPackages ?? content.packages);
+        if ('highlights' in content) content.highlights = renewIds(content.highlights);
         break;
       case 'Gallery':
         content.images = renewIdsWithoutPhotos(content.images);

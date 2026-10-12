@@ -30,7 +30,7 @@ import { BlockField, FieldCtx, fillGallerySlots } from './registry';
 import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage';
 import { useAiFieldRewrite } from '@/hooks/useProposalAI';
 import { DEFAULT_DESIGN_TOKENS, isHexColor } from './design';
-import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS } from './icons';
+import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS, suggestIcon } from './icons';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 
@@ -51,6 +51,8 @@ interface FieldEditorProps {
   ctx?: FieldCtx;
   /** Cores do tema atual (amostras de fundo) */
   palette?: Palette;
+  /** Item da lista que contém o campo (iconlist lê os `features` do mesmo item) */
+  item?: Record<string, any>;
 }
 
 // ============================================================
@@ -266,18 +268,70 @@ export function FieldEditor(props: FieldEditorProps) {
       return <GalleryField field={field} value={value} onChange={onChange} />;
 
     case 'icon':
-      return <IconField field={field} value={value} onChange={onChange} />;
+      return (
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">{field.label}</Label>
+          <IconPicker value={value} onChange={onChange} />
+        </div>
+      );
+
+    case 'iconlist':
+      return <IconListField field={field} value={value} onChange={onChange} item={props.item} />;
 
     default:
       return null;
   }
 }
 
+/** Um ícone por item incluso (mesma posição de `features`); vazio = automático pelo texto. */
+function IconListField({ field, value, onChange, item }: FieldEditorProps) {
+  const features: string[] = Array.isArray(item?.features) ? item.features : [];
+  const icons: string[] = Array.isArray(value) ? value : [];
+  const rows = features.map((text, i) => ({ text, i })).filter(({ text }) => text?.trim());
+  const setAt = (i: number, v: string) => {
+    const next = Array.from({ length: Math.max(icons.length, i + 1) }, (_, k) => icons[k] ?? '');
+    next[i] = v;
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{field.label}</Label>
+      {rows.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground">Escreva os itens inclusos acima para escolher os ícones.</p>
+      ) : (
+        rows.map(({ text, i }) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={text}>
+              {text}
+            </span>
+            <div className="w-[9.5rem] shrink-0">
+              <IconPicker value={icons[i]} onChange={(v) => setAt(i, v)} defaultLabel="Automático" autoKey={suggestIcon(text)} />
+            </div>
+          </div>
+        ))
+      )}
+      <p className="text-[11px] leading-snug text-muted-foreground">"Automático" escolhe pelo texto do item.</p>
+    </div>
+  );
+}
+
 /** Catálogo visual de ícones: o fotógrafo escolhe pela forma, nunca digitando nomes técnicos. */
-function IconField({ field, value, onChange }: FieldEditorProps) {
+function IconPicker({
+  value,
+  onChange,
+  defaultLabel = 'Padrão da seção',
+  autoKey,
+}: {
+  value: unknown;
+  onChange: (v: string) => void;
+  defaultLabel?: string;
+  /** Ícone que o "padrão" mostra (ex.: sugerido pelo texto). */
+  autoKey?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const current = typeof value === 'string' ? value : '';
-  const def = PROPOSAL_ICONS[current];
+  const def = PROPOSAL_ICONS[current] ?? (!current && autoKey ? PROPOSAL_ICONS[autoKey] : undefined);
   const pick = (v: string) => {
     onChange(v);
     setOpen(false);
@@ -296,59 +350,58 @@ function IconField({ field, value, onChange }: FieldEditorProps) {
     </button>
   );
 
+  const triggerLabel = current === ICON_NONE ? 'Sem ícone' : !current ? defaultLabel : def?.label ?? defaultLabel;
+
   return (
-    <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground">{field.label}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-xs text-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            {def ? (
-              <def.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
-            ) : (
-              <span className="h-4 w-4 shrink-0 rounded-full border border-dashed border-muted-foreground/50" />
-            )}
-            <span className="flex-1 truncate text-left">{def?.label ?? (current === ICON_NONE ? 'Sem ícone' : 'Padrão da seção')}</span>
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[17.5rem] rounded-xl p-3">
-          <div className="mb-3 grid grid-cols-2 gap-1.5">
-            {option('', 'Padrão da seção')}
-            {option(ICON_NONE, 'Sem ícone')}
-          </div>
-          <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1 custom-scrollbar">
-            {ICON_GROUPS.map((group) => (
-              <div key={group}>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group}</p>
-                <div className="grid grid-cols-6 gap-1">
-                  {Object.entries(PROPOSAL_ICONS)
-                    .filter(([, d]) => d.group === group)
-                    .map(([key, d]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        title={d.label}
-                        aria-label={d.label}
-                        aria-pressed={current === key}
-                        onClick={() => pick(key)}
-                        className={cn(
-                          'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
-                          current === key ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
-                        )}
-                      >
-                        <d.icon className="h-4 w-4" strokeWidth={1.5} />
-                      </button>
-                    ))}
-                </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-xs text-foreground hover:bg-accent hover:text-accent-foreground"
+        >
+          {def && current !== ICON_NONE ? (
+            <def.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+          ) : (
+            <span className="h-4 w-4 shrink-0 rounded-full border border-dashed border-muted-foreground/50" />
+          )}
+          <span className="flex-1 truncate text-left">{triggerLabel}</span>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[17.5rem] rounded-xl p-3">
+        <div className="mb-3 grid grid-cols-2 gap-1.5">
+          {option('', defaultLabel)}
+          {option(ICON_NONE, 'Sem ícone')}
+        </div>
+        <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1 custom-scrollbar">
+          {ICON_GROUPS.map((group) => (
+            <div key={group}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group}</p>
+              <div className="grid grid-cols-6 gap-1">
+                {Object.entries(PROPOSAL_ICONS)
+                  .filter(([, d]) => d.group === group)
+                  .map(([key, d]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      title={d.label}
+                      aria-label={d.label}
+                      aria-pressed={current === key}
+                      onClick={() => pick(key)}
+                      className={cn(
+                        'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
+                        current === key ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      <d.icon className="h-4 w-4" strokeWidth={1.5} />
+                    </button>
+                  ))}
               </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-    </div>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -821,6 +874,7 @@ function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
                       key={sub.key}
                       field={sub}
                       value={item[sub.key]}
+                      item={item}
                       onChange={(v) => updateItem(idx, sub.key, v)}
                     />
                   ))}

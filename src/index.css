@@ -975,6 +975,8 @@ a,
   display: inline-block;
   min-width: 3ch;
   min-height: 1em;
+  /* Placeholder longo em fonte grande não alarga o campo além da coluna (o ::before corta o resto) */
+  max-width: 100%;
 }
 
 .pa-editable-text:empty::before {

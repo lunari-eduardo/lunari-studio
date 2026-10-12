@@ -68,8 +68,9 @@ export function SwitchTemplateDialog({ open, onOpenChange, blocks, currentTempla
     if (!full?.blocks_json) return null;
     // Sem `packages`: os pacotes da proposta são preservados pelo applyTemplate
     const tpl = instantiateTemplateBlocks(full.blocks_json, { photographerName });
-    const tokens = full.design_tokens ?? tpl.find((b) => b?.type === 'global_settings')?.data?.design_tokens ?? null;
-    return { ...applyTemplate(blocks, tpl), tokens };
+    const tplSettings = tpl.find((b) => b?.type === 'global_settings')?.data;
+    const tokens = full.design_tokens ?? tplSettings?.design_tokens ?? null;
+    return { ...applyTemplate(blocks, tpl), tokens, collection: tplSettings?.collection as string | undefined };
   }, [full, blocks, photographerName]);
 
   const byId = (ids: string[]) => preview?.blocks.filter((b) => ids.includes(b.id!)) ?? [];
@@ -84,6 +85,8 @@ export function SwitchTemplateDialog({ open, onOpenChange, blocks, currentTempla
       settings: {
         ...(applyTheme && preview.tokens ? { design_tokens: preview.tokens } : {}),
         source_template_id: selected.template_id,
+        // Coleção temática acompanha o modelo (modelo padrão = sem coleção)
+        collection: preview.collection,
       },
       added: preview.added,
       templateName: selected.name,

@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { PROPOSAL_ICONS, resolveIconKey } from '../../../blocks/icons';
-import { fd, fh, fsc } from './helpers';
+import { splitPrice } from '../../../blocks/pricing';
+import { fa, fd, fh, fsc } from './helpers';
 
 // ============================================================
 // KIT EDITORIAL COMPARTILHADO
@@ -162,8 +163,46 @@ export function ProposalIcon({ name, className }: { name?: string | null; classN
 }
 
 /**
+ * Preço editorial: "R$" pequeno no alto, valor grande e centavos menores (fonte de números).
+ * Na edição inline muda só o valor; "R$" e centavos são preservados. Formato livre = texto puro.
+ */
+export function PriceTag({
+  value,
+  editable,
+  onCommit,
+  className,
+}: {
+  value: string;
+  editable: boolean;
+  onCommit: (v: string) => void;
+  className?: string;
+}) {
+  const parts = splitPrice(value);
+  // div (não p): a regra `.pa-doc p { text-wrap: pretty }` religaria a quebra e jogaria o "R$" para outra linha.
+  // Entrelinha no estilo: o tailwind-merge descarta leading-* diante de um text-[length].
+  const style = { ...fa(), lineHeight: 1 };
+  if (!parts) {
+    return (
+      <EditableText as="div" editable={editable} value={value} onCommit={onCommit} className={cn('lining-nums', className)} style={style} placeholder="R$ 490" />
+    );
+  }
+  const commitAmount = (v: string) => {
+    const amount = v.trim();
+    // Digitou centavos junto ("1.290,50"): vale o que foi digitado
+    onCommit(amount ? `${parts.currency} ${amount}${amount.includes(',') ? '' : parts.cents ?? ''}` : '');
+  };
+  return (
+    <div className={cn('whitespace-nowrap lining-nums', className)} style={style}>
+      <span className="mr-[0.4em] mt-[0.45em] inline-block align-top text-[0.36em] leading-none">{parts.currency}</span>
+      <EditableText editable={editable} value={parts.amount} onCommit={commitAmount} placeholder="490" />
+      {parts.cents && <span className="text-[0.5em]">{parts.cents}</span>}
+    </div>
+  );
+}
+
+/**
  * Faixa de destaques (2 a 4 frases curtas, ícone opcional): empilhada com filetes curtos
- * no estreito; lado a lado com separadores verticais a partir de @2xl.
+ * no estreito; lado a lado com separadores verticais a partir de @2xl (`underline`: traço sob cada uma).
  * `iconFallback` = ícone padrão da seção quando o item não escolheu (null = sem ícone).
  */
 export function HighlightsStrip({
@@ -172,6 +211,7 @@ export function HighlightsStrip({
   editable,
   path = 'highlights',
   iconFallback = null,
+  underline = false,
   className,
 }: {
   items: any[];
@@ -179,25 +219,29 @@ export function HighlightsStrip({
   editable: boolean;
   path?: string;
   iconFallback?: string | null;
+  underline?: boolean;
   className?: string;
 }) {
   const shown = (items || []).map((it, idx) => ({ it, idx })).filter(({ it }) => editable || it?.label?.trim());
   if (!shown.length) return null;
+  // Até 3 frases cabem lado a lado em @2xl; 4 ou mais só em @4xl (antes disso as palavras quebrariam)
+  const row = shown.length > 3 ? ROW_WIDE : ROW;
 
   return (
-    <div className={cn('flex w-full flex-col items-center gap-5 @2xl:flex-row @2xl:items-stretch @2xl:justify-center @2xl:gap-0', className)}>
+    <div className={cn('flex w-full flex-col items-center gap-5', row.wrap, className)}>
       {shown.map(({ it, idx }, i) => {
         const icon = resolveIconKey(it?.icon, iconFallback);
         return (
           <React.Fragment key={it?.id || idx}>
-            {i > 0 && <span aria-hidden className="block h-px w-8 shrink-0 bg-current opacity-30 @2xl:h-auto @2xl:w-px" />}
-            <div className="flex min-w-0 flex-col items-center text-center @2xl:flex-1 @2xl:px-6">
+            {i > 0 && <span aria-hidden className={cn('block h-px w-8 shrink-0 bg-current opacity-30', row.sep)} />}
+            <div className={cn('flex min-w-0 flex-col items-center text-center', row.item)}>
               {icon && <ProposalIcon name={icon} className="mb-3 opacity-80" />}
               <EditableText
                 {...et(`${path}.${idx}.label`, it?.label)}
-                className={cn('max-w-[28ch] pl-[0.32em] text-[10px] @md:text-[11px] @2xl:max-w-none', LABEL)}
+                className={cn('max-w-[28ch] pl-[0.32em] text-[10px] @md:text-[11px]', LABEL, row.label)}
                 placeholder="Destaque"
               />
+              {underline && <span aria-hidden className={cn('mt-3 hidden h-px w-8 bg-current opacity-40', row.underline)} />}
             </div>
           </React.Fragment>
         );
@@ -205,3 +249,19 @@ export function HighlightsStrip({
     </div>
   );
 }
+
+// Classes completas (o Tailwind só gera o que aparece escrito por inteiro)
+const ROW = {
+  wrap: '@2xl:flex-row @2xl:items-stretch @2xl:justify-center @2xl:gap-0',
+  sep: '@2xl:h-auto @2xl:w-px',
+  item: '@2xl:flex-1 @2xl:px-6',
+  label: '@2xl:max-w-none',
+  underline: '@2xl:block',
+};
+const ROW_WIDE = {
+  wrap: '@4xl:flex-row @4xl:items-stretch @4xl:justify-center @4xl:gap-0',
+  sep: '@4xl:h-auto @4xl:w-px',
+  item: '@4xl:flex-1 @4xl:px-6',
+  label: '@4xl:max-w-none',
+  underline: '@4xl:block',
+};

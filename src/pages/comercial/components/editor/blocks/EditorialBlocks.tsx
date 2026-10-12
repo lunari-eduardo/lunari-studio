@@ -4,6 +4,7 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
+import { LABEL, Rule, accentOn } from './kit';
 
 export function EditorialOverlapBlend({
   data,
@@ -437,6 +438,120 @@ export function EditorialArchPortrait({
   );
 }
 
+const ITEMS_BY_ALIGN: Record<string, string> = { left: 'items-start', center: 'items-center', right: 'items-end', justify: 'items-start' };
+
+// Máscara só na foto (não degradê por cima): no estreito esmaece no topo, ao lado do texto esmaece à esquerda
+const LIGHT_FADE = cn(
+  '[mask-image:linear-gradient(to_bottom,transparent,#000_38%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,#000_38%)]',
+  '@2xl:[mask-image:linear-gradient(to_right,transparent,#000_45%)] @2xl:[-webkit-mask-image:linear-gradient(to_right,transparent,#000_45%)]'
+);
+
+/**
+ * Introdução · Texto e Luz — rótulo, título com a segunda voz em itálico no acento, filete curto
+ * e corpo. A foto (luz, ambiente, detalhe) fica ao lado, sem moldura, esmaecendo para o fundo;
+ * o texto nunca fica sobre ela: no estreito, vira uma faixa abaixo do texto. Sem foto, só texto.
+ */
+export function EditorialLightIntro({
+  data,
+  content,
+  props,
+}: {
+  data?: any;
+  content?: any;
+  props?: any;
+}) {
+  const inline = useInlineEdit();
+  const editable = inline?.editable ?? false;
+  const et = (path: string, value: string | undefined) => ({
+    editable,
+    value: value ?? '',
+    onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+  });
+
+  const c = content || data || {};
+  const p = props || {};
+  const photoRef = p.photo_a?.image_ref || null;
+  const hasPhoto = !!photoRef || editable;
+  const accent = accentOn(p);
+  const alignKey = p.align && ITEMS_BY_ALIGN[p.align] ? p.align : 'left';
+  // Justificado só no corpo e só com largura para isso (no celular cria "rios" entre as palavras)
+  const headAlign = alignClass(alignKey === 'justify' ? 'left' : alignKey, 'left');
+  const bodyAlign = alignKey === 'justify' ? 'text-left @md:text-justify' : headAlign;
+
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden px-6 pt-20 @md:px-14 @md:pt-28',
+        hasPhoto ? 'pb-0 @2xl:pb-28 @2xl:min-h-[38rem]' : 'pb-20 @md:pb-28',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      <div className="relative z-10 mx-auto w-full max-w-[1000px]">
+        <div
+          className={cn(
+            'flex flex-col',
+            ITEMS_BY_ALIGN[alignKey],
+            headAlign,
+            hasPhoto ? '@2xl:w-[56%] @2xl:pr-8' : 'max-w-[40rem]',
+            !hasPhoto && alignKey === 'center' && 'mx-auto',
+            !hasPhoto && alignKey === 'right' && 'ml-auto'
+          )}
+        >
+          <EditableText
+            as="p"
+            {...et('eyebrow', c.eyebrow)}
+            className={cn('mb-8 text-[11px] @md:text-xs opacity-75', LABEL)}
+            style={fb()}
+            placeholder="Rótulo (opcional)"
+          />
+          <h2 className="max-w-full text-[length:clamp(2.75rem,7.2cqi,4.9rem)] leading-[1.04] tracking-[-0.01em]" style={fd()}>
+            <EditableText {...et('title', c.title)} placeholder="Mais que fotografias," />
+            {(c.title_italic || editable) && (
+              <em className={cn('block', accent)} style={fh()}>
+                <EditableText {...et('title_italic', c.title_italic)} placeholder="memórias." />
+              </em>
+            )}
+          </h2>
+          <Rule className={cn('mt-10 w-20 @md:w-32', accent || 'opacity-50')} />
+          {(c.body || editable) && (
+            <EditableText
+              as="div"
+              {...et('body', c.body)}
+              multiline
+              className={cn('mt-10 max-w-[30rem] text-[16px] @md:text-[18px] leading-[1.75] whitespace-pre-line opacity-85', bodyAlign)}
+              style={fb()}
+              placeholder="O conceito da sessão: o que vocês vão viver e o que as fotografias vão guardar."
+            />
+          )}
+        </div>
+      </div>
+
+      {hasPhoto && (
+        <div
+          className={cn(
+            'relative mt-14 -mx-6 aspect-[4/3] @md:-mx-14 @2xl:absolute @2xl:inset-y-0 @2xl:right-0 @2xl:mx-0 @2xl:mt-0 @2xl:aspect-auto',
+            // Com foto, a faixa que encosta no texto é transparente (máscara); vazio, o espaço começa depois do texto
+            photoRef ? '@2xl:w-1/2' : '@2xl:w-[42%]'
+          )}
+        >
+          <EditableImage
+            editable={editable}
+            value={photoRef}
+            label="Foto de ambiente"
+            alt={c.title || 'Foto de ambiente'}
+            onCommit={(url) => inline?.set('props.photo_a.image_ref', url)}
+            className="absolute inset-0 w-full h-full"
+            imgClassName={cn('object-cover w-full h-full', LIGHT_FADE)}
+            publicEmptyClassName="hidden"
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function EditorialRenderer({
   data,
   content,
@@ -448,6 +563,8 @@ export function EditorialRenderer({
 }) {
   const variant = props?.variant || 'overlap-blend';
   switch (variant) {
+    case 'light-intro':
+      return <EditorialLightIntro data={data} content={content} props={props} />;
     case 'split-portrait':
       return <EditorialSplitPortrait data={data} content={content} props={props} />;
     case 'text-only':

@@ -4,8 +4,10 @@ import path from 'path';
 import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
 import { fillGallerySlots, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
-import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath } from '../src/pages/comercial/blocks/pricing';
-import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey } from '../src/pages/comercial/blocks/icons';
+import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber } from '../src/pages/comercial/blocks/pricing';
+import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon } from '../src/pages/comercial/blocks/icons';
+import { createBlock } from '../src/pages/comercial/blocks/registry';
+import { forCollection, templateCollection } from '../src/pages/comercial/blocks/collections';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -303,9 +305,12 @@ async function runTests() {
   const [seedBlocks, seedTokens] = [...seedSql.matchAll(/'((?:[^']|'')*)'::jsonb/g)].map((m) => JSON.parse(m[1].replace(/''/g, "'")));
   assert(Array.isArray(seedBlocks) && seedBlocks.length > 0 && !!seedTokens?.colors, 'Seed jsonb literals parse');
   for (const b of seedBlocks) {
+    if (b.type === 'global_settings') continue;
     const def = BLOCK_REGISTRY[b.type];
     assert(!!def, `Seed block type is registered: ${b.type}`);
-    assert(!b.props?.variant || !!def.variants?.some((v) => v.value === b.props.variant), `Seed variant exists: ${b.type}/${b.props?.variant}`);
+    const variant = def.variants?.find((v) => v.value === b.props?.variant);
+    assert(!b.props?.variant || !!variant, `Seed variant exists: ${b.type}/${b.props?.variant}`);
+    assert(!variant?.collection || variant.collection === 'natal', `Seed variant is standard or Natal: ${b.props?.variant}`);
   }
   assert(!normalizeBlocks(seedBlocks).some((b) => b.content?.title === BLOCK_UNKNOWN_FALLBACK_TITLE), 'No seed block falls back to legacy text');
   const seedIcons = [...JSON.stringify(seedBlocks).matchAll(/"icon":"([^"]*)"/g)].map((m) => m[1]);
@@ -328,6 +333,31 @@ async function runTests() {
     'Cover highlights keep their text and get fresh ids'
   );
   assert(!JSON.stringify(natal).includes('/templates/sessoes-natal/'), 'Seed demo photos never reach a proposal');
+  const natalIntro = natal.find((b: any) => b.props?.variant === 'light-intro');
+  assert(
+    !!natalIntro && natalIntro.props.photo_a.image_ref === null && natalIntro.content.title_italic === 'memórias.',
+    'Seed intro keeps its copy and starts with an empty photo slot'
+  );
+  const introTpl = instantiateTemplateBlocks([
+    { type: 'EditorialBlock', content: { title: 'Mais que fotografias,' }, props: { variant: 'light-intro', photo_a: { width_pct: 72, image_ref: 'https://x/luz.jpg' } } },
+  ]);
+  assert(introTpl[0].props.photo_a.image_ref === null && introTpl[0].props.variant === 'light-intro', 'Intro demo photo never reaches a proposal');
+
+  // 18b. Coleção Natal: o modelo declara a coleção (tag + global_settings) e a proposta criada herda
+  assert(/ARRAY\[[^\]]*'natal'/.test(seedSql), 'Seed is tagged natal (gallery tab)');
+  assert(natal.find((b: any) => b.type === 'global_settings')?.data?.collection === 'natal', 'Instantiated proposal keeps the Natal collection');
+  assert(templateCollection(['natal', 'sazonal']) === 'natal' && templateCollection(['editorial']) === undefined && templateCollection(null) === undefined, 'Template collection comes from its tag');
+  type Opt = { value: string; collection?: string };
+  const opts: Opt[] = [{ value: 'std' }, { value: 'arcos', collection: 'natal' }, { value: 'medalhao', collection: 'natal' }];
+  const plainOpts: Opt[] = [{ value: 'std' }, { value: 'b' }];
+  const names = (list: Opt[]) => list.map((o) => o.value).join();
+  assert(names(forCollection(opts, undefined)) === 'std', 'Standard proposal sees only standard variants');
+  assert(names(forCollection(opts, 'natal')) === 'arcos,medalhao', 'Natal proposal sees the curated Natal variants');
+  assert(names(forCollection(plainOpts, 'natal')) === 'std,b', 'Block without Natal variants keeps the standard ones');
+  assert(names(forCollection(opts, undefined, (o) => o.value === 'arcos')) === 'std,arcos', 'A variant already in use never disappears');
+  assert(names(forCollection(opts, 'natal', (o) => o.value === 'std')) === 'std,arcos,medalhao', 'Standard variant in use stays in a Natal proposal');
+  const natalVariants = Object.values(BLOCK_REGISTRY).flatMap((d) => (d.variants ?? []).filter((v) => v.collection).map((v) => v.value));
+  assert(['arches-trio', 'ornament', 'night-hero', 'light-intro'].every((v) => natalVariants.includes(v)), `Natal variants are collection-only: ${natalVariants}`);
 
   // 19. Capa Arcos: o 3º arco do modelo nunca vaza; a foto do fotógrafo sobrevive à troca de modelo
   const archesTpl = instantiateTemplateBlocks([
@@ -340,6 +370,37 @@ async function runTests() {
   );
   assert(switched.blocks[0].content!.photo_c === 'https://me/d.jpg', "Photographer's third arch photo survives a template switch");
   assert(switched.blocks[0].props!.variant === 'arches-trio', 'Template switch applies the Arcos variant');
+
+  // 20. Pacotes da coleção: preço editorial, quantidade em destaque e ícone sugerido pelo texto
+  const sp = splitPrice('R$ 1.190');
+  assert(!!sp && sp.currency === 'R$' && sp.amount === '1.190' && !sp.cents, 'Price splits currency and amount');
+  assert(splitPrice('R$ 35,00')?.cents === ',00' && splitPrice('R$ 1.490,00')?.amount === '1.490', 'Price keeps cents (also with nbsp from Intl)');
+  assert(splitPrice('A partir de R$ 490') === null && splitPrice('') === null, 'Free-form price stays as typed');
+  const ln = splitLeadingNumber('10 fotografias digitais');
+  assert(!!ln && ln.num === '10' && ln.label === 'fotografias digitais', 'Leading quantity becomes the highlighted number');
+  assert(splitLeadingNumber('Até 1 hora de sessão') === null && splitLeadingNumber('2h de sessão') === null, 'No leading quantity = label only');
+  const sug = (t: string) => suggestIcon(t);
+  assert(sug('Até 3 participantes') === 'users' && sug('5 fotos digitais em alta resolução') === 'camera', 'Participants -> users, photos -> camera');
+  assert(sug('1 cenário') === 'tree' && sug('2 trocas de roupa (uma por cenário)') === 'shirt', 'Scenery -> tree; wardrobe wins over scenery');
+  assert(sug('1 álbum fotográfico 20x20cm') === 'album' && sug('Galeria online para seleção') === 'images', 'Album and gallery before generic photo');
+  assert(sug('2h de sessão') === 'clock' && sug('30 fotos incluídas') === 'camera' && sug('2× Álbum 30x30') === 'album', 'Imported packages get sensible icons');
+  assert(sug('Maquiagem inclusa') === null, 'Unknown item -> no suggestion (neutral diamond)');
+
+  const seedPricing = seedBlocks.filter((b: any) => b.type === 'PricingTable');
+  assert(seedPricing.map((b: any) => b.props.variant).join() === 'photo-cards,photo-rows,arch-cards', 'Seed brings the 3 package layouts for review');
+  const natalPricing = natal.filter((b: any) => b.type === 'PricingTable');
+  assert(natalPricing.length === 3, 'Without real packages all demo groups stay (current rule)');
+  const cards = natalPricing[0];
+  assert(cards.content.packages.every((pk: any) => pk.image_ref === '' && !!pk.description), 'Package photos start empty and descriptions are kept');
+  assert(cards.content.packages[0].id !== 'sn_p1' && cards.content.highlights[0].id !== 'sn_ph1', 'Package and highlight ids are renewed');
+  const withRealPkgs = instantiateTemplateBlocks(seedBlocks, { packages: [realPkg] }).filter((b: any) => b.type === 'PricingTable');
+  assert(withRealPkgs.length === 1 && withRealPkgs[0].props.variant === 'photo-cards' && withRealPkgs[0].content.packages[0].name === 'Ensaio Gestante', 'Real packages fill the first (main) layout');
+  const iconPkg = instantiateTemplateBlocks([{ type: 'PricingTable', content: { packages: [{ id: 'k', name: 'A', features: ['x'], feature_icons: ['gift'] }] }, props: { variant: 'photo-cards' } }]);
+  assert(iconPkg[0].content.packages[0].feature_icons[0] === 'gift', 'Chosen feature icons survive instantiation');
+
+  // 21. Seção nova numa proposta Natal já nasce com a variante da coleção; padrão segue como antes
+  assert(createBlock('PricingTable', 'natal').props!.variant === 'photo-cards' && createBlock('CoverBlock', 'natal').props!.variant === 'arches-trio', 'New sections take the collection variant');
+  assert(!createBlock('PricingTable').props!.variant && !createBlock('Gallery', 'natal').props!.variant, 'Standard proposals and blocks without collection variants are unchanged');
 
   console.log('✅ All tests passed successfully!');
 }

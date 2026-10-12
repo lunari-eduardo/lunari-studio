@@ -9,6 +9,7 @@ import { getBlockDef, GALLERY_SPAN_OPTIONS, IMAGE_RATIO_OPTIONS, type FieldCtx }
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { BackgroundSwatches, backgroundSwatchColor } from '../../blocks/FieldEditor';
 import { DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
+import { forCollection, useProposalCollection } from '../../blocks/collections';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 type LayoutOption = { value: string; label: string; description?: string };
@@ -17,11 +18,14 @@ type LayoutOption = { value: string; label: string; description?: string };
  * Escolha de composição da seção: variantes do bloco ou, sem variantes, o select
  * "layout"/"style" do registry (galeria, composição editorial, divisor).
  */
-export function layoutChoice(block: BlockData): { path: string; value?: string; options: LayoutOption[] } | null {
+export function layoutChoice(block: BlockData, collection?: string): { path: string; value?: string; options: LayoutOption[] } | null {
   const def = getBlockDef(block.type);
   if (!def) return null;
   if (def.variants?.length) {
-    return { path: 'props.variant', value: block.props?.variant ?? def.defaultVariant, options: def.variants };
+    const value = block.props?.variant ?? def.defaultVariant;
+    // Proposta de coleção temática: variantes dela; modelo padrão: as padrão (a aplicada nunca some)
+    const options = forCollection(def.variants, collection, (v) => v.value === value);
+    return { path: 'props.variant', value, options };
   }
   const field = def.layoutFields?.find((f) => f.kind === 'select' && (f.key === 'layout' || f.key === 'style'));
   if (!field?.options) return null;
@@ -110,7 +114,7 @@ export interface SectionToolbarProps {
 // ============================================================
 export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSetPath, onMove, onDuplicate, onRemove }: SectionToolbarProps) {
   const def = getBlockDef(block.type);
-  const layout = layoutChoice(block);
+  const layout = layoutChoice(block, useProposalCollection());
   const ctx: FieldCtx = { content: block.content ?? {}, props: { ...(block.props ?? {}), variant: block.props?.variant ?? def?.defaultVariant } };
   const bgField = def?.layoutFields?.find((f) => f.key === 'background' && (!f.showIf || f.showIf(ctx)));
   const bgColor = backgroundSwatchColor(block.props?.background, palette);

@@ -34,6 +34,7 @@ import { FieldEditor } from '../../blocks/FieldEditor';
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { DEFAULT_DESIGN_TOKENS, isHexColor, type ProposalDesignTokens } from '../../blocks/design';
 import { VariantPicker } from './CanvasToolbars';
+import { forCollection, useProposalCollection } from '../../blocks/collections';
 
 export interface PropertiesSidebarProps {
   block: BlockData;
@@ -113,6 +114,7 @@ export function PropertiesSidebar({
   onInteractionEnd,
 }: PropertiesSidebarProps) {
   const { pacotes, produtos } = useConfigurationContext();
+  const collection = useProposalCollection();
   // Sem `key` por bloco: o grupo aberto acompanha o fotógrafo de uma seção para outra
   const [openGroup, setOpenGroup] = useState<string>('text');
   const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
@@ -170,7 +172,9 @@ export function PropertiesSidebar({
     ...(def?.layoutFields ?? []).filter(visible).map((field) => ({ field, isProp: true })),
   ];
   const slots = (def?.propImageSlots ?? []).filter(visible);
-  const hasVariants = (def?.variants?.length ?? 0) > 0;
+  // Proposta de coleção temática: variantes dela; modelo padrão: as padrão (a aplicada nunca some)
+  const variants = forCollection(def?.variants ?? [], collection, (v) => v.value === currentVariant);
+  const hasVariants = variants.length > 0;
   const variantLabel = def?.variants?.find((v) => v.value === currentVariant)?.label;
 
   const groups = GROUPS.map((g) => {
@@ -292,7 +296,7 @@ export function PropertiesSidebar({
                   <AccordionContent className="space-y-4 px-4 pb-5 pt-2">
                     {/* Composição: variantes da seção */}
                     {g.key === 'layout' && hasVariants && (
-                      <VariantPicker options={def!.variants!} value={currentVariant} onChange={(v) => setProps({ variant: v })} />
+                      <VariantPicker options={variants} value={currentVariant} onChange={(v) => setProps({ variant: v })} />
                     )}
 
                     {/* Itens: importar pacotes cadastrados (Tabela de Preços) */}

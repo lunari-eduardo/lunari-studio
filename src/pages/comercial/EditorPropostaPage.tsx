@@ -23,6 +23,7 @@ import { SwitchTemplateDialog, type TemplateSwitch } from './components/editor/m
 import { useProposalTemplates } from './biblioteca/hooks/useCreateMaterialWizard';
 import { SectionLibraryDialog } from './components/editor/modals/SectionLibraryDialog';
 import { getSectionTitle } from './blocks/registry';
+import { ProposalCollectionContext } from './blocks/collections';
 
 /** Converte um data URL (geralmente `image/jpeg`) em `File` pronto para upload. */
 function dataUrlToFile(dataUrl: string, fileName: string): File {
@@ -507,7 +508,8 @@ export default function EditorMaterialPage() {
   );
 
   return (
-    <>
+    // Coleção temática da proposta (vem do modelo): libera as variantes e temas exclusivos dela
+    <ProposalCollectionContext.Provider value={editorState.globalSettings?.collection}>
       <div className="flex h-full min-h-0 flex-1 w-full flex-col bg-muted/30 overflow-hidden">
         {/* TOPBAR */}
         <EditorHeader
@@ -748,6 +750,6 @@ export default function EditorMaterialPage() {
           onClose={() => setIsSendModalOpen(false)}
         />
       )}
-    </>
+    </ProposalCollectionContext.Provider>
   );
 }

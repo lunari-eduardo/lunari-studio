@@ -27,7 +27,8 @@ export type FieldKind =
   | 'swatch'          // amostras da paleta do tema + cor livre (fundo da seção)
   | 'gallery'         // fotos em lote: envio múltiplo + miniaturas reordenáveis
   | 'align'           // controle segmentado esquerda/centro/direita/justificado
-  | 'icon';           // catálogo visual de ícones (blocks/icons.ts): chave, '' = padrão, 'none' = sem ícone
+  | 'icon'            // catálogo visual de ícones (blocks/icons.ts): chave, '' = padrão, 'none' = sem ícone
+  | 'iconlist';       // um ícone por item de `features` do mesmo item de lista (alinhado por posição)
 
 /** Grupo do inspector (acordeão). Ausente = inferido pelo tipo do campo (ver PropertiesSidebar). */
 export type FieldGroup = 'text' | 'items' | 'media' | 'layout' | 'style' | 'actions';
@@ -70,7 +71,8 @@ export interface BlockDefinition {
   fields: BlockField[];
   layoutFields?: BlockField[];
   propImageSlots?: PropImageSlot[];
-  variants?: { value: string; label: string; description: string }[];
+  /** `collection`: exclusiva de uma coleção temática (blocks/collections.ts) até ser liberada aos modelos padrão. */
+  variants?: { value: string; label: string; description: string; collection?: string }[];
   defaultVariant?: string;
   factory: () => { content: Record<string, any>; props?: Record<string, any> };
 }
@@ -155,8 +157,25 @@ export const GALLERY_SPAN_OPTIONS = [
 export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
 export const highlightItem = () => ({ id: crypto.randomUUID(), label: '', icon: '' });
 
+/** Faixa de destaques (frase curta + ícone opcional) — capa Noturna, pacotes da coleção. */
+const highlightsField = (label: string, showIf: BlockField['showIf']): BlockField => ({
+  key: 'highlights',
+  label,
+  kind: 'list',
+  itemLabel: 'Destaque',
+  itemFields: [
+    { key: 'label', label: 'Texto', kind: 'text', placeholder: 'Sessões limitadas' },
+    { key: 'icon', label: 'Ícone (opcional)', kind: 'icon' },
+  ],
+  itemFactory: highlightItem,
+  showIf,
+});
+
 /** Capas da coleção editorial: título em dois tempos ("Sessões de" + "Natal"). */
 const LOCKUP_COVERS = ['arches-trio', 'ornament', 'night-hero'];
+
+/** Pacotes da coleção editorial (Natal): mesma anatomia, layouts diferentes. */
+const COLLECTION_PACKAGES = ['photo-cards', 'photo-rows', 'arch-cards'];
 
 /** Estilo da palavra em destaque; a 1ª opção é o padrão da variante (o select exibe a 1ª sem valor salvo). */
 const titleStyleField = (first: 'script' | 'caps', variants: string[]): BlockField => {
@@ -197,18 +216,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'photo_b', label: 'Arco esquerdo', kind: 'image', showIf: variantIn('arches-trio') },
       { key: 'image_url', label: 'Arco central (foto principal)', kind: 'image', showIf: variantIn('arches-trio') },
       { key: 'photo_c', label: 'Arco direito', kind: 'image', showIf: variantIn('arches-trio') },
-      {
-        key: 'highlights',
-        label: 'Destaques do rodapé',
-        kind: 'list',
-        itemLabel: 'Destaque',
-        itemFields: [
-          { key: 'label', label: 'Texto', kind: 'text', placeholder: 'Sessões limitadas' },
-          { key: 'icon', label: 'Ícone (opcional)', kind: 'icon' },
-        ],
-        itemFactory: highlightItem,
-        showIf: variantIn('night-hero'),
-      },
+      highlightsField('Destaques do rodapé', variantIn('night-hero')),
     ],
     layoutFields: [
       // Capas com foto de fundo sangrada não usam alinhamento nem fundo da seção
@@ -227,9 +235,9 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'editorial-diptych', label: 'Díptico', description: 'Díptico Editorial' },
       { value: 'floating-frame', label: 'Moldura', description: 'Moldura Flutuante Fine Art' },
       { value: 'poster-sky', label: 'Pôster Editorial', description: 'Foto sangrada, título no topo e assinatura no rodapé' },
-      { value: 'arches-trio', label: 'Arcos', description: 'Três fotos em arco e palavra em destaque' },
-      { value: 'ornament', label: 'Medalhão', description: 'Foto circular suspensa, como um enfeite' },
-      { value: 'night-hero', label: 'Noturna', description: 'Foto de fundo com véu escuro e destaques no rodapé' },
+      { value: 'arches-trio', label: 'Arcos', description: 'Três fotos em arco e palavra em destaque', collection: 'natal' },
+      { value: 'ornament', label: 'Medalhão', description: 'Foto circular suspensa, como um enfeite', collection: 'natal' },
+      { value: 'night-hero', label: 'Noturna', description: 'Foto de fundo com véu escuro e destaques no rodapé', collection: 'natal' },
     ],
     defaultVariant: 'minimal-center',
     factory: () => ({
@@ -269,7 +277,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { key: 'value', label: 'Valor', kind: 'text', placeholder: '2 a 8 horas' },
         ],
         itemFactory: detailItem,
-        showIf: variantNotIn('arch-portrait'),
+        showIf: variantNotIn('arch-portrait', 'light-intro'),
       },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
@@ -278,6 +286,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'split-portrait', label: 'Split Retrato', description: 'Texto à esquerda + foto retrato à direita' },
       { value: 'text-only', label: 'Só Texto', description: 'Texto estilizado sem fotos' },
       { value: 'arch-portrait', label: 'Retrato em Arco', description: 'Sobre você: texto, frases de destaque e retrato em arco' },
+      { value: 'light-intro', label: 'Texto e Luz', description: 'Título com itálico em destaque e foto suave ao lado, sem moldura', collection: 'natal' },
     ],
     defaultVariant: 'overlap-blend',
     propImageSlots: [
@@ -304,7 +313,9 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Investimento' },
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Pacotes' },
+      { key: 'title_italic', label: 'Título em itálico (opcional)', kind: 'text', placeholder: 'experiência', showIf: variantIn(...COLLECTION_PACKAGES) },
       { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Escolha a melhor experiência para registrar o que é de vocês.' },
+      { key: 'item_label', label: 'Rótulo acima do nome', kind: 'text', placeholder: 'Pacote', showIf: variantIn('arch-cards') },
       {
         key: 'packages',
         label: 'Pacotes',
@@ -312,22 +323,27 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         itemLabel: 'Pacote',
         itemFields: [
           { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Essencial' },
+          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Para guardar o que importa', showIf: variantIn(...COLLECTION_PACKAGES) },
           { key: 'price', label: 'Preço (texto livre)', kind: 'text', placeholder: 'R$ 1.200' },
-          { key: 'price_unit', label: 'Unidade', kind: 'text', placeholder: 'sessão' },
+          { key: 'price_unit', label: 'Unidade', kind: 'text', placeholder: 'sessão', showIf: variantNotIn(...COLLECTION_PACKAGES) },
           { key: 'price_cash', label: 'Preço à Vista', kind: 'text', placeholder: 'R$ 250,00' },
           { key: 'price_installments', label: 'Parcelamento', kind: 'text', placeholder: '3x de R$ 89,62' },
           { key: 'badge', label: 'Selo (ex: Mais escolhido)', kind: 'text', placeholder: 'Mais escolhido' },
-          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image', showIf: ({ props }) => !props.hide_images },
+          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image', showIf: ({ props }) => !props.hide_images && props.variant !== 'arch-cards' },
           { key: 'features', label: 'Itens inclusos (1 por linha)', kind: 'stringlist', placeholder: '1h de ensaio\n10 fotos digitais' },
+          { key: 'feature_icons', label: 'Ícones dos itens', kind: 'iconlist', showIf: ({ props }) => ['photo-cards', 'photo-rows'].includes(props.variant) && !props.hide_icons },
         ],
         itemFactory: packageItem,
       },
+      highlightsField('Destaques do rodapé', variantIn(...COLLECTION_PACKAGES)),
+      { key: 'footnote', label: 'Frase de rodapé', kind: 'text', placeholder: 'Memórias que aquecem sempre', showIf: variantIn(...COLLECTION_PACKAGES) },
     ],
     layoutFields: [
-      ALIGN_FIELD,
+      { ...ALIGN_FIELD, showIf: variantNotIn(...COLLECTION_PACKAGES) },
       backgroundField(),
       textColorField(),
-      { key: 'hide_images', label: 'Ocultar fotos dos pacotes', kind: 'boolean' },
+      { key: 'hide_images', label: 'Ocultar fotos dos pacotes', kind: 'boolean', showIf: variantNotIn('arch-cards') },
+      { key: 'hide_icons', label: 'Ocultar ícones dos itens', kind: 'boolean', showIf: variantIn('photo-cards', 'photo-rows') },
       // Só o layout Revista lê estes três
       {
         key: 'numbering',
@@ -348,6 +364,9 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'cards-minimal', label: 'Cards Minimalistas', description: 'Design limpo sem bordas e foto arredondada' },
       { value: 'numbered-editorial', label: 'Editorial Numerado', description: 'Lista numerada com fotos e hairlines' },
       { value: 'magazine', label: 'Revista', description: 'Cartões com foto lateral, numeração e preço à vista/parcelado' },
+      { value: 'photo-cards', label: 'Cartões com Foto', description: 'Foto no topo, itens com ícone e preço em destaque', collection: 'natal' },
+      { value: 'photo-rows', label: 'Linhas com Foto', description: 'Cartões horizontais com a foto alternando os lados', collection: 'natal' },
+      { value: 'arch-cards', label: 'Cartões em Arco', description: 'Sem foto: topo em arco e quantidades em destaque', collection: 'natal' },
     ],
     defaultVariant: 'cards-classic',
     factory: () => ({

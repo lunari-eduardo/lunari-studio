@@ -73,6 +73,37 @@ export const PROPOSAL_ICONS: Record<string, { label: string; icon: LucideIcon; g
   package: { label: 'Embalagem', icon: Package, group: 'Contato e entrega' },
 };
 
+// Ordem importa: "2 trocas de roupa (uma por cenário)" é vestuário; "galeria" vem antes de "foto"
+const SUGGESTIONS: [RegExp, string][] = [
+  [/participant|pessoa|integrant|famil/, 'users'],
+  [/beb[eê]|crian[cç]|newborn/, 'baby'],
+  [/roupa|look|vestu[aá]ri|figurino/, 'shirt'],
+  [/cen[aá]rio|decora/, 'tree'],
+  [/[aá]lbum/, 'album'],
+  [/impress|papel fotogr/, 'print'],
+  [/quadro|moldura|porta[- ]?retrato|frame/, 'frame'],
+  [/galeria|sele[cç][aã]o/, 'images'],
+  [/foto|imagem|digita|arquivo/, 'camera'],
+  [/\d+\s*(h(?![a-z])|hora|min)|dura[cç][aã]o|sess[aã]o/, 'clock'],
+  [/entrega|envio|frete/, 'truck'],
+  [/prazo|\d+\s*dias/, 'hourglass'],
+  [/local|endere[cç]/, 'location'],
+  [/pagamento|pix|cart[aã]o|parcel/, 'card'],
+  [/contrato/, 'contract'],
+  [/altera|cancel|remarc|reserva|agenda/, 'calendar'],
+  [/presente|presentear/, 'gift'],
+  [/segur|garantia/, 'shield'],
+  [/qualidade/, 'heart'],
+  [/d[uú]vida|contato|whatsapp|disposi[cç]/, 'message'],
+  [/paleta|\bcores\b|\btons\b/, 'palette'],
+];
+
+/** Ícone padrão pelo texto do item (o fotógrafo pode trocar); sem correspondência = null. */
+export function suggestIcon(text: string): string | null {
+  const t = (text || '').toLowerCase();
+  return SUGGESTIONS.find(([re]) => re.test(t))?.[1] ?? null;
+}
+
 /** Valor salvo quando o fotógrafo escolhe "Sem ícone" (vazio = padrão da seção). */
 export const ICON_NONE = 'none';
 
