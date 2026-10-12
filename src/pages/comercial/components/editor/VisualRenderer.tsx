@@ -122,11 +122,14 @@ export function VisualRenderer({
     [textSizeState.blockIndex, onUpdateField]
   );
 
+  const typo = designTokens?.typography;
   React.useEffect(() => {
-    ensureFontLoaded(designTokens?.typography?.display);
-    ensureFontLoaded(designTokens?.typography?.body);
-    ensureFontLoaded(designTokens?.typography?.accent);
-  }, [designTokens?.typography?.display, designTokens?.typography?.body, designTokens?.typography?.accent]);
+    ensureFontLoaded(typo?.display);
+    ensureFontLoaded(typo?.body);
+    ensureFontLoaded(typo?.accent);
+    ensureFontLoaded(typo?.highlight);
+    ensureFontLoaded(typo?.script);
+  }, [typo?.display, typo?.body, typo?.accent, typo?.highlight, typo?.script]);
 
   return (
     <div

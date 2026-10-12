@@ -4,7 +4,7 @@ import { useInlineEdit } from './inlineContext';
 import { EditableText } from './EditableText';
 import { EditableImage } from './EditableImage';
 import { fontDisplayCss, fontBodyCss } from './design';
-import { sectionBg, textColorClass } from '../components/editor/blocks/helpers';
+import { sectionBg, textColorClass, fh } from '../components/editor/blocks/helpers';
 
 interface EditorialCompositionProps {
   content: any;
@@ -62,7 +62,7 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
           >
             <EditableText {...et('title', c.title)} placeholder="Título" />
             {c.title_italic && (
-              <em className="block italic opacity-90 -mt-2 @md:-mt-4">
+              <em className="block italic opacity-90 -mt-2 @md:-mt-4" style={fh()}>
                 <EditableText {...et('title_italic', c.title_italic)} placeholder="Itálico" />
               </em>
             )}

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
-import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
+import { fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
 
 export function EditorialOverlapBlend({
   data,
@@ -93,7 +93,7 @@ export function EditorialOverlapBlend({
               style={fd()}
             >
               <EditableText {...et('title', c.title)} placeholder="Título" />{' '}
-              <em className="italic opacity-60">
+              <em className="italic opacity-60" style={fh()}>
                 <EditableText {...et('title_italic', c.title_italic)} placeholder="em itálico" />
               </em>
             </h2>
@@ -280,7 +280,7 @@ export function EditorialTextOnly({
 
         <h2 className="text-4xl @md:text-6xl font-light leading-[1.1] tracking-[0.02em] mb-12" style={fd()}>
           <EditableText {...et('title', c.title)} placeholder="Título" />{' '}
-          <em className="italic opacity-60">
+          <em className="italic opacity-60" style={fh()}>
             <EditableText {...et('title_italic', c.title_italic)} placeholder="em itálico" />
           </em>
         </h2>

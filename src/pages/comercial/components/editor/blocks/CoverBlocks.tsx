@@ -9,6 +9,9 @@ import { CoverHeroFull } from './covers/CoverHeroFull';
 import { CoverEditorialDiptych } from './covers/CoverEditorialDiptych';
 import { CoverFloatingFrame } from './covers/CoverFloatingFrame';
 import { CoverPosterSky } from './covers/CoverPosterSky';
+import { CoverArchesTrio } from './covers/CoverArchesTrio';
+import { CoverOrnament } from './covers/CoverOrnament';
+import { CoverNightHero } from './covers/CoverNightHero';
 
 // Re-exports para compatibilidade com eventuais imports diretos
 export { CoverMinimalCenter } from './covers/CoverMinimalCenter';
@@ -48,6 +51,12 @@ export function CoverRenderer({
       return <CoverFloatingFrame data={data} props={props} onCtaClick={onCtaClick} />;
     case 'poster-sky':
       return <CoverPosterSky data={data} props={props} onCtaClick={onCtaClick} />;
+    case 'arches-trio':
+      return <CoverArchesTrio data={data} props={props} onCtaClick={onCtaClick} />;
+    case 'ornament':
+      return <CoverOrnament data={data} props={props} onCtaClick={onCtaClick} />;
+    case 'night-hero':
+      return <CoverNightHero data={data} props={props} onCtaClick={onCtaClick} />;
     case 'minimal-center':
     default:
       return <CoverMinimalCenter data={data} props={props} onCtaClick={onCtaClick} />;

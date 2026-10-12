@@ -26,7 +26,8 @@ export type FieldKind =
   | 'color'
   | 'swatch'          // amostras da paleta do tema + cor livre (fundo da seção)
   | 'gallery'         // fotos em lote: envio múltiplo + miniaturas reordenáveis
-  | 'align';          // controle segmentado esquerda/centro/direita/justificado
+  | 'align'           // controle segmentado esquerda/centro/direita/justificado
+  | 'icon';           // catálogo visual de ícones (blocks/icons.ts): chave, '' = padrão, 'none' = sem ícone
 
 /** Grupo do inspector (acordeão). Ausente = inferido pelo tipo do campo (ver PropertiesSidebar). */
 export type FieldGroup = 'text' | 'items' | 'media' | 'layout' | 'style' | 'actions';
@@ -152,6 +153,27 @@ export const GALLERY_SPAN_OPTIONS = [
   { value: 'feature_2x2', label: 'Destaque' },
 ];
 export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
+export const highlightItem = () => ({ id: crypto.randomUUID(), label: '', icon: '' });
+
+/** Capas da coleção editorial: título em dois tempos ("Sessões de" + "Natal"). */
+const LOCKUP_COVERS = ['arches-trio', 'ornament', 'night-hero'];
+
+/** Estilo da palavra em destaque; a 1ª opção é o padrão da variante (o select exibe a 1ª sem valor salvo). */
+const titleStyleField = (first: 'script' | 'caps', variants: string[]): BlockField => {
+  const options = [
+    { value: 'script', label: 'Caligráfico' },
+    { value: 'italic', label: 'Itálico' },
+    { value: 'caps', label: 'Caixa-alta' },
+  ];
+  return {
+    key: 'title_style',
+    label: 'Estilo da palavra em destaque',
+    kind: 'select',
+    options: [...options.filter((o) => o.value === first), ...options.filter((o) => o.value !== first)],
+    group: 'layout',
+    showIf: variantIn(...variants),
+  };
+};
 
 export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
   CoverBlock: {
@@ -159,21 +181,43 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     name: 'Capa',
     description: 'Seção de abertura com imagem',
     icon: ImageIcon,
+    // Mesma chave com rótulos por variante: os `showIf` são exclusivos (só um aparece por vez)
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Proposta personalizada' },
-      { key: 'title', label: 'Título Principal', kind: 'textarea', placeholder: 'Seu momento merece ser vivido' },
-      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'e lembrado para sempre.' },
+      { key: 'title', label: 'Título Principal', kind: 'textarea', placeholder: 'Seu momento merece ser vivido', showIf: variantNotIn(...LOCKUP_COVERS) },
+      { key: 'title', label: 'Linha de abertura', kind: 'text', placeholder: 'Sessões de', showIf: variantIn(...LOCKUP_COVERS) },
+      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'e lembrado para sempre.', showIf: variantNotIn(...LOCKUP_COVERS) },
+      { key: 'title_italic', label: 'Palavra em destaque', kind: 'text', placeholder: 'Natal', showIf: variantIn(...LOCKUP_COVERS) },
       { key: 'subtitle', label: 'Subtítulo', kind: 'textarea', placeholder: 'Fotografias que eternizam...' },
       // Minimal não exibe assinatura (só a usa como subtítulo de reserva)
       { key: 'photographer_name', label: 'Assinatura (Fotógrafo)', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantNotIn('minimal-center') },
       { key: 'btnText', label: 'Texto do Botão', kind: 'text', placeholder: 'Quero viver essa experiência' },
-      { key: 'image_url', label: 'Imagem de Capa', kind: 'image' },
+      { key: 'image_url', label: 'Imagem de Capa', kind: 'image', showIf: variantNotIn('arches-trio') },
+      { key: 'photo_b', label: 'Foto B', kind: 'image', showIf: variantIn('editorial-diptych') },
+      { key: 'photo_b', label: 'Arco esquerdo', kind: 'image', showIf: variantIn('arches-trio') },
+      { key: 'image_url', label: 'Arco central (foto principal)', kind: 'image', showIf: variantIn('arches-trio') },
+      { key: 'photo_c', label: 'Arco direito', kind: 'image', showIf: variantIn('arches-trio') },
+      {
+        key: 'highlights',
+        label: 'Destaques do rodapé',
+        kind: 'list',
+        itemLabel: 'Destaque',
+        itemFields: [
+          { key: 'label', label: 'Texto', kind: 'text', placeholder: 'Sessões limitadas' },
+          { key: 'icon', label: 'Ícone (opcional)', kind: 'icon' },
+        ],
+        itemFactory: highlightItem,
+        showIf: variantIn('night-hero'),
+      },
     ],
     layoutFields: [
       // Capas com foto de fundo sangrada não usam alinhamento nem fundo da seção
       { ...ALIGN_FIELD, showIf: variantIn('seam-side', 'minimal-center', 'editorial-diptych') },
-      backgroundField(variantNotIn('poster-split', 'hero-full', 'poster-sky')),
-      textColorField(variantNotIn('hero-full')),
+      backgroundField(variantNotIn('poster-split', 'hero-full', 'poster-sky', 'night-hero')),
+      textColorField(variantNotIn('hero-full', 'night-hero')),
+      titleStyleField('script', ['arches-trio']),
+      titleStyleField('caps', ['ornament', 'night-hero']),
+      { key: 'hide_ornaments', label: 'Ocultar detalhes decorativos (estrela, fio e brilhos)', kind: 'boolean', showIf: variantIn('arches-trio', 'ornament') },
     ],
     variants: [
       { value: 'minimal-center', label: 'Minimal', description: 'Editorial Minimalista' },
@@ -183,6 +227,9 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'editorial-diptych', label: 'Díptico', description: 'Díptico Editorial' },
       { value: 'floating-frame', label: 'Moldura', description: 'Moldura Flutuante Fine Art' },
       { value: 'poster-sky', label: 'Pôster Editorial', description: 'Foto sangrada, título no topo e assinatura no rodapé' },
+      { value: 'arches-trio', label: 'Arcos', description: 'Três fotos em arco e palavra em destaque' },
+      { value: 'ornament', label: 'Medalhão', description: 'Foto circular suspensa, como um enfeite' },
+      { value: 'night-hero', label: 'Noturna', description: 'Foto de fundo com véu escuro e destaques no rodapé' },
     ],
     defaultVariant: 'minimal-center',
     factory: () => ({

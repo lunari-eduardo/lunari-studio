@@ -1,8 +1,11 @@
 // Rodar: npm run test:proposals
-import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, applyTemplate, isEmptyValue } from '../src/pages/comercial/blocks/normalization';
-import { onColor } from '../src/pages/comercial/blocks/design';
-import { fillGallerySlots } from '../src/pages/comercial/blocks/registryDefinitions';
+import fs from 'fs';
+import path from 'path';
+import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
+import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
+import { fillGallerySlots, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath } from '../src/pages/comercial/blocks/pricing';
+import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey } from '../src/pages/comercial/blocks/icons';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -274,6 +277,69 @@ async function runTests() {
   assert(!masonry.props!.ratio, 'Masonry keeps per-photo crops only');
   const chosen = normalizeBlock({ type: 'Gallery', content: { images: [{ id: 'a', ratio: '1/1' }] }, props: { layout: 'grid', ratio: '16/9' } })!;
   assert(chosen.props!.ratio === '16/9', 'Chosen block ratio is never overwritten');
+
+  // 16. Tipografia por papéis: destaque e caligrafia só existem quando escolhidos (propostas antigas idênticas)
+  const vars = (t: any) => tokensToCssVars(t) as Record<string, any>;
+  const plain = vars({ typography: { display: 'Playfair Display', body: 'Inter' } });
+  assert(
+    ['--pa-font-highlight', '--pa-font-script', '--pa-hl-style', '--pa-script-style'].every((k) => !(k in plain)),
+    'No new typography variables without the new tokens'
+  );
+  const serifHl = vars({ typography: { highlight: 'Bodoni Moda', script: 'Pinyon Script' } });
+  assert(serifHl['--pa-font-highlight'] === 'Bodoni Moda' && !('--pa-hl-style' in serifHl), 'Serif highlight keeps its italic');
+  assert(serifHl['--pa-font-script'] === 'Pinyon Script' && serifHl['--pa-script-style'] === 'normal', 'Script font never gets a synthetic italic');
+  assert(vars({ typography: { highlight: 'Great Vibes' } })['--pa-hl-style'] === 'normal', 'Script chosen as highlight drops the italic');
+  assert(Object.values(PROPOSAL_FONTS).every((f) => ['serif', 'sans', 'script'].includes(f.kind)), 'Every catalog font has a kind');
+  assert(!Object.values(PROPOSAL_FONTS).some((f) => f.kind === 'script' && f.displayOnly), 'Script fonts are never display-only');
+
+  // 17. Ícones: escolha explícita, padrão da seção, "Sem ícone" e chave desconhecida
+  assert(resolveIconKey('camera') === 'camera' && resolveIconKey('', 'users') === 'users', 'Explicit key wins; empty uses the section default');
+  assert(resolveIconKey(ICON_NONE, 'users') === null, '"Sem ícone" beats the section default');
+  assert(resolveIconKey('removed-key', 'users') === null && resolveIconKey(undefined) === null, 'Unknown or absent icon renders nothing');
+  assert(Object.values(PROPOSAL_ICONS).every((d) => !!d.icon && !!d.label), 'Every catalog icon resolves to a component');
+
+  // 18. Seed "Sessões de Natal" (lido do próprio SQL): tudo registrado, paleta legível, instanciação limpa e assinada
+  const seedSql = fs.readFileSync(path.resolve('supabase/migrations/20270102000000_seed_sessoes_natal_proposal_template.sql'), 'utf-8');
+  const [seedBlocks, seedTokens] = [...seedSql.matchAll(/'((?:[^']|'')*)'::jsonb/g)].map((m) => JSON.parse(m[1].replace(/''/g, "'")));
+  assert(Array.isArray(seedBlocks) && seedBlocks.length > 0 && !!seedTokens?.colors, 'Seed jsonb literals parse');
+  for (const b of seedBlocks) {
+    const def = BLOCK_REGISTRY[b.type];
+    assert(!!def, `Seed block type is registered: ${b.type}`);
+    assert(!b.props?.variant || !!def.variants?.some((v) => v.value === b.props.variant), `Seed variant exists: ${b.type}/${b.props?.variant}`);
+  }
+  assert(!normalizeBlocks(seedBlocks).some((b) => b.content?.title === BLOCK_UNKNOWN_FALLBACK_TITLE), 'No seed block falls back to legacy text');
+  const seedIcons = [...JSON.stringify(seedBlocks).matchAll(/"icon":"([^"]*)"/g)].map((m) => m[1]);
+  assert(seedIcons.every((k) => k === '' || k === ICON_NONE || !!PROPOSAL_ICONS[k]), `Seed icons exist in the catalog: ${seedIcons}`);
+  const { colors: pal, typography: typ } = seedTokens;
+  assert(contrastRatio(pal.ink, pal.white) >= 7, 'Natal ink is AAA on ivory');
+  assert(contrastRatio(pal.taupe, pal.white) >= 4.5, 'Natal secondary text is AA on ivory');
+  assert(contrastRatio(pal.accent, pal.white) >= 3, 'Natal accent is legible for large text, prices and icons');
+  assert([typ.display, typ.body, typ.script].every((f: string) => !!PROPOSAL_FONTS[f]), 'Seed fonts are in the catalog');
+  assert(PROPOSAL_FONTS[typ.script].kind === 'script', 'Seed calligraphy role uses a script font');
+  const natal = instantiateTemplateBlocks(seedBlocks, { photographerName: 'Estúdio Luz' });
+  const natalCovers = natal.filter((b: any) => b.type === 'CoverBlock');
+  assert(natalCovers.every((b: any) => b.content.photographer_name === 'Estúdio Luz'), 'Demo studio name becomes the profile signature');
+  assert(natalCovers.every((b: any) => !b.content.image_url && !b.content.photo_b && !b.content.photo_c), 'Seed cover photo slots start empty');
+  const seedNight = seedBlocks.find((b: any) => b.props?.variant === 'night-hero');
+  const night = natal.find((b: any) => b.props?.variant === 'night-hero');
+  assert(
+    night.content.highlights.length === seedNight.content.highlights.length &&
+      night.content.highlights.every((h: any, i: number) => h.id !== seedNight.content.highlights[i].id && h.label === seedNight.content.highlights[i].label),
+    'Cover highlights keep their text and get fresh ids'
+  );
+  assert(!JSON.stringify(natal).includes('/templates/sessoes-natal/'), 'Seed demo photos never reach a proposal');
+
+  // 19. Capa Arcos: o 3º arco do modelo nunca vaza; a foto do fotógrafo sobrevive à troca de modelo
+  const archesTpl = instantiateTemplateBlocks([
+    { type: 'CoverBlock', content: { image_url: 'https://x/c.jpg', photo_b: 'https://x/b.jpg', photo_c: 'https://x/d.jpg' }, props: { variant: 'arches-trio' } },
+  ]);
+  assert(archesTpl[0].content.photo_c === '' && archesTpl[0].content.photo_b === '', 'Third arch photo is cleared on instantiation');
+  const switched = applyTemplate(
+    [{ type: 'CoverBlock', id: 'c', content: { title: 'Natal', photo_c: 'https://me/d.jpg' }, props: { variant: 'hero-full' } }],
+    archesTpl
+  );
+  assert(switched.blocks[0].content!.photo_c === 'https://me/d.jpg', "Photographer's third arch photo survives a template switch");
+  assert(switched.blocks[0].props!.variant === 'arches-trio', 'Template switch applies the Arcos variant');
 
   console.log('✅ All tests passed successfully!');
 }

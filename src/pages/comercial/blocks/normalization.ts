@@ -281,6 +281,8 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         if (typeof content.btnLink === 'string' && content.btnLink.includes('wa.me')) content.btnLink = '';
         content.image_url = '';
         if ('photo_b' in content) content.photo_b = '';
+        if ('photo_c' in content) content.photo_c = ''; // 3º arco da capa Arcos
+        if ('highlights' in content) content.highlights = renewIds(content.highlights);
         break;
       case 'EditorialBlock':
         content.vertical_label = signature;

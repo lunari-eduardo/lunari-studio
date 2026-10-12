@@ -14,6 +14,8 @@ interface EditableImageProps {
   className?: string;
   imgClassName?: string;
   style?: React.CSSProperties;
+  /** Estilo só da foto (ex.: máscara de esmaecimento): o botão "Trocar foto" fica intacto */
+  imgStyle?: React.CSSProperties;
   /** Classes do wrapper quando vazio no modo público (ex.: cor neutra) */
   publicEmptyClassName?: string;
   /** Modo "preencher" (padrão) ou fluxo natural (masonry usa h-auto) */
@@ -43,6 +45,7 @@ export function EditableImage({
   className,
   imgClassName,
   style,
+  imgStyle,
   publicEmptyClassName,
   fill = true,
   actionCorner = false,
@@ -96,7 +99,7 @@ export function EditableImage({
           src={imgSrc}
           alt={alt}
           className={cn(className, imgClassName ?? 'w-full h-full object-cover')}
-          style={style}
+          style={imgStyle ? { ...style, ...imgStyle } : style}
         />
       );
     }
@@ -127,6 +130,7 @@ export function EditableImage({
           src={imgSrc}
           alt={alt}
           className={cn(fill ? 'absolute inset-0 w-full h-full' : 'w-full', imgClassName ?? (fill ? 'object-cover' : 'h-auto'))}
+          style={imgStyle}
           draggable={false}
         />
       ) : (

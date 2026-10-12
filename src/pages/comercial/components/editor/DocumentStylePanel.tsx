@@ -4,7 +4,14 @@ import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DESIGN_PRESETS } from '@/hooks/useProposalAI';
-import { DEFAULT_DESIGN_TOKENS, PROPOSAL_FONTS, type ProposalDesignTokens, type ProposalShape } from '../../blocks/design';
+import {
+  DEFAULT_DESIGN_TOKENS,
+  PROPOSAL_FONTS,
+  ensureFontLoaded,
+  type FontKind,
+  type ProposalDesignTokens,
+  type ProposalShape,
+} from '../../blocks/design';
 
 // ============================================================
 // ESTILO DO DOCUMENTO (painel esquerdo, aba "Estilo")
@@ -24,11 +31,25 @@ const PALETTE: { key: ColorKey; label: string }[] = [
   { key: 'ink', label: 'Tinta' },
 ];
 
-const FONT_ROLES = [
-  { key: 'display', label: 'Títulos', fallback: 'Playfair Display', allowDisplayOnly: true },
-  { key: 'body', label: 'Corpo do texto', fallback: 'Inter', allowDisplayOnly: false },
-  { key: 'accent', label: 'Números e preços', fallback: '', allowDisplayOnly: true },
-] as const;
+// Caligráficas ficam fora de títulos e corpo (legibilidade de textos longos); fontes só de
+// caixa-alta (sem itálico) ficam fora dos destaques. `empty` = papel opcional que herda de outro.
+const FONT_ROLES: {
+  key: 'display' | 'highlight' | 'script' | 'body' | 'accent';
+  label: string;
+  fallback: string;
+  kinds: FontKind[];
+  allowDisplayOnly: boolean;
+  empty?: string;
+  sample: string;
+}[] = [
+  { key: 'display', label: 'Títulos', fallback: 'Playfair Display', kinds: ['serif', 'sans'], allowDisplayOnly: true, sample: 'Sessões de Natal' },
+  { key: 'highlight', label: 'Destaques em itálico', fallback: '', kinds: ['serif', 'script'], allowDisplayOnly: false, empty: 'Itálico dos títulos', sample: 'memórias' },
+  { key: 'script', label: 'Caligrafia (capa e assinatura)', fallback: '', kinds: ['script'], allowDisplayOnly: false, empty: 'Igual aos destaques', sample: 'Natal' },
+  { key: 'body', label: 'Corpo do texto', fallback: 'Inter', kinds: ['serif', 'sans'], allowDisplayOnly: false, sample: 'Momentos em família' },
+  { key: 'accent', label: 'Números e preços', fallback: '', kinds: ['serif', 'sans'], allowDisplayOnly: true, empty: 'Igual aos títulos', sample: 'R$ 1.190' },
+];
+
+const KIND_LABEL: Record<FontKind, string> = { serif: 'Serifadas', sans: 'Sem serifa', script: 'Caligráficas' };
 
 const SHAPES: { value: ProposalShape | undefined; label: string; preview: string }[] = [
   { value: undefined, label: 'Original', preview: 'rounded-[2px]' },
@@ -127,9 +148,10 @@ export function DocumentStylePanel({
       {/* TIPOGRAFIA */}
       <section className="space-y-3">
         <SectionTitle>Tipografia</SectionTitle>
-        {FONT_ROLES.map(({ key, label, fallback, allowDisplayOnly }) => {
+        {FONT_ROLES.map(({ key, label, fallback, kinds, allowDisplayOnly, empty, sample }) => {
           const current: string = tokens.typography?.[key] || fallback;
-          const families = Object.entries(PROPOSAL_FONTS).filter(([, f]) => allowDisplayOnly || !f.displayOnly);
+          ensureFontLoaded(current); // a amostra abaixo usa a própria fonte
+          const italic = key === 'highlight' && PROPOSAL_FONTS[current]?.kind !== 'script';
           return (
             <div key={key} className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">{label}</Label>
@@ -138,15 +160,33 @@ export function DocumentStylePanel({
                 value={current}
                 onChange={(e) => setTypography({ [key]: e.target.value || undefined })}
               >
-                {key === 'accent' && <option value="">Igual aos títulos</option>}
+                {empty && <option value="">{empty}</option>}
                 {/* Fonte salva fora do catálogo (ex.: escolhida pela IA) continua visível e selecionada */}
                 {current && !PROPOSAL_FONTS[current] && <option value={current}>{current}</option>}
-                {families.map(([family, f]) => (
-                  <option key={family} value={family}>
-                    {f.label}
-                  </option>
-                ))}
+                {kinds.map((kind) => {
+                  const families = Object.entries(PROPOSAL_FONTS).filter(
+                    ([, f]) => f.kind === kind && (allowDisplayOnly || !f.displayOnly)
+                  );
+                  return families.length ? (
+                    <optgroup key={kind} label={KIND_LABEL[kind]}>
+                      {families.map(([family, f]) => (
+                        <option key={family} value={family}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null;
+                })}
               </select>
+              {current && (
+                <p
+                  className="truncate text-base leading-snug text-foreground/80"
+                  style={{ fontFamily: `'${current}', serif`, fontStyle: italic ? 'italic' : 'normal' }}
+                  aria-hidden
+                >
+                  {sample}
+                </p>
+              )}
             </div>
           );
         })}

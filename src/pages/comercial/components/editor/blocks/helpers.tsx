@@ -1,10 +1,17 @@
 import React from 'react';
-import { fontDisplayCss, fontBodyCss, fontAccentCss, isHexColor } from '../../../blocks/design';
+import { fontDisplayCss, fontBodyCss, fontAccentCss, fontHighlightCss, fontScriptCss, isHexColor } from '../../../blocks/design';
 
 export const fd = () => ({ fontFamily: fontDisplayCss() });
 export const fb = () => ({ fontFamily: fontBodyCss() });
 /** Serifa de destaque do tema (numeração, preços); sem accent = fonte de títulos. */
 export const fa = () => ({ fontFamily: fontAccentCss() });
+/** Destaque em itálico (title_italic); fonte caligráfica escolhida no tema vem sem itálico sintético. */
+export const fh = (): React.CSSProperties => ({ fontFamily: fontHighlightCss(), fontStyle: 'var(--pa-hl-style, italic)' });
+/** Caligrafia (palavra da capa, assinatura); sem fonte própria = destaque em itálico. */
+export const fsc = (): React.CSSProperties => ({
+  fontFamily: fontScriptCss(),
+  fontStyle: 'var(--pa-script-style, var(--pa-hl-style, italic))',
+});
 
 export type CtaHandler = (ctx: { blockType: string; label?: string }) => void;
 
@@ -39,7 +46,7 @@ export function coverStyles(t: Record<string, number | undefined> = {}) {
   return {
     eyebrow: fluidPx(t.eyebrowSize),
     title: { ...fd(), ...fluidPx(t.titleSize) },
-    italic: fluidPx(t.titleItalicSize),
+    italic: { ...fh(), ...fluidPx(t.titleItalicSize) },
     subtitle: { ...fb(), ...fluidPx(t.subtitleSize) },
     btn: fluidPx(t.btnTextSize || t.ctaSize),
     photographer: { ...fb(), ...fluidPx(t.photographer_nameSize || t.photographerSize) },

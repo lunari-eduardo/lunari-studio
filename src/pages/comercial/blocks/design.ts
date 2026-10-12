@@ -22,6 +22,10 @@ export interface ProposalDesignTokens {
     body?: string;
     /** Serifa de destaque (numeração e preços). Ausente = usa a fonte de títulos. */
     accent?: string;
+    /** Destaques em itálico (title_italic). Ausente = itálico da fonte de títulos. */
+    highlight?: string;
+    /** Caligrafia (palavra da capa, assinatura). Ausente = fonte de destaques. */
+    script?: string;
     /** 'upper' = títulos de seção (h2) em caixa-alta espaçada. Ausente = como digitado. */
     title_case?: 'upper';
   };
@@ -56,7 +60,7 @@ function luminance(hex: string): number {
 }
 
 /** Razão de contraste WCAG entre duas cores hex. */
-function contrastRatio(a: string, b: string): number {
+export function contrastRatio(a: string, b: string): number {
   const [L1, L2] = [luminance(a), luminance(b)];
   return (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
 }
@@ -87,11 +91,15 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
   const displayFont = tokens?.typography?.display || 'Playfair Display';
   const bodyFont = tokens?.typography?.body || 'Inter';
   const accentFont = tokens?.typography?.accent;
+  const highlightFont = tokens?.typography?.highlight;
+  const scriptFont = tokens?.typography?.script;
 
   // Garante carregamento das fontes caso não sejam as padrão
   ensureFontLoaded(displayFont);
   ensureFontLoaded(bodyFont);
   ensureFontLoaded(accentFont);
+  ensureFontLoaded(highlightFont);
+  ensureFontLoaded(scriptFont);
 
   const radii = tokens?.shape ? SHAPE_RADII[tokens.shape] : undefined;
 
@@ -116,6 +124,14 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
     ['--pa-font-body' as any]: bodyFont,
     // Sem accent a variável não existe e fontAccentCss() cai na fonte de títulos
     ...(accentFont && { ['--pa-font-accent' as any]: accentFont }),
+    // Destaque/caligrafia: ausentes = mesmas variáveis de antes (itálico da fonte de títulos).
+    // Fonte caligráfica não tem itálico: o estilo "normal" evita o itálico sintético do navegador.
+    ...(highlightFont && { ['--pa-font-highlight' as any]: highlightFont }),
+    ...(isScriptFont(highlightFont) && { ['--pa-hl-style' as any]: 'normal' }),
+    ...(scriptFont && {
+      ['--pa-font-script' as any]: scriptFont,
+      ['--pa-script-style' as any]: isScriptFont(scriptFont) ? 'normal' : 'italic',
+    }),
     ...(radii && {
       ['--pa-r-btn' as any]: radii.btn,
       ['--pa-r-card' as any]: radii.card,
@@ -130,21 +146,32 @@ const axes = (weights: number[], italic: boolean) =>
     ? `ital,wght@${[...weights.map((w) => `0,${w}`), ...weights.map((w) => `1,${w}`)].join(';')}`
     : `wght@${weights.join(';')}`;
 
+export type FontKind = 'serif' | 'sans' | 'script';
+
 /**
  * Fontes oferecidas nas propostas (fonte única dos selects do editor e do loader).
- * `displayOnly`: fonte de caixa-alta/títulos, ilegível como corpo.
+ * `kind` agrupa e filtra por papel (caligráficas só em destaques/caligrafia).
+ * `displayOnly`: fonte de caixa-alta/títulos, ilegível como corpo e sem itálico.
  */
-export const PROPOSAL_FONTS: Record<string, { label: string; axes?: string; displayOnly?: boolean }> = {
-  'Playfair Display': { label: 'Playfair Display (Serifada Elegante)', axes: axes([400, 500, 600, 700], true) },
-  'Cormorant Garamond': { label: 'Cormorant Garamond (Editorial Clássica)', axes: axes([300, 400, 500, 600, 700], true) },
-  Italiana: { label: 'Italiana (Caixa-alta Fina)', displayOnly: true },
-  Lora: { label: 'Lora (Literária)', axes: axes([400, 500, 600, 700], true) },
-  Inter: { label: 'Inter (Moderna Neutra)', axes: axes([300, 400, 500, 600, 700], false) },
-  Jost: { label: 'Jost (Geométrica Limpa)', axes: axes([300, 400, 500, 600, 700], true) },
-  Montserrat: { label: 'Montserrat (Contemporânea)', axes: axes([300, 400, 500, 600, 700], true) },
-  Manrope: { label: 'Manrope', axes: axes([300, 400, 500, 600, 700], false) },
-  'Open Sans': { label: 'Open Sans', axes: axes([300, 400, 500, 600, 700], true) },
+export const PROPOSAL_FONTS: Record<string, { label: string; kind: FontKind; axes?: string; displayOnly?: boolean }> = {
+  'Playfair Display': { label: 'Playfair Display (Serifada Elegante)', kind: 'serif', axes: axes([400, 500, 600, 700], true) },
+  'Bodoni Moda': { label: 'Bodoni Moda (Alto Contraste)', kind: 'serif', axes: 'ital,opsz,wght@0,6..96,400..900;1,6..96,400..900' },
+  'DM Serif Display': { label: 'DM Serif Display (Clássica Marcante)', kind: 'serif', axes: 'ital@0;1' },
+  'Cormorant Garamond': { label: 'Cormorant Garamond (Editorial Clássica)', kind: 'serif', axes: axes([300, 400, 500, 600, 700], true) },
+  Lora: { label: 'Lora (Literária)', kind: 'serif', axes: axes([400, 500, 600, 700], true) },
+  Italiana: { label: 'Italiana (Caixa-alta Fina)', kind: 'serif', displayOnly: true },
+  Cinzel: { label: 'Cinzel (Romana em Caixa-alta)', kind: 'serif', displayOnly: true, axes: axes([400, 500, 600], false) },
+  Inter: { label: 'Inter (Moderna Neutra)', kind: 'sans', axes: axes([300, 400, 500, 600, 700], false) },
+  Jost: { label: 'Jost (Geométrica Limpa)', kind: 'sans', axes: axes([300, 400, 500, 600, 700], true) },
+  Montserrat: { label: 'Montserrat (Contemporânea)', kind: 'sans', axes: axes([300, 400, 500, 600, 700], true) },
+  Manrope: { label: 'Manrope', kind: 'sans', axes: axes([300, 400, 500, 600, 700], false) },
+  'Open Sans': { label: 'Open Sans', kind: 'sans', axes: axes([300, 400, 500, 600, 700], true) },
+  'Pinyon Script': { label: 'Pinyon Script (Caligrafia Formal)', kind: 'script' },
+  'Great Vibes': { label: 'Great Vibes (Caligrafia Romântica)', kind: 'script' },
+  'Mrs Saint Delafield': { label: 'Mrs Saint Delafield (Assinatura)', kind: 'script' },
 };
+
+const isScriptFont = (family?: string) => !!family && PROPOSAL_FONTS[family]?.kind === 'script';
 
 /** URL css2 de uma família; desconhecida (dados antigos) vai sem eixo, que é sempre válido. */
 export function googleFontUrl(fontFamily: string): string {
@@ -184,4 +211,14 @@ export function fontAccentCss(): string {
 
 export function fontBodyCss(): string {
   return "var(--pa-font-body, 'Inter'), 'Inter', system-ui, sans-serif";
+}
+
+/** Destaques em itálico: sem token = exatamente a fonte de títulos (propostas antigas não mudam). */
+export function fontHighlightCss(): string {
+  return "var(--pa-font-highlight, var(--pa-font-display, 'Playfair Display')), 'Playfair Display', Georgia, serif";
+}
+
+/** Caligrafia: sem token = fonte de destaques. */
+export function fontScriptCss(): string {
+  return "var(--pa-font-script, var(--pa-font-highlight, var(--pa-font-display, 'Playfair Display'))), 'Playfair Display', Georgia, serif";
 }

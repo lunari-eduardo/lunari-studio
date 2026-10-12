@@ -167,6 +167,38 @@ export const DESIGN_PRESETS: { name: string; description: string; tokens: Propos
     },
   },
   {
+    name: 'Natal Editorial',
+    description: 'Marfim, caramelo e verde muito escuro: serifa de alto contraste, itálicos em destaque e caligrafia na capa',
+    tokens: {
+      colors: {
+        cream: '#F3ECE2',
+        linen: '#E9DFD0',
+        stone: '#D9C8AE',
+        taupe: '#7E6346',
+        accent: '#A67C52',
+        ink: '#1F2620',
+        white: '#FAF6F0',
+      },
+      typography: { display: 'Bodoni Moda', body: 'Montserrat', script: 'Pinyon Script' },
+    },
+  },
+  {
+    name: 'Natal Vinho',
+    description: 'A mesma base marfim do Natal Editorial, com destaques em vinho profundo',
+    tokens: {
+      colors: {
+        cream: '#F3ECE2',
+        linen: '#E9DFD0',
+        stone: '#D9C8AE',
+        taupe: '#7E6346',
+        accent: '#6B1F28',
+        ink: '#1F2620',
+        white: '#FAF6F0',
+      },
+      typography: { display: 'Bodoni Moda', body: 'Montserrat', script: 'Pinyon Script' },
+    },
+  },
+  {
     name: 'Editorial Lunari (PDF)',
     description: 'Fiel ao modelo de referência, tons areia, serifado clássico e cantos retos',
     tokens: {

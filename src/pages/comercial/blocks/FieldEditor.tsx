@@ -25,10 +25,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BlockField, FieldCtx, fillGallerySlots } from './registry';
 import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage';
 import { useAiFieldRewrite } from '@/hooks/useProposalAI';
 import { DEFAULT_DESIGN_TOKENS, isHexColor } from './design';
+import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS } from './icons';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 
@@ -263,9 +265,91 @@ export function FieldEditor(props: FieldEditorProps) {
     case 'gallery':
       return <GalleryField field={field} value={value} onChange={onChange} />;
 
+    case 'icon':
+      return <IconField field={field} value={value} onChange={onChange} />;
+
     default:
       return null;
   }
+}
+
+/** Catálogo visual de ícones: o fotógrafo escolhe pela forma, nunca digitando nomes técnicos. */
+function IconField({ field, value, onChange }: FieldEditorProps) {
+  const [open, setOpen] = useState(false);
+  const current = typeof value === 'string' ? value : '';
+  const def = PROPOSAL_ICONS[current];
+  const pick = (v: string) => {
+    onChange(v);
+    setOpen(false);
+  };
+  const option = (v: string, label: string) => (
+    <button
+      type="button"
+      onClick={() => pick(v)}
+      aria-pressed={current === v}
+      className={cn(
+        'h-8 rounded-lg border px-2 text-[11px] font-medium transition-colors',
+        current === v ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:bg-muted'
+      )}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">{field.label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-xs text-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            {def ? (
+              <def.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+            ) : (
+              <span className="h-4 w-4 shrink-0 rounded-full border border-dashed border-muted-foreground/50" />
+            )}
+            <span className="flex-1 truncate text-left">{def?.label ?? (current === ICON_NONE ? 'Sem ícone' : 'Padrão da seção')}</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[17.5rem] rounded-xl p-3">
+          <div className="mb-3 grid grid-cols-2 gap-1.5">
+            {option('', 'Padrão da seção')}
+            {option(ICON_NONE, 'Sem ícone')}
+          </div>
+          <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1 custom-scrollbar">
+            {ICON_GROUPS.map((group) => (
+              <div key={group}>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{group}</p>
+                <div className="grid grid-cols-6 gap-1">
+                  {Object.entries(PROPOSAL_ICONS)
+                    .filter(([, d]) => d.group === group)
+                    .map(([key, d]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        title={d.label}
+                        aria-label={d.label}
+                        aria-pressed={current === key}
+                        onClick={() => pick(key)}
+                        className={cn(
+                          'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
+                          current === key ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                        )}
+                      >
+                        <d.icon className="h-4 w-4" strokeWidth={1.5} />
+                      </button>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }
 
 const ALIGN_OPTIONS = [
