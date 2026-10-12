@@ -8,7 +8,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
 import { gestaoR2Upload } from '@/lib/gestaoR2Upload';
 import { toast } from 'sonner';
-import { Step, Categoria, DbTemplate } from '../types';
+import { Step, Categoria, DbTemplate, DbTemplatePreview } from '../types';
 import { pacoteToProposalPackage } from '../../blocks/normalization';
 import { pdfjs } from 'react-pdf';
 
@@ -31,12 +31,36 @@ export function useProposalTemplates(enabled = true) {
   });
 }
 
+/**
+ * Carrega a composição real de um modelo sob demanda. A galeria continua leve e
+ * a prévia usa os mesmos blocos que serão instanciados ao criar a proposta.
+ */
+export function useProposalTemplatePreview(templateId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['proposal-template-preview', templateId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('proposal_templates')
+        .select('blocks_json, design_tokens')
+        .eq('template_id', templateId!)
+        .single();
+
+      if (error) throw error;
+      return data as DbTemplatePreview;
+    },
+    enabled: enabled && !!templateId,
+    staleTime: 5 * 60_000,
+  });
+}
+
 interface UseCreateMaterialWizardProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Permite reutilizar o fluxo de PDF fora do seletor de métodos. */
+  initialCreationMethod?: 'db-template' | 'pdf';
 }
 
-export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWizardProps) {
+export function useCreateMaterialWizard({ isOpen, onClose, initialCreationMethod = null }: UseCreateMaterialWizardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createMaterial } = useMaterials();
@@ -44,10 +68,15 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
   const { pacotes, produtos } = useConfigurationContext();
 
   // Wizard state
-  const [step, setStep] = useState<Step>('method');
+  const initialStep: Step = initialCreationMethod === 'pdf'
+    ? 'pdf-upload'
+    : initialCreationMethod === 'db-template'
+      ? 'template-gallery'
+      : 'method';
+  const [step, setStep] = useState<Step>(initialStep);
   const [selectedCategoria, setSelectedCategoria] = useState<Categoria | null>(null);
   const [customTitle, setCustomTitle] = useState('');
-  const [creationMethod, setCreationMethod] = useState<'db-template' | 'pdf' | null>(null);
+  const [creationMethod, setCreationMethod] = useState<'db-template' | 'pdf' | null>(initialCreationMethod);
   const [selectedDbTemplate, setSelectedDbTemplate] = useState<DbTemplate | null>(null);
 
   // PDF Upload State
@@ -75,10 +104,10 @@ export function useCreateMaterialWizard({ isOpen, onClose }: UseCreateMaterialWi
   const { data: dbTemplates = [], isLoading: isLoadingDbTemplates } = useProposalTemplates(isOpen);
 
   const resetModal = () => {
-    setStep('method');
+    setStep(initialStep);
     setSelectedCategoria(null);
     setCustomTitle('');
-    setCreationMethod(null);
+    setCreationMethod(initialCreationMethod);
     setSelectedDbTemplate(null);
     setSelectedPdf(null);
     setIsUploadingPdf(false);

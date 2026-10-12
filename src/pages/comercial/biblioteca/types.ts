@@ -31,6 +31,12 @@ export type DbTemplate = {
   thumbnail_url?: string | null;
 };
 
+/** Conteúdo completo carregado somente para a prévia do modelo selecionado. */
+export type DbTemplatePreview = {
+  blocks_json: unknown[] | null;
+  design_tokens: Record<string, unknown> | null;
+};
+
 export type Step = 'method' | 'template-gallery' | 'pdf-upload';
 
 export const SESSION_TYPES = [
@@ -54,4 +60,23 @@ export type AiRef = {
   url?: string;
   content?: string;
   mime: string;
+};
+
+/**
+ * Referência ainda local à página de criação. Na etapa de IA ela receberá as
+ * sugestões extraídas e a seleção explícita do fotógrafo antes de qualquer
+ * alteração na proposta.
+ */
+export type ProposalReferenceDraft = Pick<AiRef, 'id' | 'name' | 'kind' | 'mime'> & {
+  file: File;
+  size: number;
+  suggestions?: ProposalReferenceSuggestion[];
+  selectedSuggestionIds?: string[];
+};
+
+export type ProposalReferenceSuggestion = {
+  id: string;
+  label: string;
+  value: string;
+  target: 'cover' | 'editorial' | 'pricing' | 'details' | 'general';
 };

@@ -21,12 +21,13 @@ export default function BibliotecaComercialPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchived, setShowArchived] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isImportPdfModalOpen, setIsImportPdfModalOpen] = useState(false);
   const [sendModalMaterialId, setSendModalMaterialId] = useState<string | null>(null);
 
-  const wizard = useCreateMaterialWizard({
-    isOpen: isCreateModalOpen,
-    onClose: () => setIsCreateModalOpen(false),
+  const pdfWizard = useCreateMaterialWizard({
+    isOpen: isImportPdfModalOpen,
+    onClose: () => setIsImportPdfModalOpen(false),
+    initialCreationMethod: 'pdf',
   });
 
   const handleOpenEditor = (id: string) => {
@@ -56,10 +57,15 @@ export default function BibliotecaComercialPage() {
           </p>
         </div>
 
-        <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2 shadow-sm shrink-0 bg-primary">
-          <Plus size={16} />
-          Nova Proposta
-        </Button>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button variant="outline" onClick={() => setIsImportPdfModalOpen(true)} className="gap-2 shrink-0">
+            Importar PDF
+          </Button>
+          <Button onClick={() => navigate('/app/comercial/nova-proposta')} className="gap-2 shadow-sm shrink-0 bg-primary">
+            <Plus size={16} />
+            Nova Proposta
+          </Button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -139,18 +145,18 @@ export default function BibliotecaComercialPage() {
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
             Sua biblioteca está vazia. Comece criando uma nova proposta comercial.
           </p>
-          <Button onClick={() => setIsCreateModalOpen(true)} variant="outline" className="gap-2">
+          <Button onClick={() => navigate('/app/comercial/nova-proposta')} variant="outline" className="gap-2">
             <Plus size={16} />
             Criar primeira proposta
           </Button>
         </div>
       )}
 
-      {/* Modal Nova Proposta */}
+      {/* Fluxo legado de importação de PDF */}
       <CreateMaterialWizardDialog
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        wizard={wizard}
+        isOpen={isImportPdfModalOpen}
+        onClose={() => setIsImportPdfModalOpen(false)}
+        wizard={pdfWizard}
       />
 
       {/* Modal Enviar Orçamento (Share) */}

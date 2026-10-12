@@ -55,6 +55,7 @@ const Tarefas = React.lazy(() => import("@/pages/Tarefas"));
 const Conversas = React.lazy(() => import("@/pages/Conversas"));
 const ComercialOverviewPage = React.lazy(() => import("@/pages/comercial/ComercialOverviewPage"));
 const BibliotecaComercialPage = React.lazy(() => import("@/pages/comercial/BibliotecaComercialPage"));
+const NovaPropostaPage = React.lazy(() => import("@/pages/comercial/NovaPropostaPage"));
 const EditorPropostaPage = React.lazy(() => import("@/pages/comercial/EditorPropostaPage"));
 const EstrategiaComercialPage = React.lazy(() => import("@/pages/comercial/EstrategiaComercialPage"));
 const CompartilhamentosComercialPage = React.lazy(() => import("@/pages/comercial/CompartilhamentosComercialPage"));
@@ -287,6 +288,7 @@ export default function PhotographerApp() {
                 <Route path="comercial">
                   <Route index element={<ComercialOverviewPage />} />
                   <Route path="biblioteca" element={<BibliotecaComercialPage />} />
+                  <Route path="nova-proposta" element={<NovaPropostaPage />} />
                   <Route path="construtor/:id" element={<EditorPropostaPage />} />
                   <Route path="estrategia" element={<RequireAdmin><EstrategiaComercialPage /></RequireAdmin>} />
                   <Route path="compartilhamentos" element={<CompartilhamentosComercialPage />} />
