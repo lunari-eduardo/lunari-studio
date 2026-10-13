@@ -8,6 +8,7 @@
 -- rótulo dos cartões em arco): trocar de composição não perde texto nem foto.
 -- title_style fica sem valor: cada capa usa o próprio padrão (Arcos caligráfica, demais caixa-alta).
 -- Fase 4: Adicionais (AddonsBlock, Cartões; Linhas em "Composição"), preços de exemplo editáveis.
+-- Fase 7: Encerramento (CTABlock Assinatura: caligrafia com a assinatura do perfil, foto abaixo, sem botão por padrão).
 -- Fase 6: Informações práticas (lista com ícones) e Reserva (etapas + lista de condições, sem cabeçalho).
 -- Fase 5: Dicas de looks (Texto e Luz com foto em moldura, Paleta, Galeria com legendas, Orientações com ícone).
 -- Coleção Natal: tag "natal" (aba da vitrine) + global_settings.collection (a proposta criada
@@ -263,6 +264,22 @@ VALUES (
    "note_icon": "heart"
   },
   "props": { "variant": "icon-list", "align": "left", "background": "white", "text_color": "default" }
+ },
+ {
+  "id": "sn_closing",
+  "type": "CTABlock",
+  "content": {
+   "eyebrow": "",
+   "cta_text": "Vamos criar",
+   "cta_italic": "memórias juntos?",
+   "body": "Será um prazer registrar essa fase tão especial da sua família. Cada detalhe desta proposta foi pensado para que vocês vivam uma experiência leve, divertida e cheia de significado.\n\nEstou à disposição para confirmar sua reserva ou esclarecer qualquer dúvida.",
+   "signature": "Nome do Estúdio",
+   "signature_caption": "Fotografia",
+   "image_url": "",
+   "btnText": "",
+   "links": []
+  },
+  "props": { "variant": "signature", "background": "white", "text_color": "default" }
  },
  {
   "type": "global_settings",

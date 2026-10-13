@@ -3,8 +3,10 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { EditableText } from '../../../blocks/EditableText';
+import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
-import { fd, fb, alignClass, sectionBg, textColorClass, CtaHandler } from './helpers';
+import { fa, fd, fb, fh, fsc, alignClass, sectionBg, textColorClass, CtaHandler } from './helpers';
+import { LABEL, Rule, accentOn } from './kit';
 
 // Seções de fechamento da landing page: prova social, chamada final e rodapé.
 // Formato de dados herdado dos seeds de proposal_templates (TestimonialBlock, CTABlock, FooterTerms).
@@ -18,7 +20,7 @@ function useEt() {
     onCommit: (v: string) => inline?.set(path, v),
     fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
   });
-  return { editable, et };
+  return { editable, et, set: (path: string, value: any) => inline?.set(path, value) };
 }
 
 const ITEMS_BY_ALIGN: Record<string, string> = {
@@ -180,8 +182,9 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
 }
 
 export function CtaRenderer({ content, props, onCtaClick }: { content?: any; props?: any; onCtaClick?: CtaHandler }) {
-  const { editable, et } = useEt();
+  const { editable, et, set } = useEt();
   const c = content || {};
+  if (props?.variant === 'signature') return <CtaSignature c={c} p={props} editable={editable} et={et} set={set} onCtaClick={onCtaClick} />;
   const links: any[] = c.links || [];
   const align = alignClass(props?.align, 'center');
   const btnText = c.btnText || 'Falar no WhatsApp';
@@ -251,6 +254,151 @@ export function CtaRenderer({ content, props, onCtaClick }: { content?: any; pro
             })}
           </ul>
         )}
+      </div>
+    </section>
+  );
+}
+
+// Foto do encerramento: esmaece para o texto (no estreito, de cima; ao lado da assinatura, de cima e da esquerda)
+const SIGN_FADE = cn(
+  '[mask-image:linear-gradient(to_bottom,transparent,#000_32%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent,#000_32%)]',
+  '@2xl:[mask-image:linear-gradient(to_bottom,transparent,#000_30%),linear-gradient(to_right,transparent,#000_28%)]',
+  '@2xl:[-webkit-mask-image:linear-gradient(to_bottom,transparent,#000_30%),linear-gradient(to_right,transparent,#000_28%)]',
+  '@2xl:[mask-composite:intersect] @2xl:[-webkit-mask-composite:source-in]'
+);
+
+/**
+ * Encerramento · Assinatura (coleção): chamada com a segunda voz em itálico, texto, assinatura em
+ * caligrafia (o nome do perfil, preenchido ao criar a proposta) e a foto embaixo, sangrando até a
+ * borda. A foto fica ao lado da assinatura, nunca sob o texto. Botão do WhatsApp só se tiver texto.
+ */
+function CtaSignature({
+  c,
+  p,
+  editable,
+  et,
+  set,
+  onCtaClick,
+}: {
+  c: any;
+  p: any;
+  editable: boolean;
+  et: ReturnType<typeof useEt>['et'];
+  set: (path: string, value: any) => void;
+  onCtaClick?: CtaHandler;
+}) {
+  const accent = accentOn(p);
+  const photo = c.image_url || null;
+  const hasPhoto = !!photo || editable;
+  const links: any[] = (c.links || []).filter((l: any) => l?.label || l?.href);
+
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden px-6 pt-20 @md:px-14 @md:pt-28',
+        hasPhoto ? 'pb-0' : 'pb-20 @md:pb-28',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      <div className="relative mx-auto max-w-[1000px]">
+        {(c.eyebrow || editable) && (
+          <div className={cn('mb-8 flex items-center gap-4', accent)}>
+            <EditableText as="p" {...et('eyebrow', c.eyebrow)} className="text-lg leading-none @md:text-xl" style={fa()} placeholder="Rótulo (opcional)" />
+            <Rule className="w-16 opacity-60 @md:w-24" />
+          </div>
+        )}
+        <h2 className="max-w-full text-[length:clamp(2.9rem,9cqi,6.25rem)] leading-[1.02] tracking-[-0.015em]" style={fd()}>
+          <EditableText {...et('cta_text', c.cta_text)} placeholder="Vamos criar" />
+          {(c.cta_italic || editable) && (
+            <em className={cn('block', accent)} style={fh()}>
+              <EditableText {...et('cta_italic', c.cta_italic)} placeholder="memórias juntos?" />
+            </em>
+          )}
+        </h2>
+        {(c.body || editable) && (
+          <EditableText
+            as="div"
+            multiline
+            {...et('body', c.body)}
+            className="mt-10 max-w-[36rem] whitespace-pre-line text-[17px] leading-[1.65] opacity-85 @md:text-[19px]"
+            style={fb()}
+            placeholder="Uma mensagem final, no seu tom: o convite para reservar."
+          />
+        )}
+        {editable ? (
+          <div className={cn('mt-10 inline-flex rounded-full border border-dashed border-current px-7 py-3.5 text-[11px] opacity-80', LABEL, 'tracking-[0.28em]', accent)} style={fb()}>
+            <EditableText {...et('btnText', c.btnText)} placeholder="Botão do WhatsApp (opcional)" />
+          </div>
+        ) : (
+          c.btnText?.trim() && (
+            <button
+              type="button"
+              onClick={() => onCtaClick?.({ blockType: 'CTABlock', label: c.btnText })}
+              className={cn('mt-10 inline-flex rounded-full border border-current px-7 py-3.5 text-[11px] transition-opacity hover:opacity-70', LABEL, 'tracking-[0.28em]', accent)}
+              style={fb()}
+            >
+              {c.btnText}
+            </button>
+          )
+        )}
+
+        <div className={cn('flex flex-col @2xl:flex-row @2xl:items-end', hasPhoto ? 'mt-14 @2xl:mt-10' : 'mt-16')}>
+          <div className={cn('shrink-0', hasPhoto && '@2xl:w-[40%] @2xl:pb-24 @2xl:pr-6')}>
+            <Rule className={cn('w-16 opacity-60', accent)} />
+            {(c.signature || editable) && (
+              <EditableText
+                as="p"
+                {...et('signature', c.signature)}
+                className={cn('mt-7 max-w-full text-[length:clamp(2.4rem,4.6cqi,3.4rem)] leading-[1.15]', accent)}
+                style={fsc()}
+                placeholder="Seu Nome"
+              />
+            )}
+            {(c.signature_caption || editable) && (
+              <EditableText
+                as="p"
+                multiline
+                {...et('signature_caption', c.signature_caption)}
+                className={cn('mt-4 max-w-[24ch] whitespace-pre-line text-[11px] opacity-80 @md:text-xs', LABEL, 'tracking-[0.32em]')}
+                style={fb()}
+                placeholder="Nome do estúdio · Fotografia"
+              />
+            )}
+            {links.length > 0 && (
+              <ul className={cn('mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[10px] opacity-70', LABEL, 'tracking-[0.24em]')} style={fb()}>
+                {links.map((l: any, idx: number) => {
+                  const href = editable ? undefined : safeHref(l.href);
+                  return (
+                    <li key={l.id || idx}>
+                      {href ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className="hover:opacity-70 transition-opacity">
+                          {l.label || l.href}
+                        </a>
+                      ) : (
+                        <span>{l.label || l.href}</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          {hasPhoto && (
+            <div className="relative -mx-6 mt-10 aspect-[4/5] @md:-mx-14 @2xl:mx-0 @2xl:-mr-14 @2xl:mt-0 @2xl:aspect-[5/4] @2xl:min-w-0 @2xl:flex-1">
+              <EditableImage
+                editable={editable}
+                value={photo}
+                label="Foto do encerramento"
+                alt={c.cta_text || 'Foto'}
+                onCommit={(url) => set('image_url', url)}
+                className="absolute inset-0 w-full h-full"
+                imgClassName={cn('object-cover w-full h-full', SIGN_FADE)}
+                publicEmptyClassName="hidden"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

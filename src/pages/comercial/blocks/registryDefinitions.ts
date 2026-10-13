@@ -612,8 +612,13 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Próximo passo' },
       { key: 'cta_text', label: 'Chamada Principal', kind: 'textarea', placeholder: 'Vamos criar algo lindo juntos?' },
+      { key: 'cta_italic', label: 'Chamada em itálico (opcional)', kind: 'text', placeholder: 'memórias juntos?', showIf: variantIn('signature') },
       { key: 'body', label: 'Texto de Apoio', kind: 'textarea', placeholder: 'As datas da temporada são limitadas...' },
-      { key: 'btnText', label: 'Texto do Botão (abre o WhatsApp do perfil)', kind: 'text', placeholder: 'Falar no WhatsApp' },
+      { key: 'signature', label: 'Assinatura (caligrafia)', kind: 'text', placeholder: 'Seu Nome', showIf: variantIn('signature') },
+      { key: 'signature_caption', label: 'Abaixo da assinatura', kind: 'text', placeholder: 'Nome do estúdio · Fotografia', showIf: variantIn('signature') },
+      { key: 'image_url', label: 'Foto do encerramento', kind: 'image', showIf: variantIn('signature') },
+      { key: 'btnText', label: 'Texto do Botão (abre o WhatsApp do perfil)', kind: 'text', placeholder: 'Falar no WhatsApp', showIf: variantNotIn('signature') },
+      { key: 'btnText', label: 'Botão do WhatsApp (opcional: vazio = sem botão)', kind: 'text', placeholder: 'Quero reservar', showIf: variantIn('signature') },
       {
         key: 'links',
         label: 'Links de Contato',
@@ -627,7 +632,12 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         group: 'actions',
       },
     ],
-    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    layoutFields: [{ ...ALIGN_FIELD, showIf: variantNotIn('signature') }, backgroundField(), textColorField()],
+    variants: [
+      { value: 'classic', label: 'Clássica', description: 'Chamada centralizada com botão do WhatsApp' },
+      { value: 'signature', label: 'Assinatura', description: 'Chamada com itálico, assinatura em caligrafia e foto abaixo', collection: 'natal' },
+    ],
+    defaultVariant: 'classic',
     factory: () => ({
       content: { eyebrow: '', cta_text: 'Vamos criar algo lindo juntos?', body: '', btnText: 'Falar no WhatsApp', links: [] },
       props: { align: 'center', background: 'cream' },

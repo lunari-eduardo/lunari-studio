@@ -174,7 +174,7 @@ export function PropertiesSidebar({
   const slots = (def?.propImageSlots ?? []).filter(visible);
   // Proposta de coleção temática: variantes dela; modelo padrão: as padrão (a aplicada nunca some)
   const variants = forCollection(def?.variants ?? [], collection, (v) => v.value === currentVariant);
-  const hasVariants = variants.length > 0;
+  const hasVariants = variants.length > 1; // uma opção só não é escolha
   const variantLabel = def?.variants?.find((v) => v.value === currentVariant)?.label;
 
   const groups = GROUPS.map((g) => {

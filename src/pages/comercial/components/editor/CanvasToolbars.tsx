@@ -115,7 +115,8 @@ export interface SectionToolbarProps {
 // ============================================================
 export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSetPath, onMove, onDuplicate, onRemove }: SectionToolbarProps) {
   const def = getBlockDef(block.type);
-  const layout = layoutChoice(block, useProposalCollection());
+  const choice = layoutChoice(block, useProposalCollection());
+  const layout = choice && choice.options.length > 1 ? choice : null; // uma opção só não é escolha
   const ctx: FieldCtx = { content: block.content ?? {}, props: { ...(block.props ?? {}), variant: block.props?.variant ?? def?.defaultVariant } };
   const bgField = def?.layoutFields?.find((f) => f.key === 'background' && (!f.showIf || f.showIf(ctx)));
   const bgColor = backgroundSwatchColor(block.props?.background, palette);

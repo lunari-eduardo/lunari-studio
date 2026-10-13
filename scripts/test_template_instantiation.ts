@@ -470,6 +470,19 @@ async function runTests() {
   const natalInfoVariants = forCollection(BLOCK_REGISTRY.InfoBlock.variants!, 'natal').map((v) => v.value).join();
   assert(natalInfoVariants === 'icon-columns,icon-list,steps', `Natal proposal offers only the editorial info layouts: ${natalInfoVariants}`);
 
+  // 25. Encerramento Assinatura: assinatura do perfil, foto vazia; CTAs antigos seguem idênticos
+  const closing = natal.find((b: any) => b.type === 'CTABlock');
+  assert(closing.props.variant === 'signature' && closing.content.signature === 'Estúdio Luz', 'Closing signature becomes the profile signature');
+  assert(closing.content.image_url === '' && closing.content.cta_italic === 'memórias juntos?' && closing.content.btnText === '', 'Closing photo starts empty, copy kept, no button by default');
+  const unsigned = instantiateTemplateBlocks(seedBlocks).find((b: any) => b.type === 'CTABlock');
+  assert(unsigned.content.signature === '', 'No profile name = empty signature (never the demo name)');
+  const oldCta = { type: 'CTABlock', id: 'x', content: { cta_text: 'Vamos?', btnText: 'Falar no WhatsApp', links: [] }, props: { align: 'center' } };
+  const oldNorm = normalizeBlock(JSON.parse(JSON.stringify(oldCta)))!;
+  assert(oldNorm.props!.variant === 'classic' && JSON.stringify(oldNorm.content) === JSON.stringify(oldCta.content), 'Old CTA loads as Clássica with the same content');
+  assert(!('signature' in instantiateTemplateBlocks([oldCta])[0].content), 'Old CTA templates get no signature field');
+  assert(createBlock('CTABlock', 'natal').props!.variant === 'signature', 'New closing in a Natal proposal starts as Assinatura');
+  assert(forCollection(BLOCK_REGISTRY.CTABlock.variants!, undefined).length === 1, 'Standard proposals have a single CTA option (picker hidden)');
+
   console.log('✅ All tests passed successfully!');
 }
 

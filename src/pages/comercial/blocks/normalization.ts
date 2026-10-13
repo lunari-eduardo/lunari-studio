@@ -323,6 +323,8 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
       case 'CTABlock':
         content.phone = '';
         content.links = [];
+        if ('signature' in content) content.signature = signature; // assinatura do perfil (encerramento Assinatura)
+        if ('image_url' in content) content.image_url = '';
         break;
       case 'FooterTerms':
         content.copyright = signature ? `© ${new Date().getFullYear()} ${signature}` : '';
