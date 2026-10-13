@@ -2,11 +2,10 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
-import { useInlineEdit } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, splitLeadingNumber } from '../../../blocks/pricing';
 import { ICON_NONE, addonIcon, resolveIconKey, suggestIcon } from '../../../blocks/icons';
 import { fa, fb, fd, fh, sectionBg, textColorClass } from './helpers';
-import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, type Et } from './kit';
+import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, useEt, type Et } from './kit';
 
 // ============================================================
 // PACOTES DA COLEÇÃO EDITORIAL (Natal): cartões com foto, linhas com foto e cartões em arco.
@@ -25,18 +24,6 @@ const ACCENT_TEXT = 'text-[var(--pa-accent-on-white,#A67C52)]';
 const BADGE =
   'whitespace-nowrap rounded-full bg-[color:color-mix(in_srgb,var(--pa-accent,#A67C52)_72%,var(--pa-ink,#1F2620))] px-4 py-1.5 text-[10px] uppercase tracking-[0.3em] text-[var(--pa-white,#FAF6F0)] shadow-[0_4px_14px_rgba(0,0,0,0.12)]';
 const HAIRLINE = 'bg-[color:color-mix(in_srgb,currentColor_12%,transparent)]';
-
-function useEt() {
-  const inline = useInlineEdit();
-  const editable = inline?.editable ?? false;
-  const et: Et = (path, value) => ({
-    editable,
-    value: value ?? '',
-    onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
-  });
-  return { editable, et, set: (path: string, value: any) => inline?.set(path, value) };
-}
 
 function Badge({ et, idx, text, className }: { et: Et; idx: number; text: string; className?: string }) {
   return (

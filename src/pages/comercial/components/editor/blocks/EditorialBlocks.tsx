@@ -446,10 +446,19 @@ const LIGHT_FADE = cn(
   '@2xl:[mask-image:linear-gradient(to_right,transparent,#000_45%)] @2xl:[-webkit-mask-image:linear-gradient(to_right,transparent,#000_45%)]'
 );
 
+// Foto emoldurada (cartão arredondado) ou em círculo que sangra pelo canto superior direito
+const SHAPED_PHOTO: Record<string, string> = {
+  frame:
+    'mt-12 aspect-[6/5] w-full overflow-hidden rounded-[var(--pa-r-card,1.25rem)] shadow-[0_4px_30px_rgba(0,0,0,0.06)] @2xl:mt-0 @2xl:w-[48%] @2xl:shrink-0',
+  circle:
+    'mx-auto mt-12 aspect-square w-[82%] overflow-hidden rounded-full @2xl:absolute @2xl:-right-[7%] @2xl:-top-[14%] @2xl:mt-0 @2xl:w-[52%]',
+};
+
 /**
  * Introdução · Texto e Luz — rótulo, título com a segunda voz em itálico no acento, filete curto
- * e corpo. A foto (luz, ambiente, detalhe) fica ao lado, sem moldura, esmaecendo para o fundo;
- * o texto nunca fica sobre ela: no estreito, vira uma faixa abaixo do texto. Sem foto, só texto.
+ * e corpo. A foto (luz, ambiente, detalhe) fica ao lado; o texto nunca fica sobre ela.
+ * photo_style: soft = sem moldura, esmaecendo para o fundo (no estreito, faixa abaixo do texto);
+ * frame = cartão arredondado ao lado; circle = círculo sangrando pelo canto. Sem foto, só texto.
  */
 export function EditorialLightIntro({
   data,
@@ -478,23 +487,40 @@ export function EditorialLightIntro({
   // Justificado só no corpo e só com largura para isso (no celular cria "rios" entre as palavras)
   const headAlign = alignClass(alignKey === 'justify' ? 'left' : alignKey, 'left');
   const bodyAlign = alignKey === 'justify' ? 'text-left @md:text-justify' : headAlign;
+  const photoStyle = SHAPED_PHOTO[p.photo_style] ? p.photo_style : 'soft';
+  const soft = hasPhoto && photoStyle === 'soft';
+  const shaped = hasPhoto && !soft && (
+    <div className={cn('relative', SHAPED_PHOTO[photoStyle])}>
+      <EditableImage
+        editable={editable}
+        value={photoRef}
+        label="Foto principal"
+        alt={c.title || 'Foto'}
+        onCommit={(url) => inline?.set('props.photo_a.image_ref', url)}
+        className="absolute inset-0 w-full h-full"
+        imgClassName="object-cover w-full h-full"
+        publicEmptyClassName="hidden"
+      />
+    </div>
+  );
 
   return (
     <section
       className={cn(
         'relative overflow-hidden px-6 pt-20 @md:px-14 @md:pt-28',
-        hasPhoto ? 'pb-0 @2xl:pb-28 @2xl:min-h-[38rem]' : 'pb-20 @md:pb-28',
+        soft ? 'pb-0 @2xl:pb-28 @2xl:min-h-[38rem]' : hasPhoto ? 'pb-14 @md:pb-16' : 'pb-20 @md:pb-28',
+        hasPhoto && photoStyle === 'circle' && '@2xl:min-h-[36rem]',
         sectionBg(p.background, 'white'),
         textColorClass(p.text_color, p.background, 'white')
       )}
     >
-      <div className="relative z-10 mx-auto w-full max-w-[1000px]">
+      <div className={cn('relative z-10 mx-auto w-full max-w-[1000px]', photoStyle === 'frame' && hasPhoto && '@2xl:flex @2xl:items-center @2xl:gap-10')}>
         <div
           className={cn(
             'flex flex-col',
             ITEMS_BY_ALIGN[alignKey],
             headAlign,
-            hasPhoto ? '@2xl:w-[56%] @2xl:pr-8' : 'max-w-[40rem]',
+            !hasPhoto ? 'max-w-[40rem]' : photoStyle === 'frame' ? '@2xl:min-w-0 @2xl:flex-1' : '@2xl:w-[56%] @2xl:pr-8',
             !hasPhoto && alignKey === 'center' && 'mx-auto',
             !hasPhoto && alignKey === 'right' && 'ml-auto'
           )}
@@ -526,9 +552,11 @@ export function EditorialLightIntro({
             />
           )}
         </div>
+        {photoStyle === 'frame' && shaped}
       </div>
+      {photoStyle === 'circle' && shaped}
 
-      {hasPhoto && (
+      {soft && (
         <div
           className={cn(
             'relative mt-14 -mx-6 aspect-[4/3] @md:-mx-14 @2xl:absolute @2xl:inset-y-0 @2xl:right-0 @2xl:mx-0 @2xl:mt-0 @2xl:aspect-auto',

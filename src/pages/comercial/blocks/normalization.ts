@@ -306,6 +306,9 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         content.items = renewIdsWithoutPhotos(content.items);
         content.highlights = renewIds(content.highlights);
         break;
+      case 'PaletteBlock':
+        content.colors = renewIds(content.colors);
+        break;
       case 'Gallery':
         content.images = renewIdsWithoutPhotos(content.images);
         break;

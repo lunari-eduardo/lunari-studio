@@ -31,6 +31,7 @@ import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage
 import { useAiFieldRewrite } from '@/hooks/useProposalAI';
 import { DEFAULT_DESIGN_TOKENS, isHexColor } from './design';
 import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS, suggestIcon } from './icons';
+import { optionsFor, useProposalCollection } from './collections';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 
@@ -137,6 +138,7 @@ function FieldLabelWithAi({ field, value, onChange, aiContext, aiKeySuffix }: Fi
 export function FieldEditor(props: FieldEditorProps) {
   const { field, value, onChange } = props;
   const uid = useId();
+  const collection = useProposalCollection();
 
   switch (field.kind) {
     case 'text':
@@ -186,7 +188,7 @@ export function FieldEditor(props: FieldEditorProps) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(field.options ?? []).map((opt) => (
+              {optionsFor(field.options ?? [], collection, value).map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
               ))}
             </SelectContent>

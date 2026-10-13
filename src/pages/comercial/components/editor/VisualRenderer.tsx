@@ -10,7 +10,7 @@ import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
 import { AddonsRenderer } from './blocks/PricingCollectionBlocks';
 import { computePackageNumberOffsets } from '../../blocks/pricing';
-import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/GalleryAndMiscBlocks';
+import { GalleryRenderer, DividerRenderer, DefaultRenderer, PaletteRenderer } from './blocks/GalleryAndMiscBlocks';
 import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
 import { InfoRenderer } from './blocks/InfoBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
@@ -196,6 +196,7 @@ export function VisualRenderer({
                   />
                 )}
                 {block.type === 'AddonsBlock' && <AddonsRenderer content={block.content} props={block.props} />}
+                {block.type === 'PaletteBlock' && <PaletteRenderer content={block.content} props={block.props} />}
                 {block.type === 'EditorialComposition' && (
                   <EditorialComposition content={block.content} props={block.props} />
                 )}

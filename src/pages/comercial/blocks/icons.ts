@@ -109,6 +109,11 @@ export function addonIcon(item: { name?: string; description?: string } | null |
   return suggestIcon(item?.name ?? '') ?? suggestIcon(item?.description ?? '') ?? 'image';
 }
 
+/** Ícone automático de uma orientação/informação: pelo título, depois pelo texto; sem correspondência = brilho. */
+export function infoIcon(item: { title?: string; body?: string } | null | undefined): string {
+  return suggestIcon(item?.title ?? '') ?? suggestIcon(item?.body ?? '') ?? 'sparkles';
+}
+
 /** Valor salvo quando o fotógrafo escolhe "Sem ícone" (vazio = padrão da seção). */
 export const ICON_NONE = 'none';
 

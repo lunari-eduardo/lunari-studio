@@ -7,7 +7,7 @@ import { useProposalCollection } from '../../../blocks/collections';
 // Categorias por intenção (ordem de uma proposta). Tipo novo fora daqui cai em "Outras".
 const CATEGORIES: { title: string; types: string[] }[] = [
   { title: 'Abertura', types: ['CoverBlock'] },
-  { title: 'Conteúdo', types: ['EditorialBlock', 'EditorialComposition', 'DividerBlock'] },
+  { title: 'Conteúdo', types: ['EditorialBlock', 'EditorialComposition', 'PaletteBlock', 'DividerBlock'] },
   { title: 'Portfólio', types: ['Gallery'] },
   { title: 'Preços', types: ['PricingTable', 'AddonsBlock'] },
   { title: 'Prova social', types: ['TestimonialBlock'] },
@@ -67,6 +67,16 @@ const THUMBS: Record<string, React.ReactNode> = {
           <div className="flex flex-col items-center gap-0.5 px-0.5">{bar('w-3/4')}{bar('w-1/2 h-1.5')}</div>
         </div>
       ))}
+    </div>
+  ),
+  PaletteBlock: (
+    <div className="flex h-full w-full flex-col justify-center gap-1.5 px-2">
+      {bar('w-8')}
+      <div className="flex justify-between">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <span key={i} className="h-2.5 w-2.5 rounded-full bg-foreground/20" />
+        ))}
+      </div>
     </div>
   ),
   TestimonialBlock: (

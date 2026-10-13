@@ -5,6 +5,8 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
+import { infoIcon, resolveIconKey } from '../../../blocks/icons';
+import { LABEL, ProposalIcon, SubsectionHeader, accentOn } from './kit';
 
 /**
  * Informações e Guia — pares título/texto (dicas, o que vestir, pagamento, prazos).
@@ -31,6 +33,7 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
 
   // Público: seção sem nada preenchido some por inteiro
   if (!editable && !items.some(filled) && !c.title?.trim() && !c.image_url) return null;
+  if (variant === 'icon-columns') return <InfoIconColumns c={c} p={p} et={et} editable={editable} filled={filled} />;
 
   const headAlign = p.align === 'center' ? 'text-center' : p.align === 'right' ? 'text-right' : 'text-left';
   // Justificado só a partir de @md: no celular cria "rios" entre as palavras
@@ -138,6 +141,78 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
           placeholder="Título da seção (opcional)"
         />
         {list}
+      </div>
+    </section>
+  );
+}
+
+// Até 4 lado a lado no desktop (com filete vertical entre elas), 2 no tablet, 1 no celular
+const ICON_COLS: Record<number, string> = { 1: '', 2: '@md:grid-cols-2', 3: '@md:grid-cols-2 @4xl:grid-cols-3', 4: '@md:grid-cols-2 @4xl:grid-cols-4' };
+
+/** Colunas com ícone (orientações de looks): ícone num disco suave, título em caixa-alta e texto curto. */
+function InfoIconColumns({
+  c,
+  p,
+  et,
+  editable,
+  filled,
+}: {
+  c: any;
+  p: any;
+  et: (path: string, value: string | undefined) => any;
+  editable: boolean;
+  filled: (it: any) => boolean;
+}) {
+  const items = ((c.items as any[]) || []).map((it, i) => ({ it, i })).filter(({ it }) => editable || filled(it));
+  const accent = accentOn(p);
+  const perRow = Math.min(items.length, 4) || 1; // colunas no desktop
+  return (
+    <section className={cn('px-5 py-10 @md:px-10 @md:py-12', sectionBg(p.background, 'white'), textColorClass(p.text_color, p.background, 'white'))}>
+      <div className="mx-auto max-w-[1000px]">
+        <SubsectionHeader et={et} editable={editable} title={c.title} titlePlaceholder="Algumas orientações" />
+        <div className={cn('mt-10 grid grid-cols-1 gap-y-10 @md:mt-12', ICON_COLS[Math.min(items.length, 4)] ?? ICON_COLS[4])}>
+          {items.map(({ it, i }, n) => {
+            const icon = resolveIconKey(it.icon, infoIcon(it));
+            // Filete vertical (e recuo) só entre colunas lado a lado; o início de cada linha alinha com o título
+            const ruleMd = n % 2 === 1;
+            const rule4xl = perRow > 2 ? n % perRow !== 0 : ruleMd;
+            return (
+              <article
+                key={it.id || i}
+                className={cn(
+                  'min-w-0 border-[color:color-mix(in_srgb,currentColor_14%,transparent)] @md:pr-6',
+                  ruleMd && '@md:border-l @md:pl-6',
+                  ruleMd && !rule4xl && '@4xl:border-l-0 @4xl:pl-0',
+                  !ruleMd && rule4xl && '@4xl:border-l @4xl:pl-6'
+                )}
+              >
+                {icon && (
+                  <span
+                    aria-hidden
+                    className={cn('mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[color:color-mix(in_srgb,currentColor_9%,transparent)]', accent)}
+                  >
+                    <ProposalIcon name={icon} className="h-6 w-6" />
+                  </span>
+                )}
+                <EditableText
+                  as="h3"
+                  {...et(`items.${i}.title`, it.title)}
+                  className={cn('pl-[0.2em] text-[11px] @md:text-xs', LABEL, 'tracking-[0.2em] leading-[1.7]')}
+                  style={fd()}
+                  placeholder="Orientação"
+                />
+                <EditableText
+                  as="div"
+                  multiline
+                  {...et(`items.${i}.body`, it.body)}
+                  className="mt-3 whitespace-pre-line text-[14px] leading-[1.6] opacity-80"
+                  style={fb()}
+                  placeholder="Texto curto"
+                />
+              </article>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

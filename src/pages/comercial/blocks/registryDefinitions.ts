@@ -11,9 +11,10 @@ import {
   ScrollText,
   ListChecks,
   PackagePlus,
+  Palette,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { addonIcon } from './icons';
+import { addonIcon, infoIcon } from './icons';
 
 export type FieldKind =
   | 'text'
@@ -46,7 +47,8 @@ export interface BlockField {
   label: string;
   kind: FieldKind;
   placeholder?: string;
-  options?: { value: string; label: string }[];
+  /** `collection`: opção exclusiva de uma coleção temática (select: ver optionsFor). */
+  options?: { value: string; label: string; collection?: string }[];
   slot?: boolean;
   itemLabel?: string;
   itemFields?: BlockField[];
@@ -162,6 +164,7 @@ export const GALLERY_SPAN_OPTIONS = [
 ];
 export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
 export const addonItem = () => ({ id: crypto.randomUUID(), name: '', description: '', price: '', image_ref: '', icon: '' });
+export const paletteColor = () => ({ id: crypto.randomUUID(), name: '', hex: '#D9C8AE' });
 export const highlightItem = () => ({ id: crypto.randomUUID(), label: '', icon: '' });
 
 /** Faixa de destaques (frase curta + ícone opcional) — capa Noturna, pacotes da coleção. */
@@ -287,7 +290,22 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         showIf: variantNotIn('arch-portrait', 'light-intro'),
       },
     ],
-    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    layoutFields: [
+      ALIGN_FIELD,
+      backgroundField(),
+      textColorField(),
+      {
+        key: 'photo_style',
+        label: 'Estilo da foto',
+        kind: 'select',
+        options: [
+          { value: 'soft', label: 'Luz suave: sem moldura, esmaecida' },
+          { value: 'frame', label: 'Moldura arredondada' },
+          { value: 'circle', label: 'Círculo' },
+        ],
+        showIf: variantIn('light-intro'),
+      },
+    ],
     variants: [
       { value: 'overlap-blend', label: 'Fotos Sobrepostas', description: 'Duas fotos com blend mode (padrão)' },
       { value: 'split-portrait', label: 'Split Retrato', description: 'Texto à esquerda + foto retrato à direita' },
@@ -456,6 +474,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { value: 'masonry', label: 'Mosaico: proporção real de cada foto' },
           { value: 'grid', label: 'Grade: proporção única e fotos em destaque' },
           { value: 'editorial-rows', label: 'Linhas editoriais: fotos lado a lado' },
+          { value: 'captioned', label: 'Fotos com legenda: inspirações lado a lado', collection: 'natal' },
         ],
       },
       {
@@ -465,7 +484,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         // 4:5 primeiro: é o padrão da grade quando o bloco ainda não escolheu (o select exibe a 1ª opção)
         options: ['4/5', '1/1', '4/3', '16/9'].map((v) => IMAGE_RATIO_OPTIONS.find((o) => o.value === v)!),
         group: 'layout',
-        showIf: ({ props }) => props.layout === 'grid',
+        showIf: ({ props }) => props.layout === 'grid' || props.layout === 'captioned',
       },
     ],
     factory: () => ({
@@ -629,6 +648,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         itemFields: [
           { key: 'title', label: 'Título', kind: 'text', placeholder: 'O que vestir' },
           { key: 'body', label: 'Texto', kind: 'textarea', placeholder: 'Peças leves, de tons neutros...' },
+          { key: 'icon', label: 'Ícone', kind: 'icon', autoIcon: infoIcon, showIf: variantIn('icon-columns') },
         ],
         itemFactory: infoItem,
       },
@@ -638,11 +658,40 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'stacked', label: 'Guia', description: 'Título e texto em sequência, como um guia impresso' },
       { value: 'accordion', label: 'Sanfona', description: 'Títulos visíveis e texto ao clicar: ideal para textos longos' },
       { value: 'columns', label: 'Colunas', description: 'Duas colunas: ideal para textos curtos' },
+      { value: 'icon-columns', label: 'Colunas com ícone', description: 'Orientações curtas lado a lado, com ícone e filetes', collection: 'natal' },
     ],
     defaultVariant: 'stacked',
     factory: () => ({
       content: { eyebrow: '', title: '', image_url: '', items: [] },
       props: { align: 'left', background: 'white' },
+    }),
+  },
+
+  PaletteBlock: {
+    type: 'PaletteBlock',
+    name: 'Paleta de cores',
+    description: 'Cores sugeridas para os looks',
+    icon: Palette,
+    collection: 'natal',
+    fields: [
+      { key: 'title', label: 'Título', kind: 'text', placeholder: 'Paleta de cores' },
+      { key: 'note', label: 'Nota ao lado do título', kind: 'textarea', placeholder: 'Essas são as cores que mais combinam com o cenário.' },
+      {
+        key: 'colors',
+        label: 'Cores',
+        kind: 'list',
+        itemLabel: 'Cor',
+        itemFields: [
+          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Caramelo' },
+          { key: 'hex', label: 'Cor', kind: 'color' },
+        ],
+        itemFactory: paletteColor,
+      },
+    ],
+    layoutFields: [backgroundField(), textColorField(), { key: 'hide_hex', label: 'Ocultar o código da cor (#)', kind: 'boolean' }],
+    factory: () => ({
+      content: { title: 'Paleta de cores', note: '', colors: [] },
+      props: { background: 'white' },
     }),
   },
 

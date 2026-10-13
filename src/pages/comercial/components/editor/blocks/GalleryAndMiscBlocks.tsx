@@ -6,6 +6,8 @@ import { EditableImage, AddImageTile } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
 import { fillGallerySlots } from '../../../blocks/registryDefinitions';
+import { isHexColor } from '../../../blocks/design';
+import { LABEL, SubsectionHeader, useEt } from './kit';
 
 export function DefaultRenderer({ block }: { block: BlockData }) {
   const inline = useInlineEdit();
@@ -80,6 +82,21 @@ export function GalleryRenderer({
   // No público, slots vazios (comuns em modelos recém-criados) não viram caixas; sem fotos, a seção some.
   const shown = images.map((img, idx) => ({ img, idx })).filter(({ img }) => editable || img?.image_ref);
   if (!editable && shown.length === 0) return null;
+
+  if (layout === 'captioned') {
+    return (
+      <GalleryCaptioned
+        c={c}
+        props={props}
+        shown={shown}
+        editable={editable}
+        et={et}
+        addTile={addTile}
+        commitAt={commitAt}
+        selectProps={selectProps}
+      />
+    );
+  }
 
   // Todos os modos crescem verticalmente com o número de fotos — nada é cortado por altura de "página".
   let grid: React.ReactNode;
@@ -185,6 +202,129 @@ export function GalleryRenderer({
         <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl mb-4" style={fd()} />
         <EditableText as="p" {...et('caption', c.caption)} className="italic opacity-50 mb-12" style={fd()} />
         {grid}
+      </div>
+    </section>
+  );
+}
+
+// Até 4 fotos lado a lado (no celular, 2); mais que isso quebra a linha
+const CAPTIONED_COLS: Record<number, string> = {
+  1: 'grid-cols-1 max-w-sm mx-auto',
+  2: 'grid-cols-2',
+  3: 'grid-cols-2 @2xl:grid-cols-3',
+  4: 'grid-cols-2 @2xl:grid-cols-4',
+};
+
+/**
+ * Fotos com legenda (inspirações de looks): cabeçalho de subseção (título + nota), fotos na
+ * proporção do bloco e legenda curta em caixa-alta abaixo de cada uma, editada na arte.
+ */
+function GalleryCaptioned({
+  c,
+  props,
+  shown,
+  editable,
+  et,
+  addTile,
+  commitAt,
+  selectProps,
+}: {
+  c: any;
+  props: any;
+  shown: { img: any; idx: number }[];
+  editable: boolean;
+  et: (path: string, value: string | undefined) => any;
+  addTile: React.ReactNode;
+  commitAt: (idx: number) => (url: string) => void;
+  selectProps: (idx: number) => Record<string, any>;
+}) {
+  const ratio = String(props?.ratio ?? '4/5').replace('/', ' / ');
+  const count = Math.min(shown.length + (addTile ? 1 : 0), 4) || 1;
+  return (
+    <section
+      className={cn(
+        'px-5 py-10 @md:px-10 @md:py-12',
+        sectionBg(props?.background, 'white'),
+        textColorClass(props?.text_color, props?.background, 'white')
+      )}
+    >
+      <div className="mx-auto max-w-[1000px]">
+        <SubsectionHeader et={et} editable={editable} title={c.title} note={c.caption} notePath="caption" titlePlaceholder="Inspirações de looks" />
+        <div className={cn('mt-10 grid gap-x-4 gap-y-8 @md:mt-12 @md:gap-x-5', CAPTIONED_COLS[count])}>
+          {shown.map(({ img, idx }) => (
+            <figure key={img.id || idx} className="flex min-w-0 flex-col">
+              <div className="relative w-full overflow-hidden rounded-[var(--pa-r-media,0.75rem)] bg-black/5" style={{ aspectRatio: ratio }}>
+                <EditableImage
+                  editable={editable}
+                  value={img.image_ref || null}
+                  label="Foto"
+                  alt={img.caption || 'Inspiração de look'}
+                  className="absolute inset-0 w-full h-full"
+                  imgClassName="object-cover w-full h-full"
+                  onCommit={commitAt(idx)}
+                  {...selectProps(idx)}
+                />
+              </div>
+              {(img.caption || editable) && (
+                <EditableText
+                  as="figcaption"
+                  multiline
+                  {...et(`images.${idx}.caption`, img.caption)}
+                  className={cn('mx-auto mt-4 max-w-[24ch] whitespace-pre-line pl-[0.14em] text-center text-[10px] opacity-75 @md:text-[11px]', LABEL, 'tracking-[0.14em]')}
+                  style={fb()}
+                  placeholder="Legenda"
+                />
+              )}
+            </figure>
+          ))}
+          {addTile && <div style={{ aspectRatio: ratio }}>{addTile}</div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Paleta de cores sugeridas: círculos de cor com nome (e o código #, opcional). */
+export function PaletteRenderer({ content, props }: { content?: any; props?: any }) {
+  const { editable, et } = useEt();
+  const c = content || {};
+  const p = props || {};
+  const colors = ((c.colors as any[]) || []).map((col, idx) => ({ col, idx })).filter(({ col }) => editable || isHexColor(col?.hex));
+  if (!editable && !colors.length) return null;
+
+  return (
+    <section className={cn('px-5 py-10 @md:px-10 @md:py-12', sectionBg(p.background, 'white'), textColorClass(p.text_color, p.background, 'white'))}>
+      <div className="mx-auto max-w-[1000px]">
+        <SubsectionHeader et={et} editable={editable} title={c.title} note={c.note} notePath="note" titlePlaceholder="Paleta de cores" />
+        {editable && !colors.length && (
+          <p className="mt-10 rounded-2xl border border-dashed border-[color:color-mix(in_srgb,currentColor_25%,transparent)] p-8 text-center text-sm opacity-60">
+            Adicione as cores no painel.
+          </p>
+        )}
+        {/* 3 por linha no celular, 6 no tablet/desktop; menos cores = centralizadas */}
+        <ul className="mt-10 flex flex-wrap justify-center gap-y-9 @md:mt-12">
+          {colors.map(({ col, idx }) => (
+            <li key={col.id || idx} className="flex w-1/3 min-w-0 flex-col items-center px-1 text-center @md:px-2 @2xl:w-1/6">
+              <span
+                aria-hidden
+                className="block aspect-square w-full max-w-[5.25rem] rounded-full border border-[color:color-mix(in_srgb,currentColor_10%,transparent)] @md:max-w-[6.25rem]"
+                style={{ backgroundColor: isHexColor(col.hex) ? col.hex : 'transparent' }}
+              />
+              <EditableText
+                as="p"
+                {...et(`colors.${idx}.name`, col.name)}
+                className="mt-5 max-w-full pl-[0.14em] text-[10px] uppercase leading-[1.5] tracking-[0.14em] @md:pl-[0.22em] @md:text-[11px] @md:tracking-[0.22em]"
+                style={fd()}
+                placeholder="Nome"
+              />
+              {!p.hide_hex && isHexColor(col.hex) && (
+                <p className="mt-1 text-[11px] uppercase tracking-[0.06em] opacity-60" style={fb()}>
+                  {col.hex}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

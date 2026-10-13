@@ -8,6 +8,7 @@
 -- rótulo dos cartões em arco): trocar de composição não perde texto nem foto.
 -- title_style fica sem valor: cada capa usa o próprio padrão (Arcos caligráfica, demais caixa-alta).
 -- Fase 4: Adicionais (AddonsBlock, Cartões; Linhas em "Composição"), preços de exemplo editáveis.
+-- Fase 5: Dicas de looks (Texto e Luz com foto em moldura, Paleta, Galeria com legendas, Orientações com ícone).
 -- Coleção Natal: tag "natal" (aba da vitrine) + global_settings.collection (a proposta criada
 -- herda e libera as variantes/temas exclusivos da coleção; modelos padrão não os veem).
 -- Fotos de demonstração ficam só na vitrine: o hidratador esvazia os espaços ao criar a
@@ -126,6 +127,76 @@ VALUES (
    ]
   },
   "props": { "variant": "grid", "background": "cream", "text_color": "default" }
+ },
+ {
+  "id": "sn_looks",
+  "type": "EditorialBlock",
+  "content": {
+   "eyebrow": "Guia de estilo",
+   "title": "Dicas de",
+   "title_italic": "looks",
+   "body": "Nossas sugestões de looks e cores foram pensadas para harmonizar com o cenário e valorizar ainda mais esse momento especial da sua família.",
+   "vertical_label": "",
+   "details": []
+  },
+  "props": {
+   "variant": "light-intro",
+   "align": "left",
+   "background": "white",
+   "text_color": "default",
+   "photo_style": "frame",
+   "photo_a": { "width_pct": 72, "height_pct": 80, "image_ref": null },
+   "photo_b": { "width_pct": 62, "height_pct": 66, "image_ref": null }
+  }
+ },
+ {
+  "id": "sn_palette",
+  "type": "PaletteBlock",
+  "content": {
+   "title": "Paleta de cores",
+   "note": "Essas são as cores que mais combinam com o cenário desta sessão. Use como base na escolha dos looks da família.",
+   "colors": [
+    { "id": "sn_c1", "name": "Off white", "hex": "#F7F3EB" },
+    { "id": "sn_c2", "name": "Bege", "hex": "#D9C6B0" },
+    { "id": "sn_c3", "name": "Caramelo", "hex": "#A67C52" },
+    { "id": "sn_c4", "name": "Verde oliva", "hex": "#55624F" },
+    { "id": "sn_c5", "name": "Verde escuro", "hex": "#2F3E2F" },
+    { "id": "sn_c6", "name": "Vinho", "hex": "#6B1F28" }
+   ]
+  },
+  "props": { "background": "white", "text_color": "default" }
+ },
+ {
+  "id": "sn_inspiration",
+  "type": "Gallery",
+  "content": {
+   "eyebrow": "",
+   "title": "Inspirações de looks",
+   "caption": "Algumas combinações que funcionam muito bem para este tipo de ensaio. Sinta-se à vontade para adaptar ao seu estilo.",
+   "images": [
+    { "id": "sn_g1", "image_ref": "", "span": "normal", "ratio": "auto", "caption": "Tons neutros com toque de vinho" },
+    { "id": "sn_g2", "image_ref": "", "span": "normal", "ratio": "auto", "caption": "Combinações em tons naturais" },
+    { "id": "sn_g3", "image_ref": "", "span": "normal", "ratio": "auto", "caption": "Peças confortáveis e atemporais" },
+    { "id": "sn_g4", "image_ref": "", "span": "normal", "ratio": "auto", "caption": "Harmonia entre as peças" }
+   ]
+  },
+  "props": { "align": "left", "background": "white", "text_color": "default", "layout": "captioned", "ratio": "4/5" }
+ },
+ {
+  "id": "sn_tips",
+  "type": "InfoBlock",
+  "content": {
+   "eyebrow": "",
+   "title": "Algumas orientações",
+   "image_url": "",
+   "items": [
+    { "id": "sn_t1", "title": "Priorize tons neutros e terrosos", "body": "Eles harmonizam com o cenário e deixam as fotos mais atemporais.", "icon": "shirt" },
+    { "id": "sn_t2", "title": "Evite cores muito vibrantes", "body": "Cores muito fortes podem disputar a atenção e tirar o foco da sua família.", "icon": "palette" },
+    { "id": "sn_t3", "title": "Combine entre a família", "body": "Escolha de 2 a 4 cores da paleta e distribua entre os looks de forma equilibrada.", "icon": "users" },
+    { "id": "sn_t4", "title": "Opte por peças confortáveis", "body": "Roupas que permitam movimento ajudam a manter a naturalidade nas fotos.", "icon": "shirt" }
+   ]
+  },
+  "props": { "variant": "icon-columns", "align": "left", "background": "white", "text_color": "default" }
  },
  {
   "type": "global_settings",

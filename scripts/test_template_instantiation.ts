@@ -5,9 +5,9 @@ import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, nor
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
 import { fillGallerySlots, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber } from '../src/pages/comercial/blocks/pricing';
-import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon } from '../src/pages/comercial/blocks/icons';
+import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
 import { createBlock } from '../src/pages/comercial/blocks/registry';
-import { forCollection, templateCollection } from '../src/pages/comercial/blocks/collections';
+import { forCollection, optionsFor, templateCollection } from '../src/pages/comercial/blocks/collections';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -427,6 +427,31 @@ async function runTests() {
   );
   assert(addonIcon({ name: 'Mimo', description: 'Embalagem para presente' }) === 'gift' && addonIcon({ name: 'Mimo' }) === 'image', 'Then from the description, else a neutral image');
   assert(!normalizeBlocks([seedAddons]).some((b) => b.type === 'text'), 'Addons block is registered (never falls back to text)');
+
+  // 23. Dicas de looks: paleta, inspirações com legenda, orientações com ícone, foto em moldura
+  assert(BLOCK_REGISTRY.PaletteBlock.collection === 'natal', 'Palette block is Natal-only in the section library');
+  const seedPalette = seedBlocks.find((b: any) => b.type === 'PaletteBlock');
+  const palette = natal.find((b: any) => b.type === 'PaletteBlock');
+  assert(
+    palette.content.colors.length === 6 && palette.content.colors.every((col: any, i: number) => col.id !== seedPalette.content.colors[i].id && col.hex === seedPalette.content.colors[i].hex),
+    'Palette colors keep name/hex and get fresh ids'
+  );
+  const looks = natal.filter((b: any) => b.props?.variant === 'light-intro')[1];
+  assert(!!looks && looks.props.photo_style === 'frame' && looks.props.photo_a.image_ref === null, 'Looks intro keeps the frame style and starts without photo');
+  const inspiration = natal.find((b: any) => b.type === 'Gallery');
+  assert(
+    inspiration.props.layout === 'captioned' && inspiration.content.images.every((img: any) => img.image_ref === '' && !!img.caption),
+    'Inspiration slots start empty and keep their captions'
+  );
+  const tips = natal.find((b: any) => b.type === 'InfoBlock');
+  assert(tips.props.variant === 'icon-columns' && tips.content.items.every((it: any) => !!PROPOSAL_ICONS[it.icon]), 'Tips keep their chosen icons');
+  assert(createBlock('InfoBlock', 'natal').props!.variant === 'icon-columns', 'New info section in a Natal proposal starts with icon columns');
+  type SelOpt = { value: string; collection?: string };
+  const layouts: SelOpt[] = [{ value: 'masonry' }, { value: 'grid' }, { value: 'captioned', collection: 'natal' }];
+  const vals = (list: SelOpt[]) => list.map((o) => o.value).join();
+  assert(vals(optionsFor(layouts, 'natal')) === 'masonry,grid,captioned', 'Natal select keeps standard options plus its own (no curation)');
+  assert(vals(optionsFor(layouts, undefined)) === 'masonry,grid' && vals(optionsFor(layouts, undefined, 'captioned')) === 'masonry,grid,captioned', 'Collection option hidden elsewhere unless in use');
+  assert(infoIcon({ title: 'Evite cores muito vibrantes' }) === 'palette' && infoIcon({ title: 'Chegue cedo' }) === 'sparkles', 'Info auto icon from the title, else sparkles');
 
   console.log('✅ All tests passed successfully!');
 }

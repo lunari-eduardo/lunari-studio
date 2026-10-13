@@ -31,6 +31,14 @@ export function forCollection<T extends { collection?: string }>(
   return items.filter((i) => pool.includes(i) || inUse(i));
 }
 
+/**
+ * Opções de um select (ex.: disposição da galeria): as de coleção só aparecem nela, somadas às
+ * padrão (sem curadoria: o select continua completo). A opção em uso nunca some.
+ */
+export function optionsFor<T extends { value: string; collection?: string }>(options: T[], collection: string | undefined, value?: string): T[] {
+  return options.filter((o) => !o.collection || o.collection === collection || o.value === value);
+}
+
 /** Coleção da proposta aberta no editor. */
 export const ProposalCollectionContext = createContext<string | undefined>(undefined);
 export const useProposalCollection = () => useContext(ProposalCollectionContext);

@@ -9,7 +9,7 @@ import { getBlockDef, GALLERY_SPAN_OPTIONS, IMAGE_RATIO_OPTIONS, type FieldCtx }
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { BackgroundSwatches, backgroundSwatchColor } from '../../blocks/FieldEditor';
 import { DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
-import { forCollection, useProposalCollection } from '../../blocks/collections';
+import { forCollection, optionsFor, useProposalCollection } from '../../blocks/collections';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 type LayoutOption = { value: string; label: string; description?: string };
@@ -29,7 +29,8 @@ export function layoutChoice(block: BlockData, collection?: string): { path: str
   }
   const field = def.layoutFields?.find((f) => f.kind === 'select' && (f.key === 'layout' || f.key === 'style'));
   if (!field?.options) return null;
-  return { path: `props.${field.key}`, value: block.props?.[field.key] ?? field.options[0]?.value, options: field.options };
+  const current = block.props?.[field.key] ?? field.options[0]?.value;
+  return { path: `props.${field.key}`, value: current, options: optionsFor(field.options, collection, current) };
 }
 
 /** Cartões de composição (inspector e barra do canvas). */

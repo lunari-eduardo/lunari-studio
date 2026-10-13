@@ -4,7 +4,8 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { PROPOSAL_ICONS, resolveIconKey } from '../../../blocks/icons';
 import { splitPrice } from '../../../blocks/pricing';
-import { fa, fd, fh, fsc } from './helpers';
+import { useInlineEdit } from '../../../blocks/inlineContext';
+import { fa, fb, fd, fh, fsc } from './helpers';
 
 // ============================================================
 // KIT EDITORIAL COMPARTILHADO
@@ -17,6 +18,62 @@ import { fa, fd, fh, fsc } from './helpers';
 /** Props do EditableText montadas pelo bloco: et(path, value). */
 export type EtProps = { editable: boolean; value: string; onCommit: (v: string) => void; fieldKey?: string };
 export type Et = (path: string, value: string | undefined) => EtProps;
+
+/** Edição na arte: `et(path, value)` monta o EditableText; `set` grava qualquer caminho do bloco. */
+export function useEt() {
+  const inline = useInlineEdit();
+  const editable = inline?.editable ?? false;
+  const et: Et = (path, value) => ({
+    editable,
+    value: value ?? '',
+    onCommit: (v: string) => inline?.set(path, v),
+    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+  });
+  return { editable, et, set: (path: string, value: any) => inline?.set(path, value) };
+}
+
+/**
+ * Cabeçalho de subseção (guia de estilo: paleta, inspirações, orientações): filete no topo,
+ * título em caixa-alta espaçada à esquerda e nota curta à direita (embaixo, no estreito).
+ */
+export function SubsectionHeader({
+  et,
+  editable,
+  title,
+  note,
+  notePath,
+  titlePlaceholder = 'Título',
+}: {
+  et: Et;
+  editable: boolean;
+  title?: string;
+  note?: string;
+  /** Sem caminho = sem nota. */
+  notePath?: string;
+  titlePlaceholder?: string;
+}) {
+  return (
+    <header className="flex flex-col gap-3 border-t border-[color:color-mix(in_srgb,currentColor_14%,transparent)] pt-8 @md:pt-10 @2xl:flex-row @2xl:items-start @2xl:justify-between @2xl:gap-12">
+      <EditableText
+        as="h2"
+        {...et('title', title)}
+        className="max-w-full text-[length:clamp(1.05rem,2.4cqi,1.4rem)] uppercase leading-[1.5] tracking-[0.3em]"
+        style={fd()}
+        placeholder={titlePlaceholder}
+      />
+      {notePath && (note || editable) && (
+        <EditableText
+          as="p"
+          multiline
+          {...et(notePath, note)}
+          className="max-w-[46ch] whitespace-pre-line text-[13px] leading-[1.6] opacity-75 @2xl:pt-1 @2xl:text-right"
+          style={fb()}
+          placeholder="Nota curta (opcional)"
+        />
+      )}
+    </header>
+  );
+}
 
 /** Caixa-alta espaçada. Centralizado, some com `pl-[0.32em]` o espaço extra da última letra. */
 export const LABEL = 'uppercase tracking-[0.32em] leading-[1.9]';
