@@ -43,8 +43,13 @@ interface EditorHeaderProps {
   saveStatus: 'idle' | 'saving' | 'saved' | 'error';
   viewMode: 'desktop' | 'mobile';
   setViewMode: (mode: 'desktop' | 'mobile') => void;
+  /** Escala efetiva do preview (1 = largura nominal do documento). */
   zoom: number;
-  setZoom: React.Dispatch<React.SetStateAction<number>>;
+  /** Em "Ajustar à largura" (escala automática). */
+  zoomIsFit: boolean;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onZoomFit: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -75,7 +80,10 @@ export function EditorHeader({
   viewMode,
   setViewMode,
   zoom,
-  setZoom,
+  zoomIsFit,
+  onZoomIn,
+  onZoomOut,
+  onZoomFit,
   canUndo,
   canRedo,
   onUndo,
@@ -179,10 +187,38 @@ export function EditorHeader({
           </div>
 
           {viewMode === 'desktop' && (
-            <div className="hidden md:flex items-center bg-muted/40 rounded-lg px-2.5 py-1 border border-border/60">
-              <span className="text-[11px] font-medium text-muted-foreground select-none" title="Escala automática proporcional">
+            <div className="hidden md:flex items-center bg-muted/40 rounded-lg p-0.5 border border-border/60">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={onZoomOut}
+                disabled={zoom <= 0.25}
+                title="Afastar (Ctrl + rolagem)"
+                aria-label="Afastar"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </Button>
+              <button
+                type="button"
+                onClick={onZoomFit}
+                disabled={zoomIsFit}
+                title={zoomIsFit ? 'Ajustado à largura' : 'Ajustar à largura'}
+                className="min-w-[3rem] px-1 text-center text-[11px] font-medium tabular-nums text-muted-foreground enabled:hover:text-foreground disabled:cursor-default"
+              >
                 {Math.round(zoom * 100)}%
-              </span>
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={onZoomIn}
+                disabled={zoom >= 2}
+                title="Aproximar (Ctrl + rolagem)"
+                aria-label="Aproximar"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </Button>
             </div>
           )}
         </div>

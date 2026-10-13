@@ -157,8 +157,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log(`[${requestId}] R2 upload request started`);
-
     // ── 0. Validate secrets at boot ──────────────────────────────────────────
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID");
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID");
@@ -212,8 +210,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[${requestId}] User authenticated: ${user.id}`);
-
     // ── 2. Parse form data ───────────────────────────────────────────────────
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -234,8 +230,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    console.log(`[${requestId}] File: ${file.name}, Gallery: ${galleryId}, Size: ${(file.size / 1024).toFixed(0)}KB, UploadKey: ${uploadKey || 'none'}`);
 
     // 🔧 3. Verify gallery ownership 🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧🔧
     const { data: gallery, error: galleryError } = await supabase
@@ -282,7 +276,6 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.log(`[${requestId}] Folder verified: ${folderId}`);
     }
     if (uploadKey) {
       const { data: existing } = await supabase
@@ -337,10 +330,7 @@ Deno.serve(async (req) => {
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        console.log(`[${requestId}] Credits verified (not consumed yet)`);
       }
-    } else {
-      console.log(`[${requestId}] skipCredits=true, skipping credit check`);
     }
 
     // ── 6. R2 credentials already validated at boot ──────────────────────────
@@ -356,14 +346,10 @@ Deno.serve(async (req) => {
 
     const fileData = await file.arrayBuffer();
 
-    console.log(`[${requestId}] Uploading to R2: ${storagePath} (${(fileData.byteLength / 1024).toFixed(0)}KB)`);
-
     await uploadToR2WithRetry(
       r2AccountId, r2AccessKeyId, r2SecretKey, r2BucketName,
       storagePath, fileData, file.type || "application/octet-stream", requestId
     );
-
-    console.log(`[${requestId}] R2 upload complete`);
 
     // ── 8. Save to database ──────────────────────────────────────────────────
     const { data: photo, error: insertError } = await supabase
@@ -429,8 +415,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[${requestId}] Photo saved to DB: ${photo.id}`);
-
     // ── 9. Consume credits AFTER success — skip for deliver galleries ──────
     if (!skipCredits) {
       const { data: isAdmin } = await supabase.rpc('has_role', {
@@ -446,19 +430,15 @@ Deno.serve(async (req) => {
 
         if (consumeError || !creditConsumed) {
           console.error("%s", `[${requestId}] ⚠️ Credit consumption failed after successful upload:`, consumeError);
-        } else {
-          console.log(`[${requestId}] Credit consumed successfully`);
         }
       }
-    } else {
-      console.log(`[${requestId}] skipCredits=true, skipping credit consumption`);
     }
 
     // ── 10. Update gallery photo count ───────────────────────────────────────
     await supabase.rpc('increment_gallery_photo_count', { gallery_id: galleryId });
 
     const duration = Date.now() - startTime;
-    console.log(`[${requestId}] ✓ Complete in ${duration}ms`);
+    console.log(`[${requestId}] ✓ ${galleryId} ${(fileData.byteLength / 1024).toFixed(0)}KB ${duration}ms`);
 
     return new Response(
       JSON.stringify({

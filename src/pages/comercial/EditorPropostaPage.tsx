@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMaterialEditor } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
 import { Loader2, Upload, MousePointerClick, FileText, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useMaterials } from '@/hooks/useMaterials';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EditorSidebar } from './components/editor/EditorSidebar';
@@ -25,6 +26,11 @@ import { SectionLibraryDialog } from './components/editor/modals/SectionLibraryD
 import { getSectionTitle } from './blocks/registry';
 import { ProposalCollectionContext } from './blocks/collections';
 
+// Zoom do preview: de "bem longe" (vê a proposta toda) a 2×
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 2;
+const ZOOM_STEPS = [0.25, 0.33, 0.4, 0.5, 0.6, 0.75, 0.9, 1, 1.25, 1.5, 2];
+
 /** Converte um data URL (geralmente `image/jpeg`) em `File` pronto para upload. */
 function dataUrlToFile(dataUrl: string, fileName: string): File {
   const [meta, base64] = dataUrl.split(',');
@@ -45,7 +51,8 @@ export default function EditorMaterialPage() {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  // null = ajustar à largura (escala automática); número = zoom escolhido pelo fotógrafo
+  const [zoomOverride, setZoomOverride] = useState<number | null>(null);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'structure' | 'properties'>('none');
 
   // Salvar como modelo
@@ -294,6 +301,45 @@ export default function EditorMaterialPage() {
     return Number(Math.min(1, Math.max(0.55, scale)).toFixed(2));
   }, [viewMode, canvasDimensions.width]);
 
+  // Zoom do preview (desktop): "Ajustar" = escala automática; fora dela vale o número escolhido
+  const scale = viewMode === 'desktop' ? zoomOverride ?? autoScale : 1;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const zoomAnchorRef = useRef<number | null>(null);
+
+  const changeZoom = useCallback((next: number | null) => {
+    const el = canvasScrollRef.current;
+    // O conteúdo cresce/encolhe linearmente: guarda a posição do centro da tela para voltar a ela
+    if (el && el.scrollHeight > 0) zoomAnchorRef.current = (el.scrollTop + el.clientHeight / 2) / el.scrollHeight;
+    setZoomOverride(next === null ? null : Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next)));
+  }, []);
+
+  const stepZoom = (dir: 1 | -1) => {
+    const cur = scaleRef.current;
+    const next = dir > 0 ? ZOOM_STEPS.find((s) => s > cur + 0.005) : [...ZOOM_STEPS].reverse().find((s) => s < cur - 0.005);
+    if (next) changeZoom(next);
+  };
+
+  useLayoutEffect(() => {
+    const el = canvasScrollRef.current;
+    const anchor = zoomAnchorRef.current;
+    zoomAnchorRef.current = null;
+    if (el && anchor !== null) el.scrollTop = anchor * el.scrollHeight - el.clientHeight / 2;
+  }, [scale]);
+
+  // Ctrl/⌘ + rolagem (ou pinça no trackpad) amplia o preview em vez da página inteira
+  useEffect(() => {
+    const el = canvasScrollRef.current;
+    if (!el || viewMode !== 'desktop') return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      changeZoom(scaleRef.current * Math.exp(-e.deltaY * 0.002));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [viewMode, changeZoom, editorState?.format]);
+
   // Seleção de bloco com scroll suave até a seção
   const handleSelectBlock = useCallback((index: number, opts?: { scroll?: boolean }) => {
     setActiveIndex(index);
@@ -518,8 +564,11 @@ export default function EditorMaterialPage() {
           saveStatus={editorSaveStatus}
           viewMode={viewMode}
           setViewMode={setViewMode}
-          zoom={autoScale}
-          setZoom={setZoom}
+          zoom={scale}
+          zoomIsFit={zoomOverride === null}
+          onZoomIn={() => stepZoom(1)}
+          onZoomOut={() => stepZoom(-1)}
+          onZoomFit={() => changeZoom(null)}
           canUndo={editor.canUndo}
           canRedo={editor.canRedo}
           onUndo={editor.undo}
@@ -588,7 +637,7 @@ export default function EditorMaterialPage() {
               <div
                 ref={canvasScrollRef}
                 data-editor-canvas
-                className="flex-1 overflow-y-auto bg-muted/30 relative flex justify-center custom-scrollbar p-4 md:p-8"
+                className="flex-1 overflow-y-auto bg-muted/30 relative flex custom-scrollbar p-4 md:p-8"
                 onPointerEnter={() => {
                   isInteractingWithInspectorRef.current = false;
                 }}
@@ -602,9 +651,11 @@ export default function EditorMaterialPage() {
                     Clique para selecionar · Duplo clique para editar o texto
                   </div>
                 )}
-                <div 
-                  className="w-full flex justify-center origin-top transition-transform duration-200" 
-                  style={viewMode === 'desktop' ? { zoom: autoScale } : undefined}
+                {/* Acima do ajuste o documento mantém a largura nominal (64rem + px-4 do renderer) e rola na horizontal:
+                    com w-full ele encolheria e as composições mudariam em vez de só ampliar */}
+                <div
+                  className={cn('mx-auto flex origin-top transition-transform duration-200', !(scale > autoScale) && 'w-full justify-center')}
+                  style={viewMode === 'desktop' ? { zoom: scale, ...(scale > autoScale && { width: '66rem', flexShrink: 0 }) } : undefined}
                 >
                   <VisualRenderer
                     blocks={editorState.blocks}
@@ -614,7 +665,7 @@ export default function EditorMaterialPage() {
                     designTokens={designTokens}
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
-                    uiScale={viewMode === 'desktop' ? autoScale : 1}
+                    uiScale={scale}
                     sectionActions={{
                       move: handleMoveBlock,
                       duplicate: handleDuplicateBlock,

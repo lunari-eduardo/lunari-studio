@@ -41,8 +41,10 @@ export function useEquipmentSync() {
 
   const checkForNewEquipment = useCallback(async () => {
     try {
-      // Verificar se usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
+      // Verificar se usuário está autenticado (getSession é leitura local;
+      // getUser() seria um round-trip ao Auth a cada tick). RLS valida no servidor.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) {
         console.log('🔧 [EquipmentSync] Usuário não autenticado');
         return;
@@ -181,8 +183,11 @@ export function useEquipmentSync() {
       checkForNewEquipment();
     }, 1000);
 
-    // Verificar a cada 30 segundos (reduzido de 10s para evitar muitas queries)
-    const interval = setInterval(checkForNewEquipment, 30000);
+    // Fallback de baixa frequência: o caminho principal é o force-scan após criar
+    // transação. Pausa em aba oculta para não gerar log/egress em background.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') checkForNewEquipment();
+    }, 10 * 60 * 1000);
     
     // Listener para force-scan
     window.addEventListener(EQUIPMENT_FORCE_SCAN_EVENT, handleForceScan);

@@ -300,27 +300,34 @@ async function runTests() {
   assert(resolveIconKey('removed-key', 'users') === null && resolveIconKey(undefined) === null, 'Unknown or absent icon renders nothing');
   assert(Object.values(PROPOSAL_ICONS).every((d) => !!d.icon && !!d.label), 'Every catalog icon resolves to a component');
 
-  // 18. Seed "Sessões de Natal" (lido do próprio SQL): tudo registrado, paleta legível, instanciação limpa e assinada
+  // 18. Seed "Sessões de Natal" (lido do próprio SQL): tudo registrado, paleta legível, instanciação limpa e assinada.
+  // O arquivo traz a família (Clássico, Noturno, Essencial): os checks comuns rodam em todos; os do Clássico ficam no 1º.
   const seedSql = fs.readFileSync(path.resolve('supabase/migrations/20270102000000_seed_sessoes_natal_proposal_template.sql'), 'utf-8');
-  const [seedBlocks, seedTokens] = [...seedSql.matchAll(/'((?:[^']|'')*)'::jsonb/g)].map((m) => JSON.parse(m[1].replace(/''/g, "'")));
-  assert(Array.isArray(seedBlocks) && seedBlocks.length > 0 && !!seedTokens?.colors, 'Seed jsonb literals parse');
-  for (const b of seedBlocks) {
-    if (b.type === 'global_settings') continue;
-    const def = BLOCK_REGISTRY[b.type];
-    assert(!!def, `Seed block type is registered: ${b.type}`);
-    const variant = def.variants?.find((v) => v.value === b.props?.variant);
-    assert(!b.props?.variant || !!variant, `Seed variant exists: ${b.type}/${b.props?.variant}`);
-    assert(!variant?.collection || variant.collection === 'natal', `Seed variant is standard or Natal: ${b.props?.variant}`);
+  const seedLiterals = [...seedSql.matchAll(/'((?:[^']|'')*)'::jsonb/g)].map((m) => JSON.parse(m[1].replace(/''/g, "'")));
+  const seeds: { blocks: any[]; tokens: any }[] = [];
+  for (let i = 0; i + 1 < seedLiterals.length; i += 2) seeds.push({ blocks: seedLiterals[i], tokens: seedLiterals[i + 1] });
+  assert(seeds.length === 3 && seedLiterals.length === 6, `Seed has the three Natal models (got ${seeds.length})`);
+  for (const { blocks, tokens } of seeds) {
+    assert(Array.isArray(blocks) && blocks.length > 0 && !!tokens?.colors, 'Seed jsonb literals parse');
+    for (const b of blocks) {
+      if (b.type === 'global_settings') continue;
+      const def = BLOCK_REGISTRY[b.type];
+      assert(!!def, `Seed block type is registered: ${b.type}`);
+      const variant = def.variants?.find((v) => v.value === b.props?.variant);
+      assert(!b.props?.variant || !!variant, `Seed variant exists: ${b.type}/${b.props?.variant}`);
+      assert(!variant?.collection || variant.collection === 'natal', `Seed variant is standard or Natal: ${b.props?.variant}`);
+    }
+    assert(!normalizeBlocks(blocks).some((b) => b.content?.title === BLOCK_UNKNOWN_FALLBACK_TITLE), 'No seed block falls back to legacy text');
+    const icons = [...JSON.stringify(blocks).matchAll(/"icon":"([^"]*)"/g)].map((m) => m[1]);
+    assert(icons.every((k) => k === '' || k === ICON_NONE || !!PROPOSAL_ICONS[k]), `Seed icons exist in the catalog: ${icons}`);
+    const { colors: c, typography: ty } = tokens;
+    assert(contrastRatio(c.ink, c.white) >= 7, 'Natal ink is AAA on ivory');
+    assert(contrastRatio(c.taupe, c.white) >= 4.5, 'Natal secondary text is AA on ivory');
+    assert(contrastRatio(c.accent, c.white) >= 3, 'Natal accent is legible for large text, prices and icons');
+    assert([ty.display, ty.body, ty.script].every((f: string) => !!PROPOSAL_FONTS[f]), 'Seed fonts are in the catalog');
+    assert(PROPOSAL_FONTS[ty.script].kind === 'script', 'Seed calligraphy role uses a script font');
   }
-  assert(!normalizeBlocks(seedBlocks).some((b) => b.content?.title === BLOCK_UNKNOWN_FALLBACK_TITLE), 'No seed block falls back to legacy text');
-  const seedIcons = [...JSON.stringify(seedBlocks).matchAll(/"icon":"([^"]*)"/g)].map((m) => m[1]);
-  assert(seedIcons.every((k) => k === '' || k === ICON_NONE || !!PROPOSAL_ICONS[k]), `Seed icons exist in the catalog: ${seedIcons}`);
-  const { colors: pal, typography: typ } = seedTokens;
-  assert(contrastRatio(pal.ink, pal.white) >= 7, 'Natal ink is AAA on ivory');
-  assert(contrastRatio(pal.taupe, pal.white) >= 4.5, 'Natal secondary text is AA on ivory');
-  assert(contrastRatio(pal.accent, pal.white) >= 3, 'Natal accent is legible for large text, prices and icons');
-  assert([typ.display, typ.body, typ.script].every((f: string) => !!PROPOSAL_FONTS[f]), 'Seed fonts are in the catalog');
-  assert(PROPOSAL_FONTS[typ.script].kind === 'script', 'Seed calligraphy role uses a script font');
+  const seedBlocks = seeds[0].blocks;
   const natal = instantiateTemplateBlocks(seedBlocks, { photographerName: 'Estúdio Luz' });
   const natalCovers = natal.filter((b: any) => b.type === 'CoverBlock');
   assert(natalCovers.every((b: any) => b.content.photographer_name === 'Estúdio Luz'), 'Demo studio name becomes the profile signature');
@@ -384,6 +391,39 @@ async function runTests() {
     ['arches-trio', 'ornament', 'night-hero', 'light-intro', 'icon-features', 'arch-hero'].every((v) => natalVariants.includes(v)),
     `Natal variants are collection-only: ${natalVariants}`
   );
+
+  // 18c. Família Natal: ids/tags próprios, mesmo esqueleto, uma composição de cada por modelo, troca sem perda
+  const seedIds = [...seedSql.matchAll(/VALUES \(\s*'([^']+)'/g)].map((m) => m[1]);
+  assert(seedIds.join() === 'sessoes-natal,sessoes-natal-noturno,sessoes-natal-essencial', `Natal model ids: ${seedIds}`);
+  const seedTags = [...seedSql.matchAll(/ARRAY\[([^\]]*)\]/g)].map((m) => m[1]);
+  assert(seedTags.length === 3 && seedTags.every((t) => t.startsWith("'natal'")), 'Every Natal model carries the natal tag first (gallery tab)');
+  assert(new Set(seedTags.map((t) => t.split(',')[1].trim())).size === 3, 'The second tag (shown on the card) tells the models apart');
+  const skeleton = (s: { blocks: any[] }) => s.blocks.map((b) => `${b.id ?? b.type}:${b.type}`).join();
+  assert(seeds.every((s) => skeleton(s) === skeleton(seeds[0])), 'Natal models share the same skeleton (ids and types in order): switching pairs 1:1');
+  assert(seeds.every((s) => s.blocks.find((b) => b.type === 'global_settings')?.data?.collection === 'natal'), 'Every Natal model declares the Natal collection');
+  const propOf = (s: { blocks: any[] }, id: string, key: string) => s.blocks.find((b) => b.id === id)?.props?.[key];
+  for (const [id, key] of [['sn_cover_arcos', 'variant'], ['sn_intro', 'variant'], ['sn_pkg_cards', 'variant'], ['sn_looks', 'photo_style']]) {
+    const used = seeds.map((s) => propOf(s, id, key) ?? 'soft'); // photo_style sem valor = soft
+    assert(new Set(used).size === 3, `Each Natal model uses a different ${key} for ${id}: ${used}`);
+  }
+  const fresh = (s: { blocks: any[] }) => instantiateTemplateBlocks(s.blocks, { photographerName: 'Estúdio Luz' });
+  assert(
+    seeds.every((s) => !/"(?:https?:\/\/|\/templates\/|\.\/)/.test(JSON.stringify(fresh(s)))),
+    'No Natal model instance carries a photo or path'
+  );
+  for (const [i, from] of seeds.entries()) {
+    for (const [j, to] of seeds.entries()) {
+      if (i === j) continue;
+      const mine = normalizeBlocks(fresh(from));
+      const cover = mine.find((b) => b.type === 'CoverBlock')!;
+      cover.content = { ...cover.content, title: 'Natal da Ana', image_url: 'https://me/capa.jpg' };
+      const sw = applyTemplate(mine, fresh(to));
+      assert(sw.added.length === 0 && sw.unmatched.length === 0, `Switching Natal model ${i} -> ${j} pairs every section (added ${sw.added.length}, kept ${sw.unmatched.length})`);
+      const swCover = sw.blocks.find((b) => b.type === 'CoverBlock')!;
+      assert(swCover.content!.title === 'Natal da Ana' && swCover.content!.image_url === 'https://me/capa.jpg', `Switching Natal model ${i} -> ${j} keeps the photographer's edits`);
+      assert(swCover.props!.variant === propOf(to, 'sn_cover_arcos', 'variant'), `Switching Natal model ${i} -> ${j} applies the target cover`);
+    }
+  }
 
   // 19. Capa Arcos: o 3º arco do modelo nunca vaza; a foto do fotógrafo sobrevive à troca de modelo
   const archesTpl = instantiateTemplateBlocks([

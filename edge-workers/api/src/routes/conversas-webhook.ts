@@ -1172,6 +1172,13 @@ async function handleMessagesSet(
   }
 }
 
+/** Eventos de alto volume cujo sucesso não precisa de audit (falhas sempre são gravadas). */
+const AUDIT_SKIP_ON_SUCCESS = new Set([
+  'MESSAGES_UPDATE', 'MESSAGE_UPDATE', 'MESSAGES_SET',
+  'CHATS_SET', 'CHATS_UPSERT', 'CHATS_UPDATE',
+  'CONTACTS_SET', 'CONTACTS_UPSERT', 'CONTACTS_UPDATE',
+  'PRESENCE_UPDATE',
+]);
 // ─── Main Route ───────────────────────────────────────────────────────────────
 
 export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) {
@@ -1278,18 +1285,21 @@ export async function conversasWebhookRoute(c: Context<{ Bindings: Bindings }>) 
     console.error('[conversas-webhook] Erro ao processar evento:', err);
   }
 
-  // 6. Audit trail com registro claro de status de processamento e erro
-  try {
-    await supabase.from('conversas_webhook_events').insert({
-      instance_id: instance.id,
-      event_type: event || 'UNKNOWN',
-      payload: (payload ?? {}) as Record<string, unknown>,
-      processed: processError === null,
-      error_message: processError,
-      received_at: new Date().toISOString(),
-    });
-  } catch (auditErr) {
-    console.error('[conversas-webhook] Falha no audit log:', auditErr);
+  // 6. Audit trail. Eventos ruidosos só são gravados quando falham: cada insert
+  // vira request REST + linha de log + payload jsonb (a tabela tem retenção de 7 dias).
+  if (processError !== null || !AUDIT_SKIP_ON_SUCCESS.has(event)) {
+    try {
+      await supabase.from('conversas_webhook_events').insert({
+        instance_id: instance.id,
+        event_type: event || 'UNKNOWN',
+        payload: (payload ?? {}) as Record<string, unknown>,
+        processed: processError === null,
+        error_message: processError,
+        received_at: new Date().toISOString(),
+      });
+    } catch (auditErr) {
+      console.error('[conversas-webhook] Falha no audit log:', auditErr);
+    }
   }
 
   if (processError) {

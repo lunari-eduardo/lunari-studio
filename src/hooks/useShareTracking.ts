@@ -76,12 +76,13 @@ export function useShareTracking({ token, slug }: { token?: string, slug?: strin
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Heartbeat: Atualiza a duração no servidor a cada 10s caso a aba seja fechada de forma anormal
+    // Heartbeat: Atualiza a duração no servidor a cada 45s caso a aba seja fechada de forma anormal.
+    // (10s gerava 360 invocações de Edge Function/hora por visitante.)
     heartbeatIntervalRef.current = setInterval(() => {
       if (document.visibilityState === 'visible') {
         trackEvent('heartbeat' as any); // edge function will just update session duration on any event if we want, or we can add it explicitly
       }
-    }, 10000);
+    }, 45000);
 
     return () => {
       if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);

@@ -118,7 +118,9 @@ export function PropertiesSidebar({
   const collection = useProposalCollection();
   // Sem `key` por bloco: o grupo aberto acompanha o fotógrafo de uma seção para outra
   const [openGroup, setOpenGroup] = useState<string>('text');
-  const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
+  // Importação de pacotes cadastrados: null = fechada; '' = sem grupo; senão, a chave do grupo de destino
+  const [importTarget, setImportTarget] = useState<string | null>(null);
+  const [imported, setImported] = useState<Record<string, number>>({});
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const uid = useId();
 
@@ -141,10 +143,20 @@ export function PropertiesSidebar({
     onUpdateBlock(blockIndex, { props: { ...(latest().props ?? {}), ...updates } });
   };
 
-  const importPackage = (pacote: Pacote) => {
-    setContent({ packages: [...(content.packages ?? []), pacoteToProposalPackage(pacote, produtos)] });
-    setIsPackageModalOpen(false);
+  const openImport = (target: string) => {
+    setImported({});
+    setImportTarget(target);
   };
+
+  // A janela fica aberta: o fotógrafo marca vários pacotes de uma vez e conclui
+  const importPackage = (pacote: Pacote) => {
+    const item = { ...pacoteToProposalPackage(pacote, produtos), ...(importTarget && { group_id: importTarget }) };
+    setContent({ packages: [...(latest().content?.packages ?? []), item] });
+    setImported((m) => ({ ...m, [pacote.id]: (m[pacote.id] ?? 0) + 1 }));
+  };
+  const importGroupTitle = importTarget
+    ? (content.groups as any[] | undefined)?.find((g) => g.key === importTarget)?.title?.trim()
+    : '';
 
   const handleSlotUpload = async (e: React.ChangeEvent<HTMLInputElement>, slotKey: string) => {
     const file = e.target.files?.[0];
@@ -305,7 +317,7 @@ export function PropertiesSidebar({
                       <Button
                         variant="outline"
                         className="w-full border-dashed gap-2 h-9 text-xs rounded-xl"
-                        onClick={() => setIsPackageModalOpen(true)}
+                        onClick={() => openImport('')}
                       >
                         <DownloadCloud className="h-3.5 w-3.5" />
                         Importar pacotes cadastrados
@@ -314,7 +326,7 @@ export function PropertiesSidebar({
 
                     {g.items.map((e) =>
                       block.type === 'PricingTable' && e.field.key === 'packages' ? (
-                        <PackageGroupsField key="packages" content={content} field={e.field} ctx={ctx} onChange={setContent} />
+                        <PackageGroupsField key="packages" content={content} field={e.field} ctx={ctx} onChange={setContent} onImport={openImport} />
                       ) : (
                         renderField(e, g.title, g.key === 'text')
                       )
@@ -375,12 +387,14 @@ export function PropertiesSidebar({
       </div>
 
       {/* MODAL DE IMPORTAÇÃO DE PACOTES */}
-      <Dialog open={isPackageModalOpen} onOpenChange={setIsPackageModalOpen}>
+      <Dialog open={importTarget !== null} onOpenChange={(open) => !open && setImportTarget(null)}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Importar Pacote</DialogTitle>
+            <DialogTitle>Importar pacotes</DialogTitle>
             <DialogDescription>
-              Selecione um pacote cadastrado no sistema para adicionar à tabela.
+              {importTarget
+                ? `Selecione os pacotes cadastrados para adicionar a "${importGroupTitle || 'este grupo'}".`
+                : 'Selecione os pacotes cadastrados no sistema para adicionar à tabela.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -400,7 +414,14 @@ export function PropertiesSidebar({
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-semibold text-sm">{preview.name}</span>
-                      <span className="font-bold text-sm text-primary">{preview.price}</span>
+                      <span className="flex items-center gap-2">
+                        {imported[pacote.id] > 0 && (
+                          <span className="text-[11px] font-medium text-emerald-600">
+                            Adicionado{imported[pacote.id] > 1 ? ` ×${imported[pacote.id]}` : ''}
+                          </span>
+                        )}
+                        <span className="font-bold text-sm text-primary">{preview.price}</span>
+                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">
                       {preview.features.join(' · ') || 'Sem itens inclusos'}
@@ -409,6 +430,11 @@ export function PropertiesSidebar({
                 );
               })
             )}
+          </div>
+          <div className="flex justify-end">
+            <Button size="sm" onClick={() => setImportTarget(null)}>
+              Concluir
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
