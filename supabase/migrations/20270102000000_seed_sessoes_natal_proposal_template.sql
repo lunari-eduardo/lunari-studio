@@ -9,6 +9,8 @@
 -- title_style fica sem valor: cada capa usa o próprio padrão (Arcos caligráfica, demais caixa-alta).
 -- Fase 4: Adicionais (AddonsBlock, Cartões; Linhas em "Composição"), preços de exemplo editáveis.
 -- Fase 7: Encerramento (CTABlock Assinatura: caligrafia com a assinatura do perfil, foto abaixo, sem botão por padrão).
+-- Conceito da sessão: 3 composições no mesmo bloco (Texto e Luz, Com ícones, Destaque visual); o bloco
+-- já carrega os 3 destaques com ícone (content.items) e o corpo em dois parágrafos (as duas colunas).
 -- Fase 6: Informações práticas (lista com ícones) e Reserva (etapas + lista de condições, sem cabeçalho).
 -- Fase 5: Dicas de looks (Texto e Luz com foto em moldura, Paleta, Galeria com legendas, Orientações com ícone).
 -- Coleção Natal: tag "natal" (aba da vitrine) + global_settings.collection (a proposta criada
@@ -59,7 +61,12 @@ VALUES (
    "title_italic": "memórias.",
    "body": "As sessões de Natal foram pensadas para celebrar o que realmente importa: o tempo em família, os vínculos e a beleza dos pequenos momentos que tornam esta época tão especial.\n\nEm um ambiente acolhedor e cheio de significado, criamos uma experiência leve e descontraída, para que vocês possam viver esse momento com tranquilidade, enquanto registramos a essência da sua família com naturalidade e sensibilidade.",
    "vertical_label": "",
-   "details": []
+   "details": [],
+   "items": [
+    { "id": "sn_f1", "title": "Conexão em família", "body": "Momentos reais e cheios de afeto.", "icon": "heart" },
+    { "id": "sn_f2", "title": "Ambiente acolhedor", "body": "Cenário pensado com muito carinho.", "icon": "tree" },
+    { "id": "sn_f3", "title": "Registros autênticos", "body": "Fotografias que contam a sua história.", "icon": "camera" }
+   ]
   },
   "props": {
    "variant": "light-intro",

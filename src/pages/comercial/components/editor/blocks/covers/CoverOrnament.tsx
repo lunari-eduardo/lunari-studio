@@ -3,8 +3,22 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { EditableText } from '../../../../blocks/EditableText';
 import { useInlineEdit } from '../../../../blocks/inlineContext';
+import { EditableImage } from '../../../../blocks/EditableImage';
 import { sectionBg, textColorClass, coverStyles, HERO_MIN_H, CtaHandler } from '../helpers';
-import { LABEL, Rule, ShapedMedia, Sparkle, TitleLockup, accentOn, type TitleStyle } from '../kit';
+import { LABEL, Rule, Sparkle, TitleLockup, accentOn, type TitleStyle } from '../kit';
+
+// Recorte da foto por máscara (não pelo contêiner): o botão "Trocar foto" nunca é cortado.
+// Com ornamentos, árvores vazadas (alfa de medalhao-mascara.png); sem, círculo simples.
+const maskStyle = (image: string): React.CSSProperties => ({
+  maskImage: image,
+  WebkitMaskImage: image,
+  maskSize: '100% 100%',
+  WebkitMaskSize: '100% 100%',
+  maskRepeat: 'no-repeat',
+  WebkitMaskRepeat: 'no-repeat',
+});
+const TREES = maskStyle('url(/images/natal/medalhao-mascara.png)');
+const CIRCLE = maskStyle('radial-gradient(circle closest-side, #000 99.5%, transparent 100%)');
 
 // Brilhos ao redor do medalhão (% da largura do círculo; dentro da margem da seção)
 const SPARKLES: React.CSSProperties[] = [
@@ -17,9 +31,9 @@ const SPARKLES: React.CSSProperties[] = [
 ];
 
 /**
- * Capa Medalhão: foto circular "pendurada" por um fio que desce do topo da seção
- * (cresce com a altura disponível), título em dois tempos com filete e estrela.
- * Gancho e brilhos são opcionais (hide_ornaments): sem eles, a foto fica centralizada.
+ * Capa Medalhão: globo de neve "pendurado" por um fio que desce do topo da seção
+ * (cresce com a altura disponível), árvores vazadas sobre a foto, título em dois tempos.
+ * Gancho, árvores e brilhos são opcionais (hide_ornaments): sem eles, círculo simples e centralizado.
  */
 export function CoverOrnament({
   data,
@@ -62,7 +76,9 @@ export function CoverOrnament({
         />
       )}
 
-      <div className="relative w-[min(78%,24rem)] @2xl:w-[min(46%,26rem)]">
+      <div className="relative aspect-square w-[min(78%,24rem)] @2xl:w-[min(46%,26rem)]">
+        {/* Vidro do globo: sombra e um véu claro que aparece pelo recorte das árvores */}
+        <span aria-hidden className="absolute inset-0 rounded-full bg-white/50 shadow-[0_24px_60px_rgba(0,0,0,0.10)]" />
         {ornaments && (
           <span
             aria-hidden
@@ -73,14 +89,21 @@ export function CoverOrnament({
             style={{ background: 'color-mix(in srgb, currentColor 22%, var(--pa-white, #FAF6F0))' }}
           />
         )}
-        <ShapedMedia
-          shape="circle"
+        <EditableImage
           editable={editable}
-          value={data?.image_url}
+          value={data?.image_url || null}
           onCommit={(url) => inline?.set('image_url', url)}
           label="Foto do medalhão"
           alt="Capa"
-          className="aspect-square w-full ring-1 ring-[var(--pa-stone,#D9C8AE)] ring-offset-[6px] ring-offset-transparent shadow-[0_24px_60px_rgba(0,0,0,0.10)]"
+          className="absolute inset-0 w-full h-full"
+          imgClassName="object-cover w-full h-full"
+          imgStyle={ornaments ? TREES : CIRCLE}
+          publicEmptyClassName="w-full h-full bg-[var(--pa-linen,#E9DFD0)]"
+        />
+        {/* Aro sobre a borda da foto */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-[var(--pa-stone,#D9C8AE)] shadow-[inset_0_0_0_4px_rgba(255,255,255,0.5)]"
         />
         {ornaments &&
           SPARKLES.map((pos, i) => (

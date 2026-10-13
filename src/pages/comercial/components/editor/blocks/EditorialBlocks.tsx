@@ -4,7 +4,8 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
-import { LABEL, Rule, accentOn } from './kit';
+import { infoIcon, resolveIconKey } from '../../../blocks/icons';
+import { LABEL, ProposalIcon, Rule, ShapedMedia, Snowfall, Sprig, Starburst, accentOn, useEt, type Et } from './kit';
 
 export function EditorialOverlapBlend({
   data,
@@ -580,6 +581,290 @@ export function EditorialLightIntro({
   );
 }
 
+// ============================================================
+// CONCEITO DA SESSÃO — composições centralizadas (coleção Natal)
+// "Com ícones": texto, destaques com ícone e foto larga. "Destaque visual": foto em arco com
+// contorno e galho, texto em duas colunas e estrela. Todo o desenho usa a cor do texto/acento
+// da seção, então acompanha qualquer fundo; o galho pode virar arte própria (PNG).
+// ============================================================
+
+const TINT = 'bg-[color:color-mix(in_srgb,var(--pa-accent,#A67C52)_13%,transparent)]';
+const HAIR = 'border-[color:color-mix(in_srgb,currentColor_18%,transparent)]';
+// O contorno do arco esmaece junto com a foto (a máscara da foto não o alcança)
+const OUTLINE_FADE =
+  '[mask-image:linear-gradient(to_bottom,#000_52%,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,#000_52%,transparent)]';
+
+// Destaques de partida para propostas anteriores à composição (o modelo já traz os seus)
+const STARTER_FEATURES = [
+  { title: 'Conexão em família', body: 'Momentos reais e cheios de afeto.', icon: 'heart' },
+  { title: 'Ambiente acolhedor', body: 'Cenário pensado com muito carinho.', icon: 'tree' },
+  { title: 'Registros autênticos', body: 'Fotografias que contam a sua história.', icon: 'camera' },
+];
+
+// Colunas dos destaques: 1 no estreito (< @sm), depois um por coluna (4 viram 2 × 2 até @4xl)
+const FEATURE_COLS: Record<number, string> = {
+  1: '',
+  2: '@sm:grid-cols-2',
+  3: '@sm:grid-cols-3',
+  4: '@sm:grid-cols-2 @4xl:grid-cols-4',
+};
+
+/** Rótulo com filete curto e título com a segunda voz em itálico no acento, centralizados. */
+function CenteredHead({ c, et, editable, accent, className }: { c: any; et: Et; editable: boolean; accent: string; className?: string }) {
+  return (
+    <header className={cn('flex w-full flex-col items-center', className)}>
+      {(c.eyebrow || editable) && (
+        <>
+          <EditableText
+            as="p"
+            {...et('eyebrow', c.eyebrow)}
+            className={cn('pl-[0.32em] text-[11px] opacity-75 @md:text-xs', LABEL)}
+            style={fb()}
+            placeholder="Rótulo (opcional)"
+          />
+          <Rule className={cn('mt-5 w-16 opacity-60', accent)} />
+        </>
+      )}
+      {/* Sem cn: o tailwind-merge descartaria o leading ao lado do text-[length:…] */}
+      <h2 className="mt-7 max-w-full text-[length:clamp(2.5rem,7cqi,4.25rem)] leading-[1.06] tracking-[-0.01em]" style={fd()}>
+        <EditableText {...et('title', c.title)} placeholder="Mais que fotografias," />
+        {(c.title_italic || editable) && (
+          <em className={cn('block', accent)} style={fh()}>
+            <EditableText {...et('title_italic', c.title_italic)} placeholder="memórias." />
+          </em>
+        )}
+      </h2>
+    </header>
+  );
+}
+
+/**
+ * Conceito da sessão · Com ícones — texto centralizado, destaques com ícone lado a lado
+ * (filete entre eles; 1 coluna no estreito) e foto larga com cantos suaves embaixo.
+ */
+export function EditorialIconFeatures({ data, content, props }: { data?: any; content?: any; props?: any }) {
+  const { editable, et, set } = useEt();
+  const c = content || data || {};
+  const p = props || {};
+  const photoRef = p.photo_a?.image_ref || null;
+  const hasPhoto = !!photoRef || editable;
+  const accent = accentOn(p);
+  const items = ((c.items as any[]) || [])
+    .map((it, i) => ({ it, i }))
+    .filter(({ it }) => editable || it?.title?.trim() || it?.body?.trim());
+  const perRow = Math.min(items.length, 4);
+  const perNarrow = perRow === 4 ? 2 : perRow;
+
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden px-6 pt-16 @md:px-14 @md:pt-24',
+        hasPhoto ? 'pb-14 @md:pb-20' : 'pb-16 @md:pb-24',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      <div className="mx-auto flex w-full max-w-[56rem] flex-col items-center text-center">
+        <CenteredHead c={c} et={et} editable={editable} accent={accent} />
+        {(c.body || editable) && (
+          <EditableText
+            as="div"
+            multiline
+            {...et('body', c.body)}
+            className="mt-8 max-w-[34rem] whitespace-pre-line text-[15px] leading-[1.75] opacity-85 @md:text-[17px]"
+            style={fb()}
+            placeholder="O conceito da sessão: o que vocês vão viver e o que as fotografias vão guardar."
+          />
+        )}
+
+        {items.length > 0 ? (
+          <div className={cn('mt-12 grid w-full grid-cols-1 gap-y-10 @md:mt-14', perRow === 1 ? 'max-w-[20rem]' : 'max-w-[46rem]', FEATURE_COLS[perRow])}>
+            {items.map(({ it, i }, n) => {
+              const icon = resolveIconKey(it.icon, infoIcon(it));
+              return (
+                <article
+                  key={it.id || i}
+                  className={cn(
+                    'flex min-w-0 flex-col items-center px-2 @2xl:px-4 @4xl:px-6',
+                    HAIR,
+                    // Filete só entre colunas lado a lado: o 1º de cada linha não tem
+                    n % perNarrow !== 0 ? '@sm:border-l' : '@sm:border-l-0',
+                    n % perRow !== 0 ? '@4xl:border-l' : '@4xl:border-l-0'
+                  )}
+                >
+                  {icon && (
+                    <span aria-hidden className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-full @md:h-14 @md:w-14', TINT, accent)}>
+                      <ProposalIcon name={icon} className="h-5 w-5 @md:h-6 @md:w-6" />
+                    </span>
+                  )}
+                  <EditableText
+                    as="h3"
+                    {...et(`items.${i}.title`, it.title)}
+                    className={cn('pl-[0.16em] text-[length:clamp(9px,2.3cqi,12px)] font-semibold', LABEL, 'tracking-[0.16em] leading-[1.7]')}
+                    style={fb()}
+                    placeholder="Destaque"
+                  />
+                  <EditableText
+                    as="div"
+                    multiline
+                    {...et(`items.${i}.body`, it.body)}
+                    className="mt-2 max-w-[24ch] whitespace-pre-line text-[length:clamp(11px,3.1cqi,14px)] leading-[1.55] opacity-75"
+                    style={fb()}
+                    placeholder="Frase curta"
+                  />
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          editable && (
+            <button
+              type="button"
+              onClick={() => set('items', STARTER_FEATURES.map((f) => ({ ...f, id: crypto.randomUUID() })))}
+              className="mt-12 rounded-full border border-dashed border-current px-5 py-2.5 text-[11px] uppercase tracking-[0.2em] opacity-60 transition-opacity hover:opacity-100"
+            >
+              Adicionar destaques com ícone
+            </button>
+          )
+        )}
+
+        {hasPhoto && (
+          <ShapedMedia
+            shape="soft"
+            editable={editable}
+            value={photoRef}
+            onCommit={(url) => set('props.photo_a.image_ref', url)}
+            label="Foto principal"
+            alt={c.title || 'Foto'}
+            className="mt-12 aspect-[4/3] w-full @md:mt-16 @md:aspect-[16/9]"
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Conceito da sessão · Destaque visual — foto grande em arco (esmaece na base) com contorno e
+ * galho decorativo, título centralizado e o corpo em duas colunas com filete (1º parágrafo à
+ * esquerda, o restante à direita; empilhados no estreito), fechando com a estrela.
+ * Flocos, contorno, galho e estrela somem com `hide_ornaments`; o galho vira arte própria
+ * com `ornament_a` (esquerda) e `ornament_b` (direita): PNG com fundo transparente.
+ */
+export function EditorialArchHero({ data, content, props }: { data?: any; content?: any; props?: any }) {
+  const { editable, et, set } = useEt();
+  const c = content || data || {};
+  const p = props || {};
+  const photoRef = p.photo_a?.image_ref || null;
+  const hasPhoto = !!photoRef || editable;
+  const accent = accentOn(p);
+  const decor = !p.hide_ornaments;
+
+  // Um único campo de texto (body): parágrafos separados por linha em branco viram as colunas
+  const [first = '', ...rest] = String(c.body ?? '')
+    .split(/\n\s*\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const second = rest.join('\n\n');
+  const columns = editable || !!second;
+  const setBody = (a: string, b: string) => set('body', [a, b].map((s) => s.trim()).filter(Boolean).join('\n\n'));
+  const BODY = 'whitespace-pre-line text-[15px] leading-[1.75] opacity-85 @md:text-[16px]';
+
+  const art = (src: string, side: string) => (
+    <img src={src} alt="" aria-hidden draggable={false} className={cn('pointer-events-none absolute h-auto w-[24%] select-none', side)} />
+  );
+
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden px-6 @md:px-14',
+        hasPhoto ? 'pt-10 @md:pt-14' : 'pt-16 @md:pt-24',
+        'pb-14 @md:pb-20',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      {decor && (
+        <>
+          {/* Luz suave no canto e flocos ao fundo: na cor do acento, em opacidade baixa */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{ backgroundImage: 'radial-gradient(70% 42% at 6% 0%, color-mix(in srgb, var(--pa-accent, #A67C52) 12%, transparent), transparent 72%)' }}
+          />
+          <Snowfall className={cn('absolute inset-x-0 top-0 h-auto w-full opacity-[0.13]', accent)} />
+        </>
+      )}
+
+      <div className="relative z-10 mx-auto flex w-full max-w-[56rem] flex-col items-center text-center">
+        {hasPhoto && (
+          <div className="relative mx-auto w-[84%] @md:w-[min(74%,26rem)] @2xl:w-[min(58%,32rem)]">
+            {decor && (
+              <span
+                aria-hidden
+                className={cn('pointer-events-none absolute -inset-x-[5%] -top-[4.5%] bottom-0 rounded-t-full border border-current opacity-50', OUTLINE_FADE, accent)}
+              />
+            )}
+            <ShapedMedia
+              shape="arch"
+              fadeBottom
+              editable={editable}
+              value={photoRef}
+              onCommit={(url) => set('props.photo_a.image_ref', url)}
+              label="Foto principal"
+              alt={c.title || 'Foto'}
+              className="aspect-[10/11] w-full"
+            />
+            {decor &&
+              (p.ornament_a ? (
+                art(p.ornament_a, '-left-[13%] top-[18%]')
+              ) : (
+                <Sprig className={cn('absolute -left-[13%] top-[19%] h-auto w-[23%]', accent)} />
+              ))}
+            {decor && p.ornament_b && art(p.ornament_b, '-right-[13%] top-[28%]')}
+          </div>
+        )}
+
+        {/* O rótulo entra na base esmaecida da foto */}
+        <CenteredHead c={c} et={et} editable={editable} accent={accent} className={hasPhoto ? '-mt-4 @md:-mt-8' : undefined} />
+
+        {(first || editable) && (
+          <div className={cn('mt-10 w-full', columns ? 'max-w-[52rem] @3xl:grid @3xl:grid-cols-2' : 'max-w-[34rem]')}>
+            <EditableText
+              as="div"
+              multiline
+              {...et('body', first)}
+              onCommit={(v) => setBody(v, second)}
+              className={cn(BODY, columns && '@3xl:pr-10 @3xl:text-left')}
+              style={fb()}
+              placeholder="O conceito da sessão: o que vocês vão viver e o que as fotografias vão guardar."
+            />
+            {(second || editable) && (
+              <EditableText
+                as="div"
+                multiline
+                {...et('body', second)}
+                onCommit={(v) => setBody(first, v)}
+                className={cn(BODY, 'mt-5 @3xl:mt-0 @3xl:border-l @3xl:pl-10 @3xl:text-left', HAIR)}
+                style={fb()}
+                placeholder="Segundo parágrafo (opcional)"
+              />
+            )}
+          </div>
+        )}
+
+        {decor && (
+          <span aria-hidden className={cn('mt-12 flex w-full max-w-[26rem] items-center gap-4 @md:mt-14', accent)}>
+            <span className="h-px flex-1 bg-current opacity-60" />
+            <Starburst className="h-6 w-6 @md:h-7 @md:w-7" />
+            <span className="h-px flex-1 bg-current opacity-60" />
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function EditorialRenderer({
   data,
   content,
@@ -593,6 +878,10 @@ export function EditorialRenderer({
   switch (variant) {
     case 'light-intro':
       return <EditorialLightIntro data={data} content={content} props={props} />;
+    case 'icon-features':
+      return <EditorialIconFeatures data={data} content={content} props={props} />;
+    case 'arch-hero':
+      return <EditorialArchHero data={data} content={content} props={props} />;
     case 'split-portrait':
       return <EditorialSplitPortrait data={data} content={content} props={props} />;
     case 'text-only':

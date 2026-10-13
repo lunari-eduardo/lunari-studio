@@ -348,6 +348,24 @@ async function runTests() {
   ]);
   assert(introTpl[0].props.photo_a.image_ref === null && introTpl[0].props.variant === 'light-intro', 'Intro demo photo never reaches a proposal');
 
+  // Conceito da sessão: 3 composições no mesmo bloco. O modelo carrega os destaques com ícone (ids renovados)
+  // e o corpo em dois parágrafos (as duas colunas do "Destaque visual"); arte decorativa é do modelo, a foto não.
+  const seedIntro = seedBlocks.find((b: any) => b.props?.variant === 'light-intro');
+  assert(
+    seedIntro.content.items.length === 3 && seedIntro.content.items.every((it: any) => !!it.title && !!it.body && !!PROPOSAL_ICONS[it.icon]),
+    'Seed intro carries the three icon highlights'
+  );
+  assert(
+    natalIntro.content.items.length === 3 &&
+      natalIntro.content.items.every((it: any, i: number) => it.id !== seedIntro.content.items[i].id && it.title === seedIntro.content.items[i].title),
+    'Intro highlights keep their text and get fresh ids'
+  );
+  assert(seedIntro.content.body.split(/\n\s*\n/).filter(Boolean).length === 2, 'Seed intro body is two paragraphs (the two columns)');
+  const decor = instantiateTemplateBlocks([
+    { type: 'EditorialBlock', content: { title: 'x' }, props: { variant: 'arch-hero', photo_a: { image_ref: 'https://x/a.jpg' }, ornament_a: 'https://x/galho.png' } },
+  ]);
+  assert(decor[0].props.photo_a.image_ref === null && decor[0].props.ornament_a === 'https://x/galho.png', 'Decorative art stays with the model; the demo photo does not');
+
   // 18b. Coleção Natal: o modelo declara a coleção (tag + global_settings) e a proposta criada herda
   assert(/ARRAY\[[^\]]*'natal'/.test(seedSql), 'Seed is tagged natal (gallery tab)');
   assert(natal.find((b: any) => b.type === 'global_settings')?.data?.collection === 'natal', 'Instantiated proposal keeps the Natal collection');
@@ -362,7 +380,10 @@ async function runTests() {
   assert(names(forCollection(opts, undefined, (o) => o.value === 'arcos')) === 'std,arcos', 'A variant already in use never disappears');
   assert(names(forCollection(opts, 'natal', (o) => o.value === 'std')) === 'std,arcos,medalhao', 'Standard variant in use stays in a Natal proposal');
   const natalVariants = Object.values(BLOCK_REGISTRY).flatMap((d) => (d.variants ?? []).filter((v) => v.collection).map((v) => v.value));
-  assert(['arches-trio', 'ornament', 'night-hero', 'light-intro'].every((v) => natalVariants.includes(v)), `Natal variants are collection-only: ${natalVariants}`);
+  assert(
+    ['arches-trio', 'ornament', 'night-hero', 'light-intro', 'icon-features', 'arch-hero'].every((v) => natalVariants.includes(v)),
+    `Natal variants are collection-only: ${natalVariants}`
+  );
 
   // 19. Capa Arcos: o 3º arco do modelo nunca vaza; a foto do fotógrafo sobrevive à troca de modelo
   const archesTpl = instantiateTemplateBlocks([

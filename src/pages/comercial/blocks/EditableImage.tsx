@@ -14,7 +14,7 @@ interface EditableImageProps {
   className?: string;
   imgClassName?: string;
   style?: React.CSSProperties;
-  /** Estilo só da foto (ex.: máscara de esmaecimento): o botão "Trocar foto" fica intacto */
+  /** Forma da foto (máscara): vale para a foto, o escurecimento do hover e o espaço vazio; o botão "Trocar foto" fica intacto */
   imgStyle?: React.CSSProperties;
   /** Classes do wrapper quando vazio no modo público (ex.: cor neutra) */
   publicEmptyClassName?: string;
@@ -104,7 +104,7 @@ export function EditableImage({
       );
     }
     if (publicEmptyClassName) {
-      return <div className={cn(className, publicEmptyClassName)} style={style} />;
+      return <div className={cn(className, publicEmptyClassName)} style={imgStyle ? { ...style, ...imgStyle } : style} />;
     }
     return null;
   }
@@ -139,6 +139,7 @@ export function EditableImage({
             'absolute inset-0 flex flex-col items-center justify-center gap-2.5 border-2 border-dashed border-neutral-400/70 bg-neutral-500/[0.08] transition-colors group-hover/img:border-neutral-500 group-hover/img:bg-neutral-500/[0.14]',
             fill ? '' : 'relative py-10'
           )}
+          style={imgStyle}
         >
           {actionCorner ? (
             // Canto inferior: o topo direito da seção é da barra de ações do canvas
@@ -159,7 +160,7 @@ export function EditableImage({
           {/* Seleção (galeria): contorno por dentro — células da grade recortam o que fica fora */}
           {selected && <div className="pointer-events-none absolute inset-0 z-20 ring-[3px] ring-inset ring-primary" />}
           {/* Leve escurecimento no hover sinaliza que a foto é editável */}
-          <div className="absolute inset-0 z-10 bg-black/20 opacity-0 transition-opacity pointer-events-none group-hover/img:opacity-100" />
+          <div className="absolute inset-0 z-10 bg-black/20 opacity-0 transition-opacity pointer-events-none group-hover/img:opacity-100" style={imgStyle} />
           {/* Sempre visível no editor (o fotógrafo vê de imediato que pode trocar a foto); em galerias
               selecionáveis só no hover, para 20 fotos não virarem 20 pílulas — a barra da foto tem "Trocar" */}
           <div

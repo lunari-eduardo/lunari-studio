@@ -58,6 +58,8 @@ export interface BlockField {
   showIf?: (ctx: FieldCtx) => boolean;
   /** Campo 'icon' dentro de lista: ícone que o "Automático" usa para o item (o mesmo do renderer). */
   autoIcon?: (item: any) => string | null;
+  /** Campo 'image' de arte com transparência (PNG): a prévia mostra a imagem inteira, sem corte. */
+  transparent?: boolean;
 }
 
 export interface PropImageSlot {
@@ -190,6 +192,9 @@ const LOCKUP_COVERS = ['arches-trio', 'ornament', 'night-hero'];
 /** Pacotes da coleção editorial (Natal): mesma anatomia, layouts diferentes. */
 const COLLECTION_PACKAGES = ['photo-cards', 'photo-rows', 'arch-cards'];
 
+/** Conceito da sessão centralizado (coleção): sem alinhamento nem detalhes chave-valor. */
+const EDITORIAL_CENTERED = ['icon-features', 'arch-hero'];
+
 /** Estilo da palavra em destaque; a 1ª opção é o padrão da variante (o select exibe a 1ª sem valor salvo). */
 const titleStyleField = (first: 'script' | 'caps', variants: string[]): BlockField => {
   const options = [
@@ -277,7 +282,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Como funciona' },
       { key: 'title', label: 'Título Principal', kind: 'text', placeholder: 'Uma tarde' },
       { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'só sua.' },
-      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...' },
+      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...', showIf: variantNotIn('arch-hero') },
+      { key: 'body', label: 'Texto (um parágrafo por coluna)', kind: 'textarea', placeholder: 'Primeiro parágrafo.\n\nSegundo parágrafo.', showIf: variantIn('arch-hero') },
       { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantIn('overlap-blend') },
       { key: 'aside', label: 'Frases de destaque', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.', showIf: variantIn('arch-portrait') },
       {
@@ -290,11 +296,24 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
           { key: 'value', label: 'Valor', kind: 'text', placeholder: '2 a 8 horas' },
         ],
         itemFactory: detailItem,
-        showIf: variantNotIn('arch-portrait', 'light-intro'),
+        showIf: variantNotIn('arch-portrait', 'light-intro', ...EDITORIAL_CENTERED),
+      },
+      {
+        key: 'items',
+        label: 'Destaques com ícone',
+        kind: 'list',
+        itemLabel: 'Destaque',
+        itemFields: [
+          { key: 'title', label: 'Título', kind: 'text', placeholder: 'Conexão em família' },
+          { key: 'body', label: 'Texto curto', kind: 'textarea', placeholder: 'Momentos reais e cheios de afeto.' },
+          { key: 'icon', label: 'Ícone', kind: 'icon', autoIcon: infoIcon },
+        ],
+        itemFactory: infoItem,
+        showIf: variantIn('icon-features'),
       },
     ],
     layoutFields: [
-      ALIGN_FIELD,
+      { ...ALIGN_FIELD, showIf: variantNotIn(...EDITORIAL_CENTERED) },
       backgroundField(),
       textColorField(),
       {
@@ -308,6 +327,10 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         ],
         showIf: variantIn('light-intro'),
       },
+      { key: 'hide_ornaments', label: 'Ocultar detalhes decorativos (contorno, galho, flocos e estrela)', kind: 'boolean', showIf: variantIn('arch-hero') },
+      // Arte própria (PNG com fundo transparente, em quantas cores o fundo pedir) no lugar do galho desenhado
+      { key: 'ornament_a', label: 'Galho à esquerda (PNG transparente)', kind: 'image', transparent: true, group: 'style', showIf: variantIn('arch-hero') },
+      { key: 'ornament_b', label: 'Galho à direita (PNG transparente)', kind: 'image', transparent: true, group: 'style', showIf: variantIn('arch-hero') },
     ],
     variants: [
       { value: 'overlap-blend', label: 'Fotos Sobrepostas', description: 'Duas fotos com blend mode (padrão)' },
@@ -315,6 +338,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'text-only', label: 'Só Texto', description: 'Texto estilizado sem fotos' },
       { value: 'arch-portrait', label: 'Retrato em Arco', description: 'Sobre você: texto, frases de destaque e retrato em arco' },
       { value: 'light-intro', label: 'Texto e Luz', description: 'Título com itálico em destaque e foto suave ao lado, sem moldura', collection: 'natal' },
+      { value: 'icon-features', label: 'Com ícones', description: 'Texto centralizado, destaques com ícone e foto larga abaixo', collection: 'natal' },
+      { value: 'arch-hero', label: 'Destaque visual', description: 'Foto grande em arco com galho decorativo e texto em duas colunas', collection: 'natal' },
     ],
     defaultVariant: 'overlap-blend',
     propImageSlots: [

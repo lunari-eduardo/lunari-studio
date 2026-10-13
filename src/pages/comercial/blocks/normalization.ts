@@ -287,6 +287,7 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
       case 'EditorialBlock':
         content.vertical_label = signature;
         content.details = renewIds(content.details);
+        if ('items' in content) content.items = renewIds(content.items); // destaques com ícone (Natal)
         props.photo_a = clearSlotPhoto(props.photo_a);
         props.photo_b = clearSlotPhoto(props.photo_b);
         break;

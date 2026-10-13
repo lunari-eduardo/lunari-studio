@@ -473,7 +473,7 @@ function ImageField({ field, value, onChange }: FieldEditorProps) {
       <div className="flex gap-3 items-center">
         <div className="h-20 w-32 shrink-0 rounded-lg border border-border bg-muted flex items-center justify-center overflow-hidden">
           {value ? (
-            <img src={value} alt={field.label} className="h-full w-full object-cover" />
+            <img src={value} alt={field.label} className={cn('h-full w-full', field.transparent ? 'object-contain p-1' : 'object-cover')} />
           ) : (
             <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
           )}

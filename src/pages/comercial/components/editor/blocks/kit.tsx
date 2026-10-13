@@ -84,11 +84,67 @@ export function accentOn(props: any): string {
   return light && (!props?.text_color || props.text_color === 'default') ? 'text-[var(--pa-accent-on-white,#A67C52)]' : '';
 }
 
-/** Estrela de 4 pontas (✦): o único ornamento do kit. */
+/** Estrela de 4 pontas (✦). */
 export function Sparkle({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden className={cn('shrink-0', className)} style={style} fill="currentColor">
       <path d="M12 0c.6 7 4.9 11.4 12 12-7.1.6-11.4 4.9-12 12-.6-7.1-5-11.4-12-12C7 11.4 11.4 7 12 0Z" />
+    </svg>
+  );
+}
+
+// Haste e folhas do galho em "pena": pares de folhas finas, diminuindo para a ponta (viewBox 0 0 64 152)
+const SPRIG_STEM = 'M29 150C21 112 41 62 34 2';
+const SPRIG_LEAVES =
+  'M27.4 138.2C18.2 136.6 10 128.7 6.7 120.9C15 122.8 24.1 129.5 27.4 138.2ZM27.4 138.2C29.2 129.7 36.8 122.2 44.3 119.3C42.3 127 35.7 135.4 27.4 138.2ZM27.1 125.8C18.9 123.3 12.2 115.3 10 107.7C17.4 110.3 25 117.4 27.1 125.8ZM27.1 125.8C29.4 118 37 111.7 44 109.6C41.6 116.6 34.9 123.8 27.1 125.8ZM27.9 112.6C20.6 109.8 15 102 13.5 94.9C20.1 97.8 26.6 104.9 27.9 112.6ZM27.9 112.6C30.3 105.6 37.5 100.1 44 98.5C41.5 104.8 35.1 111.1 27.9 112.6ZM29.3 98.8C22.8 95.9 18.1 88.5 17.1 82.1C22.9 85 28.5 91.7 29.3 98.8ZM29.3 98.8C31.6 92.5 38.2 87.6 44.2 86.2C41.8 91.9 35.9 97.5 29.3 98.8ZM31.1 84.3C25.3 81.5 21.2 74.8 20.5 69C25.7 71.7 30.5 77.9 31.1 84.3ZM31.1 84.3C33.2 78.6 39 74.1 44.4 72.9C42.3 78 37 83.1 31.1 84.3ZM33 69.1C27.8 66.6 24.2 60.7 23.5 55.5C28.1 58 32.4 63.4 33 69.1ZM33 69.1C34.6 64 39.7 59.9 44.4 58.6C42.7 63.2 38.2 67.9 33 69.1ZM34.5 53.2C30 51.2 26.7 46.1 26.1 41.6C30.1 43.6 34 48.3 34.5 53.2ZM34.5 53.2C35.7 48.7 40 45 44 43.6C42.8 47.7 39 52 34.5 53.2ZM35.4 36.8C31.5 35.1 28.6 30.9 27.9 27.1C31.4 28.7 34.8 32.6 35.4 36.8ZM35.4 36.8C36.2 32.9 39.6 29.4 43 28.1C42.1 31.6 39.2 35.5 35.4 36.8ZM35.3 19.7C32 18.5 29.4 15.1 28.7 12C31.7 13.2 34.7 16.2 35.3 19.7ZM35.3 19.7C35.7 16.4 38.3 13.3 41 12C40.6 15 38.4 18.3 35.3 19.7ZM35.1 14.5C33.1 11.7 32.8 7.5 33.9 4.5C35.7 7.1 36.4 11.3 35.1 14.5Z';
+
+/**
+ * Galho em traço fino (haste e folhas), na cor do texto ao redor: acompanha qualquer fundo/acento.
+ * O fotógrafo pode trocá-lo por arte própria (PNG) na composição que o usa.
+ */
+export function Sprig({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 152" aria-hidden className={cn('pointer-events-none', className)} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+      <path d={SPRIG_STEM} strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
+      <path d={SPRIG_LEAVES} fill="currentColor" fillOpacity=".2" strokeWidth=".9" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
+/** Estrela de 8 pontas afiladas (4 longas e 4 curtas): fecha as composições de destaque. */
+export function Starburst({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className={cn('shrink-0', className)} fill="currentColor">
+      <path d="M12 0l1.1 10.9L24 12l-10.9 1.1L12 24l-1.1-10.9L0 12l10.9-1.1Z" />
+      <path d="M12 12l6.6-6.6M12 12l6.6 6.6M12 12L5.4 18.6M12 12L5.4 5.4" stroke="currentColor" strokeWidth=".9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Braço do floco (raio 10) com duas ramificações; o floco repete o braço a cada 60°
+const FLAKE_ARM = 'M0 0V-10M0 -6.2L-2.5 -8.7M0 -6.2L2.5 -8.7M0 -3.2L-1.7 -4.9M0 -3.2L1.7 -4.9';
+const FLAKE_ANGLES = [0, 60, 120, 180, 240, 300];
+// x, y (viewBox 100×60), escala e giro: grandes nos cantos de cima, miúdos descendo
+const FLAKES: [number, number, number, number][] = [
+  [8, 9, 1.8, 14],
+  [93, 8, 1.15, -8],
+  [20, 33, 0.6, 30],
+  [86, 28, 0.5, 12],
+  [4, 46, 0.4, 0],
+  [96, 44, 0.36, 20],
+];
+
+/** Flocos de neve ao fundo (traço fino, cor do texto ao redor): decorativos, pensados para opacidade baixa. */
+export function Snowfall({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 60" aria-hidden className={cn('pointer-events-none', className)} fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
+      {FLAKES.map(([x, y, s, r]) => (
+        <g key={`${x}-${y}`} transform={`translate(${x} ${y}) rotate(${r}) scale(${s})`}>
+          {FLAKE_ANGLES.map((a) => (
+            <path key={a} d={FLAKE_ARM} transform={`rotate(${a})`} vectorEffect="non-scaling-stroke" />
+          ))}
+        </g>
+      ))}
     </svg>
   );
 }
