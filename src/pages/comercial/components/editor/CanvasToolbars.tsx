@@ -5,10 +5,11 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Camera, Copy, LayoutGrid, Lo
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { BlockData } from '@/hooks/useMaterialEditor';
-import { getBlockDef, GALLERY_SPAN_OPTIONS, IMAGE_RATIO_OPTIONS, type FieldCtx } from '../../blocks/registry';
+import { getBlockDef, GALLERY_SPAN_OPTIONS, IMAGE_RATIO_OPTIONS } from '../../blocks/registry';
 import { uploadProposalImage } from '../../blocks/uploadImage';
-import { BackgroundSwatches, backgroundSwatchColor } from '../../blocks/FieldEditor';
-import { DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
+import { BackgroundSwatches } from '../../blocks/FieldEditor';
+import { DEFAULT_DESIGN_TOKENS, backgroundSwatchColor } from '../../blocks/design';
+import { sectionBackgroundField } from '../../blocks/sectionBackground';
 import { forCollection, optionsFor, useProposalCollection } from '../../blocks/collections';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
@@ -103,6 +104,8 @@ export interface SectionToolbarProps {
   /** Escala do canvas (zoom do editor): a barra compensa para manter o tamanho real. */
   uiScale?: number;
   onSetPath: (path: string, value: any) => void;
+  /** Ausente = sem "Usar em todas as seções" no popover de fundo. */
+  onApplyBackgroundToAll?: (value: string) => void;
   onMove: (direction: 'up' | 'down') => void;
   onDuplicate: () => void;
   onRemove: () => void;
@@ -113,12 +116,10 @@ export interface SectionToolbarProps {
 // Caminho de 1 clique para composição e fundo, além de mover,
 // duplicar e remover. Fica grudada no topo da seção ao rolar.
 // ============================================================
-export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSetPath, onMove, onDuplicate, onRemove }: SectionToolbarProps) {
-  const def = getBlockDef(block.type);
+export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSetPath, onApplyBackgroundToAll, onMove, onDuplicate, onRemove }: SectionToolbarProps) {
   const choice = layoutChoice(block, useProposalCollection());
   const layout = choice && choice.options.length > 1 ? choice : null; // uma opção só não é escolha
-  const ctx: FieldCtx = { content: block.content ?? {}, props: { ...(block.props ?? {}), variant: block.props?.variant ?? def?.defaultVariant } };
-  const bgField = def?.layoutFields?.find((f) => f.key === 'background' && (!f.showIf || f.showIf(ctx)));
+  const bgField = sectionBackgroundField(block);
   const bgColor = backgroundSwatchColor(block.props?.background, palette);
   const layoutLabel = layout?.options.find((o) => o.value === layout.value)?.label;
 
@@ -169,6 +170,7 @@ export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSe
                 onChange={(v) => onSetPath('props.background', v)}
                 options={bgField.options ?? []}
                 palette={palette}
+                onApplyAll={onApplyBackgroundToAll}
               />
             </PopoverContent>
           </Popover>

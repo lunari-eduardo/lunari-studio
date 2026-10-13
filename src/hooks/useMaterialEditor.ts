@@ -503,6 +503,7 @@ export function useMaterialEditor(materialId: string | undefined) {
     undo,
     redo,
     updateBlock,
+    updateBlocks,
     updateBlockField,
     updatePdfUrl,
     updateGlobalSettings,

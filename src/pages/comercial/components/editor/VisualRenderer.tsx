@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
-import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, onColor, DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
+import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, onColor, accentOver, cardVeil, DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
 import { BlockObserver, typographyKey } from './blocks/helpers';
@@ -42,6 +42,8 @@ export interface VisualRendererProps {
     duplicate: (index: number) => void;
     remove: (index: number) => void;
     insertAfter: (index: number) => void;
+    /** Fundo da seção atual em todas as seções que o aceitam (um passo de histórico). */
+    applyBackgroundToAll?: (value: string) => void;
   };
   /** Zoom aplicado ao canvas pelo editor: o chrome compensa para manter o tamanho real. */
   uiScale?: number;
@@ -70,7 +72,12 @@ export function VisualRenderer({
   const palette = { ...DEFAULT_DESIGN_TOKENS.colors, ...(designTokens?.colors ?? {}) };
   const sectionVars = (bg: unknown): React.CSSProperties | undefined =>
     isHexColor(bg)
-      ? { ['--pa-sec-bg' as any]: bg, ['--pa-on-sec' as any]: onColor(bg, palette.ink, palette.white) }
+      ? {
+          ['--pa-sec-bg' as any]: bg,
+          ['--pa-on-sec' as any]: onColor(bg, palette.ink, palette.white),
+          ['--pa-accent-on-sec' as any]: accentOver(palette.accent, bg, palette.ink, palette.white),
+          ['--pa-veil-on-sec' as any]: cardVeil(bg, palette.ink, palette.white),
+        }
       : undefined;
 
   // Estado do popover de tamanho de texto
@@ -262,6 +269,7 @@ export function VisualRenderer({
                   palette={palette}
                   uiScale={uiScale}
                   onSetPath={(path, value) => onUpdateField?.(blockIdx, path, value)}
+                  onApplyBackgroundToAll={sectionActions.applyBackgroundToAll}
                   onMove={(dir) => sectionActions.move(blockIdx, dir)}
                   onDuplicate={() => sectionActions.duplicate(blockIdx)}
                   onRemove={() => sectionActions.remove(blockIdx)}

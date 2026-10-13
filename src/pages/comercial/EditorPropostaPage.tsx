@@ -25,6 +25,8 @@ import { useProposalTemplates } from './biblioteca/hooks/useCreateMaterialWizard
 import { SectionLibraryDialog } from './components/editor/modals/SectionLibraryDialog';
 import { getSectionTitle } from './blocks/registry';
 import { ProposalCollectionContext } from './blocks/collections';
+import { DEFAULT_DESIGN_TOKENS } from './blocks/design';
+import { applyBackgroundToAll } from './blocks/sectionBackground';
 
 // Zoom do preview: de "bem longe" (vê a proposta toda) a 2×
 const MIN_ZOOM = 0.25;
@@ -456,6 +458,18 @@ export default function EditorMaterialPage() {
     selectAfterRender(target);
   };
 
+  // Um passo de histórico (Ctrl+Z desfaz todas); sem toast: aviso inline com "Desfazer", como na troca de modelo
+  const handleApplyBackgroundToAll = (value: string) => {
+    const palette = { ...DEFAULT_DESIGN_TOKENS.colors, ...(designTokens?.colors ?? {}) };
+    const { blocks, changed } = applyBackgroundToAll(editorState.blocks, value, palette);
+    if (!changed) return;
+    editor.updateBlocks(blocks);
+    setUndoNotice({
+      text: `Fundo aplicado em ${changed} ${changed === 1 ? 'outra seção' : 'outras seções'}`,
+      revision: editorState.revision + 1,
+    });
+  };
+
   const libraryPositionLabel =
     sectionLibrary?.afterIndex !== undefined && editorState.blocks[sectionLibrary.afterIndex]
       ? `logo após "${getSectionTitle(editorState.blocks[sectionLibrary.afterIndex])}"`
@@ -540,6 +554,7 @@ export default function EditorMaterialPage() {
       aiContext={{ materialTitle: editorState.title }}
       onDuplicateBlock={handleDuplicateBlock}
       onRemoveBlock={handleRemoveBlock}
+      onApplyBackgroundToAll={handleApplyBackgroundToAll}
       onInteractionStart={() => {
         isInteractingWithInspectorRef.current = true;
       }}
@@ -671,6 +686,7 @@ export default function EditorMaterialPage() {
                       duplicate: handleDuplicateBlock,
                       remove: handleRemoveBlock,
                       insertAfter: (index) => setSectionLibrary({ afterIndex: index }),
+                      applyBackgroundToAll: handleApplyBackgroundToAll,
                     }}
                   />
                 </div>

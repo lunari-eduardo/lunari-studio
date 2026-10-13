@@ -116,7 +116,7 @@ VALUES (
    ],
    "footnote": "Viva a magia do agora"
   },
-  "props": { "variant": "photo-cards", "background": "cream", "text_color": "default" }
+  "props": { "variant": "photo-cards", "card_style": "tint", "background": "cream", "text_color": "default" }
  },
  {
   "id": "sn_addons",
@@ -140,7 +140,7 @@ VALUES (
     { "id": "sn_xh4", "label": "Opções para presentear", "icon": "gift" }
    ]
   },
-  "props": { "variant": "grid", "background": "cream", "text_color": "default" }
+  "props": { "variant": "grid", "card_style": "tint", "background": "cream", "text_color": "default" }
  },
  {
   "id": "sn_looks",
@@ -495,7 +495,7 @@ VALUES (
    "footnote": "Viva a magia do agora"
   },
   "props": {
-   "variant": "photo-rows",
+   "variant": "photo-rows", "card_style": "tint",
    "background": "cream",
    "text_color": "default"
   }
@@ -574,7 +574,7 @@ VALUES (
    ]
   },
   "props": {
-   "variant": "rows",
+   "variant": "rows", "card_style": "tint",
    "background": "dark",
    "text_color": "default"
   }
@@ -1104,7 +1104,7 @@ VALUES (
    "footnote": "Viva a magia do agora"
   },
   "props": {
-   "variant": "arch-cards",
+   "variant": "arch-cards", "card_style": "tint",
    "background": "linen",
    "text_color": "default"
   }
@@ -1183,7 +1183,7 @@ VALUES (
    ]
   },
   "props": {
-   "variant": "grid",
+   "variant": "grid", "card_style": "tint",
    "background": "cream",
    "text_color": "default",
    "hide_images": true

@@ -4,7 +4,7 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { displayPrice, priceEditPath, slicePad, splitLeadingNumber, type PackageSlice } from '../../../blocks/pricing';
 import { ICON_NONE, addonIcon, resolveIconKey, suggestIcon } from '../../../blocks/icons';
-import { fa, fb, fd, fh, sectionBg, textColorClass } from './helpers';
+import { accentTextClass, fa, fb, fd, fh, sectionBg, textColorClass, veilClass } from './helpers';
 import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, useEt, type Et } from './kit';
 
 // ============================================================
@@ -24,6 +24,26 @@ const ACCENT_TEXT = 'text-[var(--pa-accent-on-white,#A67C52)]';
 const BADGE =
   'whitespace-nowrap rounded-full bg-[color:color-mix(in_srgb,var(--pa-accent,#A67C52)_72%,var(--pa-ink,#1F2620))] px-4 py-1.5 text-[10px] uppercase tracking-[0.3em] text-[var(--pa-white,#FAF6F0)] shadow-[0_4px_14px_rgba(0,0,0,0.12)]';
 const HAIRLINE = 'bg-[color:color-mix(in_srgb,currentColor_12%,transparent)]';
+
+// Estilo do cartão (props.card_style). 'solid' = superfície "white" do tema (propostas antigas, sem o campo);
+// 'tint' = veladura translúcida (veilClass: vidro fosco em fundo escuro, branco suave em fundo claro);
+// 'outline' = só contorno. Os leves não têm superfície própria: o texto herda a cor da seção
+// (funciona em fundo claro e escuro) e o acento vem de accentTextClass.
+type CardStyle = 'solid' | 'tint' | 'outline';
+const cardStyleOf = (p: any): CardStyle => (p?.card_style === 'tint' || p?.card_style === 'outline' ? p.card_style : 'solid');
+const lightCard = (style: CardStyle, p: any, featured = false) =>
+  cn(
+    style === 'tint' && veilClass(p?.background, 'cream'),
+    featured
+      ? FEATURED_BORDER
+      : style === 'tint'
+        ? 'border-[color:color-mix(in_srgb,currentColor_16%,transparent)]'
+        : 'border-[color:color-mix(in_srgb,currentColor_26%,transparent)]'
+  );
+// Sem a sobreposição do painel sobre a foto (a foto apareceria através do cartão translúcido): filete entre os dois
+const PANEL_UNDER_PHOTO = 'border-t border-[color:color-mix(in_srgb,currentColor_12%,transparent)]';
+/** Acento do cartão: sobre a superfície branca (sólido) ou direto sobre o fundo da seção (leve). */
+const cardAccent = (style: CardStyle, p: any) => (style === 'solid' ? ACCENT_TEXT : accentTextClass(p?.text_color, p?.background, 'cream'));
 
 function Badge({ et, idx, text, className }: { et: Et; idx: number; text: string; className?: string }) {
   return (
@@ -134,7 +154,23 @@ function PackagesFooter({ c, et, editable, accent, longRules = true }: { c: any;
 }
 
 /** Itens com ícone: escolhido no painel (feature_icons) ou sugerido pelo texto; desconhecido = losango neutro. */
-function FeatureList({ pkg, idx, et, editable, showIcons, className }: { pkg: any; idx: number; et: Et; editable: boolean; showIcons: boolean; className?: string }) {
+function FeatureList({
+  pkg,
+  idx,
+  et,
+  editable,
+  showIcons,
+  className,
+  accentText = ACCENT_TEXT,
+}: {
+  pkg: any;
+  idx: number;
+  et: Et;
+  editable: boolean;
+  showIcons: boolean;
+  className?: string;
+  accentText?: string;
+}) {
   const features: string[] = pkg.features || [];
   const icons: string[] = pkg.feature_icons || [];
   return (
@@ -145,7 +181,7 @@ function FeatureList({ pkg, idx, et, editable, showIcons, className }: { pkg: an
         return (
           <li key={i} className="flex items-start gap-4 text-[15px] leading-[1.45]">
             {showIcons && (
-              <span aria-hidden className={cn('flex h-6 w-6 shrink-0 items-center justify-center', ACCENT_TEXT)}>
+              <span aria-hidden className={cn('flex h-6 w-6 shrink-0 items-center justify-center', accentText)}>
                 {key ? (
                   <ProposalIcon name={key} className="h-6 w-6" />
                 ) : icons[i] === ICON_NONE ? null : (
@@ -216,6 +252,9 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
   const p = props || {};
   const packages: any[] = c.packages || [];
   const accent = accentOn(p);
+  const style = cardStyleOf(p);
+  const solid = style === 'solid';
+  const accentText = cardAccent(style, p);
 
   return (
     <section className={sectionCls(p, slice)}>
@@ -233,8 +272,9 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
                 <article
                   className={cn(
                     'flex w-full flex-col overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-center',
-                    CARD,
-                    featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.10)]') : cn(CARD_BORDER, 'shadow-[0_4px_30px_rgba(0,0,0,0.06)]')
+                    solid
+                      ? cn(CARD, featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.10)]') : cn(CARD_BORDER, 'shadow-[0_4px_30px_rgba(0,0,0,0.06)]'))
+                      : lightCard(style, p, featured)
                   )}
                 >
                   {hasPhoto && (
@@ -254,7 +294,7 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
                   <div
                     className={cn(
                       'relative flex flex-1 flex-col items-center px-6 pb-8 pt-8 @md:px-7',
-                      hasPhoto && cn('-mt-6 rounded-t-[var(--pa-r-card,1.5rem)]', CARD)
+                      hasPhoto && (solid ? cn('-mt-6 rounded-t-[var(--pa-r-card,1.5rem)]', CARD) : PANEL_UNDER_PHOTO)
                     )}
                   >
                     <EditableText
@@ -275,10 +315,18 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
                       />
                     )}
                     <Rule className="mt-5 w-14 opacity-25" />
-                    <FeatureList pkg={pkg} idx={idx} et={et} editable={editable} showIcons={!p.hide_icons} className="mt-7 w-full max-w-[17rem] text-left" />
+                    <FeatureList
+                      pkg={pkg}
+                      idx={idx}
+                      et={et}
+                      editable={editable}
+                      showIcons={!p.hide_icons}
+                      accentText={accentText}
+                      className="mt-7 w-full max-w-[17rem] text-left"
+                    />
                     <span aria-hidden className="min-h-6 flex-1" />
                     <span aria-hidden className={cn('mt-8 block h-px w-full', HAIRLINE)} />
-                    <PackagePrice pkg={pkg} idx={idx} set={set} editable={editable} className={cn('mt-6', ACCENT_TEXT)} />
+                    <PackagePrice pkg={pkg} idx={idx} set={set} editable={editable} className={cn('mt-6', accentText)} />
                   </div>
                 </article>
               </div>
@@ -298,6 +346,9 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
   const p = props || {};
   const packages: any[] = c.packages || [];
   const accent = accentOn(p);
+  const style = cardStyleOf(p);
+  const solid = style === 'solid';
+  const accentText = cardAccent(style, p);
 
   return (
     <section className={sectionCls(p, slice)}>
@@ -315,9 +366,10 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
                 key={pkg.id || idx}
                 className={cn(
                   'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left',
-                  CARD,
                   hasPhoto && '@2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]',
-                  featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.10)]') : cn(CARD_BORDER, 'shadow-[0_4px_30px_rgba(0,0,0,0.06)]')
+                  solid
+                    ? cn(CARD, featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.10)]') : cn(CARD_BORDER, 'shadow-[0_4px_30px_rgba(0,0,0,0.06)]'))
+                    : lightCard(style, p, featured)
                 )}
               >
                 {hasPhoto && (
@@ -339,14 +391,14 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
                     <EditableText
                       as="h3"
                       {...et(`packages.${idx}.name`, pkg.name)}
-                      className={cn('text-[1.4rem] uppercase leading-tight tracking-[0.22em] @md:text-[1.65rem]', ACCENT_TEXT)}
+                      className={cn('text-[1.4rem] uppercase leading-tight tracking-[0.22em] @md:text-[1.65rem]', accentText)}
                       style={fd()}
                       placeholder="Nome do pacote"
                     />
                     {featured ? (
                       <Badge et={et} idx={idx} text={pkg.badge} />
                     ) : (
-                      <span aria-hidden className={cn('h-px w-12 bg-current opacity-40', ACCENT_TEXT)} />
+                      <span aria-hidden className={cn('h-px w-12 bg-current opacity-40', accentText)} />
                     )}
                   </div>
                   {(pkg.description || editable) && (
@@ -359,10 +411,10 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
                       placeholder="Para quem é este pacote"
                     />
                   )}
-                  <FeatureList pkg={pkg} idx={idx} et={et} editable={editable} showIcons={!p.hide_icons} className="mt-6" />
+                  <FeatureList pkg={pkg} idx={idx} et={et} editable={editable} showIcons={!p.hide_icons} accentText={accentText} className="mt-6" />
                   <span aria-hidden className="min-h-4 flex-1" />
                   <span aria-hidden className={cn('mt-6 block h-px w-full', HAIRLINE)} />
-                  <PackagePrice pkg={pkg} idx={idx} set={set} editable={editable} className={cn('mt-5', ACCENT_TEXT)} />
+                  <PackagePrice pkg={pkg} idx={idx} set={set} editable={editable} className={cn('mt-5', accentText)} />
                 </div>
               </article>
             );
@@ -375,7 +427,7 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
 }
 
 /** Item do cartão em arco: quantidade em destaque ao lado do rótulo; sem quantidade, só o rótulo. */
-function ArchFeature({ feat, path, et, editable }: { feat: string; path: string; et: Et; editable: boolean }) {
+function ArchFeature({ feat, path, et, editable, accentText }: { feat: string; path: string; et: Et; editable: boolean; accentText: string }) {
   const split = splitLeadingNumber(feat);
   const base = et(path, feat);
   const labelCls = cn('text-[10px] @md:text-[11px] opacity-85', LABEL, 'tracking-[0.28em] leading-[1.7]');
@@ -388,7 +440,7 @@ function ArchFeature({ feat, path, et, editable }: { feat: string; path: string;
         editable={editable}
         value={split.num}
         onCommit={(v) => base.onCommit(v.trim() ? `${v.trim()} ${split.label}` : split.label)}
-        className={cn('shrink-0 whitespace-nowrap text-[2.25rem] leading-none lining-nums', ACCENT_TEXT)}
+        className={cn('shrink-0 whitespace-nowrap text-[2.25rem] leading-none lining-nums', accentText)}
         style={fa()}
       />
       <EditableText
@@ -411,6 +463,9 @@ export function PricingArchCards({ content, data, props, slice }: { content?: an
   const packages: any[] = c.packages || [];
   const accent = accentOn(p);
   const itemLabel = c.item_label ?? 'Pacote';
+  const style = cardStyleOf(p);
+  const solid = style === 'solid';
+  const accentText = cardAccent(style, p);
 
   return (
     <section className={sectionCls(p, slice)}>
@@ -429,8 +484,9 @@ export function PricingArchCards({ content, data, props, slice }: { content?: an
                   className={cn(
                     'flex w-full flex-col items-center border px-6 pb-9 pt-14 text-center @md:px-8',
                     'rounded-b-[var(--pa-r-card,1.25rem)] rounded-t-[50%_4.5rem]',
-                    CARD,
-                    featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.08)]') : 'border-[var(--pa-stone,#D9C8AE)]'
+                    solid
+                      ? cn(CARD, featured ? cn(FEATURED_BORDER, 'shadow-[0_18px_50px_rgba(0,0,0,0.08)]') : 'border-[var(--pa-stone,#D9C8AE)]')
+                      : lightCard(style, p, featured)
                   )}
                 >
                   {(itemLabel || editable) && (
@@ -445,7 +501,7 @@ export function PricingArchCards({ content, data, props, slice }: { content?: an
                   <EditableText
                     as="h3"
                     {...et(`packages.${idx}.name`, pkg.name)}
-                    className={cn('mt-3 text-[length:clamp(2rem,4.2cqi,2.75rem)] leading-tight', featured && ACCENT_TEXT)}
+                    className={cn('mt-3 text-[length:clamp(2rem,4.2cqi,2.75rem)] leading-tight', featured && accentText)}
                     style={fd()}
                     placeholder="Nome do pacote"
                   />
@@ -466,7 +522,7 @@ export function PricingArchCards({ content, data, props, slice }: { content?: an
                         !editable && !feat?.trim() ? null : (
                           <li key={i} className="relative py-4 first:pt-0">
                             {i > 0 && <span aria-hidden className={cn('absolute inset-x-0 top-0 h-px', HAIRLINE)} />}
-                            <ArchFeature feat={feat} path={`packages.${idx}.features.${i}`} et={et} editable={editable} />
+                            <ArchFeature feat={feat} path={`packages.${idx}.features.${i}`} et={et} editable={editable} accentText={accentText} />
                           </li>
                         )
                       )}
@@ -569,6 +625,9 @@ const ICON_DISC = cn(
   CARD,
   ACCENT_TEXT
 );
+// Disco do ícone sobre o painel (cartão leve sem foto): contorno em vez de disco branco sobre o fundo da seção
+const ICON_DISC_LIGHT =
+  'flex h-12 w-12 items-center justify-center rounded-full border border-[color:color-mix(in_srgb,currentColor_20%,transparent)] @md:h-14 @md:w-14';
 
 type AddonsListProps = { c: any; p: any; et: Et; editable: boolean; set: (p: string, v: any) => void };
 
@@ -576,14 +635,19 @@ type AddonsListProps = { c: any; p: any; et: Et; editable: boolean; set: (p: str
 function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
   const items: any[] = c.items || [];
   const n = items.length;
+  const style = cardStyleOf(p);
+  const solid = style === 'solid';
+  const accentText = cardAccent(style, p);
   return (
     <div className="mt-12 grid grid-cols-1 gap-5 @md:mt-14 @md:grid-cols-4 @md:gap-6 @4xl:grid-cols-6">
       {items.map((item, idx) => {
         const hasPhoto = !p.hide_images && (!!item.image_ref || editable);
         const wide = n % 3 === 2 && idx >= n - 2;
         const icon = p.hide_icons ? null : resolveIconKey(item.icon, addonIcon(item));
+        // Sobre a foto o disco segue sólido (legível sobre qualquer imagem); sem foto, contorno nos cartões leves
+        const discSolid = solid || hasPhoto;
         const disc = icon && (
-          <span aria-hidden className={ICON_DISC}>
+          <span aria-hidden className={discSolid ? ICON_DISC : cn(ICON_DISC_LIGHT, accentText)}>
             <ProposalIcon name={icon} className="h-6 w-6" />
           </span>
         );
@@ -591,9 +655,8 @@ function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
           <article
             key={item.id || idx}
             className={cn(
-              'flex flex-col overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-center shadow-[0_4px_30px_rgba(0,0,0,0.06)]',
-              CARD,
-              CARD_BORDER,
+              'flex flex-col overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-center',
+              solid ? cn('shadow-[0_4px_30px_rgba(0,0,0,0.06)]', CARD, CARD_BORDER) : lightCard(style, p),
               addonSpan(idx, n)
             )}
           >
@@ -607,19 +670,19 @@ function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
             <div
               className={cn(
                 'relative flex flex-1 flex-col items-center px-6 pb-8 pt-7 @md:px-7',
-                hasPhoto && cn('-mt-5 rounded-t-[var(--pa-r-card,1.5rem)]', CARD)
+                hasPhoto && (solid ? cn('-mt-5 rounded-t-[var(--pa-r-card,1.5rem)]', CARD) : PANEL_UNDER_PHOTO)
               )}
             >
               {!hasPhoto && disc && <span className="mb-5">{disc}</span>}
               <AddonName et={et} idx={idx} item={item} />
-              <Rule className={cn('mt-4 w-12 opacity-50', ACCENT_TEXT)} />
+              <Rule className={cn('mt-4 w-12 opacity-50', accentText)} />
               <AddonDescription et={et} idx={idx} item={item} editable={editable} className="mt-4 max-w-[30ch]" />
               <span aria-hidden className="min-h-5 flex-1" />
               <FittedPrice
                 value={item.price || ''}
                 editable={editable}
                 onCommit={(v) => set(`items.${idx}.price`, v)}
-                className={cn('mt-5', ACCENT_TEXT)}
+                className={cn('mt-5', accentText)}
               />
             </div>
           </article>
@@ -640,6 +703,9 @@ const ROW_FADE = {
 /** Linhas: foto de um lado (alternando), nome + filete + descrição e o preço numa coluna separada por filete. */
 function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
   const items: any[] = c.items || [];
+  const style = cardStyleOf(p);
+  const solid = style === 'solid';
+  const accentText = cardAccent(style, p);
   return (
     <div className="mt-12 flex flex-col gap-4 @md:mt-14 @md:gap-5">
       {items.map((item, idx) => {
@@ -649,9 +715,8 @@ function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
           <article
             key={item.id || idx}
             className={cn(
-              'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left shadow-[0_4px_30px_rgba(0,0,0,0.06)]',
-              CARD,
-              CARD_BORDER,
+              'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left',
+              solid ? cn('shadow-[0_4px_30px_rgba(0,0,0,0.06)]', CARD, CARD_BORDER) : lightCard(style, p),
               hasPhoto && (flip ? '@2xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]' : '@2xl:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)]')
             )}
           >
@@ -668,7 +733,7 @@ function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
             <div className="flex min-w-0 flex-col gap-6 p-6 @md:p-8 @4xl:flex-row @4xl:items-center @4xl:gap-0">
               <div className="min-w-0 flex-1 @4xl:pr-7">
                 <AddonName et={et} idx={idx} item={item} />
-                <Rule className={cn('mt-4 w-12 opacity-50', ACCENT_TEXT)} />
+                <Rule className={cn('mt-4 w-12 opacity-50', accentText)} />
                 <AddonDescription et={et} idx={idx} item={item} editable={editable} className="mt-4 max-w-[40ch]" />
               </div>
               <span aria-hidden className={cn('block h-px w-full shrink-0 @4xl:h-20 @4xl:w-px', HAIRLINE)} />
@@ -679,7 +744,7 @@ function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
                 onCommit={(v) => set(`items.${idx}.price`, v)}
                 // Coluna dedicada: 22cqi ainda cabe "R$ 12.490,00" e deixa o preço comum perto do da referência
                 size="text-[length:clamp(2.25rem,22cqi,3.6rem)]"
-                className={cn('@4xl:w-[14rem] @4xl:shrink-0 @4xl:pl-7 @4xl:text-center', ACCENT_TEXT)}
+                className={cn('@4xl:w-[14rem] @4xl:shrink-0 @4xl:pl-7 @4xl:text-center', accentText)}
               />
             </div>
           </article>

@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DESIGN_PRESETS } from '@/hooks/useProposalAI';
 import { forCollection, useProposalCollection } from '../../blocks/collections';
+import { commitRecentOnChange } from '../../blocks/recentColors';
 import {
   DEFAULT_DESIGN_TOKENS,
   PROPOSAL_FONTS,
@@ -22,14 +23,15 @@ import {
 
 type ColorKey = keyof NonNullable<ProposalDesignTokens['colors']>;
 
-const PALETTE: { key: ColorKey; label: string }[] = [
-  { key: 'white', label: 'Branco' },
-  { key: 'cream', label: 'Creme' },
-  { key: 'linen', label: 'Linho' },
-  { key: 'stone', label: 'Pedra' },
-  { key: 'taupe', label: 'Taupe' },
-  { key: 'accent', label: 'Acento' },
-  { key: 'ink', label: 'Tinta' },
+// `role` só descreve a função da cor (tooltip): o rótulo visível é o código, que não diverge da cor editada
+const PALETTE: { key: ColorKey; role: string }[] = [
+  { key: 'white', role: 'Base da página e dos cartões' },
+  { key: 'cream', role: 'Fundo 1' },
+  { key: 'linen', role: 'Fundo 2' },
+  { key: 'stone', role: 'Fundo 3' },
+  { key: 'taupe', role: 'Fundo 4' },
+  { key: 'accent', role: 'Destaque' },
+  { key: 'ink', role: 'Texto e fundo escuro' },
 ];
 
 // Caligráficas ficam fora de títulos e corpo (legibilidade de textos longos); fontes só de
@@ -126,21 +128,22 @@ export function DocumentStylePanel({
       <section className="space-y-3">
         <SectionTitle>Paleta</SectionTitle>
         <div className="grid grid-cols-4 gap-x-2 gap-y-3">
-          {PALETTE.map(({ key, label }) => (
-            <label key={key} className="flex cursor-pointer flex-col items-center gap-1.5" title={`${label}: ${colors[key]}`}>
+          {PALETTE.map(({ key, role }) => (
+            <label key={key} className="flex cursor-pointer flex-col items-center gap-1.5" title={`${role}: ${colors[key]?.toUpperCase()}`}>
               <span
                 className="relative h-9 w-9 rounded-full border border-black/10 shadow-[0_2px_10px_rgba(0,0,0,0.06)] transition-transform hover:scale-105"
                 style={{ backgroundColor: colors[key] }}
               >
                 <input
+                  ref={commitRecentOnChange}
                   type="color"
-                  aria-label={`Cor ${label}`}
+                  aria-label={`${role} ${colors[key]?.toUpperCase()}`}
                   value={colors[key]}
                   onChange={(e) => setColor(key, e.target.value)}
                   className="absolute inset-0 h-full w-full cursor-pointer rounded-full opacity-0"
                 />
               </span>
-              <span className="text-[10px] text-muted-foreground">{label}</span>
+              <span className="font-mono text-[10px] uppercase text-muted-foreground">{colors[key]}</span>
             </label>
           ))}
         </div>

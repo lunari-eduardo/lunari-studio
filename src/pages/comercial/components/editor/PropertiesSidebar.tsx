@@ -33,7 +33,7 @@ import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
 import { PackageGroupsField } from './PackageGroupsField';
 import { uploadProposalImage } from '../../blocks/uploadImage';
-import { DEFAULT_DESIGN_TOKENS, isHexColor, type ProposalDesignTokens } from '../../blocks/design';
+import { DEFAULT_DESIGN_TOKENS, backgroundSwatchColor, type ProposalDesignTokens } from '../../blocks/design';
 import { VariantPicker } from './CanvasToolbars';
 import { forCollection, useProposalCollection } from '../../blocks/collections';
 
@@ -43,6 +43,8 @@ export interface PropertiesSidebarProps {
   onUpdateBlock: (index: number, data: Record<string, any>) => void;
   onRemoveBlock: (index: number) => void;
   onDuplicateBlock?: (index: number) => void;
+  /** Ausente = sem "Usar em todas as seções" no campo de fundo. */
+  onApplyBackgroundToAll?: (value: string) => void;
   /** Tema atual: cores reais nas amostras de fundo */
   designTokens?: ProposalDesignTokens;
   /** Contexto para os botões de ajuda de texto com IA */
@@ -85,14 +87,21 @@ function fieldGroup(field: BlockField, isProp: boolean): FieldGroup {
 
 type Entry = { field: BlockField; isProp: boolean };
 
-/** Resumo do cabeçalho do grupo: até dois valores legíveis ("Creme · Automático"). */
-function summarize(entries: Entry[], content: Record<string, any>, props: Record<string, any>, lead?: string): string {
+/** Resumo do cabeçalho do grupo: até dois valores legíveis ("#F3ECE2 · Automático"). */
+function summarize(
+  entries: Entry[],
+  content: Record<string, any>,
+  props: Record<string, any>,
+  palette: NonNullable<ProposalDesignTokens['colors']>,
+  lead?: string
+): string {
   const parts = lead ? [lead] : [];
   for (const { field: f, isProp } of entries) {
     if (parts.length === 2) break;
     const v = (isProp ? props : content)[f.key];
     let s = '';
-    if (f.kind === 'swatch') s = isHexColor(v) ? 'Personalizada' : f.options?.find((o) => o.value === v)?.label ?? '';
+    // Código da cor resolvida: o nome do slot ("Branco") não acompanha a cor editada no tema
+    if (f.kind === 'swatch') s = backgroundSwatchColor(v, palette)?.toUpperCase() ?? '';
     else if (f.kind === 'select') s = f.options?.find((o) => o.value === (v ?? f.options?.[0]?.value))?.label ?? '';
     else if (f.kind === 'list') {
       const n = Array.isArray(v) ? v.length : 0;
@@ -109,6 +118,7 @@ export function PropertiesSidebar({
   onUpdateBlock,
   onRemoveBlock,
   onDuplicateBlock,
+  onApplyBackgroundToAll,
   designTokens,
   aiContext,
   onInteractionStart,
@@ -203,7 +213,7 @@ export function PropertiesSidebar({
     if (g.key === 'items') {
       const lists = items.filter((e) => e.field.kind === 'list');
       if (lists.length === 1) title = lists[0].field.label;
-      summary = summarize(items, content, props);
+      summary = summarize(items, content, props, palette);
     } else if (g.key === 'media') {
       const refs = [
         ...items.flatMap((e) =>
@@ -214,7 +224,7 @@ export function PropertiesSidebar({
       const filled = refs.filter(Boolean).length;
       summary = filled === 0 ? 'sem foto' : refs.length === 1 ? 'com foto' : `${filled} de ${refs.length} fotos`;
     } else {
-      summary = summarize(items, content, props, g.key === 'layout' ? variantLabel : undefined);
+      summary = summarize(items, content, props, palette, g.key === 'layout' ? variantLabel : undefined);
     }
     return { ...g, title, summary, items };
   }).filter((g): g is NonNullable<typeof g> => g !== null);
@@ -231,6 +241,7 @@ export function PropertiesSidebar({
       aiContext={withAi ? { blockType: block.type, ...aiContext } : undefined}
       ctx={ctx}
       palette={palette}
+      onApplyAll={onApplyBackgroundToAll}
     />
   );
 

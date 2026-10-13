@@ -29,7 +29,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { BlockField, FieldCtx, fillGallerySlots } from './registry';
 import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage';
 import { useAiFieldRewrite } from '@/hooks/useProposalAI';
-import { DEFAULT_DESIGN_TOKENS, isHexColor } from './design';
+import { DEFAULT_DESIGN_TOKENS, backgroundSwatchColor, isHexColor } from './design';
+import { commitRecentOnChange, pushRecentColor, useRecentColors } from './recentColors';
 import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS, suggestIcon } from './icons';
 import { optionsFor, useProposalCollection } from './collections';
 
@@ -54,6 +55,8 @@ interface FieldEditorProps {
   palette?: Palette;
   /** Item da lista que contém o campo (iconlist lê os `features` do mesmo item) */
   item?: Record<string, any>;
+  /** Campo 'swatch': oferece "Usar em todas as seções" com o valor atual. */
+  onApplyAll?: (value: string) => void;
 }
 
 // ============================================================
@@ -253,6 +256,7 @@ export function FieldEditor(props: FieldEditorProps) {
             onChange={onChange}
             options={field.options ?? []}
             palette={props.palette ?? DEFAULT_DESIGN_TOKENS.colors}
+            onApplyAll={props.onApplyAll}
           />
         </div>
       );
@@ -514,70 +518,75 @@ function ImageField({ field, value, onChange }: FieldEditorProps) {
   );
 }
 
-// Fundo da seção → cor do tema que a amostra mostra
-const SWATCH_COLOR: Record<string, keyof Palette> = {
-  white: 'white',
-  cream: 'cream',
-  linen: 'linen',
-  stone: 'stone',
-  taupe: 'taupe',
-  dark: 'ink',
-};
+const SWATCH_RING = 'ring-2 ring-primary ring-offset-2 ring-offset-background';
 
-/** Cor real de um fundo de seção (slot do tema ou cor livre); ausente = undefined. */
-export function backgroundSwatchColor(value: unknown, palette: Palette): string | undefined {
-  if (isHexColor(value)) return value;
-  const key = typeof value === 'string' ? SWATCH_COLOR[value] : undefined;
-  return key ? palette[key] : undefined;
-}
-
-/** Amostras da paleta do tema + cor livre. Exportado para a barra da seção no canvas. */
+/**
+ * Amostras da paleta do tema + cores recentes + cor livre. Exportado para a barra da seção no canvas.
+ * O rótulo é sempre o código da cor resolvida: o nome do slot ("Branco") não acompanha a cor editada.
+ */
 export function BackgroundSwatches({
   value,
   onChange,
   options,
   palette,
+  onApplyAll,
 }: {
   value: any;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   palette: Palette;
+  /** Presente = oferece "Usar em todas as seções" com o fundo atual. */
+  onApplyAll?: (value: string) => void;
 }) {
+  const recent = useRecentColors();
   const custom = isHexColor(value) ? value : null;
   const [hexDraft, setHexDraft] = useState(custom ?? '');
   useEffect(() => setHexDraft(custom ?? ''), [custom]);
-  const selectedLabel = custom ? 'Personalizada' : options.find((o) => o.value === value)?.label;
+
+  const currentHex = backgroundSwatchColor(value, palette);
+  // Recente que já é um slot do tema não repete; a cor livre em uso mostra o anel no recente, não no seletor
+  const slotHexes = options.map((o) => backgroundSwatchColor(o.value, palette)?.toLowerCase());
+  const recents = recent.filter((c) => !slotHexes.includes(c));
+  const customLower = custom?.toLowerCase();
+  const customIsRecent = !!customLower && recents.includes(customLower);
+  const pickerShowsCustom = !!custom && !customIsRecent;
+
+  const commitHexDraft = () => isHexColor(hexDraft) && pushRecentColor(hexDraft);
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Fundo da seção">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={value === o.value}
-            aria-label={o.label}
-            title={o.label}
-            onClick={() => onChange(o.value)}
-            className={cn(
-              'h-7 w-7 rounded-full border border-black/10 transition-transform',
-              value === o.value ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:scale-110'
-            )}
-            style={{ backgroundColor: palette[SWATCH_COLOR[o.value] ?? 'white'] }}
-          />
-        ))}
+        {options.map((o) => {
+          const hex = backgroundSwatchColor(o.value, palette) ?? palette.white;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={value === o.value}
+              aria-label={hex?.toUpperCase()}
+              title={hex?.toUpperCase()}
+              onClick={() => onChange(o.value)}
+              className={cn(
+                'h-7 w-7 rounded-full border border-black/10 transition-transform',
+                value === o.value ? SWATCH_RING : 'hover:scale-110'
+              )}
+              style={{ backgroundColor: hex }}
+            />
+          );
+        })}
         {/* Cor livre: seletor nativo do sistema */}
         <label
           title="Cor personalizada"
           className={cn(
             'relative flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-black/10 transition-transform',
-            custom ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : 'hover:scale-110'
+            pickerShowsCustom ? SWATCH_RING : 'hover:scale-110'
           )}
-          style={{ background: custom ?? 'conic-gradient(from 90deg, #E8C9B5, #D4AF37, #8C7B6E, #3F4A5A, #9FB3A5, #E8C9B5)' }}
+          style={{ background: pickerShowsCustom ? custom : 'conic-gradient(from 90deg, #E8C9B5, #D4AF37, #8C7B6E, #3F4A5A, #9FB3A5, #E8C9B5)' }}
         >
-          {!custom && <Pipette className="h-3 w-3 text-white drop-shadow" />}
+          {!pickerShowsCustom && <Pipette className="h-3 w-3 text-white drop-shadow" />}
           <input
+            ref={commitRecentOnChange}
             type="color"
             aria-label="Cor personalizada"
             value={custom ?? '#ffffff'}
@@ -586,20 +595,59 @@ export function BackgroundSwatches({
           />
         </label>
       </div>
+
+      {recents.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Cores recentes">
+          <span className="w-full text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Recentes</span>
+          {recents.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="radio"
+              aria-checked={customLower === c}
+              aria-label={c.toUpperCase()}
+              title={c.toUpperCase()}
+              onClick={() => onChange(c)}
+              className={cn(
+                'h-7 w-7 rounded-full border border-black/10 transition-transform',
+                customLower === c ? SWATCH_RING : 'hover:scale-110'
+              )}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span>{selectedLabel ?? 'Padrão da seção'}</span>
-        {custom && (
+        {custom ? (
           <Input
             value={hexDraft}
             onChange={(e) => {
               setHexDraft(e.target.value);
               if (isHexColor(e.target.value)) onChange(e.target.value);
             }}
+            onBlur={commitHexDraft}
+            onKeyDown={(e) => e.key === 'Enter' && commitHexDraft()}
             className="h-7 w-24 font-mono text-[11px]"
             aria-label="Código da cor"
           />
+        ) : (
+          <span className={currentHex ? 'font-mono' : undefined}>{currentHex?.toUpperCase() ?? 'Padrão da seção'}</span>
         )}
       </div>
+
+      {onApplyAll && value && currentHex && (
+        <button
+          type="button"
+          onClick={() => {
+            if (custom) pushRecentColor(custom);
+            onApplyAll(value);
+          }}
+          className="text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+        >
+          Usar em todas as seções
+        </button>
+      )}
     </div>
   );
 }

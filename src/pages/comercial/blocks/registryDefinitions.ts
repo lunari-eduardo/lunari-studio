@@ -126,6 +126,21 @@ export const textColorField = (showIf?: BlockField['showIf']): BlockField => ({
   showIf,
 });
 
+/** Cartões de pacotes/adicionais da coleção: a 1ª opção é o que propostas antigas (sem o campo) já renderizam. */
+export const CARD_STYLE_OPTIONS = [
+  { value: 'solid', label: 'Sólido' },
+  { value: 'tint', label: 'Translúcido' },
+  { value: 'outline', label: 'Só contorno' },
+];
+
+export const cardStyleField = (showIf?: BlockField['showIf']): BlockField => ({
+  key: 'card_style',
+  label: 'Estilo dos cartões',
+  kind: 'select',
+  options: CARD_STYLE_OPTIONS,
+  showIf,
+});
+
 export const IMAGE_RATIO_OPTIONS = [
   { value: 'auto', label: 'Proporção original' },
   { value: '1/1', label: 'Quadrada (1:1)' },
@@ -422,6 +437,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { ...ALIGN_FIELD, showIf: variantNotIn(...COLLECTION_PACKAGES) },
       backgroundField(),
       textColorField(),
+      cardStyleField(variantIn(...COLLECTION_PACKAGES)),
       { key: 'hide_images', label: 'Ocultar fotos dos pacotes', kind: 'boolean', showIf: variantNotIn('arch-cards') },
       { key: 'hide_icons', label: 'Ocultar ícones dos itens', kind: 'boolean', showIf: variantIn('photo-cards', 'photo-rows') },
       // Só o layout Revista lê estes três
@@ -451,7 +467,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     defaultVariant: 'cards-classic',
     factory: () => ({
       content: { eyebrow: '', title: 'Pacotes', packages: [] },
-      props: { align: 'center', background: 'white' },
+      // card_style: só as variantes da coleção leem (as clássicas ignoram)
+      props: { align: 'center', background: 'white', card_style: 'tint' },
     }),
   },
 
@@ -491,6 +508,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     layoutFields: [
       backgroundField(),
       textColorField(),
+      cardStyleField(),
       { key: 'hide_images', label: 'Ocultar fotos', kind: 'boolean' },
       { key: 'hide_icons', label: 'Ocultar ícones dos itens', kind: 'boolean', showIf: variantIn('grid') },
     ],
@@ -501,7 +519,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     defaultVariant: 'grid',
     factory: () => ({
       content: { eyebrow: '', title: 'Adicionais e', title_italic: 'Extras', subtitle: '', items: [], highlights: [] },
-      props: { background: 'cream' },
+      props: { background: 'cream', card_style: 'tint' },
     }),
   },
 

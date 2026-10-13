@@ -20,7 +20,8 @@ export function useProposalTemplates(enabled = true) {
       const { data, error } = await supabase
         .from('proposal_templates')
         .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('name'); // ordem estável na vitrine (sem ORDER BY a do banco não é garantida)
 
       if (error && error.code !== '42P01') {
         console.error('Erro ao buscar templates:', error);

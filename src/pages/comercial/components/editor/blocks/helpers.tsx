@@ -115,6 +115,38 @@ export function textColorClass(textColor: string | undefined, bg: string | undef
   return AUTO_TEXT[bg ?? fallbackBg] ?? AUTO_TEXT.white;
 }
 
+// Acento pintado direto sobre o fundo da seção (cartões leves, sem superfície própria): vars do tema por fundo
+const AUTO_ACCENT: Record<string, string> = {
+  cream: 'text-[var(--pa-accent-on-cream,#7A5C42)]',
+  linen: 'text-[var(--pa-accent-on-linen,#7A5C42)]',
+  stone: 'text-[var(--pa-accent-on-stone,#7A5C42)]',
+  taupe: 'text-[var(--pa-accent-on-taupe,#FFFFFF)]',
+  dark: 'text-[var(--pa-accent-on-ink,#FFFFFF)]',
+  white: 'text-[var(--pa-accent-on-white,#7A5C42)]',
+};
+
+// Veladura do cartão translúcido por fundo da seção (design.ts: cardVeil)
+const AUTO_VEIL: Record<string, string> = {
+  cream: 'bg-[var(--pa-veil-on-cream)]',
+  linen: 'bg-[var(--pa-veil-on-linen)]',
+  stone: 'bg-[var(--pa-veil-on-stone)]',
+  taupe: 'bg-[var(--pa-veil-on-taupe)]',
+  dark: 'bg-[var(--pa-veil-on-ink)]',
+  white: 'bg-[var(--pa-veil-on-white)]',
+};
+
+export function veilClass(bg: string | undefined, fallbackBg: string): string {
+  if (isHexColor(bg)) return 'bg-[var(--pa-veil-on-sec)]';
+  return AUTO_VEIL[bg ?? fallbackBg] ?? AUTO_VEIL.white;
+}
+
+/** Acento legível sobre o fundo da seção; com cor de texto escolhida, vazio (o acento herda o texto). */
+export function accentTextClass(textColor: string | undefined, bg: string | undefined, fallbackBg: string): string {
+  if (textColor && textColor !== 'default') return '';
+  if (isHexColor(bg)) return 'text-[var(--pa-accent-on-sec)]';
+  return AUTO_ACCENT[bg ?? fallbackBg] ?? AUTO_ACCENT.white;
+}
+
 // ---------------------------------------------------------
 // Observer de Blocos para Rastreio
 // ---------------------------------------------------------

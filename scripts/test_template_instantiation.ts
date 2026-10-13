@@ -2,7 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
-import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
+import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS, backgroundSwatchColor } from '../src/pages/comercial/blocks/design';
+import { applyBackgroundToAll } from '../src/pages/comercial/blocks/sectionBackground';
 import { fillGallerySlots, packageGroupItem, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber, buildPackagePages, packageGroupKey, slicePad } from '../src/pages/comercial/blocks/pricing';
 import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
@@ -575,6 +576,42 @@ async function runTests() {
   assert(dup.content.groups[0].key === groupKey && dup.content.packages[0].group_id === groupKey && dup.content.packages[0].id !== 'p', 'Instantiation renews package ids but keeps group keys');
   const realOverGroups = instantiateTemplateBlocks([{ type: 'PricingTable', id: 'g', content: { groups: [{ key: groupKey }], packages: [] } }], { packages: [realPkg] })[0];
   assert(!('groups' in realOverGroups.content), 'Real packages replace the model groups');
+
+  // 27. Fundo em todas as seções: só quem tem o campo, texto fixo ilegível volta ao automático, rótulo = código da cor
+  const bgPalette = { white: '#FFDDAA', cream: '#F3ECE2', ink: '#1F2620', taupe: '#7E6346', accent: '#A67C52' };
+  const bgBlocks: any[] = [
+    { type: 'global_settings', id: 'gs', data: {} },
+    { type: 'CoverBlock', id: 'photo', props: { variant: 'night-hero', background: 'dark' } },
+    { type: 'CoverBlock', id: 'arches', props: { variant: 'arches-trio', background: 'white' } },
+    { type: 'PricingTable', id: 'already', props: { background: 'cream' } },
+    { type: 'PricingTable', id: 'darkSec', props: { background: 'dark', text_color: 'light' } },
+    { type: 'AddonsBlock', id: 'warm', props: { background: 'white', text_color: 'warm' } },
+  ];
+  const applied = applyBackgroundToAll(bgBlocks, 'cream', bgPalette);
+  const byId = (id: string) => applied.blocks.find((b: any) => b.id === id)!;
+  assert(applied.changed === 3, `Fundo em todas: 3 seções mudaram (${applied.changed})`);
+  assert(byId('photo').props.background === 'dark', 'Capa com foto de fundo (sem campo de fundo) fica como está');
+  assert(!('props' in byId('gs')) || byId('gs').props === undefined, 'global_settings nunca é tocado');
+  assert(byId('arches').props.background === 'cream' && byId('darkSec').props.background === 'cream', 'Seções com o campo recebem o fundo');
+  assert(byId('already') === bgBlocks[3], 'Seção que já tem o fundo não é recriada');
+  assert(byId('darkSec').props.text_color === 'default', 'Texto claro fixo sobre fundo claro volta para Automático');
+  assert(byId('warm').props.text_color === 'warm', 'Texto fixo que continua legível é mantido (taupe sobre creme)');
+  const hexApplied = applyBackgroundToAll(bgBlocks, '#7E6346', bgPalette);
+  assert(hexApplied.blocks.find((b: any) => b.id === 'warm')!.props.text_color === 'default', 'Cor livre igual ao taupe: texto taupe ilegível volta para Automático');
+  assert(backgroundSwatchColor('white', bgPalette) === '#FFDDAA' && backgroundSwatchColor('dark', bgPalette) === '#1F2620', 'Fundo "white"/"dark" resolve para a cor atual do tema, não para um nome');
+  assert(backgroundSwatchColor('#A1B2C3', bgPalette) === '#A1B2C3' && backgroundSwatchColor(undefined, bgPalette) === undefined, 'Cor livre passa direto; sem fundo = indefinido');
+
+  // 28. Acento por fundo (cartões leves pintam o acento direto sobre a seção): ≥ 3:1 ou cai no texto do fundo
+  const natalVars = tokensToCssVars({
+    colors: { cream: '#F3ECE2', linen: '#E9DFD0', stone: '#D9C8AE', taupe: '#7E6346', accent: '#A67C52', ink: '#1F2620', white: '#FAF6F0' },
+  }) as Record<string, string>;
+  assert(natalVars['--pa-accent-on-white'] === '#A67C52' && natalVars['--pa-accent-on-cream'] === '#A67C52', 'Acento com contraste suficiente sobre fundo claro é mantido');
+  assert(natalVars['--pa-accent-on-ink'] === '#A67C52', 'Caramelo sobre a tinta escura do Natal passa de 3:1');
+  assert(natalVars['--pa-accent-on-taupe'] === '#FAF6F0', 'Acento sobre taupe (< 3:1) cai no texto claro do fundo');
+  assert(contrastRatio(natalVars['--pa-accent-on-taupe'], '#7E6346') >= 3, 'O fallback do acento é legível sobre o fundo');
+  assert(natalVars['--pa-veil-on-cream'] === 'color-mix(in srgb, #FAF6F0 60%, transparent)', 'Cartão translúcido em fundo claro: branco suave do tema (a tinta deixaria o cartão cinza)');
+  assert(natalVars['--pa-veil-on-ink'] === 'color-mix(in srgb, #FAF6F0 10%, transparent)' && natalVars['--pa-veil-on-taupe'].includes(' 10%'), 'Cartão translúcido em fundo escuro: 10% do texto claro');
+  assert((seedSql.match(/"card_style": "tint"/g) ?? []).length === 6, 'Seed do Natal: 3 modelos × (pacotes + adicionais) nascem com cartões translúcidos');
 
   console.log('✅ All tests passed successfully!');
 }
