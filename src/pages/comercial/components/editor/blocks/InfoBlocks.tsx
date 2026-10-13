@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
-import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
+import { fa, fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
 import { infoIcon, resolveIconKey } from '../../../blocks/icons';
-import { LABEL, ProposalIcon, SubsectionHeader, accentOn } from './kit';
+import { LABEL, ProposalIcon, Rule, SubsectionHeader, accentOn } from './kit';
 
 /**
  * Informações e Guia — pares título/texto (dicas, o que vestir, pagamento, prazos).
@@ -29,10 +29,12 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
   const variant = p.variant || 'stacked';
   const items: any[] = c.items || [];
   const filled = (it: any) => !!(it?.title?.trim() || it?.body?.trim());
+  const editorial = variant === 'icon-list' || variant === 'steps';
   const hasBanner = !!c.image_url || editable;
 
   // Público: seção sem nada preenchido some por inteiro
-  if (!editable && !items.some(filled) && !c.title?.trim() && !c.image_url) return null;
+  if (!editable && !items.some(filled) && !c.title?.trim() && !c.image_url && !(editorial && (c.note_title?.trim() || c.note_body?.trim()))) return null;
+  if (editorial) return <InfoEditorial c={c} p={p} et={et} editable={editable} filled={filled} steps={variant === 'steps'} setPhoto={(url) => inline?.set('image_url', url)} />;
   if (variant === 'icon-columns') return <InfoIconColumns c={c} p={p} et={et} editable={editable} filled={filled} />;
 
   const headAlign = p.align === 'center' ? 'text-center' : p.align === 'right' ? 'text-right' : 'text-left';
@@ -213,6 +215,203 @@ function InfoIconColumns({
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// Foto do cabeçalho: no estreito, faixa acima do texto esmaecendo para baixo; ao lado, esmaece para a esquerda
+const HEADER_FADE = cn(
+  '[mask-image:linear-gradient(to_bottom,#000_55%,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,#000_55%,transparent)]',
+  '@2xl:[mask-image:linear-gradient(to_right,transparent,#000_40%)] @2xl:[-webkit-mask-image:linear-gradient(to_right,transparent,#000_40%)]'
+);
+
+const TINT = 'bg-[color:color-mix(in_srgb,var(--pa-accent,#A67C52)_13%,transparent)]';
+const HAIR = 'border-[color:color-mix(in_srgb,currentColor_13%,transparent)]';
+
+/**
+ * Informações editoriais (coleção): cabeçalho com título + itálico, frase em caixa-alta e foto
+ * opcional; depois a lista com ícones (icon-list) ou as etapas numeradas (steps) e o aviso final.
+ * Sem título, rótulo e frase (lista de continuação, ex.: pagamento após as etapas), o cabeçalho some.
+ */
+function InfoEditorial({
+  c,
+  p,
+  et,
+  editable,
+  filled,
+  steps,
+  setPhoto,
+}: {
+  c: any;
+  p: any;
+  et: (path: string, value: string | undefined) => any;
+  editable: boolean;
+  filled: (it: any) => boolean;
+  steps: boolean;
+  setPhoto: (url: string) => void;
+}) {
+  const accent = accentOn(p);
+  const items = ((c.items as any[]) || []).map((it, i) => ({ it, i })).filter(({ it }) => editable || filled(it));
+  const photo = c.image_url || null;
+  const hasHeader = !!(c.title?.trim() || c.title_italic?.trim() || c.subtitle?.trim() || c.eyebrow?.trim() || photo);
+  const showHeader = hasHeader || editable;
+  // Espaço da foto no editor só com cabeçalho preenchido: numa lista de continuação ficaria sobre os itens
+  const showPhoto = !!photo || (editable && !!(c.title?.trim() || c.title_italic?.trim()));
+  const hasNote = !!(c.note_title?.trim() || c.note_body?.trim());
+  const noteIcon = resolveIconKey(c.note_icon, 'sparkles');
+
+  return (
+    <section
+      className={cn(
+        'relative overflow-hidden px-5 pb-14 @md:px-10 @md:pb-20',
+        showHeader ? 'pt-14 @md:pt-20' : 'pt-4',
+        sectionBg(p.background, 'white'),
+        textColorClass(p.text_color, p.background, 'white')
+      )}
+    >
+      {showPhoto && (
+        <div className="relative -mx-5 -mt-14 mb-10 aspect-[16/9] @md:-mx-10 @md:-mt-20 @2xl:absolute @2xl:right-0 @2xl:top-0 @2xl:m-0 @2xl:aspect-auto @2xl:h-[24rem] @2xl:w-[46%]">
+          <EditableImage
+            editable={editable}
+            value={photo}
+            label="Foto do cabeçalho"
+            alt={c.title || 'Foto'}
+            onCommit={setPhoto}
+            className="absolute inset-0 w-full h-full"
+            imgClassName={cn('object-cover w-full h-full', HEADER_FADE)}
+            publicEmptyClassName="hidden"
+          />
+        </div>
+      )}
+      <div className="relative mx-auto max-w-[860px]">
+        {showHeader && (
+          // Com foto ao lado, o cabeçalho ocupa ao menos a altura dela (24rem - respiro do topo): a lista nunca sobe para baixo da foto
+          <header className={cn('flex flex-col items-start', showPhoto && '@2xl:min-h-[19rem] @2xl:max-w-[56%]')}>
+            {(c.eyebrow || editable) && (
+              <div className={cn('mb-5 flex items-center gap-4', accent)}>
+                <EditableText as="p" {...et('eyebrow', c.eyebrow)} className="text-lg leading-none @md:text-xl" style={fa()} placeholder="Rótulo (opcional)" />
+                <Rule className="w-16 opacity-60 @md:w-20" />
+              </div>
+            )}
+            <h2 className="max-w-full text-[length:clamp(2.6rem,7cqi,4.5rem)] leading-[1.04] tracking-[-0.01em]" style={fd()}>
+              <EditableText {...et('title', c.title)} placeholder="Título (opcional)" />
+              {(c.title_italic || editable) && (
+                <em className={cn('block', accent)} style={fh()}>
+                  <EditableText {...et('title_italic', c.title_italic)} placeholder="em itálico (opcional)" />
+                </em>
+              )}
+            </h2>
+            {(c.subtitle || editable) && (
+              <EditableText
+                as="p"
+                multiline
+                {...et('subtitle', c.subtitle)}
+                className={cn('mt-6 max-w-[26rem] whitespace-pre-line text-[11px] opacity-80 @md:text-xs', LABEL, 'tracking-[0.36em]')}
+                style={fb()}
+                placeholder="Frase de apoio (opcional)"
+              />
+            )}
+          </header>
+        )}
+
+        {steps && (c.list_title || editable) && (
+          <EditableText
+            as="h3"
+            {...et('list_title', c.list_title)}
+            className="mt-12 max-w-full text-[length:clamp(1rem,2.2cqi,1.3rem)] uppercase leading-[1.5] tracking-[0.28em] @md:mt-16"
+            style={fd()}
+            placeholder="Como funciona"
+          />
+        )}
+
+        {steps ? (
+          <ol className="mt-8">
+            {items.map(({ it, i }, n) => (
+              <li key={it.id || i} className="relative grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 pb-7 last:pb-0 @md:grid-cols-[3.5rem_minmax(0,1fr)] @md:gap-x-6">
+                {/* Linha entre as etapas, do disco até o próximo */}
+                {n < items.length - 1 && <span aria-hidden className="absolute bottom-0 left-6 top-12 w-px bg-current opacity-25 @md:left-7 @md:top-14" />}
+                <span className={cn('flex h-12 w-12 items-center justify-center rounded-full text-xl leading-none lining-nums @md:h-14 @md:w-14 @md:text-2xl', TINT, accent)} style={fa()}>
+                  {String(n + 1).padStart(2, '0')}
+                </span>
+                <div className="min-w-0 pt-2 @md:pt-3">
+                  <EditableText
+                    as="h4"
+                    {...et(`items.${i}.title`, it.title)}
+                    className={cn('pl-[0.2em] text-[11px] @md:text-xs', LABEL, 'tracking-[0.2em] leading-[1.7]')}
+                    style={fd()}
+                    placeholder="Etapa"
+                  />
+                  <EditableText
+                    as="div"
+                    multiline
+                    {...et(`items.${i}.body`, it.body)}
+                    className="mt-1 whitespace-pre-line text-[14px] leading-[1.6] opacity-80 @md:text-[15px]"
+                    style={fb()}
+                    placeholder="Texto curto"
+                  />
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul className={cn(showHeader && 'mt-10 @md:mt-12')}>
+            {items.map(({ it, i }, n) => {
+              const icon = resolveIconKey(it.icon, infoIcon(it));
+              return (
+                <li
+                  key={it.id || i}
+                  className={cn('grid grid-cols-[3rem_minmax(0,1fr)] gap-x-5 py-7 @md:grid-cols-[3.5rem_minmax(0,1fr)] @md:gap-x-8', n > 0 && cn('border-t', HAIR))}
+                >
+                  <span aria-hidden className={cn('flex h-12 w-12 items-center justify-center rounded-full @md:h-14 @md:w-14', icon && TINT, accent)}>
+                    {icon && <ProposalIcon name={icon} className="h-6 w-6" />}
+                  </span>
+                  <div className="min-w-0 @md:pt-1">
+                    <EditableText
+                      as="h3"
+                      {...et(`items.${i}.title`, it.title)}
+                      className={cn('pl-[0.24em] text-xs @md:text-[13px]', LABEL, 'tracking-[0.24em] leading-[1.7]')}
+                      style={fd()}
+                      placeholder="Título"
+                    />
+                    <EditableText
+                      as="div"
+                      multiline
+                      {...et(`items.${i}.body`, it.body)}
+                      className="mt-1.5 max-w-[56ch] whitespace-pre-line text-[15px] leading-[1.6] opacity-80"
+                      style={fb()}
+                      placeholder="Texto"
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {(hasNote || editable) && (
+          <aside className="mt-10 flex items-center gap-5 rounded-2xl bg-[var(--pa-linen,#E9DFD0)] px-5 py-5 text-[var(--pa-on-linen,#1F2620)] @md:mt-12 @md:gap-7 @md:px-8">
+            {noteIcon && <ProposalIcon name={noteIcon} className="h-7 w-7 shrink-0 text-[var(--pa-accent-on-white,#A67C52)]" />}
+            {noteIcon && <span aria-hidden className={cn('h-12 w-px shrink-0 bg-current opacity-20')} />}
+            <div className="min-w-0">
+              <EditableText
+                as="p"
+                {...et('note_title', c.note_title)}
+                className={cn('pl-[0.24em] text-[11px] @md:text-xs', LABEL, 'tracking-[0.24em] leading-[1.7]')}
+                style={fd()}
+                placeholder="Aviso final (opcional)"
+              />
+              <EditableText
+                as="div"
+                multiline
+                {...et('note_body', c.note_body)}
+                className="mt-1 whitespace-pre-line text-[13px] leading-[1.6] opacity-80 @md:text-sm"
+                style={fb()}
+                placeholder="Texto do aviso"
+              />
+            </div>
+          </aside>
+        )}
       </div>
     </section>
   );

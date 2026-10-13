@@ -8,6 +8,7 @@
 -- rótulo dos cartões em arco): trocar de composição não perde texto nem foto.
 -- title_style fica sem valor: cada capa usa o próprio padrão (Arcos caligráfica, demais caixa-alta).
 -- Fase 4: Adicionais (AddonsBlock, Cartões; Linhas em "Composição"), preços de exemplo editáveis.
+-- Fase 6: Informações práticas (lista com ícones) e Reserva (etapas + lista de condições, sem cabeçalho).
 -- Fase 5: Dicas de looks (Texto e Luz com foto em moldura, Paleta, Galeria com legendas, Orientações com ícone).
 -- Coleção Natal: tag "natal" (aba da vitrine) + global_settings.collection (a proposta criada
 -- herda e libera as variantes/temas exclusivos da coleção; modelos padrão não os veem).
@@ -197,6 +198,71 @@ VALUES (
    ]
   },
   "props": { "variant": "icon-columns", "align": "left", "background": "white", "text_color": "default" }
+ },
+ {
+  "id": "sn_info",
+  "type": "InfoBlock",
+  "content": {
+   "eyebrow": "",
+   "title": "Informações",
+   "title_italic": "Práticas",
+   "subtitle": "Tudo o que você precisa saber para viver essa experiência",
+   "image_url": "",
+   "items": [
+    { "id": "sn_i1", "title": "Local", "body": "Nosso estúdio é um espaço privativo, aconchegante e preparado para receber você e sua família com todo o cuidado.", "icon": "location" },
+    { "id": "sn_i2", "title": "Duração", "body": "As sessões têm duração de até 1 hora, com tempo suficiente para fotos tranquilas, sem pressa e no ritmo da sua família.", "icon": "clock" },
+    { "id": "sn_i3", "title": "Quem pode participar", "body": "A sessão pode incluir pais, irmãos e outros familiares. O número de participantes varia conforme o pacote escolhido.", "icon": "users" },
+    { "id": "sn_i4", "title": "Cenários", "body": "O estúdio conta com cenários exclusivos de Natal, cuidadosamente preparados para criar memórias inesquecíveis.", "icon": "tree" },
+    { "id": "sn_i5", "title": "Vestuário", "body": "Disponibilizamos peças selecionadas para a sessão. Também sugerimos que traga opções que combinem com o estilo do ensaio.", "icon": "shirt" },
+    { "id": "sn_i6", "title": "Entrega das fotos", "body": "Você receberá suas fotos em uma galeria online, com todas as imagens do ensaio para seleção, conforme o prazo informado na proposta.", "icon": "images" }
+   ],
+   "note_title": "Informações importantes",
+   "note_body": "Horários, cenários e disponibilidade podem variar conforme a data escolhida. Qualquer dúvida, estamos à disposição para te ajudar!",
+   "note_icon": "sparkles"
+  },
+  "props": { "variant": "icon-list", "align": "left", "background": "white", "text_color": "default" }
+ },
+ {
+  "id": "sn_booking",
+  "type": "InfoBlock",
+  "content": {
+   "eyebrow": "",
+   "title": "Reserva e",
+   "title_italic": "Condições",
+   "subtitle": "Para garantir a sua sessão com tranquilidade",
+   "image_url": "",
+   "list_title": "Como funciona a reserva",
+   "items": [
+    { "id": "sn_b1", "title": "Escolha a data", "body": "Verifique a disponibilidade e defina a melhor data para a sua sessão." },
+    { "id": "sn_b2", "title": "Reserva", "body": "A reserva é confirmada mediante o pagamento de 30% do valor do pacote escolhido." },
+    { "id": "sn_b3", "title": "Realização", "body": "No dia da sessão, tudo já estará preparado para te receber com muito conforto e cuidado." },
+    { "id": "sn_b4", "title": "Entrega", "body": "Após o ensaio, você receberá o acesso à galeria online no prazo combinado na sua proposta." }
+   ],
+   "note_title": "",
+   "note_body": "",
+   "note_icon": ""
+  },
+  "props": { "variant": "steps", "align": "left", "background": "white", "text_color": "default" }
+ },
+ {
+  "id": "sn_terms",
+  "type": "InfoBlock",
+  "content": {
+   "eyebrow": "",
+   "title": "",
+   "title_italic": "",
+   "subtitle": "",
+   "image_url": "",
+   "items": [
+    { "id": "sn_k1", "title": "Formas de pagamento", "body": "Aceitamos Pix, cartão de crédito e transferência bancária. O pagamento pode ser parcelado conforme as condições da proposta.", "icon": "card" },
+    { "id": "sn_k2", "title": "Alterações e cancelamentos", "body": "Em caso de necessidade de remarcação, entre em contato com antecedência. Os detalhes sobre prazos e condições estão descritos no contrato.", "icon": "calendar" },
+    { "id": "sn_k3", "title": "Contrato", "body": "A reserva da sessão é validada com a assinatura do contrato, que garante todos os detalhes combinados, incluindo data, pacote, formas de pagamento e condições gerais.", "icon": "contract" }
+   ],
+   "note_title": "Estamos à disposição",
+   "note_body": "Qualquer dúvida, entre em contato. Será um prazer te atender!",
+   "note_icon": "heart"
+  },
+  "props": { "variant": "icon-list", "align": "left", "background": "white", "text_color": "default" }
  },
  {
   "type": "global_settings",

@@ -453,6 +453,23 @@ async function runTests() {
   assert(vals(optionsFor(layouts, undefined)) === 'masonry,grid' && vals(optionsFor(layouts, undefined, 'captioned')) === 'masonry,grid,captioned', 'Collection option hidden elsewhere unless in use');
   assert(infoIcon({ title: 'Evite cores muito vibrantes' }) === 'palette' && infoIcon({ title: 'Chegue cedo' }) === 'sparkles', 'Info auto icon from the title, else sparkles');
 
+  // 24. Informações e Reserva: lista com ícones, etapas e lista de continuação (sem cabeçalho)
+  const infos = natal.filter((b: any) => b.type === 'InfoBlock');
+  assert(infos.map((b: any) => b.props.variant).join() === 'icon-columns,icon-list,steps,icon-list', 'Seed brings tips, practical info, booking steps and terms');
+  const seedInfos = seedBlocks.filter((b: any) => b.type === 'InfoBlock');
+  assert(
+    infos.every((b: any, k: number) => b.content.items.every((it: any, i: number) => it.id !== seedInfos[k].content.items[i].id && it.title === seedInfos[k].content.items[i].title)),
+    'Info items keep their text and get fresh ids'
+  );
+  assert(infos.every((b: any) => !b.content.image_url), 'Info header photos start empty');
+  assert(
+    infos.filter((b: any) => b.content.note_icon).every((b: any) => !!PROPOSAL_ICONS[b.content.note_icon]) && infos[1].content.note_title === 'Informações importantes',
+    'Final notes keep text and catalog icons'
+  );
+  assert(!infos[3].content.title && infos[3].content.items.length === 3, 'Terms list continues the booking page without a header');
+  const natalInfoVariants = forCollection(BLOCK_REGISTRY.InfoBlock.variants!, 'natal').map((v) => v.value).join();
+  assert(natalInfoVariants === 'icon-columns,icon-list,steps', `Natal proposal offers only the editorial info layouts: ${natalInfoVariants}`);
+
   console.log('✅ All tests passed successfully!');
 }
 

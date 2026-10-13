@@ -181,6 +181,9 @@ const highlightsField = (label: string, showIf: BlockField['showIf']): BlockFiel
   showIf,
 });
 
+/** Informações editoriais (coleção): cabeçalho com itálico, foto opcional e aviso final. */
+const INFO_EDITORIAL = ['icon-list', 'steps'];
+
 /** Capas da coleção editorial: título em dois tempos ("Sessões de" + "Natal"). */
 const LOCKUP_COVERS = ['arches-trio', 'ornament', 'night-hero'];
 
@@ -639,7 +642,11 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Antes da sessão' },
       { key: 'title', label: 'Título da Seção (opcional)', kind: 'text', placeholder: 'Guia do ensaio' },
-      { key: 'image_url', label: 'Imagem de abertura (opcional)', kind: 'image' },
+      { key: 'title_italic', label: 'Título em itálico (opcional)', kind: 'text', placeholder: 'Práticas', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Tudo o que você precisa saber', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'image_url', label: 'Imagem de abertura (opcional)', kind: 'image', showIf: variantNotIn('icon-columns', ...INFO_EDITORIAL) },
+      { key: 'image_url', label: 'Foto do cabeçalho (opcional)', kind: 'image', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'list_title', label: 'Título das etapas', kind: 'text', placeholder: 'Como funciona a reserva', showIf: variantIn('steps') },
       {
         key: 'items',
         label: 'Itens',
@@ -648,10 +655,13 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         itemFields: [
           { key: 'title', label: 'Título', kind: 'text', placeholder: 'O que vestir' },
           { key: 'body', label: 'Texto', kind: 'textarea', placeholder: 'Peças leves, de tons neutros...' },
-          { key: 'icon', label: 'Ícone', kind: 'icon', autoIcon: infoIcon, showIf: variantIn('icon-columns') },
+          { key: 'icon', label: 'Ícone', kind: 'icon', autoIcon: infoIcon, showIf: variantIn('icon-columns', 'icon-list') },
         ],
         itemFactory: infoItem,
       },
+      { key: 'note_title', label: 'Aviso final: título', kind: 'text', placeholder: 'Informações importantes', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'note_body', label: 'Aviso final: texto', kind: 'textarea', placeholder: 'Qualquer dúvida, estamos à disposição.', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'note_icon', label: 'Aviso final: ícone', kind: 'icon', autoIcon: () => 'sparkles', showIf: variantIn(...INFO_EDITORIAL) },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
     variants: [
@@ -659,6 +669,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { value: 'accordion', label: 'Sanfona', description: 'Títulos visíveis e texto ao clicar: ideal para textos longos' },
       { value: 'columns', label: 'Colunas', description: 'Duas colunas: ideal para textos curtos' },
       { value: 'icon-columns', label: 'Colunas com ícone', description: 'Orientações curtas lado a lado, com ícone e filetes', collection: 'natal' },
+      { value: 'icon-list', label: 'Lista com ícones', description: 'Informações práticas: ícone, título e texto, com aviso final', collection: 'natal' },
+      { value: 'steps', label: 'Etapas numeradas', description: 'Passo a passo (ex.: como funciona a reserva), com aviso final', collection: 'natal' },
     ],
     defaultVariant: 'stacked',
     factory: () => ({
