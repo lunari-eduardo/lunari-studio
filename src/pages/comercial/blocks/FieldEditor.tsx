@@ -276,6 +276,8 @@ export function FieldEditor(props: FieldEditorProps) {
           <IconPicker
             value={value}
             onChange={onChange}
+            // placeholder = rótulo do "vazio" quando ele já significa "sem ícone" (ex.: grupo de pacotes)
+            {...(field.placeholder && { defaultLabel: field.placeholder, allowNone: false })}
             {...(field.autoIcon && { defaultLabel: 'Automático', autoKey: field.autoIcon(props.item) })}
           />
         </div>
@@ -328,12 +330,15 @@ function IconPicker({
   onChange,
   defaultLabel = 'Padrão da seção',
   autoKey,
+  allowNone = true,
 }: {
   value: unknown;
   onChange: (v: string) => void;
   defaultLabel?: string;
   /** Ícone que o "padrão" mostra (ex.: sugerido pelo texto). */
   autoKey?: string | null;
+  /** Falso quando o próprio "padrão" já é "sem ícone". */
+  allowNone?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const current = typeof value === 'string' ? value : '';
@@ -377,7 +382,7 @@ function IconPicker({
       <PopoverContent align="start" className="w-[17.5rem] rounded-xl p-3">
         <div className="mb-3 grid grid-cols-2 gap-1.5">
           {option('', defaultLabel)}
-          {option(ICON_NONE, 'Sem ícone')}
+          {allowNone && option(ICON_NONE, 'Sem ícone')}
         </div>
         <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1 custom-scrollbar">
           {ICON_GROUPS.map((group) => (
@@ -761,7 +766,7 @@ function itemSummary(item: Record<string, any>, fields: BlockField[]): string {
     .join(' · ');
 }
 
-function SortableListItem({
+export function SortableListItem({
   id,
   title,
   thumb,
@@ -820,7 +825,7 @@ function SortableListItem({
 }
 
 /** Lista de itens: um aberto por vez, resumo no cabeçalho, arrastar para reordenar. */
-function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
+export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
   const items: Record<string, any>[] = Array.isArray(value) ? value : [];
   const itemFields = (field.itemFields ?? []).filter((sub) => !sub.showIf || !ctx || sub.showIf(ctx));
   const ids = items.map((item, idx) => String(item.id ?? `item-${idx}`));

@@ -301,6 +301,7 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         if (realPackages && realPackagesPlaced) return DROP;
         if (realPackages) realPackagesPlaced = true;
         content.packages = renewIdsWithoutPhotos(realPackages ?? content.packages);
+        if (realPackages) delete content.groups; // pacotes reais não têm `group_id`: grupos do modelo ficariam vazios
         if ('highlights' in content) content.highlights = renewIds(content.highlights);
         break;
       case 'AddonsBlock':

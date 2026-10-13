@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
-import { displayPrice, priceEditPath, splitLeadingNumber } from '../../../blocks/pricing';
+import { displayPrice, priceEditPath, slicePad, splitLeadingNumber, type PackageSlice } from '../../../blocks/pricing';
 import { ICON_NONE, addonIcon, resolveIconKey, suggestIcon } from '../../../blocks/icons';
 import { fa, fb, fd, fh, sectionBg, textColorClass } from './helpers';
 import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, useEt, type Et } from './kit';
@@ -200,8 +200,8 @@ function PackagePrice({ pkg, idx, set, editable, className }: { pkg: any; idx: n
   );
 }
 
-const sectionCls = (p: any) =>
-  cn('py-16 @md:py-24 px-5 @md:px-10', sectionBg(p.background, 'cream'), textColorClass(p.text_color, p.background, 'cream'));
+const sectionCls = (p: any, slice?: PackageSlice) =>
+  cn('py-16 @md:py-24 px-5 @md:px-10', slicePad(slice), sectionBg(p.background, 'cream'), textColorClass(p.text_color, p.background, 'cream'));
 
 const emptyHint = (
   <p className="mt-12 rounded-2xl border border-dashed border-[color:color-mix(in_srgb,currentColor_25%,transparent)] p-8 text-center text-sm opacity-60">
@@ -210,7 +210,7 @@ const emptyHint = (
 );
 
 /** Cartões com Foto: foto no topo, painel com cantos arredondados sobre a foto, itens com ícone e preço. */
-export function PricingPhotoCards({ content, data, props }: { content?: any; data?: any; props?: any }) {
+export function PricingPhotoCards({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
   const c = content || data || {};
   const p = props || {};
@@ -218,9 +218,10 @@ export function PricingPhotoCards({ content, data, props }: { content?: any; dat
   const accent = accentOn(p);
 
   return (
-    <section className={sectionCls(p)}>
+    <section className={sectionCls(p, slice)}>
       <div className="mx-auto max-w-[1100px]">
-        <PackagesHeader c={c} et={et} editable={editable} accent={accent} />
+        {!slice?.hideHeader && <PackagesHeader c={c} et={et} editable={editable} accent={accent} />}
+        {slice?.lead}
         {packages.length === 0 && editable && emptyHint}
         <div className="pa-pkg-grid mt-12 [--pa-pkg-gap:1.25rem] @md:mt-14 @md:[--pa-pkg-gap:1.5rem]">
           {packages.map((pkg, idx) => {
@@ -284,14 +285,14 @@ export function PricingPhotoCards({ content, data, props }: { content?: any; dat
             );
           })}
         </div>
-        <PackagesFooter c={c} et={et} editable={editable} accent={accent} />
+        {!slice?.hideFooter && <PackagesFooter c={c} et={et} editable={editable} accent={accent} />}
       </div>
     </section>
   );
 }
 
 /** Linhas com Foto: cartão horizontal (foto alternando os lados); no estreito, foto em cima. */
-export function PricingPhotoRows({ content, data, props }: { content?: any; data?: any; props?: any }) {
+export function PricingPhotoRows({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
   const c = content || data || {};
   const p = props || {};
@@ -299,9 +300,10 @@ export function PricingPhotoRows({ content, data, props }: { content?: any; data
   const accent = accentOn(p);
 
   return (
-    <section className={sectionCls(p)}>
+    <section className={sectionCls(p, slice)}>
       <div className="mx-auto max-w-[1000px]">
-        <PackagesHeader c={c} et={et} editable={editable} accent={accent} />
+        {!slice?.hideHeader && <PackagesHeader c={c} et={et} editable={editable} accent={accent} />}
+        {slice?.lead}
         {packages.length === 0 && editable && emptyHint}
         <div className="mt-12 flex flex-col gap-5 @md:mt-14 @md:gap-6">
           {packages.map((pkg, idx) => {
@@ -366,7 +368,7 @@ export function PricingPhotoRows({ content, data, props }: { content?: any; data
             );
           })}
         </div>
-        <PackagesFooter c={c} et={et} editable={editable} accent={accent} />
+        {!slice?.hideFooter && <PackagesFooter c={c} et={et} editable={editable} accent={accent} />}
       </div>
     </section>
   );
@@ -402,7 +404,7 @@ function ArchFeature({ feat, path, et, editable }: { feat: string; path: string;
 }
 
 /** Cartões em Arco: sem foto; topo em arco, nome em serifa, itens "quantidade + rótulo" entre filetes. */
-export function PricingArchCards({ content, data, props }: { content?: any; data?: any; props?: any }) {
+export function PricingArchCards({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
   const c = content || data || {};
   const p = props || {};
@@ -411,9 +413,10 @@ export function PricingArchCards({ content, data, props }: { content?: any; data
   const itemLabel = c.item_label ?? 'Pacote';
 
   return (
-    <section className={sectionCls(p)}>
+    <section className={sectionCls(p, slice)}>
       <div className="mx-auto max-w-[1050px]">
-        <PackagesHeader c={c} et={et} editable={editable} accent={accent} sentence />
+        {!slice?.hideHeader && <PackagesHeader c={c} et={et} editable={editable} accent={accent} sentence />}
+        {slice?.lead}
         {packages.length === 0 && editable && emptyHint}
         <div className="pa-pkg-grid mt-12 [--pa-pkg-gap:1.25rem] @md:mt-14 @md:[--pa-pkg-gap:1.5rem]">
           {packages.map((pkg, idx) => {
@@ -477,7 +480,7 @@ export function PricingArchCards({ content, data, props }: { content?: any; data
             );
           })}
         </div>
-        <PackagesFooter c={c} et={et} editable={editable} accent={accent} longRules={false} />
+        {!slice?.hideFooter && <PackagesFooter c={c} et={et} editable={editable} accent={accent} longRules={false} />}
       </div>
     </section>
   );

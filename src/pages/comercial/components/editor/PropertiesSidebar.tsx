@@ -31,6 +31,7 @@ import { getBlockDef, getBlockName, getSectionTitle, BlockField, FieldCtx, Field
 import { pacoteToProposalPackage } from '../../blocks/normalization';
 import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
+import { PackageGroupsField } from './PackageGroupsField';
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { DEFAULT_DESIGN_TOKENS, isHexColor, type ProposalDesignTokens } from '../../blocks/design';
 import { VariantPicker } from './CanvasToolbars';
@@ -311,7 +312,13 @@ export function PropertiesSidebar({
                       </Button>
                     )}
 
-                    {g.items.map((e) => renderField(e, g.title, g.key === 'text'))}
+                    {g.items.map((e) =>
+                      block.type === 'PricingTable' && e.field.key === 'packages' ? (
+                        <PackageGroupsField key="packages" content={content} field={e.field} ctx={ctx} onChange={setContent} />
+                      ) : (
+                        renderField(e, g.title, g.key === 'text')
+                      )
+                    )}
 
                     {/* Fotos: slots da composição (ex.: Editorial photo_a/photo_b) */}
                     {g.key === 'media' &&

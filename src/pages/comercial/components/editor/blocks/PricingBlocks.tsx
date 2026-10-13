@@ -3,9 +3,10 @@ import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
-import { displayPrice, priceEditPath, featureIcon } from '../../../blocks/pricing';
-import { fd, fb, fa, alignClass, sectionBg, textColorClass } from './helpers';
+import { displayPrice, priceEditPath, featureIcon, slicePad, buildPackagePages, type PackageSlice } from '../../../blocks/pricing';
+import { fd, fb, fa, alignClass, sectionBg, textColorClass, HERO_MIN_H } from './helpers';
 import { PricingPhotoCards, PricingPhotoRows, PricingArchCards } from './PricingCollectionBlocks';
+import { PackageGroupHeader, PathScope } from './PackageGroups';
 
 // Sem botão "Selecionar": a proposta é enviada na conversa com o cliente, que responde por lá
 // (o CTA de WhatsApp do visualizador continua disponível).
@@ -47,10 +48,12 @@ export function PricingClassic({
   content,
   data,
   props,
+  slice,
 }: {
   content?: any;
   data?: any;
   props?: any;
+  slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -68,21 +71,27 @@ export function PricingClassic({
     <section
       className={cn(
         'py-16 @md:py-24 px-6 @md:px-14',
+        slicePad(slice),
         sectionBg(props?.background, 'white'),
         textColorClass(props?.text_color, props?.background, 'white')
       )}
     >
       <div className={cn('max-w-[900px] mx-auto', align)}>
-        <EditableText
-          as="p"
-          {...et('eyebrow', c.eyebrow)}
-          className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-50 mb-4"
-        />
-        <div className="mb-12">
-          <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl" style={fd()} />
-          <EditableText as="p" multiline {...et('subtitle', c.subtitle)} className="mt-4 text-sm opacity-60 whitespace-pre-line" placeholder="Frase de apoio (opcional)" />
-        </div>
-        <div className="pa-pkg-grid">
+        {!slice?.hideHeader && (
+          <>
+            <EditableText
+              as="p"
+              {...et('eyebrow', c.eyebrow)}
+              className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-50 mb-4"
+            />
+            <div className={slice?.lead ? 'mb-0' : 'mb-12'}>
+              <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl" style={fd()} />
+              <EditableText as="p" multiline {...et('subtitle', c.subtitle)} className="mt-4 text-sm opacity-60 whitespace-pre-line" placeholder="Frase de apoio (opcional)" />
+            </div>
+          </>
+        )}
+        {slice?.lead}
+        <div className={cn('pa-pkg-grid', slice?.lead && 'mt-10')}>
           {packages.map((pkg: any, idx: number) => (
             <div
               key={pkg.id || idx}
@@ -145,10 +154,12 @@ export function PricingCardsMinimal({
   content,
   data,
   props,
+  slice,
 }: {
   content?: any;
   data?: any;
   props?: any;
+  slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -166,22 +177,28 @@ export function PricingCardsMinimal({
     <section
       className={cn(
         'py-16 @md:py-24 px-6 @md:px-14',
+        slicePad(slice),
         sectionBg(props?.background, 'white'),
         textColorClass(props?.text_color, props?.background, 'white')
       )}
     >
       <div className={cn('max-w-[1000px] mx-auto', align)}>
-        <EditableText
-          as="p"
-          {...et('eyebrow', c.eyebrow)}
-          className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-50 mb-4"
-        />
-        <div className="mb-16">
-          <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl" style={fd()} />
-          <EditableText as="p" multiline {...et('subtitle', c.subtitle)} className="mt-4 text-sm opacity-60 whitespace-pre-line" placeholder="Frase de apoio (opcional)" />
-        </div>
+        {!slice?.hideHeader && (
+          <>
+            <EditableText
+              as="p"
+              {...et('eyebrow', c.eyebrow)}
+              className="text-[10px] font-medium tracking-[0.28em] uppercase opacity-50 mb-4"
+            />
+            <div className={slice?.lead ? 'mb-0' : 'mb-16'}>
+              <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl" style={fd()} />
+              <EditableText as="p" multiline {...et('subtitle', c.subtitle)} className="mt-4 text-sm opacity-60 whitespace-pre-line" placeholder="Frase de apoio (opcional)" />
+            </div>
+          </>
+        )}
+        {slice?.lead}
 
-        <div className="pa-pkg-grid [--pa-pkg-gap:2.5rem] @md:[--pa-pkg-gap:3.5rem]">
+        <div className={cn('pa-pkg-grid [--pa-pkg-gap:2.5rem] @md:[--pa-pkg-gap:3.5rem]', slice?.lead && 'mt-12')}>
           {packages.map((pkg: any, idx: number) => (
             <div key={pkg.id || idx} className={cn('flex flex-col relative text-current', align)}>
               {!props?.hide_images && (pkg.image_ref || editable) && (
@@ -245,10 +262,12 @@ export function PricingNumberedEditorial({
   content,
   data,
   props,
+  slice,
 }: {
   content?: any;
   data?: any;
   props?: any;
+  slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -266,33 +285,39 @@ export function PricingNumberedEditorial({
     <section
       className={cn(
         'py-16 @md:py-24 px-6 @md:px-14',
+        slicePad(slice),
         sectionBg(props?.background, 'cream'),
         textColorClass(props?.text_color, props?.background, 'cream')
       )}
     >
       <div className={cn('max-w-[900px] mx-auto', align)}>
         {/* Header */}
-        <EditableText
-          as="p"
-          {...et('eyebrow', c.eyebrow)}
-          className="text-[9px] @md:text-[10px] font-medium tracking-[0.35em] uppercase opacity-60 mb-4"
-        />
-        <EditableText
-          as="h2"
-          {...et('title', c.title)}
-          className="text-[length:clamp(2rem,8.5cqi,6rem)] uppercase tracking-[0.1em] leading-[1.05] mb-6 text-current"
-          style={fd()}
-        />
-        <EditableText
-          as="p"
-          multiline
-          {...et('subtitle', c.subtitle)}
-          className="-mt-2 mb-6 text-[10px] @md:text-[11px] tracking-[0.3em] uppercase leading-[2.2] opacity-60 whitespace-pre-line"
-          placeholder="Frase de apoio (opcional)"
-        />
+        {!slice?.hideHeader && (
+          <>
+            <EditableText
+              as="p"
+              {...et('eyebrow', c.eyebrow)}
+              className="text-[9px] @md:text-[10px] font-medium tracking-[0.35em] uppercase opacity-60 mb-4"
+            />
+            <EditableText
+              as="h2"
+              {...et('title', c.title)}
+              className="text-[length:clamp(2rem,8.5cqi,6rem)] uppercase tracking-[0.1em] leading-[1.05] mb-6 text-current"
+              style={fd()}
+            />
+            <EditableText
+              as="p"
+              multiline
+              {...et('subtitle', c.subtitle)}
+              className="-mt-2 mb-6 text-[10px] @md:text-[11px] tracking-[0.3em] uppercase leading-[2.2] opacity-60 whitespace-pre-line"
+              placeholder="Frase de apoio (opcional)"
+            />
+          </>
+        )}
+        {slice?.lead}
 
         {/* Pacotes */}
-        <div className="mt-12 @md:mt-16 space-y-0 text-left">
+        <div className={cn('space-y-0 text-left', slice?.hideHeader && !slice.lead ? 'mt-0' : 'mt-12 @md:mt-16')}>
           {packages.map((pkg: any, idx: number) => {
             const num = String(idx + 1).padStart(2, '0');
             const isEven = idx % 2 === 1;
@@ -406,11 +431,13 @@ export function PricingMagazine({
   data,
   props,
   numberOffset = 0,
+  slice,
 }: {
   content?: any;
   data?: any;
   props?: any;
   numberOffset?: number;
+  slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
   const editable = inline?.editable ?? false;
@@ -439,13 +466,15 @@ export function PricingMagazine({
     <section
       className={cn(
         'py-14 @md:py-20 px-5 @md:px-8',
+        slicePad(slice),
         sectionBg(props?.background, 'white'),
         textColorClass(props?.text_color, props?.background, 'white')
       )}
     >
       <div className="max-w-[1100px] mx-auto">
         {/* Cabeçalho do grupo: rótulo / título fino em caixa-alta / frase de apoio */}
-        <header className={cn('mb-10 @md:mb-14', align, tint)}>
+        {!slice?.hideHeader && (
+        <header className={cn(slice?.lead ? 'mb-0' : 'mb-10 @md:mb-14', align, tint)}>
           {(c.eyebrow || editable) && (
             <div className={cn('flex items-center gap-4 @md:gap-6 mb-4 @md:mb-5', justify)}>
               {rules && <span aria-hidden className="flex-1 h-px bg-[var(--pa-stone,#D0C8BC)]" />}
@@ -484,6 +513,8 @@ export function PricingMagazine({
             />
           )}
         </header>
+        )}
+        {slice?.lead && <div className="mb-10 @md:mb-12">{slice.lead}</div>}
 
         <div className="grid grid-cols-1 @4xl:grid-cols-2 gap-5 @md:gap-6 @4xl:gap-8">
           {packages.map((pkg: any, idx: number) => {
@@ -633,32 +664,79 @@ export function PricingMagazine({
   );
 }
 
-export function PricingTableRenderer({
-  content,
-  data,
-  props,
-  numberOffset,
-}: {
-  content?: any;
-  data?: any;
-  props?: any;
-  numberOffset?: number;
-}) {
+type VariantProps = { content?: any; data?: any; props?: any; numberOffset?: number; slice?: PackageSlice };
+
+function PricingVariant({ content, data, props, numberOffset, slice }: VariantProps) {
   const variant = props?.variant || 'cards-classic';
   switch (variant) {
     case 'photo-cards':
-      return <PricingPhotoCards content={content} data={data} props={props} />;
+      return <PricingPhotoCards content={content} data={data} props={props} slice={slice} />;
     case 'photo-rows':
-      return <PricingPhotoRows content={content} data={data} props={props} />;
+      return <PricingPhotoRows content={content} data={data} props={props} slice={slice} />;
     case 'arch-cards':
-      return <PricingArchCards content={content} data={data} props={props} />;
+      return <PricingArchCards content={content} data={data} props={props} slice={slice} />;
     case 'magazine':
-      return <PricingMagazine content={content} data={data} props={props} numberOffset={numberOffset} />;
+      return <PricingMagazine content={content} data={data} props={props} numberOffset={numberOffset} slice={slice} />;
     case 'numbered-editorial':
-      return <PricingNumberedEditorial content={content} data={data} props={props} />;
+      return <PricingNumberedEditorial content={content} data={data} props={props} slice={slice} />;
     case 'cards-minimal':
-      return <PricingCardsMinimal content={content} data={data} props={props} />;
+      return <PricingCardsMinimal content={content} data={data} props={props} slice={slice} />;
     default:
-      return <PricingClassic content={content} data={data} props={props} />;
+      return <PricingClassic content={content} data={data} props={props} slice={slice} />;
   }
+}
+
+/**
+ * Sem grupos: a variante escolhida, como sempre. Com grupos: uma página por trecho (pacotes sem
+ * grupo, depois cada grupo), cada uma renderizada pela mesma variante. O cabeçalho da seção fica
+ * na 1ª página e o rodapé na última; "nova página" vira uma seção de tela cheia sem repeti-lo.
+ */
+export function PricingTableRenderer({ content, data, props, numberOffset = 0 }: VariantProps) {
+  const c = content || data || {};
+  const editable = useInlineEdit()?.editable ?? false;
+  const pages = c.groups?.length ? buildPackagePages(c, { includeEmpty: editable }) : [];
+  if (!pages.length) return <PricingVariant content={content} data={data} props={props} numberOffset={numberOffset} />;
+
+  let shown = 0; // numeração do layout Revista continua de uma página para a outra
+  return (
+    <>
+      {pages.map((page) => {
+        const offset = numberOffset + shown;
+        shown += page.entries.length;
+        const slice: PackageSlice = {
+          hideHeader: !page.first,
+          hideFooter: !page.last,
+          padBottom: !page.joinsNext,
+          lead: page.group && (
+            <PackageGroupHeader
+              group={page.group}
+              index={page.groupIndex}
+              props={props}
+              newPage={page.newPage}
+              className={page.first ? 'mt-12 @md:mt-14' : 'mt-0'}
+            />
+          ),
+        };
+        const body = (
+          <PathScope idxs={page.entries.map((e) => e.idx)}>
+            <PricingVariant
+              content={{ ...c, packages: page.entries.map((e) => e.pkg) }}
+              props={props}
+              numberOffset={offset}
+              slice={slice}
+            />
+          </PathScope>
+        );
+        const key = page.group?.key ?? 'ungrouped';
+        return page.newPage ? (
+          // A seção cresce até a tela inteira: o fundo acompanha e os pacotes ficam no topo
+          <div key={key} className={cn('flex flex-col [&>section]:flex-1', HERO_MIN_H)}>
+            {body}
+          </div>
+        ) : (
+          <React.Fragment key={key}>{body}</React.Fragment>
+        );
+      })}
+    </>
+  );
 }

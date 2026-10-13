@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { addonIcon, infoIcon } from './icons';
+import type { PackageGroupComposition } from './pricing';
 
 export type FieldKind =
   | 'text'
@@ -144,6 +145,32 @@ export const packageItem = () => ({
   badge: '',
   features: [],
 });
+/** `key`, não `id`: duplicar a seção e instanciar modelos renovam todo `id` de lista e quebrariam `packages[].group_id`. */
+export const packageGroupItem = () => ({ key: crypto.randomUUID(), title: 'Novo grupo', composition: 'editorial' });
+
+export const PACKAGE_GROUP_COMPOSITIONS: { value: PackageGroupComposition; label: string }[] = [
+  { value: 'editorial', label: 'Título editorial' },
+  { value: 'divider', label: 'Divisor minimalista' },
+  { value: 'banner', label: 'Cabeçalho destacado' },
+];
+
+/** Campos do grupo no painel (todos opcionais: datas só para quem usa lotes). `showIf` lê o próprio grupo em `content`. */
+export const PACKAGE_GROUP_FIELDS: BlockField[] = [
+  { key: 'title', label: 'Título do grupo', kind: 'text', placeholder: 'Primeiro lote' },
+  { key: 'subtitle', label: 'Subtítulo (opcional)', kind: 'text', placeholder: 'Pacotes para estúdio' },
+  { key: 'composition', label: 'Composição do título', kind: 'select', options: PACKAGE_GROUP_COMPOSITIONS },
+  { key: 'new_page', label: 'Começar em nova página', kind: 'boolean' },
+  { key: 'period', label: 'Período ou validade (opcional)', kind: 'text', placeholder: 'Até 15 de outubro' },
+  { key: 'note', label: 'Texto explicativo (opcional)', kind: 'textarea', placeholder: 'Valores promocionais do primeiro lote.' },
+  {
+    key: 'price_note',
+    label: 'Observação sobre os preços (opcional)',
+    kind: 'textarea',
+    placeholder: 'A partir de 16 de outubro os valores passam para o segundo lote.',
+  },
+  { key: 'icon', label: 'Ícone (opcional)', kind: 'icon', placeholder: 'Nenhum', showIf: ({ content }) => content.composition !== 'divider' },
+];
+
 export const testimonialItem = () => ({ id: crypto.randomUUID(), quote: '', author: '', service: '' });
 export const linkItem = () => ({ id: crypto.randomUUID(), label: '', href: '' });
 export const galleryItem = () => ({ id: crypto.randomUUID(), image_ref: '', span: 'normal', ratio: 'auto' });

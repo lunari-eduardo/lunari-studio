@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
-import { fillGallerySlots, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
-import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber } from '../src/pages/comercial/blocks/pricing';
+import { fillGallerySlots, packageGroupItem, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
+import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber, buildPackagePages, packageGroupKey, slicePad } from '../src/pages/comercial/blocks/pricing';
 import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
 import { createBlock } from '../src/pages/comercial/blocks/registry';
 import { forCollection, optionsFor, templateCollection } from '../src/pages/comercial/blocks/collections';
@@ -503,6 +503,38 @@ async function runTests() {
   assert(!('signature' in instantiateTemplateBlocks([oldCta])[0].content), 'Old CTA templates get no signature field');
   assert(createBlock('CTABlock', 'natal').props!.variant === 'signature', 'New closing in a Natal proposal starts as Assinatura');
   assert(forCollection(BLOCK_REGISTRY.CTABlock.variants!, undefined).length === 1, 'Standard proposals have a single CTA option (picker hidden)');
+
+  // 26. Grupos de pacotes: ordem, índices reais de edição, página nova e fluxo
+  const gp = (key: string, extra: object = {}) => ({ key, title: key, ...extra });
+  const grouped = {
+    groups: [gp('lote1'), gp('lote2', { new_page: true }), gp('vazio'), gp('lote3')],
+    packages: [
+      { id: 'a', group_id: 'lote2' },
+      { id: 'b' },
+      { id: 'c', group_id: 'lote1' },
+      { id: 'd', group_id: 'removido' }, // grupo apagado = sem grupo
+      { id: 'e', group_id: 'lote3' },
+      { id: 'f', group_id: 'lote2' },
+    ],
+  };
+  const pages = buildPackagePages(grouped);
+  assert(pages.map((p) => p.group?.key ?? '-').join() === '-,lote1,lote2,lote3', `Pages: sem grupo primeiro, vazio omitido (${pages.map((p) => p.group?.key)})`);
+  assert(pages[0].entries.map((e) => e.pkg.id).join() === 'b,d', 'Unknown group_id falls back to ungrouped, keeping order');
+  assert(pages[2].entries.map((e) => e.idx).join() === '0,5', 'Entries keep the real packages index (inline edit path)');
+  assert(pages[2].newPage && !pages[3].newPage, 'new_page breaks only the group that asks for it');
+  assert(pages[1].joinsNext === false && pages[2].joinsPrev === false, 'A new page does not join the previous flow');
+  assert(pages[2].joinsNext === true && pages[3].joinsPrev === true, 'Normal groups keep the flow');
+  assert(pages[0].first && pages[3].last, 'First and last pages are flagged (header/footer placement)');
+  assert(buildPackagePages(grouped, { includeEmpty: true }).some((p) => p.group?.key === 'vazio'), 'Editor keeps empty groups');
+  const firstNew = buildPackagePages({ groups: [gp('x', { new_page: true })], packages: [{ group_id: 'x' }] });
+  assert(firstNew.length === 1 && !firstNew[0].newPage, 'A first group never forces a page break');
+  assert(buildPackagePages({ packages: [{}, {}] }).length === 1 && packageGroupKey({ group_id: 'x' }, []) === '', 'No groups = one plain page');
+  assert(slicePad({ padBottom: false }).includes('pb-0') && slicePad({}) === '', 'Only a page followed by a joined one drops its bottom padding');
+  const groupKey = packageGroupItem().key;
+  const dup = instantiateTemplateBlocks([{ type: 'PricingTable', id: 'g', content: { groups: [{ key: groupKey }], packages: [{ id: 'p', group_id: groupKey }] } }])[0];
+  assert(dup.content.groups[0].key === groupKey && dup.content.packages[0].group_id === groupKey && dup.content.packages[0].id !== 'p', 'Instantiation renews package ids but keeps group keys');
+  const realOverGroups = instantiateTemplateBlocks([{ type: 'PricingTable', id: 'g', content: { groups: [{ key: groupKey }], packages: [] } }], { packages: [realPkg] })[0];
+  assert(!('groups' in realOverGroups.content), 'Real packages replace the model groups');
 
   console.log('✅ All tests passed successfully!');
 }
