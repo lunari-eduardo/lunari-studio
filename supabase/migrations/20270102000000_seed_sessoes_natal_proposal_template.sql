@@ -2,11 +2,12 @@
 -- COMERCIAL: modelo "Sessões de Natal" (editorial natalino)
 -- Tema Natal Editorial: marfim, caramelo e verde muito escuro (Bodoni Moda / Montserrat /
 -- Pinyon Script). Reaplicável: cada fase da implementação atualiza o mesmo modelo.
--- Revisão: as 3 capas empilhadas (Arcos, Medalhão, Noturna); a versão final mantém só a
--- capa Arcos, com as outras como variantes selecionáveis. Fase 2: introdução "Texto e Luz".
--- Fase 3: os 3 layouts de pacotes empilhados (Cartões com Foto, Linhas com Foto, Cartões em
--- Arco); a versão final mantém um. Atenção: com pacotes reais na categoria, a criação usa só o
--- 1º grupo de preços (regra atual), então na revisão os outros dois somem da proposta criada.
+-- Uma capa e um grupo de pacotes: as outras composições (capa Medalhão/Noturna; pacotes em
+-- linhas/arco) são escolhidas em "Composição" no editor. Por isso a capa e os pacotes já
+-- carregam o conteúdo de todas as composições (fotos dos 3 arcos, destaques da Noturna,
+-- rótulo dos cartões em arco): trocar de composição não perde texto nem foto.
+-- title_style fica sem valor: cada capa usa o próprio padrão (Arcos caligráfica, demais caixa-alta).
+-- Fase 4: Adicionais (AddonsBlock, Cartões; Linhas em "Composição"), preços de exemplo editáveis.
 -- Coleção Natal: tag "natal" (aba da vitrine) + global_settings.collection (a proposta criada
 -- herda e libera as variantes/temas exclusivos da coleção; modelos padrão não os veem).
 -- Fotos de demonstração ficam só na vitrine: o hidratador esvazia os espaços ao criar a
@@ -33,47 +34,7 @@ VALUES (
    "btnLink": "",
    "image_url": "",
    "photo_b": "",
-   "photo_c": ""
-  },
-  "props": {
-   "variant": "arches-trio",
-   "background": "white",
-   "text_color": "default",
-   "title_style": "script"
-  }
- },
- {
-  "id": "sn_cover_medalhao",
-  "type": "CoverBlock",
-  "content": {
-   "eyebrow": "",
-   "title": "Sessões de",
-   "title_italic": "Natal",
-   "subtitle": "Memórias que aquecem sempre",
-   "photographer_name": "Nome do Estúdio",
-   "btnText": "",
-   "btnLink": "",
-   "image_url": ""
-  },
-  "props": {
-   "variant": "ornament",
-   "background": "white",
-   "text_color": "default",
-   "title_style": "caps"
-  }
- },
- {
-  "id": "sn_cover_noturna",
-  "type": "CoverBlock",
-  "content": {
-   "eyebrow": "Apresenta",
-   "title": "Sessões de",
-   "title_italic": "Natal",
-   "subtitle": "Memórias que aquecem sempre",
-   "photographer_name": "Seu Estúdio",
-   "btnText": "",
-   "btnLink": "",
-   "image_url": "",
+   "photo_c": "",
    "highlights": [
     { "id": "sn_h1", "label": "Sessões limitadas", "icon": "" },
     { "id": "sn_h2", "label": "Uma experiência para sua família", "icon": "" },
@@ -81,8 +42,9 @@ VALUES (
    ]
   },
   "props": {
-   "variant": "night-hero",
-   "title_style": "caps"
+   "variant": "arches-trio",
+   "background": "white",
+   "text_color": "default"
   }
  },
  {
@@ -113,6 +75,7 @@ VALUES (
    "title": "Pacotes",
    "title_italic": "",
    "subtitle": "Memórias que aquecem sempre",
+   "item_label": "Pacote",
    "packages": [
     {
      "id": "sn_p1", "name": "Essencial", "description": "Para guardar o que importa", "price": "R$ 490", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "", "image_ref": "",
@@ -141,67 +104,28 @@ VALUES (
   "props": { "variant": "photo-cards", "background": "cream", "text_color": "default" }
  },
  {
-  "id": "sn_pkg_rows",
-  "type": "PricingTable",
+  "id": "sn_addons",
+  "type": "AddonsBlock",
   "content": {
    "eyebrow": "Sessões de Natal",
-   "title": "Pacotes",
-   "title_italic": "",
-   "subtitle": "Memórias que aquecem sempre",
-   "packages": [
-    {
-     "id": "sn_r1", "name": "Essencial", "description": "Para guardar o que importa.", "price": "R$ 490", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "", "image_ref": "",
-     "features": ["Até 3 participantes", "5 fotos digitais", "1 cenário", "1 troca de roupa"],
-     "feature_icons": []
-    },
-    {
-     "id": "sn_r2", "name": "Completo", "description": "Uma experiência ainda mais especial.", "price": "R$ 790", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "Mais escolhido", "image_ref": "",
-     "features": ["Até 5 participantes", "10 fotos digitais", "2 cenários", "2 trocas de roupa"],
-     "feature_icons": []
-    },
-    {
-     "id": "sn_r3", "name": "Premium", "description": "Para viver mais momentos.", "price": "R$ 1.190", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "", "image_ref": "",
-     "features": ["Até 6 participantes", "15 fotos digitais", "2 cenários", "2 trocas de roupa", "Álbum fotográfico 20x20 cm"],
-     "feature_icons": []
-    }
+   "title": "Adicionais e",
+   "title_italic": "Extras",
+   "subtitle": "Personalize a sua sessão",
+   "items": [
+    { "id": "sn_x1", "name": "Foto extra", "description": "Mais registros para você guardar cada detalhe deste momento.", "price": "R$ 35,00", "image_ref": "", "icon": "" },
+    { "id": "sn_x2", "name": "Impressão", "description": "Impressões em papel fotográfico profissional.", "price": "R$ 10,00", "image_ref": "", "icon": "" },
+    { "id": "sn_x3", "name": "Álbum fotográfico", "description": "Suas fotos em um álbum personalizado de alta qualidade.", "price": "R$ 490,00", "image_ref": "", "icon": "" },
+    { "id": "sn_x4", "name": "Quadro de madeira", "description": "Suas fotos em um quadro com moldura de madeira, para decorar seu ambiente.", "price": "R$ 49,00", "image_ref": "", "icon": "" },
+    { "id": "sn_x5", "name": "Porta-retrato", "description": "Suas fotos em um porta-retrato elegante, perfeito para qualquer ambiente.", "price": "R$ 20,00", "image_ref": "", "icon": "frame" }
    ],
    "highlights": [
-    { "id": "sn_rh1", "label": "Vestuário disponível", "icon": "" },
-    { "id": "sn_rh2", "label": "Reserva online", "icon": "" },
-    { "id": "sn_rh3", "label": "Seleção pela galeria", "icon": "" },
-    { "id": "sn_rh4", "label": "Entrega em até 15 dias", "icon": "" }
-   ],
-   "footnote": ""
+    { "id": "sn_xh1", "label": "Produtos de alta qualidade", "icon": "heart" },
+    { "id": "sn_xh2", "label": "Entrega em até 15 dias", "icon": "truck" },
+    { "id": "sn_xh3", "label": "Pagamento seguro", "icon": "shield" },
+    { "id": "sn_xh4", "label": "Opções para presentear", "icon": "gift" }
+   ]
   },
-  "props": { "variant": "photo-rows", "background": "cream", "text_color": "default" }
- },
- {
-  "id": "sn_pkg_arch",
-  "type": "PricingTable",
-  "content": {
-   "eyebrow": "Nossos pacotes",
-   "title": "Escolha a sua",
-   "title_italic": "experiência",
-   "subtitle": "Cada sessão de Natal foi pensada para criar memórias reais, com todo o cuidado em cada detalhe.",
-   "item_label": "Pacote",
-   "packages": [
-    {
-     "id": "sn_a1", "name": "Essencial", "description": "O essencial para guardar os momentos mais especiais.", "price": "R$ 490", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "", "image_ref": "",
-     "features": ["10 fotografias digitais", "1 cenário", "Até 1 hora de sessão", "Galeria online para seleção"]
-    },
-    {
-     "id": "sn_a2", "name": "Completo", "description": "A experiência completa para viver e guardar cada detalhe.", "price": "R$ 790", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "Mais escolhido", "image_ref": "",
-     "features": ["20 fotografias digitais", "2 cenários", "Até 2 horas de sessão", "Galeria online para seleção", "1 álbum fotográfico 20x20cm"]
-    },
-    {
-     "id": "sn_a3", "name": "Premium", "description": "Uma experiência completa para quem deseja ainda mais.", "price": "R$ 1.190", "price_unit": "", "price_cash": "", "price_installments": "", "badge": "", "image_ref": "",
-     "features": ["30 fotografias digitais", "2 cenários", "Até 2 horas de sessão", "Galeria online para seleção", "1 álbum fotográfico 25x25cm", "Fotografias extras com valor especial"]
-    }
-   ],
-   "highlights": [],
-   "footnote": "Memórias que aquecem sempre"
-  },
-  "props": { "variant": "arch-cards", "background": "cream", "text_color": "default" }
+  "props": { "variant": "grid", "background": "cream", "text_color": "default" }
  },
  {
   "type": "global_settings",

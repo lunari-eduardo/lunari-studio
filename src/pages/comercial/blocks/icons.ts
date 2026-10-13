@@ -5,7 +5,7 @@ import {
   Camera,
   Image as ImageIcon,
   Images,
-  Frame,
+  SquareUserRound,
   BookOpen,
   Printer,
   TreePine,
@@ -48,7 +48,7 @@ export const PROPOSAL_ICONS: Record<string, { label: string; icon: LucideIcon; g
   camera: { label: 'Fotos', icon: Camera, group: 'Fotografia' },
   image: { label: 'Imagem', icon: ImageIcon, group: 'Fotografia' },
   images: { label: 'Galeria', icon: Images, group: 'Fotografia' },
-  frame: { label: 'Quadro', icon: Frame, group: 'Fotografia' },
+  frame: { label: 'Quadro', icon: SquareUserRound, group: 'Fotografia' },
   album: { label: 'Álbum', icon: BookOpen, group: 'Fotografia' },
   print: { label: 'Impressão', icon: Printer, group: 'Fotografia' },
   tree: { label: 'Cenário', icon: TreePine, group: 'Cenário' },
@@ -102,6 +102,11 @@ const SUGGESTIONS: [RegExp, string][] = [
 export function suggestIcon(text: string): string | null {
   const t = (text || '').toLowerCase();
   return SUGGESTIONS.find(([re]) => re.test(t))?.[1] ?? null;
+}
+
+/** Ícone automático de um adicional: pelo nome, depois pela descrição; sem correspondência = imagem. */
+export function addonIcon(item: { name?: string; description?: string } | null | undefined): string {
+  return suggestIcon(item?.name ?? '') ?? suggestIcon(item?.description ?? '') ?? 'image';
 }
 
 /** Valor salvo quando o fotógrafo escolhe "Sem ícone" (vazio = padrão da seção). */

@@ -271,7 +271,11 @@ export function FieldEditor(props: FieldEditorProps) {
       return (
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">{field.label}</Label>
-          <IconPicker value={value} onChange={onChange} />
+          <IconPicker
+            value={value}
+            onChange={onChange}
+            {...(field.autoIcon && { defaultLabel: 'Automático', autoKey: field.autoIcon(props.item) })}
+          />
         </div>
       );
 

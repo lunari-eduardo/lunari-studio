@@ -10,8 +10,10 @@ import {
   MessageCircle,
   ScrollText,
   ListChecks,
+  PackagePlus,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { addonIcon } from './icons';
 
 export type FieldKind =
   | 'text'
@@ -52,6 +54,8 @@ export interface BlockField {
   group?: FieldGroup;
   /** Some do painel quando a variante/layout atual não usa o campo (o dado continua salvo). */
   showIf?: (ctx: FieldCtx) => boolean;
+  /** Campo 'icon' dentro de lista: ícone que o "Automático" usa para o item (o mesmo do renderer). */
+  autoIcon?: (item: any) => string | null;
 }
 
 export interface PropImageSlot {
@@ -74,6 +78,8 @@ export interface BlockDefinition {
   /** `collection`: exclusiva de uma coleção temática (blocks/collections.ts) até ser liberada aos modelos padrão. */
   variants?: { value: string; label: string; description: string; collection?: string }[];
   defaultVariant?: string;
+  /** Bloco exclusivo de uma coleção temática: só aparece na biblioteca de seções das propostas dela. */
+  collection?: string;
   factory: () => { content: Record<string, any>; props?: Record<string, any> };
 }
 
@@ -155,6 +161,7 @@ export const GALLERY_SPAN_OPTIONS = [
   { value: 'feature_2x2', label: 'Destaque' },
 ];
 export const infoItem = () => ({ id: crypto.randomUUID(), title: '', body: '' });
+export const addonItem = () => ({ id: crypto.randomUUID(), name: '', description: '', price: '', image_ref: '', icon: '' });
 export const highlightItem = () => ({ id: crypto.randomUUID(), label: '', icon: '' });
 
 /** Faixa de destaques (frase curta + ícone opcional) — capa Noturna, pacotes da coleção. */
@@ -372,6 +379,56 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     factory: () => ({
       content: { eyebrow: '', title: 'Pacotes', packages: [] },
       props: { align: 'center', background: 'white' },
+    }),
+  },
+
+  AddonsBlock: {
+    type: 'AddonsBlock',
+    name: 'Adicionais',
+    description: 'Extras avulsos com foto e preço',
+    icon: PackagePlus,
+    collection: 'natal',
+    fields: [
+      { key: 'eyebrow', label: 'Rótulo superior', kind: 'text', placeholder: 'Sessões de Natal' },
+      { key: 'title', label: 'Título', kind: 'text', placeholder: 'Adicionais e' },
+      { key: 'title_italic', label: 'Título em itálico (opcional)', kind: 'text', placeholder: 'Extras' },
+      { key: 'subtitle', label: 'Frase de apoio', kind: 'text', placeholder: 'Personalize a sua sessão' },
+      {
+        key: 'items',
+        label: 'Adicionais',
+        kind: 'list',
+        itemLabel: 'Adicional',
+        itemFields: [
+          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Foto extra' },
+          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Mais registros para guardar cada detalhe.' },
+          { key: 'price', label: 'Preço (texto livre)', kind: 'text', placeholder: 'R$ 35,00' },
+          { key: 'image_ref', label: 'Foto', kind: 'image', showIf: ({ props }) => !props.hide_images },
+          {
+            key: 'icon',
+            label: 'Ícone sobre a foto',
+            kind: 'icon',
+            autoIcon: addonIcon,
+            showIf: ({ props }) => props.variant === 'grid' && !props.hide_icons,
+          },
+        ],
+        itemFactory: addonItem,
+      },
+      highlightsField('Destaques do rodapé', () => true),
+    ],
+    layoutFields: [
+      backgroundField(),
+      textColorField(),
+      { key: 'hide_images', label: 'Ocultar fotos', kind: 'boolean' },
+      { key: 'hide_icons', label: 'Ocultar ícones dos itens', kind: 'boolean', showIf: variantIn('grid') },
+    ],
+    variants: [
+      { value: 'grid', label: 'Cartões', description: 'Foto no topo, ícone e preço em destaque', collection: 'natal' },
+      { value: 'rows', label: 'Linhas', description: 'Cartões horizontais com a foto alternando os lados', collection: 'natal' },
+    ],
+    defaultVariant: 'grid',
+    factory: () => ({
+      content: { eyebrow: '', title: 'Adicionais e', title_italic: 'Extras', subtitle: '', items: [], highlights: [] },
+      props: { background: 'cream' },
     }),
   },
 

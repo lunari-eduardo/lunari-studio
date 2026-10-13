@@ -8,6 +8,7 @@ import { BlockObserver, typographyKey } from './blocks/helpers';
 import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
+import { AddonsRenderer } from './blocks/PricingCollectionBlocks';
 import { computePackageNumberOffsets } from '../../blocks/pricing';
 import { GalleryRenderer, DividerRenderer, DefaultRenderer } from './blocks/GalleryAndMiscBlocks';
 import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/ClosingBlocks';
@@ -194,6 +195,7 @@ export function VisualRenderer({
                     numberOffset={packageNumberOffsets.get(block)}
                   />
                 )}
+                {block.type === 'AddonsBlock' && <AddonsRenderer content={block.content} props={block.props} />}
                 {block.type === 'EditorialComposition' && (
                   <EditorialComposition content={block.content} props={block.props} />
                 )}

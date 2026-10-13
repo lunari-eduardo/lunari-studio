@@ -302,6 +302,10 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         content.packages = renewIdsWithoutPhotos(realPackages ?? content.packages);
         if ('highlights' in content) content.highlights = renewIds(content.highlights);
         break;
+      case 'AddonsBlock':
+        content.items = renewIdsWithoutPhotos(content.items);
+        content.highlights = renewIds(content.highlights);
+        break;
       case 'Gallery':
         content.images = renewIdsWithoutPhotos(content.images);
         break;

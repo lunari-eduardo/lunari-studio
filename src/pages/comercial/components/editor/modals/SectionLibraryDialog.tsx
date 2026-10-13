@@ -2,13 +2,14 @@ import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { ADDABLE_BLOCK_TYPES, getBlockDef, getBlockName } from '../../../blocks/registry';
+import { useProposalCollection } from '../../../blocks/collections';
 
 // Categorias por intenção (ordem de uma proposta). Tipo novo fora daqui cai em "Outras".
 const CATEGORIES: { title: string; types: string[] }[] = [
   { title: 'Abertura', types: ['CoverBlock'] },
   { title: 'Conteúdo', types: ['EditorialBlock', 'EditorialComposition', 'DividerBlock'] },
   { title: 'Portfólio', types: ['Gallery'] },
-  { title: 'Preços', types: ['PricingTable'] },
+  { title: 'Preços', types: ['PricingTable', 'AddonsBlock'] },
   { title: 'Prova social', types: ['TestimonialBlock'] },
   { title: 'Informações', types: ['InfoBlock'] },
   { title: 'Fechamento', types: ['CTABlock', 'FooterTerms'] },
@@ -58,6 +59,16 @@ const THUMBS: Record<string, React.ReactNode> = {
       ))}
     </div>
   ),
+  AddonsBlock: (
+    <div className="grid h-full w-full grid-cols-3 gap-1 p-2">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col gap-1 overflow-hidden rounded-[3px] border border-foreground/15">
+          {box('h-3 rounded-none')}
+          <div className="flex flex-col items-center gap-0.5 px-0.5">{bar('w-3/4')}{bar('w-1/2 h-1.5')}</div>
+        </div>
+      ))}
+    </div>
+  ),
   TestimonialBlock: (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3">
       <span className="font-serif text-lg leading-none text-foreground/30">“</span>
@@ -100,10 +111,16 @@ interface SectionLibraryDialogProps {
 // Busca + categorias + miniaturas; sempre cabe na tela (rolagem interna).
 // ============================================================
 export function SectionLibraryDialog({ open, onOpenChange, onAdd, positionLabel }: SectionLibraryDialogProps) {
+  // Blocos de coleção temática (ex.: Adicionais do Natal) só aparecem nas propostas dela
+  const collection = useProposalCollection();
+  const addable = ADDABLE_BLOCK_TYPES.filter((t) => {
+    const own = getBlockDef(t)?.collection;
+    return !own || own === collection;
+  });
   const listed = new Set(CATEGORIES.flatMap((c) => c.types));
   const groups = [
-    ...CATEGORIES.map((c) => ({ ...c, types: c.types.filter((t) => ADDABLE_BLOCK_TYPES.includes(t)) })),
-    { title: 'Outras', types: ADDABLE_BLOCK_TYPES.filter((t) => !listed.has(t)) },
+    ...CATEGORIES.map((c) => ({ ...c, types: c.types.filter((t) => addable.includes(t)) })),
+    { title: 'Outras', types: addable.filter((t) => !listed.has(t)) },
   ].filter((g) => g.types.length > 0);
 
   return (

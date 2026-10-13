@@ -4,14 +4,15 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, splitLeadingNumber } from '../../../blocks/pricing';
-import { ICON_NONE, resolveIconKey, suggestIcon } from '../../../blocks/icons';
+import { ICON_NONE, addonIcon, resolveIconKey, suggestIcon } from '../../../blocks/icons';
 import { fa, fb, fd, fh, sectionBg, textColorClass } from './helpers';
 import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, type Et } from './kit';
 
 // ============================================================
 // PACOTES DA COLEÇÃO EDITORIAL (Natal): cartões com foto, linhas com foto e cartões em arco.
 // Mesma anatomia (nome, descrição curta, itens com ícone, preço editorial); o layout muda.
-// Sem botão por pacote: a proposta é respondida na conversa (CTA de WhatsApp do visualizador).
+// Adicionais (AddonsBlock) dividem cabeçalho, preço e destaques: no fim do arquivo.
+// Sem botão por pacote/adicional: a proposta é respondida na conversa (CTA de WhatsApp do visualizador).
 // "Mais escolhido" = pacote com selo preenchido.
 // ============================================================
 
@@ -46,7 +47,22 @@ function Badge({ et, idx, text, className }: { et: Et; idx: number; text: string
 }
 
 /** Rótulo + filete, título (com itálico opcional no acento) e frase: em caixa-alta espaçada ou frase corrida. */
-function PackagesHeader({ c, et, editable, accent, sentence = false }: { c: any; et: Et; editable: boolean; accent: string; sentence?: boolean }) {
+function PackagesHeader({
+  c,
+  et,
+  editable,
+  accent,
+  sentence = false,
+  inline = false,
+}: {
+  c: any;
+  et: Et;
+  editable: boolean;
+  accent: string;
+  sentence?: boolean;
+  /** Itálico na mesma linha do título ("Adicionais e Extras"); padrão = linha de baixo. */
+  inline?: boolean;
+}) {
   return (
     <header className="mx-auto flex max-w-[50rem] flex-col items-center text-center">
       {(c.eyebrow || editable) && (
@@ -62,10 +78,15 @@ function PackagesHeader({ c, et, editable, accent, sentence = false }: { c: any;
         </>
       )}
       {/* max-w-full: item de flex encolhe ao conteúdo; sem teto, um placeholder longo vazaria da moldura */}
-      <h2 className="mt-7 max-w-full text-[length:clamp(3rem,10cqi,6.25rem)] leading-[1] tracking-[-0.01em]" style={fd()}>
+      <h2
+        // Sem cn: o tailwind-merge descartaria o leading-[1] ao lado de text-[length:…]
+        className={`mt-7 max-w-full leading-[1] tracking-[-0.01em] ${inline ? 'text-[length:clamp(2.75rem,8cqi,5.5rem)]' : 'text-[length:clamp(3rem,10cqi,6.25rem)]'}`}
+        style={fd()}
+      >
         <EditableText {...et('title', c.title)} placeholder="Pacotes" />
         {(c.title_italic || editable) && (
-          <em className={cn('block', accent)} style={fh()}>
+          <em className={cn(inline ? 'inline' : 'block', accent)} style={fh()}>
+            {inline && ' '}
             <EditableText {...et('title_italic', c.title_italic)} placeholder="em itálico (opcional)" />
           </em>
         )}
@@ -153,25 +174,42 @@ function FeatureList({ pkg, idx, et, editable, showIcons, className }: { pkg: an
   );
 }
 
-function PackagePrice({ pkg, idx, set, editable, className }: { pkg: any; idx: number; set: (p: string, v: any) => void; editable: boolean; className?: string }) {
-  const price = displayPrice(pkg);
-  const installments: string = pkg.price_installments || '';
-  if (!price && !editable) return null;
+/** Preço editorial do tamanho de quem o contém (cqi): "R$ 12.490,00" cabe num cartão de 3 colunas. */
+function FittedPrice({
+  value,
+  editable,
+  onCommit,
+  className,
+  size = 'text-[length:clamp(2.25rem,20cqi,3.6rem)]',
+  children,
+}: {
+  value: string;
+  editable: boolean;
+  onCommit: (v: string) => void;
+  className?: string;
+  /** Tamanho em cqi da largura disponível (20cqi = "R$ 12.490,00" inteiro). */
+  size?: string;
+  children?: React.ReactNode;
+}) {
+  if (!value && !editable) return null;
   return (
-    // Contêiner só do preço: o tamanho acompanha a largura do cartão (cqi), então "R$ 12.490,00" cabe em 3 colunas
     <div className={cn('w-full [container-type:inline-size]', className)}>
-      <PriceTag
-        value={price}
-        editable={editable}
-        onCommit={(v) => set(priceEditPath(pkg, idx), v)}
-        className="text-[length:clamp(2.25rem,20cqi,3.6rem)]"
-      />
+      <PriceTag value={value} editable={editable} onCommit={onCommit} className={size} />
+      {children}
+    </div>
+  );
+}
+
+function PackagePrice({ pkg, idx, set, editable, className }: { pkg: any; idx: number; set: (p: string, v: any) => void; editable: boolean; className?: string }) {
+  const installments: string = pkg.price_installments || '';
+  return (
+    <FittedPrice value={displayPrice(pkg)} editable={editable} onCommit={(v) => set(priceEditPath(pkg, idx), v)} className={className}>
       {installments && (
         <p className="mt-2 text-[11px] uppercase tracking-[0.2em] opacity-70" style={fb()}>
           ou {installments}
         </p>
       )}
-    </div>
+    </FittedPrice>
   );
 }
 
@@ -453,6 +491,233 @@ export function PricingArchCards({ content, data, props }: { content?: any; data
           })}
         </div>
         <PackagesFooter c={c} et={et} editable={editable} accent={accent} longRules={false} />
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// ADICIONAIS (AddonsBlock): extras avulsos com foto, descrição e preço.
+// Cartões (3 por linha; a sobra preenche a linha ou fica centralizada) ou linhas com a foto alternando os lados.
+// ============================================================
+
+/** Grade de 6 colunas (4 no tablet): sobra de 2 ocupa a linha inteira; sobra de 1 fica centralizada. */
+function addonSpan(idx: number, n: number) {
+  const last = idx === n - 1;
+  const rest = n % 3;
+  return cn(
+    '@md:col-span-2',
+    last && n % 2 === 1 && '@md:col-start-2',
+    rest === 2 && idx >= n - 2 && '@4xl:col-span-3',
+    rest === 1 && last ? '@4xl:col-start-3' : '@4xl:col-start-auto'
+  );
+}
+
+function AddonName({ et, idx, item, className }: { et: Et; idx: number; item: any; className?: string }) {
+  // Tamanho pela largura do cartão (cqi): "FOTOGRÁFICO" em caixa-alta espaçada cabe inteira em 3 colunas.
+  // leading depois do text-[length:…]: o tailwind-merge descarta o que vem antes.
+  return (
+    <div className="w-full [container-type:inline-size]">
+      <EditableText
+        as="h3"
+        {...et(`items.${idx}.name`, item.name)}
+        className={cn('pl-[0.2em] text-[length:clamp(1rem,7.5cqi,1.25rem)] uppercase leading-tight tracking-[0.2em]', className)}
+        style={fd()}
+        placeholder="Nome do adicional"
+      />
+    </div>
+  );
+}
+
+function AddonDescription({ et, idx, item, editable, className }: { et: Et; idx: number; item: any; editable: boolean; className?: string }) {
+  if (!item.description && !editable) return null;
+  return (
+    <EditableText
+      as="p"
+      multiline
+      {...et(`items.${idx}.description`, item.description)}
+      className={cn('whitespace-pre-line text-[15px] leading-[1.6] opacity-80', className)}
+      style={fb()}
+      placeholder="Descrição curta"
+    />
+  );
+}
+
+function AddonPhoto({
+  item,
+  idx,
+  editable,
+  set,
+  className,
+  imgClassName,
+}: {
+  item: any;
+  idx: number;
+  editable: boolean;
+  set: (p: string, v: any) => void;
+  className?: string;
+  imgClassName?: string;
+}) {
+  return (
+    <div className={cn('relative', className)}>
+      <EditableImage
+        editable={editable}
+        value={item.image_ref || null}
+        label="Foto do adicional"
+        alt={item.name || 'Adicional'}
+        onCommit={(url) => set(`items.${idx}.image_ref`, url)}
+        className="absolute inset-0 w-full h-full"
+        imgClassName={cn('object-cover w-full h-full', imgClassName)}
+        publicEmptyClassName="hidden"
+      />
+    </div>
+  );
+}
+
+const ICON_DISC = cn(
+  'flex h-12 w-12 items-center justify-center rounded-full shadow-[0_4px_18px_rgba(0,0,0,0.10)] @md:h-14 @md:w-14',
+  CARD,
+  ACCENT_TEXT
+);
+
+type AddonsListProps = { c: any; p: any; et: Et; editable: boolean; set: (p: string, v: any) => void };
+
+/** Cartões: foto no topo com o ícone num disco, painel arredondado sobre a foto, nome, filete, descrição e preço. */
+function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
+  const items: any[] = c.items || [];
+  const n = items.length;
+  return (
+    <div className="mt-12 grid grid-cols-1 gap-5 @md:mt-14 @md:grid-cols-4 @md:gap-6 @4xl:grid-cols-6">
+      {items.map((item, idx) => {
+        const hasPhoto = !p.hide_images && (!!item.image_ref || editable);
+        const wide = n % 3 === 2 && idx >= n - 2;
+        const icon = p.hide_icons ? null : resolveIconKey(item.icon, addonIcon(item));
+        const disc = icon && (
+          <span aria-hidden className={ICON_DISC}>
+            <ProposalIcon name={icon} className="h-6 w-6" />
+          </span>
+        );
+        return (
+          <article
+            key={item.id || idx}
+            className={cn(
+              'flex flex-col overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-center shadow-[0_4px_30px_rgba(0,0,0,0.06)]',
+              CARD,
+              CARD_BORDER,
+              addonSpan(idx, n)
+            )}
+          >
+            {hasPhoto && (
+              <div className="relative">
+                <AddonPhoto item={item} idx={idx} editable={editable} set={set} className={cn('aspect-[4/3]', wide && '@4xl:aspect-[16/9]')} />
+                {/* Disco sobre a foto, acima do painel que a sobrepõe */}
+                {disc && <span className="absolute bottom-3 right-4 z-10">{disc}</span>}
+              </div>
+            )}
+            <div
+              className={cn(
+                'relative flex flex-1 flex-col items-center px-6 pb-8 pt-7 @md:px-7',
+                hasPhoto && cn('-mt-5 rounded-t-[var(--pa-r-card,1.5rem)]', CARD)
+              )}
+            >
+              {!hasPhoto && disc && <span className="mb-5">{disc}</span>}
+              <AddonName et={et} idx={idx} item={item} />
+              <Rule className={cn('mt-4 w-12 opacity-50', ACCENT_TEXT)} />
+              <AddonDescription et={et} idx={idx} item={item} editable={editable} className="mt-4 max-w-[30ch]" />
+              <span aria-hidden className="min-h-5 flex-1" />
+              <FittedPrice
+                value={item.price || ''}
+                editable={editable}
+                onCommit={(v) => set(`items.${idx}.price`, v)}
+                className={cn('mt-5', ACCENT_TEXT)}
+              />
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+// Esmaecimento da foto para o lado do texto (no estreito, para baixo)
+const fade = (dir: string) =>
+  `[mask-image:linear-gradient(to_bottom,#000_70%,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,#000_70%,transparent)] ${dir}`;
+const ROW_FADE = {
+  start: fade('@2xl:[mask-image:linear-gradient(to_right,#000_72%,transparent)] @2xl:[-webkit-mask-image:linear-gradient(to_right,#000_72%,transparent)]'),
+  end: fade('@2xl:[mask-image:linear-gradient(to_left,#000_72%,transparent)] @2xl:[-webkit-mask-image:linear-gradient(to_left,#000_72%,transparent)]'),
+};
+
+/** Linhas: foto de um lado (alternando), nome + filete + descrição e o preço numa coluna separada por filete. */
+function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
+  const items: any[] = c.items || [];
+  return (
+    <div className="mt-12 flex flex-col gap-4 @md:mt-14 @md:gap-5">
+      {items.map((item, idx) => {
+        const hasPhoto = !p.hide_images && (!!item.image_ref || editable);
+        const flip = idx % 2 === 1;
+        return (
+          <article
+            key={item.id || idx}
+            className={cn(
+              'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left shadow-[0_4px_30px_rgba(0,0,0,0.06)]',
+              CARD,
+              CARD_BORDER,
+              hasPhoto && (flip ? '@2xl:grid-cols-[minmax(0,1.35fr)_minmax(0,0.65fr)]' : '@2xl:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)]')
+            )}
+          >
+            {hasPhoto && (
+              <AddonPhoto
+                item={item}
+                idx={idx}
+                editable={editable}
+                set={set}
+                className={cn('aspect-[16/9] @2xl:aspect-auto @2xl:min-h-[13rem]', flip && '@2xl:order-2')}
+                imgClassName={flip ? ROW_FADE.end : ROW_FADE.start}
+              />
+            )}
+            <div className="flex min-w-0 flex-col gap-6 p-6 @md:p-8 @4xl:flex-row @4xl:items-center @4xl:gap-0">
+              <div className="min-w-0 flex-1 @4xl:pr-7">
+                <AddonName et={et} idx={idx} item={item} />
+                <Rule className={cn('mt-4 w-12 opacity-50', ACCENT_TEXT)} />
+                <AddonDescription et={et} idx={idx} item={item} editable={editable} className="mt-4 max-w-[40ch]" />
+              </div>
+              <span aria-hidden className={cn('block h-px w-full shrink-0 @4xl:h-20 @4xl:w-px', HAIRLINE)} />
+              {/* Coluna de largura fixa: o preço ajusta o tamanho a ela (container), nunca a espreme */}
+              <FittedPrice
+                value={item.price || ''}
+                editable={editable}
+                onCommit={(v) => set(`items.${idx}.price`, v)}
+                // Coluna dedicada: 22cqi ainda cabe "R$ 12.490,00" e deixa o preço comum perto do da referência
+                size="text-[length:clamp(2.25rem,22cqi,3.6rem)]"
+                className={cn('@4xl:w-[14rem] @4xl:shrink-0 @4xl:pl-7 @4xl:text-center', ACCENT_TEXT)}
+              />
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function AddonsRenderer({ content, data, props }: { content?: any; data?: any; props?: any }) {
+  const { editable, et, set } = useEt();
+  const c = content || data || {};
+  const p = props || {};
+  const accent = accentOn(p);
+  const rows = p.variant === 'rows';
+  const List = rows ? AddonsRows : AddonsGrid;
+
+  return (
+    <section className={sectionCls(p)}>
+      <div className={cn('mx-auto', rows ? 'max-w-[1000px]' : 'max-w-[1100px]')}>
+        <PackagesHeader c={c} et={et} editable={editable} accent={accent} inline />
+        {!(c.items || []).length && editable && (
+          <p className="mt-12 rounded-2xl border border-dashed border-[color:color-mix(in_srgb,currentColor_25%,transparent)] p-8 text-center text-sm opacity-60">
+            Adicione os adicionais no painel.
+          </p>
+        )}
+        <List c={c} p={p} et={et} editable={editable} set={set} />
+        <HighlightsStrip className="mt-14 @md:mt-16" items={c.highlights ?? []} et={et} editable={editable} />
       </div>
     </section>
   );

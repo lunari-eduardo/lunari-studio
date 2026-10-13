@@ -5,7 +5,7 @@ import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, nor
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS } from '../src/pages/comercial/blocks/design';
 import { fillGallerySlots, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber } from '../src/pages/comercial/blocks/pricing';
-import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon } from '../src/pages/comercial/blocks/icons';
+import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon } from '../src/pages/comercial/blocks/icons';
 import { createBlock } from '../src/pages/comercial/blocks/registry';
 import { forCollection, templateCollection } from '../src/pages/comercial/blocks/collections';
 
@@ -325,8 +325,13 @@ async function runTests() {
   const natalCovers = natal.filter((b: any) => b.type === 'CoverBlock');
   assert(natalCovers.every((b: any) => b.content.photographer_name === 'Estúdio Luz'), 'Demo studio name becomes the profile signature');
   assert(natalCovers.every((b: any) => !b.content.image_url && !b.content.photo_b && !b.content.photo_c), 'Seed cover photo slots start empty');
-  const seedNight = seedBlocks.find((b: any) => b.props?.variant === 'night-hero');
-  const night = natal.find((b: any) => b.props?.variant === 'night-hero');
+  // Uma capa só, com o conteúdo de todas as composições: trocar Arcos/Medalhão/Noturna não perde nada
+  const seedCovers = seedBlocks.filter((b: any) => b.type === 'CoverBlock');
+  assert(seedCovers.length === 1 && seedCovers[0].props.variant === 'arches-trio', 'Seed has a single cover (Arcos)');
+  assert(['photo_b', 'photo_c', 'highlights'].every((k) => k in seedCovers[0].content), 'Seed cover carries the content of every Natal cover');
+  assert(!seedCovers[0].props.title_style, 'Cover title style follows each composition default');
+  const seedNight = seedCovers[0];
+  const night = natalCovers[0];
   assert(
     night.content.highlights.length === seedNight.content.highlights.length &&
       night.content.highlights.every((h: any, i: number) => h.id !== seedNight.content.highlights[i].id && h.label === seedNight.content.highlights[i].label),
@@ -387,9 +392,10 @@ async function runTests() {
   assert(sug('Maquiagem inclusa') === null, 'Unknown item -> no suggestion (neutral diamond)');
 
   const seedPricing = seedBlocks.filter((b: any) => b.type === 'PricingTable');
-  assert(seedPricing.map((b: any) => b.props.variant).join() === 'photo-cards,photo-rows,arch-cards', 'Seed brings the 3 package layouts for review');
+  assert(seedPricing.length === 1 && seedPricing[0].props.variant === 'photo-cards', 'Seed has a single package group (other layouts via Composição)');
+  assert(['title_italic', 'item_label', 'highlights', 'footnote'].every((k) => k in seedPricing[0].content), 'Seed packages carry the content of every Natal layout');
   const natalPricing = natal.filter((b: any) => b.type === 'PricingTable');
-  assert(natalPricing.length === 3, 'Without real packages all demo groups stay (current rule)');
+  assert(natalPricing.length === 1, 'Demo package group stays without real packages');
   const cards = natalPricing[0];
   assert(cards.content.packages.every((pk: any) => pk.image_ref === '' && !!pk.description), 'Package photos start empty and descriptions are kept');
   assert(cards.content.packages[0].id !== 'sn_p1' && cards.content.highlights[0].id !== 'sn_ph1', 'Package and highlight ids are renewed');
@@ -401,6 +407,26 @@ async function runTests() {
   // 21. Seção nova numa proposta Natal já nasce com a variante da coleção; padrão segue como antes
   assert(createBlock('PricingTable', 'natal').props!.variant === 'photo-cards' && createBlock('CoverBlock', 'natal').props!.variant === 'arches-trio', 'New sections take the collection variant');
   assert(!createBlock('PricingTable').props!.variant && !createBlock('Gallery', 'natal').props!.variant, 'Standard proposals and blocks without collection variants are unchanged');
+
+  // 22. Adicionais: bloco exclusivo do Natal; fotos nunca vazam, preços de exemplo ficam editáveis
+  assert(BLOCK_REGISTRY.AddonsBlock.collection === 'natal', 'Addons block is Natal-only in the section library');
+  assert(createBlock('AddonsBlock', 'natal').props!.variant === 'grid', 'New Addons section starts as cards');
+  const seedAddons = seedBlocks.find((b: any) => b.type === 'AddonsBlock');
+  const addons = natal.find((b: any) => b.type === 'AddonsBlock');
+  assert(!!seedAddons && !!addons && addons.content.items.length === seedAddons.content.items.length, 'Seed brings the Addons section');
+  assert(
+    addons.content.items.every((it: any, i: number) => it.image_ref === '' && it.id !== seedAddons.content.items[i].id && it.price === seedAddons.content.items[i].price),
+    'Addon photos start empty, ids renew, demo prices stay editable'
+  );
+  assert(addons.content.highlights.every((h: any, i: number) => h.id !== seedAddons.content.highlights[i].id), 'Addon highlight ids are renewed');
+  const addonPhotos = instantiateTemplateBlocks([{ type: 'AddonsBlock', content: { items: [{ id: 'a', name: 'X', image_ref: 'https://x/a.jpg', icon: 'gift' }] }, props: { variant: 'rows' } }]);
+  assert(addonPhotos[0].content.items[0].image_ref === '' && addonPhotos[0].content.items[0].icon === 'gift', 'Addon demo photo cleared, chosen icon kept');
+  assert(
+    addonIcon({ name: 'Impressão' }) === 'print' && addonIcon({ name: 'Álbum fotográfico' }) === 'album' && addonIcon({ name: 'Quadro de madeira' }) === 'frame',
+    'Addon auto icon comes from the name'
+  );
+  assert(addonIcon({ name: 'Mimo', description: 'Embalagem para presente' }) === 'gift' && addonIcon({ name: 'Mimo' }) === 'image', 'Then from the description, else a neutral image');
+  assert(!normalizeBlocks([seedAddons]).some((b) => b.type === 'text'), 'Addons block is registered (never falls back to text)');
 
   console.log('✅ All tests passed successfully!');
 }
