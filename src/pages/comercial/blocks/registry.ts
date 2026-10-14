@@ -14,9 +14,24 @@ export function getBlockName(type: string): string {
   return BLOCK_REGISTRY[type]?.name ?? 'Seção';
 }
 
-/** Nome da seção na lista de estrutura: o título digitado, senão o nome do tipo. */
+/** Une os trechos preenchidos num só texto de uma linha ("Sessões de" + "Natal" → "Sessões de Natal"). */
+const joinText = (...parts: unknown[]) =>
+  parts
+    .filter((s): s is string => typeof s === 'string' && !!s.trim())
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Nome da seção na lista de estrutura: o título digitado (com o trecho em destaque), senão o nome do tipo. */
 export function getSectionTitle(block: BlockData): string {
-  return block.content?.title || block.content?.cta_text || block.content?.eyebrow || block.data?.title || getBlockName(block.type);
+  const c = block.content;
+  return (
+    joinText(c?.title, c?.title_italic) ||
+    joinText(c?.cta_text, c?.cta_italic) ||
+    c?.eyebrow ||
+    block.data?.title ||
+    getBlockName(block.type)
+  );
 }
 
 export const ADDABLE_BLOCK_TYPES = Object.keys(BLOCK_REGISTRY).filter((t) => t !== 'text');

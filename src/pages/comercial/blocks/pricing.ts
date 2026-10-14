@@ -142,3 +142,56 @@ export function computePackageNumberOffsets(blocks: { type: string; content?: an
   }
   return offsets;
 }
+
+// ---------- Edição de pacotes e grupos por `id`/`key` (painel: árvore + detalhe) ----------
+// Nunca por índice: o array `packages` não é reordenado a cada edição e a ordem dos outros grupos não muda.
+
+/**
+ * Reordena só os pacotes de `ids` (um grupo): eles continuam ocupando as mesmas posições do array,
+ * na nova ordem. Pacotes de outros grupos não se mexem.
+ */
+export function reorderWithin<T extends { id?: string }>(packages: T[], ids: string[], activeId: string, overId: string): T[] {
+  const slots = packages.flatMap((p, i) => (p.id && ids.includes(p.id) ? [i] : []));
+  const scoped = slots.map((i) => packages[i]);
+  const from = scoped.findIndex((p) => p.id === activeId);
+  const to = scoped.findIndex((p) => p.id === overId);
+  if (from < 0 || to < 0 || from === to) return packages;
+  const [moved] = scoped.splice(from, 1);
+  scoped.splice(to, 0, moved);
+  const next = [...packages];
+  slots.forEach((slot, k) => {
+    next[slot] = scoped[k];
+  });
+  return next;
+}
+
+/** Muda o grupo de um pacote (`''` = sem grupo) sem tirá-lo do lugar no array. */
+export function movePackageToGroup<T extends { id?: string; group_id?: string }>(packages: T[], id: string, groupKey: string): T[] {
+  return packages.map((p) => {
+    if (p.id !== id) return p;
+    const { group_id: _old, ...rest } = p;
+    return (groupKey ? { ...rest, group_id: groupKey } : rest) as T;
+  });
+}
+
+/** Remove o grupo e mantém os pacotes dele (ficam sem grupo). */
+export function removeGroupKeepingPackages(content: any, key: string): { groups: PackageGroup[]; packages: any[] } {
+  const groups: PackageGroup[] = Array.isArray(content?.groups) ? content.groups : [];
+  const packages: any[] = Array.isArray(content?.packages) ? content.packages : [];
+  return {
+    groups: groups.filter((g) => g.key !== key),
+    packages: packages.map((p) => {
+      if (p.group_id !== key) return p;
+      const { group_id: _old, ...rest } = p;
+      return rest;
+    }),
+  };
+}
+
+/** Cópia do pacote logo abaixo do original, no mesmo grupo, com `id` novo. */
+export function duplicatePackageAfter<T extends { id?: string }>(packages: T[], id: string, newId: string): T[] {
+  const i = packages.findIndex((p) => p.id === id);
+  if (i < 0) return packages;
+  const copy = { ...JSON.parse(JSON.stringify(packages[i])), id: newId };
+  return [...packages.slice(0, i + 1), copy, ...packages.slice(i + 1)];
+}

@@ -47,6 +47,10 @@ export interface VisualRendererProps {
   };
   /** Zoom aplicado ao canvas pelo editor: o chrome compensa para manter o tamanho real. */
   uiScale?: number;
+  /** Item de lista aberto no painel, da seção ativa ("packages:ID"): o cartão ganha contorno. */
+  selectedItem?: string | null;
+  /** Clique no cartão de um item ("packages:ID", "groups:KEY", "items:ID"): o painel abre o detalhe dele. */
+  onSelectItem?: (blockIndex: number, item: string) => void;
 }
 
 export function VisualRenderer({
@@ -62,6 +66,8 @@ export function VisualRenderer({
   onUpdateField,
   sectionActions,
   uiScale = 1,
+  selectedItem = null,
+  onSelectItem,
 }: VisualRendererProps) {
   const isEditing = mode === 'edit';
   // Bloco sintético de configurações nunca é renderizado como seção
@@ -177,6 +183,7 @@ export function VisualRenderer({
             typography: block.props?.typography,
             selectedImage: imageSel?.blockIndex === blockIdx ? imageSel.imageIndex : null,
             onSelectImage: handleSelectImage(blockIdx),
+            selectedItem: isActive ? selectedItem : null,
           };
 
           const content = (
@@ -246,10 +253,15 @@ export function VisualRenderer({
               data-section-index={index}
               style={sectionVars(block.props?.background)}
               // Clique na arte seleciona sem rolar: a seção já está à vista, e rolar desviaria o duplo clique de edição
-              onClick={() => onSelectBlock(index, { scroll: false })}
+              onClick={(e) => {
+                onSelectBlock(index, { scroll: false });
+                // Clique em qualquer ponto do cartão de um item abre o detalhe dele (texto em edição não chega aqui)
+                const item = (e.target as HTMLElement).closest?.('[data-item]')?.getAttribute('data-item');
+                if (item) onSelectItem?.(blockIdx, item);
+              }}
               className={cn(
                 'relative group cursor-pointer transition-all duration-200 outline outline-2 outline-transparent outline-offset-[-2px] w-full h-auto',
-                isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_rgba(200,106,70,0.1)]' : 'hover:outline-primary/30'
+                isActive ? 'outline-primary z-10 shadow-[0_0_0_4px_hsl(var(--primary)/0.08)]' : 'hover:outline-primary/30'
               )}
             >
               {/* Tinta de hover */}

@@ -56,7 +56,7 @@ export function VariantPicker({
           aria-checked={value === v.value}
           onClick={() => onChange(v.value)}
           className={cn(
-            'flex flex-col items-start gap-0.5 rounded-xl border p-2.5 text-left transition-colors',
+            'flex flex-col items-start gap-0.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
             value === v.value
               ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary/30'
               : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -87,7 +87,7 @@ function ToolButton({ label, onClick, disabled, danger, children }: {
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors disabled:pointer-events-none disabled:opacity-30',
+        'flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-30',
         danger ? 'hover:bg-destructive/10 hover:text-destructive' : 'hover:bg-muted hover:text-foreground'
       )}
     >

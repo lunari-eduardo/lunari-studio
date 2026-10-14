@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
-import { InlineEditContext, useInlineEdit } from '../../../blocks/inlineContext';
+import { InlineEditContext, useInlineEdit, useItemAnchor } from '../../../blocks/inlineContext';
 import { resolveIconKey } from '../../../blocks/icons';
 import type { PackageGroup } from '../../../blocks/pricing';
 import { fb, fd } from './helpers';
@@ -54,6 +54,7 @@ export function PackageGroupHeader({
   className?: string;
 }) {
   const { editable, et } = useEt();
+  const anchor = useItemAnchor();
   const accent = accentOn(props);
   const composition = group.composition ?? 'editorial';
   const iconKey = composition === 'divider' ? null : resolveIconKey(group.icon);
@@ -85,7 +86,7 @@ export function PackageGroupHeader({
       </p>
     );
     return (
-      <header className={cn('mx-auto w-full', className)}>
+      <header {...anchor('groups', group.key)} className={cn('mx-auto w-full', className)}>
         {marker}
         <div className="flex items-center gap-4 @md:gap-6">
           <span aria-hidden className="h-px flex-1 bg-current opacity-30" />
@@ -103,7 +104,7 @@ export function PackageGroupHeader({
 
   if (composition === 'banner') {
     return (
-      <header className={cn('w-full', className)}>
+      <header {...anchor('groups', group.key)} className={cn('w-full', className)}>
         {marker}
         <div className={cn('rounded-2xl border bg-[color:color-mix(in_srgb,currentColor_5%,transparent)] px-6 py-6 @md:px-9 @md:py-8', HAIRLINE)}>
           <div className="flex flex-col gap-4 @2xl:flex-row @2xl:items-start @2xl:justify-between @2xl:gap-8">
@@ -131,7 +132,7 @@ export function PackageGroupHeader({
 
   // editorial: período entre filetes, título em fonte de exibição, filete curto e avisos
   return (
-    <header className={cn('mx-auto flex max-w-[46rem] flex-col items-center text-center', className)}>
+    <header {...anchor('groups', group.key)} className={cn('mx-auto flex max-w-[46rem] flex-col items-center text-center', className)}>
       {marker}
       {iconKey && <ProposalIcon name={iconKey} className={cn('mb-5 h-7 w-7', accent)} />}
       {(group.period || editable) && (

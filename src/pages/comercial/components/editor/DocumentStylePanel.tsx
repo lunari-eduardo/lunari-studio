@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { DESIGN_PRESETS } from '@/hooks/useProposalAI';
 import { forCollection, useProposalCollection } from '../../blocks/collections';
 import { commitRecentOnChange } from '../../blocks/recentColors';
+import { EYEBROW } from './panel/panelStyles';
 import {
   DEFAULT_DESIGN_TOKENS,
   PROPOSAL_FONTS,
@@ -65,7 +66,7 @@ const sameColors = (a?: ProposalDesignTokens['colors'], b?: ProposalDesignTokens
   !!a && !!b && PALETTE.every(({ key }) => a[key]?.toLowerCase() === b[key]?.toLowerCase());
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{children}</h3>;
+  return <h3 className={EYEBROW}>{children}</h3>;
 }
 
 export function DocumentStylePanel({
@@ -223,8 +224,8 @@ export function DocumentStylePanel({
                 aria-checked={active}
                 onClick={() => onChange({ ...tokens, shape: s.value })}
                 className={cn(
-                  'flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] transition-colors',
-                  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  'flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+                  active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 <span className={cn('h-3.5 w-5 border border-current', s.preview)} aria-hidden />

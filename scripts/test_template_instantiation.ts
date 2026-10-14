@@ -4,10 +4,11 @@ import path from 'path';
 import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS, backgroundSwatchColor } from '../src/pages/comercial/blocks/design';
 import { applyBackgroundToAll } from '../src/pages/comercial/blocks/sectionBackground';
-import { fillGallerySlots, packageGroupItem, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
-import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber, buildPackagePages, packageGroupKey, slicePad } from '../src/pages/comercial/blocks/pricing';
+import { fillGallerySlots, packageGroupItem, editedOnCanvas, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
+import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber, buildPackagePages, packageGroupKey, slicePad, reorderWithin, movePackageToGroup, removeGroupKeepingPackages, duplicatePackageAfter } from '../src/pages/comercial/blocks/pricing';
+import { resolveItem, displayOrder, neighbors, patchItem, sameRef, resolvePin } from '../src/pages/comercial/blocks/inspectorFocus';
 import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
-import { createBlock } from '../src/pages/comercial/blocks/registry';
+import { createBlock, getSectionTitle } from '../src/pages/comercial/blocks/registry';
 import { forCollection, optionsFor, templateCollection } from '../src/pages/comercial/blocks/collections';
 
 function assert(condition: boolean, message: string) {
@@ -612,6 +613,118 @@ async function runTests() {
   assert(natalVars['--pa-veil-on-cream'] === 'color-mix(in srgb, #FAF6F0 60%, transparent)', 'Cartão translúcido em fundo claro: branco suave do tema (a tinta deixaria o cartão cinza)');
   assert(natalVars['--pa-veil-on-ink'] === 'color-mix(in srgb, #FAF6F0 10%, transparent)' && natalVars['--pa-veil-on-taupe'].includes(' 10%'), 'Cartão translúcido em fundo escuro: 10% do texto claro');
   assert((seedSql.match(/"card_style": "tint"/g) ?? []).length === 6, 'Seed do Natal: 3 modelos × (pacotes + adicionais) nascem com cartões translúcidos');
+
+  // 29. Painel: campo que a variante não desenha some (nunca um campo "morto") e o título da seção junta o destaque
+  const visible = (type: string, variant: string | undefined, list: 'fields' | 'layoutFields' | 'itemFields', itemOf = 'packages', props: Record<string, any> = {}) => {
+    const def = BLOCK_REGISTRY[type];
+    const fields = list === 'itemFields' ? def.fields.find((f) => f.key === itemOf)!.itemFields! : def[list] ?? [];
+    // Como o painel: a variante resolvida com a padrão do bloco é o que os `showIf` leem
+    const resolved = variant ?? def.defaultVariant;
+    const ctx = { content: {}, props: { ...(resolved && { variant: resolved }), ...props } };
+    return new Set(fields.filter((f) => !f.showIf || f.showIf(ctx)).map((f) => f.key));
+  };
+  assert(!visible('CoverBlock', 'ornament', 'fields').has('eyebrow') && visible('CoverBlock', 'minimal-center', 'fields').has('eyebrow'), 'Capa Medalhão não mostra o rótulo superior que não desenha');
+  assert(!visible('EditorialBlock', 'split-portrait', 'fields').has('eyebrow') && !visible('EditorialBlock', 'split-portrait', 'fields').has('title_italic'), 'Split Retrato: sem rótulo nem itálico');
+  assert(visible('EditorialBlock', 'arch-portrait', 'fields').has('eyebrow') && !visible('EditorialBlock', 'arch-portrait', 'fields').has('title_italic'), 'Retrato em Arco: rótulo sim, itálico não');
+  assert(visible('EditorialBlock', 'overlap-blend', 'fields').has('title_italic'), 'Fotos Sobrepostas mantém o itálico');
+  const unit = (v?: string) => visible('PricingTable', v, 'itemFields').has('price_unit');
+  const installments = (v?: string) => visible('PricingTable', v, 'itemFields').has('price_installments');
+  assert(unit() && unit('cards-minimal') && !unit('numbered-editorial') && !unit('magazine') && !unit('photo-cards'), 'Unidade do preço: só Cards e Cards Minimalistas (a padrão conta como Cards)');
+  assert(!installments() && !installments('cards-minimal') && installments('numbered-editorial') && installments('magazine') && installments('photo-cards'), 'Parcelamento: some em Cards e Cards Minimalistas');
+  assert(!visible('PricingTable', 'numbered-editorial', 'itemFields').has('badge') && visible('PricingTable', 'magazine', 'itemFields').has('badge'), 'Selo: o Editorial Numerado não o desenha');
+  assert(!visible('Gallery', undefined, 'fields', 'images', { layout: 'captioned' }).has('eyebrow') && visible('Gallery', undefined, 'fields', 'images', { layout: 'masonry' }).has('eyebrow'), 'Galeria com legenda: sem rótulo superior');
+  assert(!visible('Gallery', undefined, 'layoutFields', 'images', { layout: 'captioned' }).has('align') && visible('Gallery', undefined, 'layoutFields', 'images', {}).has('align'), 'Galeria com legenda: sem alinhamento');
+  assert(!visible('InfoBlock', 'icon-columns', 'fields').has('eyebrow') && visible('InfoBlock', 'steps', 'fields').has('eyebrow'), 'Info: colunas com ícone não desenham o rótulo');
+  assert(['icon-columns', 'icon-list', 'steps'].every((v) => !visible('InfoBlock', v, 'layoutFields').has('align')) && visible('InfoBlock', 'columns', 'layoutFields').has('align'), 'Info: alinhamento só nas composições que o leem');
+  const titled = (content: Record<string, any>, type = 'CoverBlock') => getSectionTitle({ type, content });
+  assert(titled({ title: 'Sessões de', title_italic: 'Natal' }) === 'Sessões de Natal', 'Título da seção junta o destaque em itálico');
+  assert(titled({ title: '  Uma\ntarde ', title_italic: ' só sua. ' }) === 'Uma tarde só sua.', 'Título da seção em uma linha, sem espaços sobrando');
+  assert(titled({ title_italic: 'Natal' }) === 'Natal' && titled({ title: 'Pacotes' }) === 'Pacotes', 'Título da seção: só um dos trechos também serve');
+  assert(titled({ cta_text: 'Vamos criar', cta_italic: 'memórias juntos?' }, 'CTABlock') === 'Vamos criar memórias juntos?', 'Chamada final junta o itálico');
+  assert(titled({}) === 'Capa' && titled({ eyebrow: 'Investimento' }, 'PricingTable') === 'Investimento', 'Sem título: rótulo superior, senão o nome do tipo');
+
+  // 30. Grupo Textos: só o texto curto com gêmeo garantido na arte vai para "Editar como formulário"
+  // (botões ficam no grupo Botões e links; o painel é o único caminho do que some da arte quando vazio)
+  const collapsed = (type: string, variant?: string, props: Record<string, any> = {}) => {
+    const def = BLOCK_REGISTRY[type];
+    const resolved = variant ?? def.defaultVariant;
+    const ctx = { content: {}, props: { ...(resolved && { variant: resolved }), ...props } };
+    return def.fields
+      .filter((f) => f.key !== 'btnText' && (!f.showIf || f.showIf(ctx)) && editedOnCanvas(f, ctx))
+      .map((f) => f.key)
+      .join();
+  };
+  assert(collapsed('CoverBlock', 'minimal-center') === 'eyebrow,title,title_italic,subtitle', `Capa Minimal recolhe os 4 textos (${collapsed('CoverBlock', 'minimal-center')})`);
+  assert(collapsed('CoverBlock', 'poster-split') === 'eyebrow,title,subtitle,photographer_name', 'Capa Pôster: o itálico só aparece preenchido, então fica visível');
+  assert(collapsed('CoverBlock', 'ornament') === 'title,title_italic,subtitle,photographer_name', 'Capa Medalhão: sem rótulo superior (some do painel), o resto recolhe');
+  assert(collapsed('EditorialBlock', 'overlap-blend') === 'eyebrow,title,title_italic', 'Editorial: corpo e assinatura vertical (estática) ficam visíveis');
+  assert(collapsed('EditorialBlock', 'arch-portrait') === 'eyebrow,title', 'Retrato em Arco: frases de destaque são longas e ficam visíveis');
+  assert(collapsed('PricingTable', 'cards-classic') === 'eyebrow,title', 'Tabela de preços: a frase de apoio fica visível');
+  assert(collapsed('PricingTable', 'photo-cards') === 'eyebrow,title,title_italic,footnote', 'Pacotes da coleção: itálico e rodapé recolhem');
+  assert(collapsed('DividerBlock', undefined, { style: 'hairline' }) === 'label' && collapsed('DividerBlock', undefined, { style: 'ornament' }) === '', 'Divisor: o rótulo só é editável na arte na linha fina');
+  assert(collapsed('EditorialComposition') === 'eyebrow,title', 'Composição editorial: itálico (só preenchido) e rótulo lateral (estático) ficam visíveis');
+  assert(collapsed('FooterTerms') === 'copyright', 'Rodapé: as condições (longas) ficam visíveis');
+  assert(collapsed('CTABlock', 'classic') === 'eyebrow,cta_text', 'Chamada final: texto de apoio longo fica visível');
+  // Nada que não seja texto entra no formulário recolhido
+  const nonText = Object.values(BLOCK_REGISTRY).flatMap((d) => d.fields).filter((f) => f.kind !== 'text' && f.kind !== 'textarea');
+  assert(nonText.every((f) => !editedOnCanvas(f, { content: {}, props: {} })), 'Listas, imagens, ícones e afins nunca são recolhidos');
+
+  // 31. Painel: árvore + detalhe — tudo por `id`/`key`, na ordem da arte, sem reordenar `packages` a cada edição
+  const tree = {
+    groups: [{ key: 'g1', title: 'Lote 1' }, { key: 'g2', title: 'Lote 2' }],
+    packages: [
+      { id: 'a', name: 'A', group_id: 'g2' },
+      { id: 'b', name: 'B' },
+      { id: 'c', name: 'C', group_id: 'g1' },
+      { id: 'd', name: 'D', group_id: 'g2' },
+      { id: 'e', name: 'E', group_id: 'g1' },
+    ],
+  };
+  assert(displayOrder(tree, 'packages').map((r) => r.key).join() === 'b,c,e,a,d', 'Ordem do detalhe = ordem da arte: sem grupo, depois cada grupo');
+  assert(displayOrder(tree, 'groups').map((r) => r.key).join() === 'g1,g2', 'Grupos: ordem do array, pela `key`');
+  const nb = neighbors(tree, { list: 'packages', key: 'e' });
+  assert(nb.index === 2 && nb.total === 5 && nb.prev!.key === 'c' && nb.next!.key === 'a', 'Vizinhos atravessam os grupos na ordem de exibição');
+  assert(neighbors(tree, { list: 'packages', key: 'b' }).prev === null && neighbors(tree, { list: 'packages', key: 'd' }).next === null, 'Primeiro e último não têm anterior/próximo');
+  assert(resolveItem(tree, { list: 'packages', key: 'zzz' }) === null && resolveItem(tree, { list: 'groups', key: 'g2' })!.index === 1, 'Item removido não resolve (o painel volta à lista); grupo resolve pela key');
+  assert(sameRef({ list: 'packages', key: 'a' }, { list: 'packages', key: 'a' }) && !sameRef({ list: 'packages', key: 'a' }, { list: 'groups', key: 'a' }), 'Referência compara lista e chave');
+  const patched = patchItem(tree, { list: 'packages', key: 'd' }, { name: 'D2' }).packages as any[];
+  assert(patched.map((p) => p.id).join() === 'a,b,c,d,e' && patched[3].name === 'D2' && patched[3].group_id === 'g2', 'Editar um pacote por id não reordena o array nem perde campos');
+  const reordered = reorderWithin(tree.packages, ['c', 'e'], 'e', 'c');
+  assert(reordered.map((p) => p.id).join() === 'a,b,e,d,c', 'Reordenar dentro do grupo: só as posições do grupo trocam, os outros pacotes não se mexem');
+  assert(reorderWithin(tree.packages, ['c', 'e'], 'c', 'c') === tree.packages && reorderWithin(tree.packages, ['c', 'e'], 'c', 'a') === tree.packages, 'Arrastar para si mesmo ou para outro grupo não muda a ordem');
+  const moved = movePackageToGroup(tree.packages, 'c', 'g2');
+  assert(moved.map((p) => p.id).join() === 'a,b,c,d,e' && moved[2].group_id === 'g2', 'Mover de grupo troca o group_id sem mudar a posição');
+  assert(!('group_id' in movePackageToGroup(tree.packages, 'a', '')[0]), 'Mover para "sem grupo" remove o group_id');
+  const noG1 = removeGroupKeepingPackages(tree, 'g1');
+  assert(noG1.groups.map((g) => g.key).join() === 'g2' && noG1.packages.length === 5 && noG1.packages.filter((p) => p.group_id).map((p) => p.id).join() === 'a,d', 'Remover grupo mantém os pacotes, que ficam sem grupo');
+  const dupPkgs = duplicatePackageAfter(tree.packages, 'c', 'c2');
+  assert(dupPkgs.map((p) => p.id).join() === 'a,b,c,c2,d,e' && dupPkgs[3].group_id === 'g1' && dupPkgs[3].name === 'C' && dupPkgs[3] !== dupPkgs[2], 'Duplicar: cópia logo abaixo, mesmo grupo, id novo');
+
+  // 32. Item fixado: resolve por id (nome, contexto, miniatura), some se a seção/item não existe e volta com o undo
+  const pinBlocks: any[] = [
+    { type: 'CoverBlock', id: 'cover-1', content: { title: 'Sessões de', title_italic: 'Natal' } },
+    {
+      type: 'PricingTable',
+      id: 'price-1',
+      content: {
+        title: 'Pacotes',
+        groups: [{ key: 'g1', title: 'LOTE 1' }],
+        packages: [{ id: 'p1', name: 'Premium', group_id: 'g1', image_ref: 'x.jpg' }, { id: 'p2', name: '' }],
+      },
+    },
+    { type: 'AddonsBlock', id: 'add-1', content: { title: 'Adicionais', items: [{ id: 'a1', name: 'Foto extra', image_ref: 'f.jpg' }] } },
+  ];
+  const pinSection = resolvePin(pinBlocks, { blockId: 'cover-1' })!;
+  assert(pinSection.index === 0 && pinSection.label === 'Sessões de Natal' && pinSection.context === 'Capa', 'Fixar a seção: título composto e tipo como contexto');
+  const pinPkg = resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'p1' } })!;
+  assert(pinPkg.label === 'Premium' && pinPkg.context === 'LOTE 1 · Pacotes' && pinPkg.thumb === 'x.jpg', 'Fixar um pacote: nome, "grupo · seção" e miniatura');
+  assert(resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'p2' } })!.label === 'Novo pacote', 'Pacote sem nome usa "Novo pacote"');
+  assert(resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'groups', key: 'g1' } })!.label === 'LOTE 1', 'Fixar um grupo: título do grupo');
+  const pinAddon = resolvePin(pinBlocks, { blockId: 'add-1', item: { list: 'items', key: 'a1' } })!;
+  assert(pinAddon.label === 'Foto extra' && pinAddon.thumb === 'f.jpg' && pinAddon.index === 2, 'Fixar item de lista genérica: nome e foto pelo schema');
+  assert(resolvePin(pinBlocks, { blockId: 'gone' }) === null && resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'zz' } }) === null && resolvePin(pinBlocks, null) === null, 'Seção ou item inexistente: sem fixado');
+  const movedBlocks = [pinBlocks[2], pinBlocks[0], pinBlocks[1]];
+  assert(resolvePin(movedBlocks, { blockId: 'price-1' })!.index === 2, 'Mover seções não quebra o fixado (por id, nunca por índice)');
 
   console.log('✅ All tests passed successfully!');
 }

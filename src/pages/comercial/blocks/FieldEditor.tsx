@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown, UploadCloud, X } from 'lucide-react';
+import { Trash2, Copy, Pin, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown, UploadCloud, X } from 'lucide-react';
 import { toast } from 'sonner';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -33,6 +34,9 @@ import { DEFAULT_DESIGN_TOKENS, backgroundSwatchColor, isHexColor } from './desi
 import { commitRecentOnChange, pushRecentColor, useRecentColors } from './recentColors';
 import { ICON_GROUPS, ICON_NONE, PROPOSAL_ICONS, suggestIcon } from './icons';
 import { optionsFor, useProposalCollection } from './collections';
+import { useInspectorNav } from '../components/editor/panel/InspectorNav';
+import { ItemRow } from '../components/editor/panel/ItemRow';
+import { sameRef } from './inspectorFocus';
 
 type Palette = typeof DEFAULT_DESIGN_TOKENS.colors;
 
@@ -152,6 +156,7 @@ export function FieldEditor(props: FieldEditorProps) {
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
+            className="h-9"
           />
         </div>
       );
@@ -178,6 +183,7 @@ export function FieldEditor(props: FieldEditorProps) {
             value={value ?? ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
+            className="h-9"
           />
         </div>
       );
@@ -357,7 +363,7 @@ function IconPicker({
       onClick={() => pick(v)}
       aria-pressed={current === v}
       className={cn(
-        'h-8 rounded-lg border px-2 text-[11px] font-medium transition-colors',
+        'h-8 rounded-lg border px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
         current === v ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:bg-muted'
       )}
     >
@@ -372,7 +378,7 @@ function IconPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-xs text-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-background px-3 text-xs text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           {def && current !== ICON_NONE ? (
             <def.icon className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -404,7 +410,7 @@ function IconPicker({
                       aria-pressed={current === key}
                       onClick={() => pick(key)}
                       className={cn(
-                        'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
+                        'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
                         current === key ? 'border-primary bg-primary/10 text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
                       )}
                     >
@@ -440,12 +446,13 @@ function AlignField({ field, value, onChange }: { field: BlockField; value: any;
             type="button"
             title={opt.label}
             aria-label={opt.label}
+            aria-pressed={current === opt.value}
             onClick={() => onChange(opt.value)}
             className={cn(
-              'flex h-8 items-center justify-center rounded-md transition-colors',
+              'flex h-8 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
               current === opt.value
                 ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             )}
           >
             <opt.icon className="h-4 w-4" />
@@ -489,7 +496,7 @@ function ImageField({ field, value, onChange }: FieldEditorProps) {
         </div>
         <div className="flex flex-col gap-2 flex-1">
           <Label htmlFor={inputId} className="cursor-pointer">
-            <div className="flex h-8 w-full items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-accent hover:text-accent-foreground">
+            <div className="flex h-8 w-full items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium shadow-sm hover:bg-muted hover:text-foreground">
               {isUploading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
               {value ? 'Trocar imagem' : 'Enviar imagem'}
             </div>
@@ -568,7 +575,7 @@ export function BackgroundSwatches({
               title={hex?.toUpperCase()}
               onClick={() => onChange(o.value)}
               className={cn(
-                'h-7 w-7 rounded-full border border-black/10 transition-transform',
+                'h-7 w-7 rounded-full border border-black/10 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 value === o.value ? SWATCH_RING : 'hover:scale-110'
               )}
               style={{ backgroundColor: hex }}
@@ -609,7 +616,7 @@ export function BackgroundSwatches({
               title={c.toUpperCase()}
               onClick={() => onChange(c)}
               className={cn(
-                'h-7 w-7 rounded-full border border-black/10 transition-transform',
+                'h-7 w-7 rounded-full border border-black/10 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 customLower === c ? SWATCH_RING : 'hover:scale-110'
               )}
               style={{ backgroundColor: c }}
@@ -835,13 +842,15 @@ export function SortableListItem({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         'group/item rounded-xl border border-border/60 bg-background',
+        // Item aberto: contorno e cabeçalho marcados (o estado não depende só do chevron)
+        'data-[state=open]:border-primary/40 data-[state=open]:ring-1 data-[state=open]:ring-primary/30',
         isDragging && 'relative z-10 shadow-[0_4px_30px_rgba(0,0,0,0.08)]'
       )}
     >
-      <div className="flex items-center gap-1 pl-1 pr-1">
+      <div className="flex items-center gap-1 rounded-xl pl-1 pr-1 group-data-[state=open]/item:rounded-b-none group-data-[state=open]/item:bg-primary/10">
         <button
           type="button"
-          className="flex h-7 w-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/50 hover:text-foreground active:cursor-grabbing"
+          className="flex h-7 w-5 shrink-0 cursor-grab items-center justify-center rounded text-muted-foreground/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:cursor-grabbing"
           title="Arrastar para reordenar"
           aria-label="Arrastar para reordenar"
           {...attributes}
@@ -851,8 +860,8 @@ export function SortableListItem({
         </button>
         {thumb && <img src={thumb} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />}
         <AccordionPrimitive.Header className="flex min-w-0 flex-1">
-          <AccordionPrimitive.Trigger className="flex min-w-0 flex-1 items-center justify-between gap-2 py-2.5 text-left text-xs font-medium [&[data-state=open]>svg]:rotate-180">
-            <span className="truncate">{title}</span>
+          <AccordionPrimitive.Trigger className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md py-2.5 text-left text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 [&[data-state=open]>svg]:rotate-180">
+            <span className="truncate group-data-[state=open]/item:font-semibold">{title}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200" />
           </AccordionPrimitive.Trigger>
         </AccordionPrimitive.Header>
@@ -874,6 +883,7 @@ export function SortableListItem({
 
 /** Lista de itens: um aberto por vez, resumo no cabeçalho, arrastar para reordenar. */
 export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
+  const nav = useInspectorNav();
   const items: Record<string, any>[] = Array.isArray(value) ? value : [];
   const itemFields = (field.itemFields ?? []).filter((sub) => !sub.showIf || !ctx || sub.showIf(ctx));
   const ids = items.map((item, idx) => String(item.id ?? `item-${idx}`));
@@ -891,10 +901,30 @@ export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
     onChange(next);
   };
 
+  // Listas ricas (`presentation: 'detail'`): linhas que abrem a página de detalhe do inspetor
+  const detail = field.presentation === 'detail' && nav ? nav : null;
+
   const addItem = () => {
     const item = field.itemFactory ? field.itemFactory() : {};
     onChange([...items, item]);
-    setOpenId(String(item.id ?? `item-${items.length}`)); // abre o item novo
+    if (detail && item.id) detail.openItem({ list: field.key, key: item.id }); // abre o item novo no detalhe
+    else setOpenId(String(item.id ?? `item-${items.length}`)); // abre o item novo
+  };
+
+  /** Itens antigos sem `id` ganham um ao abrir: o detalhe e o fixado identificam por `id`, nunca por posição. */
+  const openDetail = (idx: number) => {
+    if (!detail) return;
+    let id: string = items[idx]?.id;
+    if (!id) {
+      id = crypto.randomUUID();
+      onChange(items.map((it, i) => (i === idx ? { ...it, id } : it)));
+    }
+    detail.openItem({ list: field.key, key: id });
+  };
+
+  const duplicateItem = (idx: number) => {
+    const copy = { ...JSON.parse(JSON.stringify(items[idx])), id: crypto.randomUUID() };
+    onChange([...items.slice(0, idx + 1), copy, ...items.slice(idx + 1)]);
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -919,6 +949,43 @@ export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            {detail ? (
+              <div className="space-y-1.5">
+                {items.map((item, idx) => (
+                  <ItemRow
+                    key={ids[idx]}
+                    id={ids[idx]}
+                    rowKey={`${field.key}:${item.id ?? ''}`}
+                    title={itemSummary(item, itemFields) || `${field.itemLabel ?? 'Item'} ${idx + 1}`}
+                    thumb={imageKey && typeof item[imageKey] === 'string' && item[imageKey] ? item[imageKey] : undefined}
+                    selected={sameRef(detail.last, { list: field.key, key: item.id })}
+                    onOpen={() => openDetail(idx)}
+                    menu={
+                      <>
+                        {item.id && (
+                          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => detail.togglePin({ list: field.key, key: item.id })}>
+                            <Pin className="h-4 w-4" />
+                            {sameRef(detail.pinned, { list: field.key, key: item.id }) ? 'Desafixar do topo' : 'Fixar no topo'}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => duplicateItem(idx)}>
+                          <Copy className="h-4 w-4" />
+                          Duplicar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                          onClick={() => onChange(items.filter((_, i) => i !== idx))}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remover
+                        </DropdownMenuItem>
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
             <Accordion type="single" collapsible value={openId} onValueChange={setOpenId} className="space-y-1.5">
               {items.map((item, idx) => (
                 <SortableListItem
@@ -940,6 +1007,7 @@ export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
                 </SortableListItem>
               ))}
             </Accordion>
+            )}
           </SortableContext>
         </DndContext>
       )}

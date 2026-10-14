@@ -6,8 +6,10 @@ import { Loader2, Upload, MousePointerClick, FileText, Undo2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useMaterials } from '@/hooks/useMaterials';
+import { useResponsiveMode } from '@/hooks/useResponsiveMode';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EditorSidebar } from './components/editor/EditorSidebar';
+import { EditorColumns } from './components/editor/EditorColumns';
 import { PropertiesSidebar } from './components/editor/PropertiesSidebar';
 import { VisualRenderer } from './components/editor/VisualRenderer';
 import { useMaterialPublicLink } from '@/hooks/useMaterialPublicLink';
@@ -27,6 +29,8 @@ import { getSectionTitle } from './blocks/registry';
 import { ProposalCollectionContext } from './blocks/collections';
 import { DEFAULT_DESIGN_TOKENS } from './blocks/design';
 import { applyBackgroundToAll } from './blocks/sectionBackground';
+import { resolveItem, resolvePin, type PanelMemory } from './blocks/inspectorFocus';
+import { usePin } from './components/editor/panel/usePin';
 
 // Zoom do preview: de "bem longe" (vê a proposta toda) a 2×
 const MIN_ZOOM = 0.25;
@@ -56,6 +60,28 @@ export default function EditorMaterialPage() {
   // null = ajustar à largura (escala automática); número = zoom escolhido pelo fotógrafo
   const [zoomOverride, setZoomOverride] = useState<number | null>(null);
   const [mobilePanel, setMobilePanel] = useState<'none' | 'structure' | 'properties'>('none');
+  // O que o inspetor lembra de cada seção (item em detalhe, última linha, grupos recolhidos), por id da seção.
+  // Estado de UI: fora do documento, do histórico e do autosave; sobrevive à troca de seção e ao Sheet do celular.
+  const [panelMemory, setPanelMemory] = useState<Record<string, PanelMemory>>({});
+  // Painel → arte: ao abrir o detalhe de um item, a arte mostra o cartão dele (só rola se estiver fora de vista)
+  const openBlockId = editor.state?.blocks[activeIndex]?.id;
+  const openItemRef = openBlockId ? panelMemory[openBlockId]?.item : undefined;
+  const openItemKey = openItemRef ? `${openItemRef.list}:${openItemRef.key}` : null;
+  useEffect(() => {
+    if (!openItemKey) return;
+    document
+      .querySelector(`#section-block-${activeIndex} [data-item="${openItemKey}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [openItemKey, activeIndex]);
+  // Item fixado no topo do painel (1 por vez): preferência do aparelho, por proposta
+  const [pin, setPin] = usePin(id);
+  // Com um detalhe aberto, rolar a arte não troca a seção (o painel não expulsa o fotógrafo da edição)
+  const detailOpenRef = useRef(false);
+  // ≥ 1024 px = breakpoint `lg` das colunas: acima dele os painéis são colunas, abaixo são Sheets
+  const isDesktop = useResponsiveMode() === 'desktop';
+  useEffect(() => {
+    if (isDesktop) setMobilePanel('none'); // girou/alargou a janela: o Sheet aberto não reabre ao voltar
+  }, [isDesktop]);
 
   // Salvar como modelo
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
@@ -360,7 +386,7 @@ export default function EditorMaterialPage() {
 
   // Scroll Spy: Detecta qual seção está predominantemente visível no canvas
   const handleCanvasScroll = useCallback(() => {
-    if (isInteractingWithInspectorRef.current || isProgrammaticScrollRef.current) return;
+    if (isInteractingWithInspectorRef.current || isProgrammaticScrollRef.current || detailOpenRef.current) return;
     const container = canvasScrollRef.current;
     if (!container || !editorState?.blocks?.length) return;
 
@@ -424,6 +450,27 @@ export default function EditorMaterialPage() {
 
   const activeBlock = editorState.blocks[activeIndex];
   const designTokens = editorState.globalSettings?.design_tokens;
+  const activeMemory = activeBlock?.id ? panelMemory[activeBlock.id] : undefined;
+  const openItem = activeMemory?.item && resolveItem(activeBlock?.content, activeMemory.item) ? activeMemory.item : null;
+  const selectedItemKey = openItem ? `${openItem.list}:${openItem.key}` : null;
+  // Clique no cartão da arte: o painel abre o detalhe do item (lista = "packages" | "groups" | "items"…)
+  const handleSelectItem = (blockIndex: number, itemKey: string) => {
+    const block = editorState.blocks[blockIndex];
+    const at = itemKey.indexOf(':');
+    if (!block?.id || at < 0) return;
+    const ref = { list: itemKey.slice(0, at), key: itemKey.slice(at + 1) };
+    if (!resolveItem(block.content, ref)) return;
+    setPanelMemory((m) => ({ ...m, [block.id!]: { ...m[block.id!], item: ref, last: ref } }));
+  };
+  const pinInfo = resolvePin(editorState.blocks, pin);
+  // Seleciona a seção do fixado (rolando a arte) e abre o detalhe do item, ou a lista se for a própria seção
+  const goToPin = () => {
+    if (!pin || !pinInfo) return;
+    setPanelMemory((m) => ({ ...m, [pin.blockId]: { ...m[pin.blockId], item: pin.item ?? null, ...(pin.item && { last: pin.item }) } }));
+    handleSelectBlock(pinInfo.index);
+    setMobilePanel((p) => (p === 'none' ? p : 'properties'));
+  };
+  detailOpenRef.current = !!activeBlock && !!resolveItem(activeBlock.content, activeMemory?.item);
 
   // A seção nova/movida/duplicada só existe no DOM após o render: seleciona e rola em seguida
   const selectAfterRender = (index: number) => {
@@ -509,8 +556,10 @@ export default function EditorMaterialPage() {
     }
   };
 
-  const structurePanel = (
+  // `inSheet`: no drawer (celular) o botão X nativo do Sheet fica no canto superior direito; o cabeçalho abre espaço para ele
+  const renderStructurePanel = (inSheet = false) => (
     <EditorSidebar
+      headerClassName={inSheet ? 'pr-12' : undefined}
       blocks={editorState.blocks}
       activeIndex={activeIndex}
       onSelectBlock={(i) => {
@@ -545,8 +594,15 @@ export default function EditorMaterialPage() {
     />
   );
 
-  const propertiesPanel = activeBlock ? (
+  const renderPropertiesPanel = (inSheet = false) => activeBlock ? (
     <PropertiesSidebar
+      headerClassName={inSheet ? 'pr-12' : undefined}
+      pin={pin}
+      pinInfo={pinInfo}
+      onPinChange={setPin}
+      onGoToPin={goToPin}
+      memory={activeMemory}
+      onMemoryChange={(patch) => setPanelMemory((m) => ({ ...m, [activeBlock.id!]: { ...m[activeBlock.id!], ...patch } }))}
       block={activeBlock}
       blockIndex={activeIndex}
       onUpdateBlock={editor.updateBlock}
@@ -620,14 +676,12 @@ export default function EditorMaterialPage() {
         {/* WORKSPACE */}
         <main className="flex flex-1 overflow-hidden relative">
           {editorState.format === 'blocks' ? (
-            <>
-              {/* COLUNA ESQUERDA: ESTRUTURA (≥lg) */}
-              <div className="hidden lg:flex w-[280px] shrink-0 border-r bg-background flex-col z-10">
-                {structurePanel}
-              </div>
-
-              {/* COLUNA CENTRAL: RENDERIZADOR VISUAL */}
-              <div className="relative flex flex-1 min-w-0">
+            // Estrutura | canvas | inspetor com alças de redimensionar. Abaixo de lg as laterais viram Sheets:
+            // o painel é montado uma única vez (antes a coluna escondida e o Sheet existiam juntos)
+            <EditorColumns
+              left={isDesktop ? renderStructurePanel() : null}
+              right={isDesktop ? renderPropertiesPanel() : null}
+            >
               {/* Aviso inline da troca de modelo: fixo sobre o canvas (fora da rolagem) */}
               {showAppliedNotice && (
                 <div
@@ -681,6 +735,8 @@ export default function EditorMaterialPage() {
                     inlineEditing={inlineEditing}
                     onUpdateField={editor.updateBlockField}
                     uiScale={scale}
+                    selectedItem={selectedItemKey}
+                    onSelectItem={handleSelectItem}
                     sectionActions={{
                       move: handleMoveBlock,
                       duplicate: handleDuplicateBlock,
@@ -691,13 +747,7 @@ export default function EditorMaterialPage() {
                   />
                 </div>
               </div>
-              </div>
-
-              {/* COLUNA DIREITA: PROPRIEDADES (≥lg) */}
-              <div className="hidden lg:flex w-[340px] shrink-0 border-l bg-background flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.02)] z-10">
-                {propertiesPanel}
-              </div>
-            </>
+            </EditorColumns>
           ) : (
             <div className="flex-1 w-full h-full flex flex-col bg-muted/20">
               {editorState.pdfUrl ? (
@@ -733,21 +783,22 @@ export default function EditorMaterialPage() {
       </div>
 
       {/* DRAWERS DE ESTRUTURA/PROPRIEDADES (mobile) */}
-      <Sheet open={mobilePanel === 'structure'} onOpenChange={(open) => !open && setMobilePanel('none')}>
+      <Sheet open={mobilePanel === 'structure' && !isDesktop} onOpenChange={(open) => !open && setMobilePanel('none')}>
         <SheetContent side="left" className="w-[300px] sm:w-[320px] p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>Estrutura da Proposta</SheetTitle>
           </SheetHeader>
-          {structurePanel}
+          {renderStructurePanel(true)}
         </SheetContent>
       </Sheet>
 
-      <Sheet open={mobilePanel === 'properties'} onOpenChange={(open) => !open && setMobilePanel('none')}>
-        <SheetContent side="right" className="w-[340px] sm:w-[380px] p-0">
+      <Sheet open={mobilePanel === 'properties' && !isDesktop} onOpenChange={(open) => !open && setMobilePanel('none')}>
+        {/* sm:max-w-none: o padrão do Sheet (sm:max-w-sm) cortava a largura em ~346 px */}
+        <SheetContent side="right" className="w-[min(92vw,400px)] p-0 sm:max-w-none">
           <SheetHeader className="sr-only">
             <SheetTitle>Propriedades da Seção</SheetTitle>
           </SheetHeader>
-          {propertiesPanel}
+          {renderPropertiesPanel(true)}
         </SheetContent>
       </Sheet>
 

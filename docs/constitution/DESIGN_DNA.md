@@ -158,6 +158,7 @@ Essas cores **nunca** são substituídas pelo dourado.
 | Logo | Foco de input |
 | Loading pequeno / tooltip premium | Header, tabela, badge, switch, checkbox marcado |
 | Conquistas e badges especiais | Grandes áreas de preenchimento |
+| Glifo de item fixado (pin das Conversas e do editor de propostas) | Fundo ou contorno do item fixado |
 
 Qualquer novo uso do dourado exige atualização deste documento **antes** de ir para o código.
 
@@ -283,6 +284,7 @@ O dourado aparece apenas nos seguintes momentos:
 7. Pequenos detalhes de loading.
 8. Tooltips premium.
 9. Conquistas e badges especiais.
+10. Glifo de item fixado (pin): só o ícone, nunca o fundo nem o contorno do item.
 
 Qualquer uso fora desta lista exige atualização deste documento antes do código.
 

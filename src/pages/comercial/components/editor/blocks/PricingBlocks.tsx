@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
-import { useInlineEdit } from '../../../blocks/inlineContext';
+import { useInlineEdit, useItemAnchor } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, featureIcon, slicePad, buildPackagePages, type PackageSlice } from '../../../blocks/pricing';
 import { fd, fb, fa, alignClass, sectionBg, textColorClass, HERO_MIN_H } from './helpers';
 import { PricingPhotoCards, PricingPhotoRows, PricingArchCards } from './PricingCollectionBlocks';
@@ -56,6 +56,7 @@ export function PricingClassic({
   slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
+  const anchor = useItemAnchor();
   const editable = inline?.editable ?? false;
   const et = (path: string, value: string | undefined) => ({
     editable,
@@ -95,6 +96,7 @@ export function PricingClassic({
           {packages.map((pkg: any, idx: number) => (
             <div
               key={pkg.id || idx}
+              {...anchor('packages', pkg.id)}
               className={cn(
                 // Cartão é superfície "white" do tema: texto próprio, legível também em seções escuras
                 'border border-black/5 shadow-[0_4px_30px_rgba(0,0,0,0.06)] p-8 rounded-[var(--pa-r-card,1rem)] bg-[var(--pa-white,#FDFBF7)] text-[var(--pa-on-white,#1A1714)] flex flex-col relative overflow-hidden',
@@ -162,6 +164,7 @@ export function PricingCardsMinimal({
   slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
+  const anchor = useItemAnchor();
   const editable = inline?.editable ?? false;
   const et = (path: string, value: string | undefined) => ({
     editable,
@@ -200,7 +203,7 @@ export function PricingCardsMinimal({
 
         <div className={cn('pa-pkg-grid [--pa-pkg-gap:2.5rem] @md:[--pa-pkg-gap:3.5rem]', slice?.lead && 'mt-12')}>
           {packages.map((pkg: any, idx: number) => (
-            <div key={pkg.id || idx} className={cn('flex flex-col relative text-current', align)}>
+            <div key={pkg.id || idx} {...anchor('packages', pkg.id)} className={cn('flex flex-col relative text-current', align)}>
               {!props?.hide_images && (pkg.image_ref || editable) && (
                 <div className="aspect-[4/5] w-full mb-8 rounded-[var(--pa-r-media,1.5rem)] overflow-hidden relative bg-black/5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] group/card">
                   <EditableImage
@@ -270,6 +273,7 @@ export function PricingNumberedEditorial({
   slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
+  const anchor = useItemAnchor();
   const editable = inline?.editable ?? false;
   const et = (path: string, value: string | undefined) => ({
     editable,
@@ -325,6 +329,7 @@ export function PricingNumberedEditorial({
             return (
               <div
                 key={pkg.id || idx}
+                {...anchor('packages', pkg.id)}
                 className={cn(
                   'border-t border-[var(--pa-stone,#C9BFB2)]/30 py-10 @md:py-14',
                   idx === packages.length - 1 && 'border-b'
@@ -440,6 +445,7 @@ export function PricingMagazine({
   slice?: PackageSlice;
 }) {
   const inline = useInlineEdit();
+  const anchor = useItemAnchor();
   const editable = inline?.editable ?? false;
   const et = (path: string, value: string | undefined) => ({
     editable,
@@ -529,6 +535,7 @@ export function PricingMagazine({
             return (
               <article
                 key={pkg.id || idx}
+                {...anchor('packages', pkg.id)}
                 className={cn(
                   'flex flex-col @md:flex-row overflow-hidden text-left',
                   'border border-[var(--pa-stone,#D0C8BC)] rounded-[var(--pa-r-card,0px)]',

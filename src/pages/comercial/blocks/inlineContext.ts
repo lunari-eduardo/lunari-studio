@@ -14,10 +14,26 @@ export interface InlineEditHandle {
   selectedImage?: number | null;
   /** Clique simples numa foto da galeria: abre a barra da foto (tamanho, proporção, ordem). */
   onSelectImage?: (index: number, anchorEl: HTMLElement) => void;
+  /** Item de lista aberto no painel desta seção ("packages:ID", "groups:KEY", "items:ID"): o cartão ganha contorno. */
+  selectedItem?: string | null;
 }
 
 export const InlineEditContext = createContext<InlineEditHandle | null>(null);
 
 export function useInlineEdit(): InlineEditHandle | null {
   return useContext(InlineEditContext);
+}
+
+/**
+ * Âncora de um item de lista na arte (cartão de pacote, cabeçalho de grupo, adicional): só no editor.
+ * `data-item` deixa o clique abrir o detalhe do item no painel; `data-selected` marca o aberto.
+ * O público não recebe nenhum `data-*` (o HTML publicado não muda).
+ */
+export function useItemAnchor() {
+  const inline = useInlineEdit();
+  return (list: string, id?: string): Record<string, string> => {
+    if (!inline?.editable || !id) return {};
+    const key = `${list}:${id}`;
+    return { 'data-item': key, ...(inline.selectedItem === key && { 'data-selected': 'true' }) };
+  };
 }

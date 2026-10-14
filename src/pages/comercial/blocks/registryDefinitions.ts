@@ -61,6 +61,39 @@ export interface BlockField {
   autoIcon?: (item: any) => string | null;
   /** Campo 'image' de arte com transparência (PNG): a prévia mostra a imagem inteira, sem corte. */
   transparent?: boolean;
+  /**
+   * Texto curto que a arte sempre desenha e edita no lugar (duplo clique), mesmo vazio: no painel ele vai
+   * para "Editar como formulário". Padrão `true` em text/textarea. `false` (ou função falsa) = só o painel
+   * alcança o campo nessa composição (some da arte quando vazio, é estático ou a variante não o desenha).
+   */
+  onCanvas?: boolean | ((ctx: FieldCtx) => boolean);
+  /** Texto longo: continua visível no painel (textarea + IA), mesmo editável na arte. */
+  longform?: boolean;
+  /** Lista (`kind: 'list'`): 'detail' = linhas que abrem uma página de detalhe; padrão 'inline' = acordeão no lugar. */
+  presentation?: 'inline' | 'detail';
+  /** Subcampo de item: seção de afinidade no detalhe (Identidade, Valores, Conteúdo…). */
+  section?: ItemSection;
+  /** Subcampo de item: opcional/avançado, vai para "Avançado" recolhido no detalhe. */
+  advanced?: boolean;
+}
+
+/** Seções do detalhe de um item, na ordem em que aparecem. */
+export type ItemSection = 'identity' | 'values' | 'content' | 'image' | 'organization' | 'layout' | 'texts';
+export const ITEM_SECTIONS: { key: ItemSection; title: string }[] = [
+  { key: 'identity', title: 'Identidade' },
+  { key: 'values', title: 'Valores' },
+  { key: 'content', title: 'Conteúdo' },
+  { key: 'image', title: 'Imagem' },
+  { key: 'organization', title: 'Organização' },
+  { key: 'layout', title: 'Composição e página' },
+  { key: 'texts', title: 'Textos do grupo' },
+];
+
+/** O campo é um texto curto com gêmeo garantido na arte (candidato a "Editar como formulário")? */
+export function editedOnCanvas(field: BlockField, ctx: FieldCtx): boolean {
+  if ((field.kind !== 'text' && field.kind !== 'textarea') || field.longform) return false;
+  const on = field.onCanvas;
+  return typeof on === 'function' ? on(ctx) : on !== false;
 }
 
 export interface PropImageSlot {
@@ -171,19 +204,22 @@ export const PACKAGE_GROUP_COMPOSITIONS: { value: PackageGroupComposition; label
 
 /** Campos do grupo no painel (todos opcionais: datas só para quem usa lotes). `showIf` lê o próprio grupo em `content`. */
 export const PACKAGE_GROUP_FIELDS: BlockField[] = [
-  { key: 'title', label: 'Título do grupo', kind: 'text', placeholder: 'Primeiro lote' },
-  { key: 'subtitle', label: 'Subtítulo (opcional)', kind: 'text', placeholder: 'Pacotes para estúdio' },
-  { key: 'composition', label: 'Composição do título', kind: 'select', options: PACKAGE_GROUP_COMPOSITIONS },
-  { key: 'new_page', label: 'Começar em nova página', kind: 'boolean' },
-  { key: 'period', label: 'Período ou validade (opcional)', kind: 'text', placeholder: 'Até 15 de outubro' },
-  { key: 'note', label: 'Texto explicativo (opcional)', kind: 'textarea', placeholder: 'Valores promocionais do primeiro lote.' },
+  // Título, subtítulo e período têm gêmeo na arte (cabeçalho do grupo); os textos longos seguem visíveis
+  { key: 'title', label: 'Título do grupo', kind: 'text', placeholder: 'Primeiro lote', section: 'texts' },
+  { key: 'subtitle', label: 'Subtítulo (opcional)', kind: 'text', placeholder: 'Pacotes para estúdio', section: 'texts' },
+  { key: 'composition', label: 'Composição do título', kind: 'select', options: PACKAGE_GROUP_COMPOSITIONS, section: 'layout' },
+  { key: 'new_page', label: 'Começar em nova página', kind: 'boolean', section: 'layout' },
+  { key: 'period', label: 'Período ou validade (opcional)', kind: 'text', placeholder: 'Até 15 de outubro', section: 'texts' },
+  { key: 'note', label: 'Texto explicativo (opcional)', kind: 'textarea', placeholder: 'Valores promocionais do primeiro lote.', section: 'texts', longform: true },
   {
     key: 'price_note',
     label: 'Observação sobre os preços (opcional)',
     kind: 'textarea',
     placeholder: 'A partir de 16 de outubro os valores passam para o segundo lote.',
+    section: 'texts',
+    longform: true,
   },
-  { key: 'icon', label: 'Ícone (opcional)', kind: 'icon', placeholder: 'Nenhum', showIf: ({ content }) => content.composition !== 'divider' },
+  { key: 'icon', label: 'Ícone (opcional)', kind: 'icon', placeholder: 'Nenhum', section: 'layout', showIf: ({ content }) => content.composition !== 'divider' },
 ];
 
 export const testimonialItem = () => ({ id: crypto.randomUUID(), quote: '', author: '', service: '' });
@@ -262,10 +298,12 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     icon: ImageIcon,
     // Mesma chave com rótulos por variante: os `showIf` são exclusivos (só um aparece por vez)
     fields: [
-      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Proposta personalizada' },
+      // A capa Medalhão não desenha o rótulo superior
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Proposta personalizada', showIf: variantNotIn('ornament') },
       { key: 'title', label: 'Título Principal', kind: 'textarea', placeholder: 'Seu momento merece ser vivido', showIf: variantNotIn(...LOCKUP_COVERS) },
       { key: 'title', label: 'Linha de abertura', kind: 'text', placeholder: 'Sessões de', showIf: variantIn(...LOCKUP_COVERS) },
-      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'e lembrado para sempre.', showIf: variantNotIn(...LOCKUP_COVERS) },
+      // O Pôster só desenha o itálico quando já tem texto: sem preencher, o painel é o único caminho
+      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'e lembrado para sempre.', showIf: variantNotIn(...LOCKUP_COVERS), onCanvas: variantNotIn('poster-split') },
       { key: 'title_italic', label: 'Palavra em destaque', kind: 'text', placeholder: 'Natal', showIf: variantIn(...LOCKUP_COVERS) },
       { key: 'subtitle', label: 'Subtítulo', kind: 'textarea', placeholder: 'Fotografias que eternizam...' },
       // Minimal não exibe assinatura (só a usa como subtítulo de reserva)
@@ -321,13 +359,15 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Bloco de conteúdo com imagens',
     icon: AlignLeft,
     fields: [
-      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Como funciona' },
+      // Split Retrato não desenha o rótulo; Split e Retrato em Arco não desenham o itálico
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Como funciona', showIf: variantNotIn('split-portrait') },
       { key: 'title', label: 'Título Principal', kind: 'text', placeholder: 'Uma tarde' },
-      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'só sua.' },
-      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...', showIf: variantNotIn('arch-hero') },
-      { key: 'body', label: 'Texto (um parágrafo por coluna)', kind: 'textarea', placeholder: 'Primeiro parágrafo.\n\nSegundo parágrafo.', showIf: variantIn('arch-hero') },
-      { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantIn('overlap-blend') },
-      { key: 'aside', label: 'Frases de destaque', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.', showIf: variantIn('arch-portrait') },
+      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'só sua.', showIf: variantNotIn('split-portrait', 'arch-portrait') },
+      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Cada sessão começa com uma conversa...', showIf: variantNotIn('arch-hero'), longform: true },
+      { key: 'body', label: 'Texto (um parágrafo por coluna)', kind: 'textarea', placeholder: 'Primeiro parágrafo.\n\nSegundo parágrafo.', showIf: variantIn('arch-hero'), longform: true },
+      // Estática na arte (some abaixo de @2xl e não tem edição no lugar): só o painel
+      { key: 'vertical_label', label: 'Assinatura Vertical', kind: 'text', placeholder: 'Camila Ramos · Fotografias', showIf: variantIn('overlap-blend'), onCanvas: false },
+      { key: 'aside', label: 'Frases de destaque', kind: 'textarea', placeholder: 'Toda história\ncomeça com uma memória.', showIf: variantIn('arch-portrait'), longform: true },
       {
         key: 'details',
         label: 'Detalhes',
@@ -409,24 +449,29 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Investimento' },
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Pacotes' },
       { key: 'title_italic', label: 'Título em itálico (opcional)', kind: 'text', placeholder: 'experiência', showIf: variantIn(...COLLECTION_PACKAGES) },
-      { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Escolha a melhor experiência para registrar o que é de vocês.' },
+      { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Escolha a melhor experiência para registrar o que é de vocês.', longform: true },
       { key: 'item_label', label: 'Rótulo acima do nome', kind: 'text', placeholder: 'Pacote', showIf: variantIn('arch-cards') },
       {
         key: 'packages',
         label: 'Pacotes',
         kind: 'list',
         itemLabel: 'Pacote',
+        presentation: 'detail',
         itemFields: [
-          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Essencial' },
-          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Para guardar o que importa', showIf: variantIn(...COLLECTION_PACKAGES) },
-          { key: 'price', label: 'Preço (texto livre)', kind: 'text', placeholder: 'R$ 1.200' },
-          { key: 'price_unit', label: 'Unidade', kind: 'text', placeholder: 'sessão', showIf: variantNotIn(...COLLECTION_PACKAGES) },
-          { key: 'price_cash', label: 'Preço à Vista', kind: 'text', placeholder: 'R$ 250,00' },
-          { key: 'price_installments', label: 'Parcelamento', kind: 'text', placeholder: '3x de R$ 89,62' },
-          { key: 'badge', label: 'Selo (ex: Mais escolhido)', kind: 'text', placeholder: 'Mais escolhido' },
-          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image', showIf: ({ props }) => !props.hide_images && props.variant !== 'arch-cards' },
-          { key: 'features', label: 'Itens inclusos (1 por linha)', kind: 'stringlist', placeholder: '1h de ensaio\n10 fotos digitais' },
-          { key: 'feature_icons', label: 'Ícones dos itens', kind: 'iconlist', showIf: ({ props }) => ['photo-cards', 'photo-rows'].includes(props.variant) && !props.hide_icons },
+          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Essencial', section: 'identity' },
+          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Para guardar o que importa', section: 'identity', showIf: variantIn(...COLLECTION_PACKAGES) },
+          // O Editorial Numerado não desenha o selo
+          { key: 'badge', label: 'Selo (ex: Mais escolhido)', kind: 'text', placeholder: 'Mais escolhido', section: 'identity', showIf: variantNotIn('numbered-editorial') },
+          { key: 'price', label: 'Preço', kind: 'text', placeholder: 'R$ 1.200', section: 'values' },
+          // Só Cards e Cards Minimalistas desenham a unidade; Editorial e Revista não
+          { key: 'price_unit', label: 'Unidade', kind: 'text', placeholder: 'sessão', section: 'values', showIf: variantIn('cards-classic', 'cards-minimal') },
+          // A arte mostra `price_cash || price`: quando este está preenchido, é ele que aparece
+          { key: 'price_cash', label: 'Preço à vista (substitui o preço na arte)', kind: 'text', placeholder: 'R$ 250,00', section: 'values' },
+          // Cards e Cards Minimalistas não desenham o parcelamento
+          { key: 'price_installments', label: 'Parcelamento', kind: 'text', placeholder: '3x de R$ 89,62', section: 'values', showIf: variantNotIn('cards-classic', 'cards-minimal') },
+          { key: 'features', label: 'Itens inclusos (1 por linha)', kind: 'stringlist', placeholder: '1h de ensaio\n10 fotos digitais', section: 'content' },
+          { key: 'feature_icons', label: 'Ícones dos itens', kind: 'iconlist', section: 'content', advanced: true, showIf: ({ props }) => ['photo-cards', 'photo-rows'].includes(props.variant) && !props.hide_icons },
+          { key: 'image_ref', label: 'Imagem do pacote', kind: 'image', section: 'image', showIf: ({ props }) => !props.hide_images && props.variant !== 'arch-cards' },
         ],
         itemFactory: packageItem,
       },
@@ -488,15 +533,17 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         label: 'Adicionais',
         kind: 'list',
         itemLabel: 'Adicional',
+        presentation: 'detail',
         itemFields: [
-          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Foto extra' },
-          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Mais registros para guardar cada detalhe.' },
-          { key: 'price', label: 'Preço (texto livre)', kind: 'text', placeholder: 'R$ 35,00' },
-          { key: 'image_ref', label: 'Foto', kind: 'image', showIf: ({ props }) => !props.hide_images },
+          { key: 'name', label: 'Nome', kind: 'text', placeholder: 'Foto extra', section: 'identity' },
+          { key: 'description', label: 'Descrição curta', kind: 'textarea', placeholder: 'Mais registros para guardar cada detalhe.', section: 'identity' },
+          { key: 'price', label: 'Preço (texto livre)', kind: 'text', placeholder: 'R$ 35,00', section: 'values' },
+          { key: 'image_ref', label: 'Foto', kind: 'image', section: 'image', showIf: ({ props }) => !props.hide_images },
           {
             key: 'icon',
             label: 'Ícone sobre a foto',
             kind: 'icon',
+            section: 'image',
             autoIcon: addonIcon,
             showIf: ({ props }) => props.variant === 'grid' && !props.hide_icons,
           },
@@ -529,14 +576,15 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Mostre seus resultados',
     icon: Briefcase,
     fields: [
-      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Portfólio' },
+      // "Fotos com legenda" usa o cabeçalho de subseção: sem rótulo superior e sem alinhamento
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Portfólio', showIf: ({ props }) => props.layout !== 'captioned' },
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Portfólio' },
       { key: 'caption', label: 'Legenda', kind: 'text', placeholder: 'Alguns momentos recentes' },
       // Envio em lote + miniaturas reordenáveis no painel; tamanho/proporção por foto ficam no canvas (clique na foto)
       { key: 'images', label: 'Fotos', kind: 'gallery', itemFactory: galleryItem },
     ],
     layoutFields: [
-      ALIGN_FIELD,
+      { ...ALIGN_FIELD, showIf: ({ props }) => props.layout !== 'captioned' },
       backgroundField(),
       textColorField(),
       {
@@ -573,7 +621,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     icon: Type,
     fields: [
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Sobre o processo' },
-      { key: 'body', label: 'Conteúdo', kind: 'textarea', placeholder: 'Escreva aqui...' },
+      { key: 'body', label: 'Conteúdo', kind: 'textarea', placeholder: 'Escreva aqui...', longform: true },
     ],
     layoutFields: [ALIGN_FIELD, backgroundField()],
     factory: () => ({
@@ -588,7 +636,8 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Separador visual com rótulo opcional',
     icon: Minus,
     fields: [
-      { key: 'label', label: 'Rótulo', kind: 'text', placeholder: 'PACOTE — ESTÚDIO', showIf: ({ props }) => props.style !== 'spaced' },
+      // Só a "Linha fina" desenha o rótulo vazio; o "Ornamento" o mostra apenas preenchido
+      { key: 'label', label: 'Rótulo', kind: 'text', placeholder: 'PACOTE — ESTÚDIO', showIf: ({ props }) => props.style !== 'spaced', onCanvas: ({ props }) => (props.style ?? 'hairline') === 'hairline' },
     ],
     layoutFields: [
       {
@@ -617,9 +666,10 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     fields: [
       { key: 'eyebrow', label: 'Rótulo Superior', kind: 'text', placeholder: 'A experiência' },
       { key: 'title', label: 'Título Principal', kind: 'text', placeholder: 'Essência' },
-      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'Através do Olhar' },
-      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Uma narrativa visual construída...' },
-      { key: 'side_label', label: 'Rótulo Lateral', kind: 'text', placeholder: 'Lunari · Estúdio' },
+      // O itálico só aparece preenchido e o rótulo lateral é estático na arte: só o painel
+      { key: 'title_italic', label: 'Título em Itálico', kind: 'text', placeholder: 'Através do Olhar', onCanvas: false },
+      { key: 'body', label: 'Texto (Corpo)', kind: 'textarea', placeholder: 'Uma narrativa visual construída...', longform: true },
+      { key: 'side_label', label: 'Rótulo Lateral', kind: 'text', placeholder: 'Lunari · Estúdio', onCanvas: false },
       { key: 'image_url', label: 'Imagem Principal', kind: 'image' },
     ],
     layoutFields: [
@@ -654,10 +704,11 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         label: 'Depoimentos',
         kind: 'list',
         itemLabel: 'Depoimento',
+        presentation: 'detail',
         itemFields: [
-          { key: 'quote', label: 'Depoimento', kind: 'textarea', placeholder: 'Nunca imaginei que fotos...' },
-          { key: 'author', label: 'Cliente', kind: 'text', placeholder: 'Nome do cliente' },
-          { key: 'service', label: 'Serviço', kind: 'text', placeholder: 'Ensaio Gestante' },
+          { key: 'quote', label: 'Depoimento', kind: 'textarea', placeholder: 'Nunca imaginei que fotos...', section: 'content' },
+          { key: 'author', label: 'Cliente', kind: 'text', placeholder: 'Nome do cliente', section: 'identity' },
+          { key: 'service', label: 'Serviço', kind: 'text', placeholder: 'Ensaio Gestante', section: 'identity' },
         ],
         itemFactory: testimonialItem,
       },
@@ -683,7 +734,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
       { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Próximo passo' },
       { key: 'cta_text', label: 'Chamada Principal', kind: 'textarea', placeholder: 'Vamos criar algo lindo juntos?' },
       { key: 'cta_italic', label: 'Chamada em itálico (opcional)', kind: 'text', placeholder: 'memórias juntos?', showIf: variantIn('signature') },
-      { key: 'body', label: 'Texto de Apoio', kind: 'textarea', placeholder: 'As datas da temporada são limitadas...' },
+      { key: 'body', label: 'Texto de Apoio', kind: 'textarea', placeholder: 'As datas da temporada são limitadas...', longform: true },
       { key: 'signature', label: 'Assinatura (caligrafia)', kind: 'text', placeholder: 'Seu Nome', showIf: variantIn('signature') },
       { key: 'signature_caption', label: 'Abaixo da assinatura', kind: 'text', placeholder: 'Nome do estúdio · Fotografia', showIf: variantIn('signature') },
       { key: 'image_url', label: 'Foto do encerramento', kind: 'image', showIf: variantIn('signature') },
@@ -720,7 +771,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Dicas, condições, pagamento e prazos',
     icon: ListChecks,
     fields: [
-      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Antes da sessão' },
+      { key: 'eyebrow', label: 'Rótulo Superior (Eyebrow)', kind: 'text', placeholder: 'Antes da sessão', showIf: variantNotIn('icon-columns') },
       { key: 'title', label: 'Título da Seção (opcional)', kind: 'text', placeholder: 'Guia do ensaio' },
       { key: 'title_italic', label: 'Título em itálico (opcional)', kind: 'text', placeholder: 'Práticas', showIf: variantIn(...INFO_EDITORIAL) },
       { key: 'subtitle', label: 'Frase de apoio', kind: 'textarea', placeholder: 'Tudo o que você precisa saber', showIf: variantIn(...INFO_EDITORIAL) },
@@ -740,10 +791,11 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
         itemFactory: infoItem,
       },
       { key: 'note_title', label: 'Aviso final: título', kind: 'text', placeholder: 'Informações importantes', showIf: variantIn(...INFO_EDITORIAL) },
-      { key: 'note_body', label: 'Aviso final: texto', kind: 'textarea', placeholder: 'Qualquer dúvida, estamos à disposição.', showIf: variantIn(...INFO_EDITORIAL) },
+      { key: 'note_body', label: 'Aviso final: texto', kind: 'textarea', placeholder: 'Qualquer dúvida, estamos à disposição.', showIf: variantIn(...INFO_EDITORIAL), longform: true },
       { key: 'note_icon', label: 'Aviso final: ícone', kind: 'icon', autoIcon: () => 'sparkles', showIf: variantIn(...INFO_EDITORIAL) },
     ],
-    layoutFields: [ALIGN_FIELD, backgroundField(), textColorField()],
+    // As composições editoriais e as colunas com ícone têm alinhamento próprio (não leem `align`)
+    layoutFields: [{ ...ALIGN_FIELD, showIf: variantNotIn('icon-columns', ...INFO_EDITORIAL) }, backgroundField(), textColorField()],
     variants: [
       { value: 'stacked', label: 'Guia', description: 'Título e texto em sequência, como um guia impresso' },
       { value: 'accordion', label: 'Sanfona', description: 'Títulos visíveis e texto ao clicar: ideal para textos longos' },
@@ -767,7 +819,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     collection: 'natal',
     fields: [
       { key: 'title', label: 'Título', kind: 'text', placeholder: 'Paleta de cores' },
-      { key: 'note', label: 'Nota ao lado do título', kind: 'textarea', placeholder: 'Essas são as cores que mais combinam com o cenário.' },
+      { key: 'note', label: 'Nota ao lado do título', kind: 'textarea', placeholder: 'Essas são as cores que mais combinam com o cenário.', longform: true },
       {
         key: 'colors',
         label: 'Cores',
@@ -793,7 +845,7 @@ export const BLOCK_REGISTRY: Record<string, BlockDefinition> = {
     description: 'Validade, pagamento e assinatura',
     icon: ScrollText,
     fields: [
-      { key: 'terms', label: 'Condições (validade, pagamento, reserva)', kind: 'textarea', placeholder: 'Proposta válida por 7 dias. Reserva da data mediante sinal de 30%.' },
+      { key: 'terms', label: 'Condições (validade, pagamento, reserva)', kind: 'textarea', placeholder: 'Proposta válida por 7 dias. Reserva da data mediante sinal de 30%.', longform: true },
       { key: 'copyright', label: 'Assinatura / Copyright', kind: 'text', placeholder: '© 2026 Seu Estúdio' },
     ],
     layoutFields: [backgroundField(), textColorField()],

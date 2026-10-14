@@ -24,6 +24,7 @@ import { getBlockDef, getBlockName, getSectionTitle, DEFAULT_BLOCK_ICON } from '
 import { useProposalOutline } from '@/hooks/useProposalAI';
 import type { ProposalDesignTokens } from '../../blocks/design';
 import { DocumentStylePanel } from './DocumentStylePanel';
+import { EYEBROW, ROW_IDLE, ROW_SELECTED } from './panel/panelStyles';
 
 export interface EditorSidebarProps {
   blocks: BlockData[];
@@ -45,6 +46,8 @@ export interface EditorSidebarProps {
   onSwitchTemplate?: () => void;
   /** Seções recém-trazidas por uma troca de modelo (texto de exemplo: revisar). */
   newSectionIds?: Set<string>;
+  /** Classes extras do topo (no drawer do celular, abre espaço para o botão X do Sheet). */
+  headerClassName?: string;
 }
 
 // Item sortable extraído para o dnd-kit (Índice visual numerado)
@@ -70,58 +73,62 @@ function SortableSidebarItem({ block, index, isActive, isNew, onSelect }: { bloc
   const sectionTitle = getSectionTitle(block);
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       style={style}
-      className={cn(
-        "group relative flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-all text-left",
-        isActive 
-          ? "border-primary/40 bg-primary/10 shadow-xs ring-1 ring-primary/30" 
-          : "border-transparent bg-background/50 hover:bg-muted/60 hover:border-border/60"
-      )}
-      onClick={onSelect}
+      className={cn("group relative rounded-lg border transition-all", isActive ? ROW_SELECTED : ROW_IDLE)}
     >
-      {/* Numeração de índice (01, 02, etc.) */}
-      <span className={cn(
-        "text-xs font-mono font-semibold tracking-wider shrink-0 w-5",
-        isActive ? "text-primary" : "text-muted-foreground/60"
-      )}>
-        {displayNumber}
-      </span>
+      {/* Seção ativa: barra lateral além do fundo/anel (o estado não depende só da cor do texto) */}
+      {isActive && <span aria-hidden className="absolute bottom-2 left-0 top-2 w-0.5 rounded-full bg-primary" />}
+      {/* A linha é um botão: Tab chega nela, Enter/Espaço selecionam, `aria-current` marca a seção ativa */}
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={isActive ? 'true' : undefined}
+        className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      >
+        {/* Numeração de índice (01, 02, etc.) */}
+        <span className={cn(
+          "text-xs font-mono font-semibold tracking-wider shrink-0 w-5",
+          isActive ? "text-primary" : "text-muted-foreground/60"
+        )}>
+          {displayNumber}
+        </span>
 
-      {/* Ícone sutil do tipo de bloco */}
-      <div className="shrink-0">
-        <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground/70")} />
-      </div>
-      
-      {/* Título e descrição */}
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0 pr-4">
-        <span className="flex items-center gap-1.5 min-w-0">
-          <span className={cn(
-            "text-xs font-semibold leading-tight truncate",
-            isActive ? "text-primary" : "text-foreground"
-          )}>
-            {sectionTitle}
-          </span>
-          {isNew && (
-            <span
-              className="shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-primary"
-              title="Seção nova do modelo, com texto de exemplo: revise"
-            >
-              Nova
+        {/* Ícone sutil do tipo de bloco */}
+        <span className="shrink-0">
+          <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground/70")} />
+        </span>
+
+        {/* Título e descrição */}
+        <span className="flex flex-1 flex-col overflow-hidden min-w-0 pr-4">
+          <span className="flex items-center gap-1.5 min-w-0">
+            <span className={cn(
+              "text-xs font-semibold leading-tight truncate",
+              isActive ? "text-primary" : "text-foreground"
+            )}>
+              {sectionTitle}
             </span>
-          )}
+            {isNew && (
+              <span
+                className="shrink-0 rounded-full bg-primary/10 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-primary"
+                title="Seção nova do modelo, com texto de exemplo: revise"
+              >
+                Nova
+              </span>
+            )}
+          </span>
+          <span className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
+            {getBlockDef(block.type)?.description ?? getBlockName(block.type)}
+          </span>
         </span>
-        <span className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">
-          {getBlockDef(block.type)?.description ?? getBlockName(block.type)}
-        </span>
-      </div>
-      
-      {/* Botão de Grip para Drag and Drop */}
-      <div 
-        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 hover:bg-muted/80 rounded"
+      </button>
+
+      {/* Botão de Grip para Drag and Drop (aparece no hover e no foco do teclado) */}
+      <div
+        className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 cursor-grab active:cursor-grabbing p-1 hover:bg-muted/80 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         title="Arrastar para reordenar"
-        {...attributes} 
+        {...attributes}
         {...listeners}
       >
         <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
@@ -143,6 +150,7 @@ export function EditorSidebar({
   templateName,
   onSwitchTemplate,
   newSectionIds,
+  headerClassName,
 }: EditorSidebarProps) {
 
   const sensors = useSensors(
@@ -185,7 +193,7 @@ export function EditorSidebar({
   return (
     <Tabs defaultValue="sections" className="flex h-full flex-col">
       {/* Documento: Seções (estrutura) | Estilo (vale para a proposta inteira) */}
-      <div className="shrink-0 px-4 pt-4 pb-1">
+      <div className={cn('shrink-0 px-4 pt-4 pb-1', headerClassName)}>
         <TabsList className="grid h-9 w-full grid-cols-2 rounded-xl border border-border/40 bg-muted/50 p-1">
           <TabsTrigger value="sections" className="gap-1.5 rounded-lg text-xs data-[state=active]:bg-background data-[state=active]:shadow-xs">
             <Layers className="h-3.5 w-3.5" /> Seções
@@ -207,7 +215,7 @@ export function EditorSidebar({
           >
             <LayoutTemplate className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground leading-tight">Modelo</span>
+              <span className={cn(EYEBROW, 'leading-tight')}>Modelo</span>
               <span className="truncate text-xs font-medium text-foreground leading-tight mt-0.5">
                 {templateName ?? 'Personalizado'}
               </span>

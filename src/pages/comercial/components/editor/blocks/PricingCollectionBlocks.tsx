@@ -5,6 +5,7 @@ import { EditableImage } from '../../../blocks/EditableImage';
 import { displayPrice, priceEditPath, slicePad, splitLeadingNumber, type PackageSlice } from '../../../blocks/pricing';
 import { ICON_NONE, addonIcon, resolveIconKey, suggestIcon } from '../../../blocks/icons';
 import { accentTextClass, fa, fb, fd, fh, sectionBg, textColorClass, veilClass } from './helpers';
+import { useItemAnchor } from '../../../blocks/inlineContext';
 import { HighlightsStrip, LABEL, PriceTag, ProposalIcon, Rule, accentOn, useEt, type Et } from './kit';
 
 // ============================================================
@@ -248,6 +249,7 @@ const emptyHint = (
 /** Cartões com Foto: foto no topo, painel com cantos arredondados sobre a foto, itens com ícone e preço. */
 export function PricingPhotoCards({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
+  const anchor = useItemAnchor();
   const c = content || data || {};
   const p = props || {};
   const packages: any[] = c.packages || [];
@@ -267,7 +269,7 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
             const featured = !!pkg.badge?.trim();
             const hasPhoto = !p.hide_images && (!!pkg.image_ref || editable);
             return (
-              <div key={pkg.id || idx} className="relative flex pt-4">
+              <div key={pkg.id || idx} {...anchor('packages', pkg.id)} className="relative flex pt-4">
                 {featured && <Badge et={et} idx={idx} text={pkg.badge} className="absolute left-1/2 top-0 z-10 -translate-x-1/2" />}
                 <article
                   className={cn(
@@ -342,6 +344,7 @@ export function PricingPhotoCards({ content, data, props, slice }: { content?: a
 /** Linhas com Foto: cartão horizontal (foto alternando os lados); no estreito, foto em cima. */
 export function PricingPhotoRows({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
+  const anchor = useItemAnchor();
   const c = content || data || {};
   const p = props || {};
   const packages: any[] = c.packages || [];
@@ -364,6 +367,7 @@ export function PricingPhotoRows({ content, data, props, slice }: { content?: an
             return (
               <article
                 key={pkg.id || idx}
+                {...anchor('packages', pkg.id)}
                 className={cn(
                   'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left',
                   hasPhoto && '@2xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)]',
@@ -458,6 +462,7 @@ function ArchFeature({ feat, path, et, editable, accentText }: { feat: string; p
 /** Cartões em Arco: sem foto; topo em arco, nome em serifa, itens "quantidade + rótulo" entre filetes. */
 export function PricingArchCards({ content, data, props, slice }: { content?: any; data?: any; props?: any; slice?: PackageSlice }) {
   const { editable, et, set } = useEt();
+  const anchor = useItemAnchor();
   const c = content || data || {};
   const p = props || {};
   const packages: any[] = c.packages || [];
@@ -478,7 +483,7 @@ export function PricingArchCards({ content, data, props, slice }: { content?: an
             const featured = !!pkg.badge?.trim();
             const features: string[] = (pkg.features || []).filter((f: string) => editable || f?.trim());
             return (
-              <div key={pkg.id || idx} className="relative flex pt-4">
+              <div key={pkg.id || idx} {...anchor('packages', pkg.id)} className="relative flex pt-4">
                 {featured && <Badge et={et} idx={idx} text={pkg.badge} className="absolute left-1/2 top-0 z-10 -translate-x-1/2" />}
                 <article
                   className={cn(
@@ -633,6 +638,7 @@ type AddonsListProps = { c: any; p: any; et: Et; editable: boolean; set: (p: str
 
 /** Cartões: foto no topo com o ícone num disco, painel arredondado sobre a foto, nome, filete, descrição e preço. */
 function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
+  const anchor = useItemAnchor();
   const items: any[] = c.items || [];
   const n = items.length;
   const style = cardStyleOf(p);
@@ -654,6 +660,7 @@ function AddonsGrid({ c, p, et, editable, set }: AddonsListProps) {
         return (
           <article
             key={item.id || idx}
+            {...anchor('items', item.id)}
             className={cn(
               'flex flex-col overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-center',
               solid ? cn('shadow-[0_4px_30px_rgba(0,0,0,0.06)]', CARD, CARD_BORDER) : lightCard(style, p),
@@ -702,6 +709,7 @@ const ROW_FADE = {
 
 /** Linhas: foto de um lado (alternando), nome + filete + descrição e o preço numa coluna separada por filete. */
 function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
+  const anchor = useItemAnchor();
   const items: any[] = c.items || [];
   const style = cardStyleOf(p);
   const solid = style === 'solid';
@@ -714,6 +722,7 @@ function AddonsRows({ c, p, et, editable, set }: AddonsListProps) {
         return (
           <article
             key={item.id || idx}
+            {...anchor('items', item.id)}
             className={cn(
               'grid overflow-hidden rounded-[var(--pa-r-card,1.5rem)] border text-left',
               solid ? cn('shadow-[0_4px_30px_rgba(0,0,0,0.06)]', CARD, CARD_BORDER) : lightCard(style, p),

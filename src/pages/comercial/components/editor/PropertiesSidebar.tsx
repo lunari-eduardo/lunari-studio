@@ -1,10 +1,11 @@
-import React, { useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { BlockData } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
   Trash2,
   Copy,
+  Pin,
   DownloadCloud,
   Loader2,
   Image as ImageIcon,
@@ -17,6 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   DropdownMenu,
@@ -27,15 +29,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useConfigurationContext } from '@/contexts/ConfigurationContext';
-import { getBlockDef, getBlockName, getSectionTitle, BlockField, FieldCtx, FieldGroup } from '../../blocks/registry';
+import { getBlockDef, getBlockName, getSectionTitle, editedOnCanvas, BlockField, FieldCtx, FieldGroup } from '../../blocks/registry';
 import { pacoteToProposalPackage } from '../../blocks/normalization';
 import type { Pacote } from '@/types/configuration';
 import { FieldEditor } from '../../blocks/FieldEditor';
-import { PackageGroupsField } from './PackageGroupsField';
+import { PackageDetail, PackageGroupsField } from './PackageGroupsField';
 import { uploadProposalImage } from '../../blocks/uploadImage';
 import { DEFAULT_DESIGN_TOKENS, backgroundSwatchColor, type ProposalDesignTokens } from '../../blocks/design';
 import { VariantPicker } from './CanvasToolbars';
 import { forCollection, useProposalCollection } from '../../blocks/collections';
+import { EYEBROW, FOCUS_RING, useTextsFormOpen } from './panel/panelStyles';
+import { TextsOnCanvas } from './panel/TextsOnCanvas';
+import { ListItemDetail } from './panel/ItemDetail';
+import { InspectorNavContext, type InspectorNav } from './panel/InspectorNav';
+import { resolveItem, sameRef, type ItemRef, type PanelMemory, type PinRef, type ResolvedPin } from '../../blocks/inspectorFocus';
+import { PinnedBar } from './panel/PinnedBar';
 
 export interface PropertiesSidebarProps {
   block: BlockData;
@@ -55,6 +63,21 @@ export interface PropertiesSidebarProps {
   };
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
+  /** Classes extras do cabeçalho (no drawer do celular, abre espaço para o botão X do Sheet). */
+  headerClassName?: string;
+  /**
+   * O que o painel lembra desta seção (item em detalhe, última linha aberta, grupos recolhidos). Vive na
+   * página: sobrevive à troca de seção e ao Sheet do celular. Sem `onMemoryChange`, as listas ricas
+   * voltam ao acordeão no lugar.
+   */
+  memory?: PanelMemory;
+  onMemoryChange?: (patch: Partial<PanelMemory>) => void;
+  /** Item fixado da proposta (1 por vez), já resolvido (ausente = nada fixado ou o item não existe mais). */
+  pin?: PinRef | null;
+  pinInfo?: ResolvedPin | null;
+  onPinChange?: (pin: PinRef | null) => void;
+  /** Leva ao item fixado (seleciona a seção, rola a arte e abre o detalhe). */
+  onGoToPin?: () => void;
 }
 
 // ============================================================
@@ -123,11 +146,21 @@ export function PropertiesSidebar({
   aiContext,
   onInteractionStart,
   onInteractionEnd,
+  headerClassName,
+  memory,
+  onMemoryChange,
+  pin,
+  pinInfo,
+  onPinChange,
+  onGoToPin,
 }: PropertiesSidebarProps) {
   const { pacotes, produtos } = useConfigurationContext();
   const collection = useProposalCollection();
   // Sem `key` por bloco: o grupo aberto acompanha o fotógrafo de uma seção para outra
   const [openGroup, setOpenGroup] = useState<string>('text');
+  const [textsFormOpen, toggleTextsForm] = useTextsFormOpen();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollMemo = useRef<Record<string, number>>({}); // rolagem da lista, por seção
   // Importação de pacotes cadastrados: null = fechada; '' = sem grupo; senão, a chave do grupo de destino
   const [importTarget, setImportTarget] = useState<string | null>(null);
   const [imported, setImported] = useState<Record<string, number>>({});
@@ -229,8 +262,75 @@ export function PropertiesSidebar({
     return { ...g, title, summary, items };
   }).filter((g): g is NonNullable<typeof g> => g !== null);
 
+  // Grupo Textos: o que tem gêmeo garantido na arte vai para o formulário recolhido
+  const onCanvasEntries = (groups.find((g) => g.key === 'text')?.items ?? []).filter((e) => !e.isProp && editedOnCanvas(e.field, ctx));
+
   const groupKeys = groups.map((g) => g.key as string);
   const accordionValue = openGroup === '' || groupKeys.includes(openGroup) ? openGroup : groupKeys[0] ?? '';
+
+  // ---- Fixar (1 por vez): fixar outro substitui; fixar o que já está fixado desafixa ----
+  const pinnedHere: ItemRef | null = pin?.blockId === block.id ? pin.item ?? null : null;
+  const sectionPinned = pin?.blockId === block.id && !pin.item;
+  const togglePinItem = (ref: ItemRef) =>
+    onPinChange?.(sameRef(pinnedHere, ref) ? null : { blockId: block.id!, item: ref });
+  const toggleSectionPin = () => onPinChange?.(sectionPinned ? null : { blockId: block.id! });
+
+  // ---- Detalhe de um item (pacote, grupo, adicional, depoimento): cobre o corpo; a lista fica montada por baixo ----
+  const detailRef: ItemRef | null = memory?.item ?? null;
+  const detailLists = def?.fields.filter((f) => f.kind === 'list') ?? [];
+  const closeDetail = () => onMemoryChange?.({ item: null });
+  const openDetail = (ref: ItemRef) => onMemoryChange?.({ item: ref, last: ref });
+  let detailNode: React.ReactNode = null;
+  if (detailRef && onMemoryChange && resolveItem(content, detailRef)) {
+    const packagesField = block.type === 'PricingTable' ? detailLists.find((f) => f.key === 'packages') : undefined;
+    const listField = detailLists.find((f) => f.key === detailRef.list);
+    if (packagesField && (detailRef.list === 'packages' || detailRef.list === 'groups')) {
+      detailNode = (
+        <PackageDetail
+          content={content}
+          field={packagesField}
+          ctx={ctx}
+          refItem={detailRef}
+          onChange={setContent}
+          onImport={openImport}
+          onOpen={openDetail}
+          onBack={closeDetail}
+          pinned={pinnedHere}
+          onTogglePin={onPinChange ? togglePinItem : undefined}
+        />
+      );
+    } else if (listField?.presentation === 'detail') {
+      detailNode = <ListItemDetail content={content} field={listField} ctx={ctx} refItem={detailRef} onChange={setContent} onOpen={openDetail} onBack={closeDetail} pinned={pinnedHere} onTogglePin={onPinChange ? togglePinItem : undefined} />;
+    }
+  }
+  const hasDetail = !!detailNode;
+
+  const nav: InspectorNav | null = onMemoryChange
+    ? {
+        last: memory?.last ?? null,
+        openItem: openDetail,
+        collapsed: memory?.collapsed,
+        setCollapsed: (keys) => onMemoryChange({ collapsed: keys }),
+        pinned: pinnedHere,
+        togglePin: togglePinItem,
+      }
+    : null;
+
+  // A rolagem da lista volta ao ponto em que estava ao reabrir a seção
+  useLayoutEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollMemo.current[block.id ?? ''] ?? 0;
+  }, [block.id]);
+
+  // Ao voltar do detalhe: a linha de origem fica à vista, marcada e com o foco (teclado não se perde)
+  const hadDetail = useRef(false);
+  useEffect(() => {
+    if (hadDetail.current && !hasDetail && memory?.last) {
+      const row = scrollRef.current?.querySelector<HTMLElement>(`[data-item-row="${memory.last.list}:${memory.last.key}"]`);
+      row?.scrollIntoView({ block: 'nearest' });
+      row?.querySelector<HTMLElement>('button:not([aria-label^="Arrastar"])')?.focus({ preventScroll: true });
+    }
+    hadDetail.current = hasDetail;
+  }, [hasDetail, memory?.last]);
 
   const renderField = ({ field, isProp }: Entry, groupTitle: string, withAi: boolean) => (
     <FieldEditor
@@ -254,10 +354,10 @@ export function PropertiesSidebar({
         onPointerDownCapture={onInteractionStart}
       >
         {/* CABEÇALHO FIXO DA SEÇÃO */}
-        <div className="shrink-0 px-4 py-4 border-b border-border bg-background">
+        <div className={cn('shrink-0 px-4 py-4 border-b border-border bg-background', headerClassName)}>
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className={EYEBROW}>
                 Seção {String(blockIndex + 1).padStart(2, '0')} · {getBlockName(block.type)}
               </span>
               <h2 className="text-base font-semibold text-foreground tracking-tight truncate mt-0.5">
@@ -272,11 +372,18 @@ export function PropertiesSidebar({
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 rounded-lg"
                   title="Mais opções da seção"
+                  aria-label="Mais opções da seção"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onPinChange && (
+                  <DropdownMenuItem onClick={toggleSectionPin} className="gap-2 cursor-pointer">
+                    <Pin className="h-4 w-4" />
+                    {sectionPinned ? 'Desafixar seção' : 'Fixar seção'}
+                  </DropdownMenuItem>
+                )}
                 {onDuplicateBlock && (
                   <>
                     <DropdownMenuItem onClick={() => onDuplicateBlock(blockIndex)} className="gap-2 cursor-pointer">
@@ -298,18 +405,51 @@ export function PropertiesSidebar({
           </div>
         </div>
 
-        {/* GRUPOS (um aberto por vez) */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar select-text" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
+        {/* ITEM FIXADO: 1 linha fora da rolagem; clicar leva ao item (mesmo de outra seção) */}
+        {pin && pinInfo && onGoToPin && onPinChange && (
+          <PinnedBar
+            label={pinInfo.label}
+            context={pinInfo.context}
+            thumb={pinInfo.thumb}
+            current={pin.blockId === block.id && (pin.item ? sameRef(detailRef, pin.item) : !hasDetail)}
+            onGo={onGoToPin}
+            onUnpin={() => onPinChange(null)}
+          />
+        )}
+
+        {/* CORPO: grupos (um aberto por vez) e, por cima, o detalhe do item aberto */}
+        <InspectorNavContext.Provider value={nav}>
+        <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={(e) => {
+            if (!hasDetail) scrollMemo.current[block.id ?? ''] = e.currentTarget.scrollTop;
+          }}
+          // Com o detalhe aberto a lista fica montada (rolagem e grupos recolhidos preservados) por baixo da página de
+          // detalhe, que é opaca; `inert` a tira do foco e da leitura. Sem `invisible`: a transição de visibilidade
+          // do acordeão deixava a linha de origem sem foco no 1º quadro depois de voltar.
+          {...(hasDetail ? ({ inert: '' } as Record<string, string>) : {})}
+          aria-hidden={hasDetail || undefined}
+          className="h-full overflow-y-auto custom-scrollbar select-text"
+          style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
+        >
           {groups.length === 0 ? (
             <p className="py-12 px-6 text-center text-xs text-muted-foreground">Esta seção não tem ajustes.</p>
           ) : (
             <Accordion type="single" collapsible value={accordionValue} onValueChange={setOpenGroup}>
               {groups.map((g) => (
                 <AccordionItem key={g.key} value={g.key} className="border-border/60">
-                  <AccordionTrigger className="gap-3 px-4 py-3.5 text-sm hover:no-underline hover:bg-muted/30 data-[state=open]:bg-muted/20">
+                  {/* Grupo aberto: fundo mais firme + barra lateral + título em semibold (não depende só do chevron) */}
+                  <AccordionTrigger
+                    className={cn(
+                      'group relative gap-3 px-4 py-3.5 text-sm hover:no-underline hover:bg-muted/30 data-[state=open]:bg-muted/40 focus-visible:ring-inset',
+                      FOCUS_RING,
+                      'before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-transparent before:transition-colors data-[state=open]:before:bg-foreground'
+                    )}
+                  >
                     <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                      <g.icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span className="shrink-0 font-medium text-foreground">{g.title}</span>
+                      <g.icon className="h-4 w-4 shrink-0 text-muted-foreground group-data-[state=open]:text-foreground" />
+                      <span className="shrink-0 font-medium text-foreground group-data-[state=open]:font-semibold">{g.title}</span>
                       {g.summary && (
                         <span className="min-w-0 flex-1 truncate text-right text-xs font-normal text-muted-foreground">
                           {g.summary}
@@ -335,13 +475,22 @@ export function PropertiesSidebar({
                       </Button>
                     )}
 
-                    {g.items.map((e) =>
-                      block.type === 'PricingTable' && e.field.key === 'packages' ? (
-                        <PackageGroupsField key="packages" content={content} field={e.field} ctx={ctx} onChange={setContent} onImport={openImport} />
-                      ) : (
-                        renderField(e, g.title, g.key === 'text')
-                      )
+                    {/* Textos curtos que a arte já edita no lugar: formulário recolhido (A′ e longos seguem visíveis) */}
+                    {g.key === 'text' && onCanvasEntries.length > 0 && (
+                      <TextsOnCanvas count={onCanvasEntries.length} open={textsFormOpen} onOpenChange={toggleTextsForm}>
+                        {onCanvasEntries.map((e) => renderField(e, g.title, true))}
+                      </TextsOnCanvas>
                     )}
+
+                    {g.items
+                      .filter((e) => g.key !== 'text' || !onCanvasEntries.includes(e))
+                      .map((e) =>
+                        block.type === 'PricingTable' && e.field.key === 'packages' ? (
+                          <PackageGroupsField key="packages" content={content} field={e.field} ctx={ctx} onChange={setContent} onImport={openImport} />
+                        ) : (
+                          renderField(e, g.title, g.key === 'text')
+                        )
+                      )}
 
                     {/* Fotos: slots da composição (ex.: Editorial photo_a/photo_b) */}
                     {g.key === 'media' &&
@@ -361,7 +510,7 @@ export function PropertiesSidebar({
                               </div>
                               <div className="flex flex-col gap-1.5 flex-1">
                                 <Label htmlFor={inputId} className="cursor-pointer">
-                                  <div className="flex h-8 w-full items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                                  <div className="flex h-8 w-full items-center justify-center rounded-lg border border-input bg-background px-3 text-xs font-medium hover:bg-muted hover:text-foreground">
                                     {uploadingSlot === slot.key ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                                     {current ? 'Trocar imagem' : 'Enviar imagem'}
                                   </div>
@@ -395,6 +544,9 @@ export function PropertiesSidebar({
             </Accordion>
           )}
         </div>
+        {detailNode}
+        </div>
+        </InspectorNavContext.Provider>
       </div>
 
       {/* MODAL DE IMPORTAÇÃO DE PACOTES */}
@@ -420,8 +572,16 @@ export function PropertiesSidebar({
                 return (
                   <div
                     key={pacote.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => importPackage(pacote)}
-                    className="flex flex-col p-4 border rounded-xl hover:border-primary cursor-pointer transition-colors"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        importPackage(pacote);
+                      }
+                    }}
+                    className="flex flex-col p-4 border rounded-xl hover:border-primary cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-semibold text-sm">{preview.name}</span>

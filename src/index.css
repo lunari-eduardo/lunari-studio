@@ -1073,3 +1073,10 @@ a,
 .pa-gal-grid > [data-span="wide"] { grid-column: span 2; }
 .pa-gal-grid > [data-span="tall"] { grid-row: span 2; }
 .pa-gal-grid > [data-span="feature"] { grid-column: span 2; grid-row: span 2; }
+
+/* Item de lista aberto no painel do editor (pacote, grupo, adicional): contorno grafite.
+   `data-item`/`data-selected` só são emitidos no editor (useItemAnchor); o público não recebe. */
+.pa-doc [data-item][data-selected="true"] {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
