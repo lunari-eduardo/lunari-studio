@@ -15,6 +15,7 @@ import { CategoryPricingConfig } from './CategoryPricingConfig';
 import { PricingPreview } from './PricingPreview';
 import { toast } from 'sonner';
 import type { ConfiguracaoPrecificacao, TabelaPrecos } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface PricingContainerProps {
   categorias: Array<{
@@ -35,7 +36,7 @@ export function PricingContainer({ categorias }: PricingContainerProps) {
     let isMounted = true;
     const hydrateFromSupabase = async () => {
       try {
-        const { data: user } = await supabase.auth.getUser();
+        const { data: user } = await getUserLocal();
         if (!user?.user) return;
 
         const [modeloRes, globalRes] = await Promise.all([
@@ -108,7 +109,7 @@ export function PricingContainer({ categorias }: PricingContainerProps) {
     }
 
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (user?.user) {
         await supabase
           .from('modelo_de_preco')
@@ -151,7 +152,7 @@ export function PricingContainer({ categorias }: PricingContainerProps) {
     if (!hydrated) return;
 
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (user?.user) {
         await supabase
           .from('tabelas_precos')

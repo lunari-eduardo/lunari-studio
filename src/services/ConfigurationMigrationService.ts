@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { storage } from '@/utils/localStorage';
 import { toast } from 'sonner';
 import type { Categoria, Pacote, Produto, EtapaTrabalho } from '@/types/configuration';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const MIGRATION_STORAGE_KEY = 'migration_status_complete';
 const LOCALSTORAGE_KEYS = {
@@ -275,7 +276,7 @@ export class ConfigurationMigrationService {
   static async migrateAll(): Promise<boolean> {
     try {
       // Verifica autenticação
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         console.log('User not authenticated, skipping migration');
         return false;
@@ -333,7 +334,7 @@ export class ConfigurationMigrationService {
    * Migração individual de categorias (mantida para compatibilidade)
    */
   static async migrateCategorias(): Promise<boolean> {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) return false;
 
     const categorias = storage.load(LOCALSTORAGE_KEYS.CATEGORIAS, []);

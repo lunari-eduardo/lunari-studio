@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LinhaExtrato, ExtratoTipo, ExtratoStatus, ExtratoOrigem, ExtratoEscopo } from '@/types/extrato';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export type RegimeContabil = 'caixa' | 'competencia';
 
@@ -79,7 +80,7 @@ export function useExtratoSupabase({
   const { data: resultado, isLoading } = useQuery({
     queryKey: ['extrato-unificado', regime, dataInicio, dataFim, page, pageSize, tipo, origem, status, escopo],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Not authenticated');
 
       const from = (page - 1) * pageSize;
@@ -156,7 +157,7 @@ export function useExtratoSupabase({
     let channel: any = null;
     
     const setupChannel = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       userId = user?.id || null;
       
       if (!userId) return;

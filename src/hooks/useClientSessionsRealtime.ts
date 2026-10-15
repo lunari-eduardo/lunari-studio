@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface ClientSession {
   id: string;
@@ -47,7 +48,7 @@ export function useClientSessionsRealtime(clienteId: string) {
       if (isInitialLoadRef.current) {
         setLoading(true);
       }
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('User not authenticated');
 
       // Buscar sessões do cliente
@@ -320,7 +321,7 @@ export function useClientSessionsRealtime(clienteId: string) {
     let transactionsChannel: any = null;
 
     const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
 
       // Subscribe to sessions changes (incluindo atualizações de valor_pago)

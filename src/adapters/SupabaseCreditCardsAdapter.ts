@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface CreditCardDB {
   id: string;
@@ -23,7 +24,7 @@ export class SupabaseCreditCardsAdapter {
    */
   static async getAllCards(): Promise<CreditCardDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -47,7 +48,7 @@ export class SupabaseCreditCardsAdapter {
    */
   static async createCard(nome: string, dia_vencimento: number, dia_fechamento: number): Promise<CreditCardDB> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       // Verificar se já existe cartão com mesmo nome

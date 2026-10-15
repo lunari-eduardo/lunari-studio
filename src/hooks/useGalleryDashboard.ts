@@ -6,6 +6,7 @@ import { getPhotoUrl as getPhotoUrlFromLib, getOriginalPhotoUrl } from '@/lib/ph
 import { WatermarkSettings, TitleCaseMode } from '@/types/gallery';
 import { Json } from '@/integrations/supabase/types';
 import { RegrasCongeladas, sanitizeExtraPrice } from '@/lib/pricingUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 // Types based on database schema
 export interface GaleriaPhoto {
@@ -298,7 +299,7 @@ export function useGalleryDashboard() {
   const createGallery = useMutation({
     mutationFn: async (data: CreateGaleriaData) => {
       const publicToken = generatePublicToken();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('User not found');
 
       const { data: result, error } = await supabase

@@ -34,6 +34,7 @@ import {
   corrigirSessoesModeloFixo,
   verificarIntegridade,
 } from './pricing-freezing/migrationService';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export type {
   RegrasCongeladas,
@@ -60,7 +61,7 @@ class PricingFreezingService {
       let categoriaIdResolvido: string | undefined;
       if (pacoteId) {
         const { supabase } = await import('@/integrations/supabase/client');
-        const { data: user } = await supabase.auth.getUser();
+        const { data: user } = await getUserLocal();
         
         if (user?.user) {
           const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i.test(pacoteId);

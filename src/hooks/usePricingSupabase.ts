@@ -9,6 +9,7 @@ import { PricingConfigurationService } from '@/services/PricingConfigurationServ
 import { pricingMigrationService } from '@/services/PricingMigrationService';
 import { toast } from 'sonner';
 import type { ConfiguracaoPrecificacao, TabelaPrecos } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function usePricingSupabase() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -22,7 +23,7 @@ export function usePricingSupabase() {
       setIsLoading(true);
       
       // Check authentication
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         console.log('❌ User not authenticated, using local storage');
         setIsInitialized(true);
@@ -89,7 +90,7 @@ export function usePricingSupabase() {
     if (!isInitialized) return;
 
     const setupRealtimeListeners = async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) return;
 
       // Listen to configuration changes

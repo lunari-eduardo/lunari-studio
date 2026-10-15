@@ -5,6 +5,7 @@ import {
   CheckGalleryAccessInputSchema,
   CheckGalleryAccessOutputSchema,
 } from "../../domain/types";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `gallery.checkAccess`
@@ -35,7 +36,7 @@ export const checkAccess = defineQuery({
   async handler(input, ctx) {
     let userId = input.userId ?? ctx.user?.id ?? null;
     if (!userId) {
-      const { data: auth } = await supabase.auth.getUser();
+      const { data: auth } = await getUserLocal();
       userId = auth?.user?.id ?? null;
     }
     if (!userId) {

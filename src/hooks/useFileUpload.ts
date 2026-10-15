@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { resolveR2SignedUrl, deleteR2Object } from '@/hooks/useR2SignedUrl';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface UploadedFile {
   id: string;
@@ -39,7 +40,7 @@ export function useFileUpload() {
 
   const loadFiles = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         setFiles([]);
         return;
@@ -118,7 +119,7 @@ export function useFileUpload() {
       return null;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       toast.error('Sessão expirada');
       return null;

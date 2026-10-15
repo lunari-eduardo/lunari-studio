@@ -29,6 +29,7 @@ import { AdminStrategyTab } from '@/components/admin/AdminStrategyTab';
 import { AdminSubscriptionsTab } from '@/components/admin/AdminSubscriptionsTab';
 import { CreditsModal, StorageModal, SubscriptionsModal } from '@/components/admin/AdminUserActions';
 import { PlatformIntegrationsTab } from '@/components/admin/PlatformIntegrationsTab';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UserWithData {
   id: string;
@@ -171,7 +172,7 @@ export default function AdminUsuarios() {
         const { error } = await supabase.from('vip_users').insert({
           user_id: selectedUser.id,
           reason: vipReason || 'Acesso VIP concedido pelo administrador',
-          granted_by: (await supabase.auth.getUser()).data.user?.id
+          granted_by: (await getUserLocal()).data.user?.id
         });
         if (error) throw error;
         toast.success(`VIP concedido para ${selectedUser.nome || selectedUser.email}`);

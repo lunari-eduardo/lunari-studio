@@ -6,6 +6,7 @@ import { useClientMetrics, ClientMetrics } from '@/hooks/useClientMetrics';
 import { ClientFilters } from '@/components/crm/ClientFiltersBar';
 import { toast } from 'sonner';
 import { SortConfig, SortKey } from '../types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export const useClientesPageData = () => {
   const {
@@ -78,7 +79,7 @@ export const useClientesPageData = () => {
       try {
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await getUserLocal();
         if (!user) {
           setClientesFiltradosPorSessao(null);
           return;

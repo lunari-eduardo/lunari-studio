@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WorkflowSupabaseService } from '@/services/WorkflowSupabaseService';
 import { formatDateForStorage } from '@/utils/dateUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface IntegrityIssue {
   type: 'confirmed_without_session' | 'orphaned_session' | 'mismatched_session_id' | 'date_mismatch' | 'time_mismatch';
@@ -23,7 +24,7 @@ export const useDataIntegrityCheck = () => {
     const foundIssues: IntegrityIssue[] = [];
 
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return;
 
       // Check 1: Confirmed appointments without sessions
@@ -150,7 +151,7 @@ export const useDataIntegrityCheck = () => {
     let repairedCount = 0;
 
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return;
 
       for (const issue of issues) {

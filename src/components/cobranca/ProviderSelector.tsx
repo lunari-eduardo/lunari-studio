@@ -8,6 +8,7 @@ import infinitepayLogo from '@/assets/infinitepay-logo.png';
 import mercadopagoLogo from '@/assets/mercadopago-logo.png';
 import asaasLogo from '@/assets/asaas-logo.png';
 import { useAccessControl } from '@/hooks/useAccessControl';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface ProviderSelectorProps {
   selectedProvider: SelectedProvider | null;
@@ -29,7 +30,7 @@ export function ProviderSelector({ selectedProvider, onSelect }: ProviderSelecto
 
   const loadProviders = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         setProviders([]);
         setLoading(false);

@@ -7,6 +7,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MetasService } from '@/services/PricingService';
 import type { MetasPrecificacao } from '@/types/precificacao';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface MonthlyGoals {
   revenue: number;
@@ -91,7 +92,7 @@ export class GoalsIntegrationService {
    */
   static async getMonthlyGoalsAsync(): Promise<MonthlyGoals> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       
       if (user) {
         const { data, error } = await supabase
@@ -153,7 +154,7 @@ export class GoalsIntegrationService {
    */
   static async getAnnualGoalsAsync(): Promise<AnnualGoals> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       
       if (user) {
         const { data, error } = await supabase

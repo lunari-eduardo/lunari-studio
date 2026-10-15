@@ -6,6 +6,7 @@ import { USE_METRICS_EVENT_BUS } from "@/features/workflow/config";
 import { eventBus } from "@/shared/event-bus";
 import { metricsCache } from "@/features/workflow/data/metricsCache";
 import { fetchMonthMetrics, invalidateMonthMetricsTTL } from "@/features/workflow/data/metricsRepo";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface WorkflowMetrics {
   previsto: number;
@@ -51,7 +52,7 @@ function seedFromCache(userId: string | null, year: number, month?: number, over
  * Métricas do Workflow com padrão SWR (stale-while-revalidate).
  *
  * Mudanças (tranche de performance):
- *  - `userId` vem do `AuthContext` (sem `supabase.auth.getUser()` por load).
+ *  - `userId` vem do `AuthContext` (sem `getUserLocal()` por load).
  *    Elimina 200–800ms de round-trip em cada troca de mês.
  *  - Seed síncrono do `metricsCache` no `useState` inicial e no reset por
  *    troca de mês: se há cache, a UI NUNCA vai para skeleton — vai direto

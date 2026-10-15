@@ -11,6 +11,7 @@ import type {
   StatusSalvamento,
 } from '@/types/precificacao';
 import { pricingCache, isCacheValid, invalidatePricingCache } from './pricingCache';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UsePricingDataLoaderProps {
   adapterRef: React.MutableRefObject<SupabasePricingAdapter>;
@@ -131,7 +132,7 @@ export const usePricingDataLoader = ({
       try {
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await getUserLocal();
 
         if (!user) {
           setIsAuthenticated(false);
@@ -190,7 +191,7 @@ export const usePricingDataLoader = ({
     const setupRealtimeListeners = async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getUserLocal();
       if (!user || !isMounted) return;
 
       channel = supabase

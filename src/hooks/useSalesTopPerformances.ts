@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface MetricResult {
   subtitle: string;
@@ -38,7 +39,7 @@ export function useSalesTopPerformances(
     refetchOnMount: false,
     refetchOnReconnect: false,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return null;
 
       // Para "Melhor Mês" precisamos do ano todo; para os outros respeita o mês.

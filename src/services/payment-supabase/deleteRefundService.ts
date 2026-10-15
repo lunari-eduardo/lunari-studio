@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionBinding } from './sessionBinding';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Deletar um pagamento específico do Supabase
@@ -8,7 +9,7 @@ export async function deletePaymentFromSupabase(sessionKey: string, paymentId: s
   try {
     console.log('🗑️ Deletando pagamento:', { sessionKey, paymentId });
 
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } = await getUserLocal();
     if (!userData?.user) {
       console.error('❌ Usuário não autenticado');
       return false;
@@ -132,7 +133,7 @@ export async function refundPayment(
     const keepAsCredit = options?.keepAsCredit === true;
     console.log('🔄 Estornando pagamento:', { sessionKey, paymentId, valor, motivo, keepAsCredit });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('❌ User not authenticated');
       return false;

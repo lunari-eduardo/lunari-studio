@@ -6,6 +6,7 @@ import { useClienteDuplicateCheck } from '@/hooks/useClienteDuplicateCheck';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ClienteFormData } from '../types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UseClienteFormStateProps {
   clientesSupabase?: any[];
@@ -278,7 +279,7 @@ export const useClienteFormState = ({
         if (adicionarClienteCompletoSupabase) {
           await adicionarClienteCompletoSupabase(payload);
         } else {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: { user } } = await getUserLocal();
           if (!user) throw new Error('Usuário não autenticado');
           const { error } = await supabase.from('clientes').insert({ ...payload, user_id: user.id });
           if (error) throw error;

@@ -3,7 +3,7 @@ import type { EtapaTrabalho } from "@/types/configuration";
 
 export async function loadEtapas(): Promise<EtapaTrabalho[]> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("📋 User not authenticated, returning default etapas");
       return [];
@@ -47,7 +47,7 @@ export async function loadEtapas(): Promise<EtapaTrabalho[]> {
 
 export async function saveEtapas(etapas: EtapaTrabalho[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -94,7 +94,7 @@ export async function saveEtapas(etapas: EtapaTrabalho[]): Promise<void> {
 
 export async function deleteEtapaById(id: string): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -119,7 +119,7 @@ export async function deleteEtapaById(id: string): Promise<void> {
 
 export async function syncEtapas(etapas: EtapaTrabalho[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("📋 User not authenticated, skipping sync");
       return;
@@ -163,3 +163,5 @@ export async function syncEtapas(etapas: EtapaTrabalho[]): Promise<void> {
     throw error;
   }
 }
+
+import { getUserLocal } from '@/lib/auth/getUserLocal';

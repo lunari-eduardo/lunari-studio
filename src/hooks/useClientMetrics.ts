@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Cliente } from '@/types/cliente';
 import { supabase } from '@/integrations/supabase/client';
 import { onTableChange } from '@/shared/realtime/onTableChange';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface ClientMetrics {
   id: string;
@@ -22,7 +23,7 @@ export function useClientMetrics(clientes: Cliente[]): ClientMetrics[] {
 
   useEffect(() => {
     const fetchMetrics = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         setMetrics([]);
         return;

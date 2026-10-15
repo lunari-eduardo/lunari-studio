@@ -10,6 +10,7 @@ import type { LucideIcon } from 'lucide-react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface TimelineEvent {
   id: string;
@@ -42,7 +43,7 @@ export function SessionTimeline({ sessionId }: { sessionId?: string }) {
         return;
       }
       try {
-        const { data: auth } = await supabase.auth.getUser();
+        const { data: auth } = await getUserLocal();
         const userId = auth?.user?.id;
         if (!userId) {
           setEvents([]);

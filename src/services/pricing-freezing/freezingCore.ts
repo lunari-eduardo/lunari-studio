@@ -4,6 +4,7 @@
 
 import { obterConfiguracaoPrecificacao, obterTabelaGlobal, obterTabelaCategoria } from '@/utils/precificacaoUtils';
 import { PrecificacaoFotoExtra, ProdutoCongelado } from './types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Resolve tabela de categoria por ID ou nome - versão síncrona para compatibilidade
@@ -38,7 +39,7 @@ export async function resolverTabelaCategoriaAsync(categoria?: string, categoria
     
     if (!id && categoria) {
       const { supabase } = await import('@/integrations/supabase/client');
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) {
         console.warn('⚠️ Usuário não autenticado');
         return null;
@@ -120,7 +121,7 @@ export async function congelarRegrasPrecoFotoExtraAsync(
 ): Promise<PrecificacaoFotoExtra> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } = await getUserLocal();
     const userId = userData?.user?.id;
 
     let modelo: 'fixo' | 'global' | 'categoria' = 'fixo';
@@ -269,7 +270,7 @@ export async function congelarDadosProdutos(produtosIncluidos: any[]): Promise<P
     }
 
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
 
     if (!user?.user) return produtosIncluidos;
 

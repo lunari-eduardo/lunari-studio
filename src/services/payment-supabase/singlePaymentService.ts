@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionBinding, SessionBinding } from './sessionBinding';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Verificar se um pagamento já existe no Supabase (por paymentId OU intentKey)
@@ -54,7 +55,7 @@ export async function saveSinglePaymentToSupabase(
   }
 ): Promise<boolean> {
   try {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const { data: userData, error: userError } = await getUserLocal();
     
     if (userError || !userData?.user) {
       console.error('❌ Usuário não autenticado:', userError);

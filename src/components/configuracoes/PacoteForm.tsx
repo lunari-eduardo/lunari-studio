@@ -19,6 +19,7 @@ import {
   PacoteFormProps
 } from '@/types/configuration';
 import type { TabelaPrecos } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const formatarTempoResumido = (minutos: number) => {
   if (minutos < 60) return `${minutos}m`;
@@ -55,7 +56,7 @@ export default function PacoteForm({
   const { data: modeloPreco = 'fixo' } = useQuery({
     queryKey: ['user-pricing-model'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return 'fixo';
       const { data } = await supabase
         .from('modelo_de_preco')
@@ -71,7 +72,7 @@ export default function PacoteForm({
   const { data: tabelasPorCategoria = {} } = useQuery({
     queryKey: ['category-pricing-tables'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return {};
       const { data, error } = await supabase
         .from('tabelas_precos')
@@ -107,7 +108,7 @@ export default function PacoteForm({
   const { data: tabelaGlobal } = useQuery({
     queryKey: ['global-pricing-table'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return null;
       const { data } = await supabase
         .from('tabelas_precos')

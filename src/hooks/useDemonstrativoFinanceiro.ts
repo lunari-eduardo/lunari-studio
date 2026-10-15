@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DemonstrativoSimplificado } from '@/types/extrato';
 import { RegimeContabil } from '@/hooks/useExtratoSupabase';
 import { GRUPOS_DESPESAS } from '@/constants/extratoConstants';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface SessionProductItem {
   id: string;
@@ -32,7 +33,7 @@ export async function fetchSessoesProdutos(
   dataInicio: string,
   dataFim: string
 ): Promise<SessionProductItem[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getUserLocal();
   if (!user) return [];
 
   const { data: sessoesProds, error } = await supabase
@@ -288,7 +289,7 @@ export async function fetchDemonstrativo(
   dataFim: string,
   regime: RegimeContabil = 'caixa'
 ): Promise<DemonstrativoSimplificado> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getUserLocal();
   if (!user) throw new Error('Not authenticated');
 
   const dataColumn = regime === 'competencia' ? 'data_competencia' : 'data';

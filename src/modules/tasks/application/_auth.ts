@@ -6,13 +6,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { domainError, err, ok, type DomainError, type Result } from "@/shared/result";
 import type { CapabilityContext } from "@/shared/capability";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export async function resolveUserId(
   ctx: CapabilityContext,
 ): Promise<Result<string, DomainError>> {
   const ctxId = ctx.user?.id;
   if (ctxId) return ok(ctxId);
-  const { data } = await supabase.auth.getUser();
+  const { data } = await getUserLocal();
   const id = data.user?.id;
   if (!id) return err(domainError("UNAUTHENTICATED", "Sessão expirada."));
   return ok(id);

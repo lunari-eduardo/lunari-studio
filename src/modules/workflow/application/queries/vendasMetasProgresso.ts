@@ -2,6 +2,7 @@ import { z } from "zod";
 import { defineQuery } from "@/shared/capability";
 import { domainError, err, ok } from "@/shared/result";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `workflow.vendas.metasProgresso`
@@ -32,7 +33,7 @@ export const vendasMetasProgresso = defineQuery({
   output: Output,
   permissions: ["workflow:read"],
   async handler({ ano, mes }, ctx) {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getUserLocal();
     const userId = auth.user?.id ?? ctx.user?.id;
     if (!userId) return err(domainError("UNAUTHENTICATED", "Sessão expirada."));
 

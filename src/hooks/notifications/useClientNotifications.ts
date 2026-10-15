@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppNotification } from '@/types/notifications';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
+import { visibleInterval } from '@/lib/visibleInterval';
 
 /**
  * - Aniversariantes hoje (cliente)
@@ -11,7 +13,7 @@ export function useClientNotifications(): AppNotification[] {
   const [items, setItems] = useState<AppNotification[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     const today = new Date();
@@ -99,8 +101,8 @@ export function useClientNotifications(): AppNotification[] {
 
   useEffect(() => {
     fetchAll();
-    const id = setInterval(fetchAll, 15 * 60 * 1000) /* A3: reduz egress */;
-    return () => clearInterval(id);
+    const id = visibleInterval(fetchAll, 15 * 60 * 1000) /* A3: reduz egress */;
+    return () => id();
   }, [fetchAll]);
 
   return items;

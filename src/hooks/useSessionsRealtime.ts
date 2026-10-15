@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ClientesSessaoSupabase, generateUniversalSessionId } from '@/types/appointments-supabase';
 import { toast } from 'sonner';
 import { formatDateForStorage } from '@/utils/dateUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function useSessionsRealtime(clienteId?: string) {
   const [sessions, setSessions] = useState<ClientesSessaoSupabase[]>([]);
@@ -43,7 +44,7 @@ export function useSessionsRealtime(clienteId?: string) {
   // Create session
   const createSession = useCallback(async (sessionData: Omit<ClientesSessaoSupabase, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       const newSession = {
@@ -114,7 +115,7 @@ export function useSessionsRealtime(clienteId?: string) {
   // Convert appointment to session
   const convertAppointmentToSession = useCallback(async (appointmentId: string, sessionData: Partial<ClientesSessaoSupabase>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       // Get appointment details
@@ -188,7 +189,7 @@ export function useSessionsRealtime(clienteId?: string) {
     observacoes?: string;
   }) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       // Generate unique session_id for historical data

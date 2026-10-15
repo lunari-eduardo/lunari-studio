@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { calcularAntecipacao } from '@/lib/anticipationUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface AsaasCheckoutSettings {
   habilitarPix: boolean;
@@ -159,7 +160,7 @@ export function AsaasCheckoutSection({
     const fetchFees = async () => {
       setFeesLoading(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getUserLocal();
         if (!user) return;
 
         const response = await supabase.functions.invoke('asaas-fetch-fees', {

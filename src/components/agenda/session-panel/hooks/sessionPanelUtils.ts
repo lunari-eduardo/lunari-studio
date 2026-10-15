@@ -2,6 +2,7 @@ import { formatDateForStorage } from "@/utils/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 import type { PanelFormState } from "../types";
 import type { Appointment } from "@/modules/agenda/presentation";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface BuildPayloadParams {
   state: PanelFormState;
@@ -87,7 +88,7 @@ export const ensureSessionStub = async ({
   try {
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUserLocal();
     if (!user) return false;
 
     if (appointmentId) {

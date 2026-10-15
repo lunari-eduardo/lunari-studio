@@ -3,6 +3,7 @@ import { defineQuery } from "@/shared/capability";
 import { domainError, err, ok } from "@/shared/result";
 import { supabase } from "@/integrations/supabase/client";
 import { sessionsRepo } from "@/features/workflow/data";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `workflow.listRange`
@@ -83,7 +84,7 @@ export const listSessionsByRange = defineQuery({
     if (days < 0) return err(domainError("VALIDATION", "endDate anterior a startDate."));
     if (days > 400) return err(domainError("VALIDATION", "Intervalo máximo: 400 dias."));
 
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getUserLocal();
     const userId = auth.user?.id ?? ctx.user?.id;
     if (!userId) return err(domainError("UNAUTHENTICATED", "Sessão expirada."));
 

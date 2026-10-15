@@ -3,7 +3,7 @@ import type { Produto } from "@/types/configuration";
 
 export async function loadProdutos(): Promise<Produto[]> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("🛍️ User not authenticated, returning default produtos");
       return [];
@@ -47,7 +47,7 @@ export async function loadProdutos(): Promise<Produto[]> {
 
 export async function saveProdutos(produtos: Produto[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -93,7 +93,7 @@ export async function saveProdutos(produtos: Produto[]): Promise<void> {
 
 export async function deleteProdutoById(id: string): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -118,7 +118,7 @@ export async function deleteProdutoById(id: string): Promise<void> {
 
 export async function syncProdutos(produtos: Produto[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("🛍️ User not authenticated, skipping sync");
       return;
@@ -162,3 +162,5 @@ export async function syncProdutos(produtos: Produto[]): Promise<void> {
     throw error;
   }
 }
+
+import { getUserLocal } from '@/lib/auth/getUserLocal';

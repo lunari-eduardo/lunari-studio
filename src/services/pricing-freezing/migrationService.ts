@@ -3,6 +3,7 @@
  */
 
 import { RegrasCongeladas, IntegridadeIssue } from './types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * FASE 4: Migra sessões existentes para incluir dados completos congelados
@@ -13,7 +14,7 @@ export async function migrarSessoesExistentes(
 ): Promise<{ migrated: number; skipped: number }> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');
@@ -70,7 +71,7 @@ export async function migrarSessoesExistentes(
 export async function corrigirSessoesInconsistentes(): Promise<{ corrected: number; skipped: number }> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');
@@ -138,7 +139,7 @@ export async function corrigirSessoesComTabelasNull(
 ): Promise<{ corrected: number; skipped: number }> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');
@@ -202,7 +203,7 @@ export async function corrigirModeloCategoria(
 ): Promise<{ corrected: number; skipped: number }> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');
@@ -270,7 +271,7 @@ export async function corrigirSessoesModeloFixo(): Promise<{ migrated: number; s
   
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');
@@ -349,7 +350,7 @@ export async function corrigirSessoesModeloFixo(): Promise<{ migrated: number; s
 export async function verificarIntegridade(): Promise<IntegridadeIssue[]> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     
     if (!user?.user) {
       throw new Error('User not authenticated');

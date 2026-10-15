@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface WorkflowInfo {
   hasSession: boolean;
@@ -47,7 +48,7 @@ export const useAppointmentWorkflowInfo = (appointmentId?: string) => {
     const checkWorkflowInfo = async () => {
       setLoading(true);
       try {
-        const { data: user } = await supabase.auth.getUser();
+        const { data: user } = await getUserLocal();
         if (!user?.user) return;
 
         // Get appointment data first
@@ -109,7 +110,7 @@ export const useAppointmentWorkflowInfo = (appointmentId?: string) => {
     
     setLoadingDetails(true);
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return;
 
       const { data: appointment } = await supabase

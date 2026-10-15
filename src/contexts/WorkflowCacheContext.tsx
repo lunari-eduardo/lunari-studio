@@ -17,6 +17,7 @@ import { executeMergeUpdate, executeRemoveSession } from './workflow-cache/cache
 import { useMonthLoader } from './workflow-cache/useMonthLoader';
 import { useLegacyRealtime } from './workflow-cache/useLegacyRealtime';
 import { useCacheEventListeners } from './workflow-cache/useCacheEventListeners';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export type { MonthLoadStatus, MonthLoadState, WorkflowCacheContextType };
 
@@ -158,7 +159,7 @@ export const WorkflowCacheProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     });
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    getUserLocal().then(({ data: { user } }) => {
       if (user) setUserId(user.id);
     });
 

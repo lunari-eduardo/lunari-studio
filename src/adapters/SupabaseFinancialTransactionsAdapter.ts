@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { StatusTransacao } from '@/types/financas';
 import { getCurrentDateString } from '@/utils/dateUtils';
 import { roundToTwoDecimals } from '@/utils/financialPrecision';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface FinancialTransactionDB {
   id: string;
@@ -34,7 +35,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async getAllTransactions(): Promise<FinancialTransactionDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -58,7 +59,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async getTransactionsByYear(year: number): Promise<FinancialTransactionDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const startDate = `${year}-01-01`;
@@ -86,7 +87,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async getTransactionsByDateRange(startDate: string, endDate: string): Promise<FinancialTransactionDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -111,7 +112,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async createTransaction(transaction: Omit<FinancialTransactionDB, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<FinancialTransactionDB> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -138,7 +139,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async createMultipleTransactions(transactions: Array<Omit<FinancialTransactionDB, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<FinancialTransactionDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const transactionsWithUser = transactions.map(t => ({
@@ -234,7 +235,7 @@ export class SupabaseFinancialTransactionsAdapter {
    */
   static async updateStatusByDate(): Promise<number> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         console.warn('updateStatusByDate: Usuário não autenticado');
         return 0;
@@ -383,7 +384,7 @@ export class SupabaseFinancialTransactionsAdapter {
     observacoes?: string;
     formaPagamento?: string;
   }): Promise<FinancialTransactionDB[]> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) throw new Error('User not authenticated');
 
     const { itemId, valorTotal, dataCompra, cartaoCreditoId, numeroDeParcelas = 1, observacoes, formaPagamento } = params;

@@ -19,6 +19,7 @@ import { RegrasCongeladas, getFaixasFromRegras } from '@/lib/pricingUtils';
 import { resolveAssistedExtraPrice } from '../pricingHelpers';
 import { resolveFinalPricingAndRules, buildGalleryConfig } from '../payloadHelper';
 import { PriorDeletion } from './useAssistedSession';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UseGallerySubmitProps {
   currentStep: number;
@@ -234,7 +235,7 @@ export function useGallerySubmit({
         try {
           const {
             data: { user: currentUser },
-          } = await supabase.auth.getUser();
+          } = await getUserLocal();
           if (currentUser) {
             const { data: existingFolders } = await supabase
               .from('galeria_pastas')

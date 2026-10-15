@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface RecurringBlueprintDB {
   id: string;
@@ -26,7 +27,7 @@ export class SupabaseRecurringBlueprintsAdapter {
    */
   static async getAllBlueprints(): Promise<RecurringBlueprintDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -49,7 +50,7 @@ export class SupabaseRecurringBlueprintsAdapter {
    */
   static async getActiveBlueprintsForMonth(year: number, month: number): Promise<RecurringBlueprintDB[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const targetDate = `${year}-${month.toString().padStart(2, '0')}-01`;
@@ -75,7 +76,7 @@ export class SupabaseRecurringBlueprintsAdapter {
    */
   static async createBlueprint(blueprint: Omit<RecurringBlueprintDB, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<RecurringBlueprintDB> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase

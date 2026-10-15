@@ -40,6 +40,7 @@ import { Mail, Plus, Trash2, Loader2, UserPlus, Crown, User, MoreVertical, Edit,
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CreditsModal, StorageModal } from '@/components/admin/AdminUserActions';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface AllowedEmail {
   email: string;
@@ -191,7 +192,7 @@ export default function AllowedEmailsManager() {
 
     try {
       setSubmitting(true);
-      const { data: userData } = await supabase.auth.getUser();
+      const { data: userData } = await getUserLocal();
       const emailLower = newEmail.trim().toLowerCase();
       
       const { error } = await supabase

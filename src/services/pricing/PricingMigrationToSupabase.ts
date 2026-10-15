@@ -6,6 +6,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { storage, STORAGE_KEYS } from '@/utils/localStorage';
 import type { EstruturaCustosFixos, PadraoHoras, MetasPrecificacao, EstadoCalculadora } from '@/types/precificacao';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const MIGRATION_KEY = 'lunari_pricing_supabase_migrated_v2';
 
@@ -25,7 +26,7 @@ export class PricingMigrationToSupabase {
       }
       
       // Verificar se usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return false;
       
       // Verificar se já tem dados no Supabase
@@ -71,7 +72,7 @@ export class PricingMigrationToSupabase {
     try {
       console.log('🔄 Iniciando migração de pricing para Supabase...');
       
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         return { success: false, message: 'Usuário não autenticado' };
       }

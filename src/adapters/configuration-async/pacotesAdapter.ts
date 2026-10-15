@@ -3,7 +3,7 @@ import type { Pacote } from "@/types/configuration";
 
 export async function loadPacotes(): Promise<Pacote[]> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("📦 User not authenticated, returning default pacotes");
       return [];
@@ -52,7 +52,7 @@ export async function loadPacotes(): Promise<Pacote[]> {
 
 export async function savePacotes(pacotes: Pacote[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -101,7 +101,7 @@ export async function savePacotes(pacotes: Pacote[]): Promise<void> {
 
 export async function deletePacoteById(id: string): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -126,7 +126,7 @@ export async function deletePacoteById(id: string): Promise<void> {
 
 export async function syncPacotes(pacotes: Pacote[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.log("📦 User not authenticated, skipping sync");
       return;
@@ -170,3 +170,5 @@ export async function syncPacotes(pacotes: Pacote[]): Promise<void> {
     throw error;
   }
 }
+
+import { getUserLocal } from '@/lib/auth/getUserLocal';

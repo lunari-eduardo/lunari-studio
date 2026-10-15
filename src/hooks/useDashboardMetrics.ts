@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { onTableChange } from '@/shared/realtime/onTableChange';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface TopCategoria {
   name: string;
@@ -29,7 +30,7 @@ export function useDashboardMetrics(): DashboardMetrics {
   useEffect(() => {
     const loadMetrics = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getUserLocal();
         if (!user) {
           setIsLoading(false);
           return;

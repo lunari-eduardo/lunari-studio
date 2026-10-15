@@ -4,6 +4,7 @@ import { photoProductionCache, type CachedPhotoProduction } from "@/features/wor
 import { eventBus } from "@/shared/event-bus";
 import { photoProductionForMonth } from "@/modules/workflow";
 import "@/modules/workflow";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Hook para métricas de produção fotográfica do Workflow.
@@ -75,7 +76,7 @@ export function useWorkflowPhotoProduction(opts: Options) {
   const currentKey = useRef<string>("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    getUserLocal().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
   useEffect(() => {

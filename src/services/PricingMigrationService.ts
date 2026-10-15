@@ -13,6 +13,7 @@ import type {
   PricingMigrationData
 } from '@/types/pricing';
 import { PRICING_STORAGE_KEYS } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const MIGRATION_KEY = 'pricing_supabase_migration_v1_completed';
 const MIGRATION_VERSION = '1.0.0';
@@ -77,7 +78,7 @@ export class PricingMigrationService {
       console.log('🔄 Starting pricing data migration to Supabase...');
       
       // Check authentication
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         console.error('❌ User not authenticated for migration');
         return false;

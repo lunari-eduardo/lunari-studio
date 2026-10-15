@@ -6,6 +6,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { AvailabilityType } from "@/types/availability";
 import type { AvailabilityTypesRepository } from "../domain/ports.availabilityTypes";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const STORAGE_KEY = "agenda_availability_types";
 
@@ -15,7 +16,7 @@ const DEFAULTS: AvailabilityType[] = [
 ];
 
 async function requireUser() {
-  const { data } = await supabase.auth.getUser();
+  const { data } = await getUserLocal();
   if (!data.user) throw new Error("Usuário não autenticado");
   return data.user;
 }

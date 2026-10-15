@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { getSessionBinding } from './sessionBinding';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Atualiza um pagamento existente no Supabase com fallback para dados legados
@@ -17,7 +18,7 @@ export async function updateSinglePayment(
   try {
     console.log('🔄 [PaymentService] Updating payment:', { sessionKey, paymentId, payment });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('❌ User not authenticated');
       return false;
@@ -132,7 +133,7 @@ export async function savePendingPayments(
   try {
     console.log('💾 Salvando pagamentos pendentes:', { sessionKey, count: payments.length });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('❌ User not authenticated');
       return false;
@@ -199,7 +200,7 @@ export async function updatePendingPayment(
   try {
     console.log('📝 Atualizando pagamento pendente:', { sessionKey, paymentId, updates });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('❌ User not authenticated');
       return false;
@@ -280,7 +281,7 @@ export async function markPaymentAsPaid(
   try {
     console.log('✅ Marcando pagamento como pago:', { sessionKey, paymentId, dataPagamento });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('❌ User not authenticated');
       return false;

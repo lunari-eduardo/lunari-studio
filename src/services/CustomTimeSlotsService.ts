@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface CustomTimeSlots {
   date: string; // yyyy-MM-dd
@@ -66,7 +67,7 @@ export class CustomTimeSlotsService {
     const dateKey = format(date, 'yyyy-MM-dd');
     
     // Obter user_id do usuário autenticado
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.error('Usuário não autenticado');
       return false;

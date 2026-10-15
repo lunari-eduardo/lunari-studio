@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppNotification } from '@/types/notifications';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
+import { visibleInterval } from '@/lib/visibleInterval';
 
 /**
  * Notificações financeiras:
@@ -13,7 +15,7 @@ export function useFinancialNotifications(): AppNotification[] {
   const [items, setItems] = useState<AppNotification[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     const today = new Date();
@@ -111,8 +113,8 @@ export function useFinancialNotifications(): AppNotification[] {
 
   useEffect(() => {
     fetchAll();
-    const id = setInterval(fetchAll, 5 * 60 * 1000); // refresh a cada 5min
-    return () => clearInterval(id);
+    const id = visibleInterval(fetchAll, 5 * 60 * 1000); // refresh a cada 5min
+    return () => id();
   }, [fetchAll]);
 
   return items;

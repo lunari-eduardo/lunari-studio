@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Hook para forçar atualização do app em todos os dispositivos do usuário
@@ -9,7 +10,7 @@ export function useAppForceUpdate() {
   const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    getUserLocal().then(({ data }) => setUser(data.user));
   }, []);
   const [isUpdating, setIsUpdating] = useState(false);
 

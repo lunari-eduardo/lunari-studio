@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { History, CreditCard, Edit, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface ChangeLogEntry {
   id: string;
@@ -30,7 +31,7 @@ export function SessionChangeLog({ sessionId, clienteId }: SessionChangeLogProps
     const loadChangeLog = async () => {
       try {
         setLoading(true);
-        const { data: user } = await supabase.auth.getUser();
+        const { data: user } = await getUserLocal();
         if (!user?.user) return;
 
         // Buscar mudanças na sessão

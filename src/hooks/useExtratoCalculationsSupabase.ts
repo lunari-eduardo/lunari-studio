@@ -15,6 +15,7 @@ import { RegimeContabil } from '@/hooks/useExtratoSupabase';
 import { calcularSaldoAcumulado } from '@/utils/extratoUtils';
 import { GRUPOS_DESPESAS } from '@/constants/extratoConstants';
 import { useDemonstrativoFinanceiro } from '@/hooks/useDemonstrativoFinanceiro';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function useExtratoCalculationsSupabase(
   linhasFiltradas: LinhaExtrato[],
@@ -67,7 +68,7 @@ export function useExtratoCalculationsSupabase(
       filtros.status,
     ],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Not authenticated');
 
       const dataColumn = regime === 'competencia' ? 'data_competencia' : 'data';

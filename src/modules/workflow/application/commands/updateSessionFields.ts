@@ -4,6 +4,7 @@ import { domainError, err, ok } from "@/shared/result";
 import { supabase } from "@/integrations/supabase/client";
 import { sessionsRepo } from "@/features/workflow/data";
 import { recalcFotosExtras, recalcSessionValorTotal } from "@/features/workflow/domain/pricing";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `workflow.updateFields`
@@ -99,7 +100,7 @@ export const updateSessionFields = defineCommand({
     },
   ],
   async handler({ sessionId, fields }, ctx) {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getUserLocal();
     const userId = auth.user?.id ?? ctx.user?.id;
     if (!userId) {
       return err(domainError("UNAUTHENTICATED", "Sessão expirada."));

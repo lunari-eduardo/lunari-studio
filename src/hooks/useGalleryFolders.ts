@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface GalleryFolderRow {
   id: string;
@@ -35,7 +36,7 @@ export function useGalleryFolders(galleryId: string | null) {
 
   const createFolder = useCallback(async (name: string) => {
     if (!galleryId) return null;
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return null;
 
     const nextOrder = folders.length > 0 ? Math.max(...folders.map(f => f.ordem)) + 1 : 0;

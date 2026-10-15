@@ -3,13 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppNotification } from '@/types/notifications';
 import { eventBus } from '@/shared/event-bus';
 import '@/modules/tasks/application/events';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
+import { visibleInterval } from '@/lib/visibleInterval';
 
 /** Tarefas vencidas e tarefas com vencimento hoje (status != concluído) */
 export function useTaskNotifications(): AppNotification[] {
   const [items, setItems] = useState<AppNotification[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     const today = new Date();
@@ -59,7 +61,7 @@ export function useTaskNotifications(): AppNotification[] {
 
   useEffect(() => {
     fetchAll();
-    const id = setInterval(fetchAll, 5 * 60 * 1000);
+    const id = visibleInterval(fetchAll, 5 * 60 * 1000);
     // Refresh imediato quando tarefas mudam — evita esperar polling.
     const offs = [
       eventBus.on('tasks.created', () => fetchAll()),
@@ -70,7 +72,7 @@ export function useTaskNotifications(): AppNotification[] {
       eventBus.on('tasks.snoozed', () => fetchAll()),
     ];
     return () => {
-      clearInterval(id);
+      id();
       offs.forEach((off) => off());
     };
   }, [fetchAll]);

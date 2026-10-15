@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MetasService } from '@/services/PricingService';
 import type { MetasPrecificacao } from '@/types/precificacao';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UsePricingMetasReturn {
   metas: MetasPrecificacao;
@@ -36,7 +37,7 @@ export function usePricingMetas(): UsePricingMetasReturn {
   // Sincronização com Supabase em background
   const syncWithSupabase = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
 
       const { data, error } = await supabase

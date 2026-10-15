@@ -5,6 +5,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface UnifiedHistoryItem {
   id: string;
@@ -35,7 +36,7 @@ export function useUnifiedClientHistory(clienteId: string) {
 
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('User not authenticated');
 
       // Load appointments, sessions, and transactions in parallel

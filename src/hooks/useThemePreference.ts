@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { VisualThemeConfig, ThemePresetId, VisualThemeMode } from '@/lib/visualTheme';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Persiste o tema do usuário em `user_theme_preferences`.
@@ -19,7 +20,7 @@ export function useRemoteThemeSync(
   useEffect(() => {
     let cancelled = false;
     const hydrate = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user || cancelled) return;
       const { data, error } = await supabase
         .from('user_theme_preferences')
@@ -53,7 +54,7 @@ export function useRemoteThemeSync(
 
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     debounceRef.current = window.setTimeout(async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
       const { error } = await supabase
         .from('user_theme_preferences')

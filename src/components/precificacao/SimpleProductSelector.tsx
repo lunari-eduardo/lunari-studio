@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeString } from '@/utils/stringNormalization';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface NormalizedProduct {
   id: string;
@@ -33,7 +34,7 @@ export function SimpleProductSelector({
     const loadProducts = async () => {
       try {
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getUserLocal();
         if (!user) {
           console.log('📦 [SimpleProductSelector] Usuário não autenticado');
           setProducts([]);

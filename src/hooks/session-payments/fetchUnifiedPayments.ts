@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SessionPaymentExtended } from '@/types/sessionPayments';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export async function fetchUnifiedSessionPayments(sessionId: string): Promise<SessionPaymentExtended[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getUserLocal();
   if (!user) {
     return [];
   }

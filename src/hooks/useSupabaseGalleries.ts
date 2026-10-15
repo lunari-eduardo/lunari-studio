@@ -156,6 +156,7 @@ import {
   transformArchivedGaleria,
   transformPhoto,
 } from './gallery/galleryTransformers';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export { transformGaleria, transformArchivedGaleria, transformPhoto };
 
@@ -256,7 +257,7 @@ export function useSupabaseGalleries(options?: { enabled?: boolean }) {
   const createGallery = useMutation({
     mutationFn: async (data: CreateGaleriaData) => {
       const publicToken = generatePublicToken();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('User not found');
 
       const { data: result, error } = await supabase

@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppNotification } from '@/types/notifications';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
+import { visibleInterval } from '@/lib/visibleInterval';
 
 /** Agendamentos confirmados nas últimas 24h */
 export function useAgendaNotifications(): AppNotification[] {
   const [items, setItems] = useState<AppNotification[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     const ago24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -39,8 +41,8 @@ export function useAgendaNotifications(): AppNotification[] {
     fetchAll();
     // A3: reduz polling para 15min (notificação não precisa ser realtime;
     // eventos importantes chegam pelo canal Realtime unificado).
-    const id = setInterval(fetchAll, 15 * 60 * 1000);
-    return () => clearInterval(id);
+    const id = visibleInterval(fetchAll, 15 * 60 * 1000);
+    return () => id();
   }, [fetchAll]);
 
 

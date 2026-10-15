@@ -3,6 +3,7 @@ import { defineCommand } from "@/shared/capability";
 import { domainError, err, ok } from "@/shared/result";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentSupabaseService } from "@/services/PaymentSupabaseService";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `billing.registerManualPayment`
@@ -78,7 +79,7 @@ export const registerManualPayment = defineCommand({
   idempotencyKey: (i) =>
     `billing.manual:${i.sessionId}:${i.valor}:${i.dataPagamento}:${i.meio}:${i.escopo}`,
   async handler({ sessionId, valor, dataPagamento, meio, escopo, observacao, valorSessaoComponente, valorExtrasComponente, qtdFotos }, ctx) {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getUserLocal();
     const userId = auth.user?.id ?? ctx.user?.id;
     if (!userId) return err(domainError("UNAUTHENTICATED", "Sessão expirada."));
 

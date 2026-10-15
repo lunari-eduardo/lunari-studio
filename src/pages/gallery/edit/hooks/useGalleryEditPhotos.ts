@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { UploadedPhoto } from '@/components/PhotoUploader';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UseGalleryEditPhotosProps {
   galleryId?: string;
@@ -60,7 +61,7 @@ export function useGalleryEditPhotos({
       if (!targetFolderId) {
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await getUserLocal();
         if (!user) return;
         const { data: newFolder } = await supabase
           .from('galeria_pastas')

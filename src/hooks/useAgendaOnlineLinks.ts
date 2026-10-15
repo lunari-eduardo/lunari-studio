@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { AgendaOnlineLink, NewAgendaOnlineLink } from '@/types/agendaOnline';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function useAgendaOnlineLinks() {
   const queryClient = useQueryClient();
@@ -10,7 +11,7 @@ export function useAgendaOnlineLinks() {
   const { data: links = [], isLoading, error } = useQuery<AgendaOnlineLink[]>({
     queryKey,
     queryFn: async () => {
-      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      const { data: userRes, error: userError } = await getUserLocal();
       if (userError || !userRes.user) return [];
 
       const { data, error } = await supabase
@@ -33,7 +34,7 @@ export function useAgendaOnlineLinks() {
 
   const createMutation = useMutation({
     mutationFn: async (payload: NewAgendaOnlineLink) => {
-      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      const { data: userRes, error: userError } = await getUserLocal();
       if (userError || !userRes.user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase
@@ -66,7 +67,7 @@ export function useAgendaOnlineLinks() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<NewAgendaOnlineLink> }) => {
-      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      const { data: userRes, error: userError } = await getUserLocal();
       if (userError || !userRes.user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase
@@ -101,7 +102,7 @@ export function useAgendaOnlineLinks() {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      const { data: userRes, error: userError } = await getUserLocal();
       if (userError || !userRes.user) throw new Error('Usuário não autenticado');
 
       const { error } = await supabase
@@ -123,7 +124,7 @@ export function useAgendaOnlineLinks() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data: userRes, error: userError } = await supabase.auth.getUser();
+      const { data: userRes, error: userError } = await getUserLocal();
       if (userError || !userRes.user) throw new Error('Usuário não autenticado');
 
       const { error } = await supabase

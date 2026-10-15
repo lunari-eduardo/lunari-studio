@@ -7,6 +7,8 @@ import {
   bucketProductsByDeadline,
   type DeadlineItem,
 } from '@/features/workflow/domain/productDeadlines';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
+import { visibleInterval } from '@/lib/visibleInterval';
 
 const formatBR = (iso: string) => {
   const [, m, d] = iso.slice(0, 10).split('-');
@@ -69,7 +71,7 @@ export function useProductDeadlineNotifications(): AppNotification[] {
   const [items, setItems] = useState<AppNotification[]>([]);
 
   const fetchAll = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     // Janela: 90 dias para trás (produtos com prazo atrasado) + 120 dias à frente
@@ -103,7 +105,7 @@ export function useProductDeadlineNotifications(): AppNotification[] {
 
   useEffect(() => {
     fetchAll();
-    const interval = window.setInterval(fetchAll, 15 * 60 * 1000);
+    const interval = visibleInterval(fetchAll, 15 * 60 * 1000);
     const onVis = () => {
       if (document.visibilityState === 'visible') fetchAll();
     };
@@ -122,7 +124,7 @@ export function useProductDeadlineNotifications(): AppNotification[] {
     });
 
     return () => {
-      window.clearInterval(interval);
+      interval();
       document.removeEventListener('visibilitychange', onVis);
       unsub();
     };

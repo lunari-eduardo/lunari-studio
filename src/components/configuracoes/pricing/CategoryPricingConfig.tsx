@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import TabelaPrecosModal from '../TabelaPrecosModal';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import type { TabelaPrecos } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface CategoryPricingConfigProps {
   categorias: Array<{
@@ -22,7 +23,7 @@ export function CategoryPricingConfig({ categorias }: CategoryPricingConfigProps
   const { data: tabelasPorCategoria = {}, isLoading, refetch } = useQuery({
     queryKey: ['category-pricing-tables'],
     queryFn: async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user?.user) return {};
       const { data, error } = await supabase
         .from('tabelas_precos')

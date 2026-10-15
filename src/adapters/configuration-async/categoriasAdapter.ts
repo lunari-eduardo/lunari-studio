@@ -4,7 +4,7 @@ import type { Categoria } from "@/types/configuration";
 
 export async function loadCategorias(): Promise<Categoria[]> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       console.warn("User not authenticated, returning default categorias");
       return [];
@@ -37,7 +37,7 @@ export async function loadCategorias(): Promise<Categoria[]> {
 
 export async function saveCategorias(categorias: Categoria[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -75,7 +75,7 @@ export async function saveCategorias(categorias: Categoria[]): Promise<void> {
 
 export async function updateCategoriaById(id: string, dados: Partial<Categoria>): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -103,7 +103,7 @@ export async function updateCategoriaById(id: string, dados: Partial<Categoria>)
 
 export async function deleteCategoriaById(id: string): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -128,7 +128,7 @@ export async function deleteCategoriaById(id: string): Promise<void> {
 
 export async function syncCategorias(categorias: Categoria[]): Promise<void> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user.user) {
       throw new Error("User not authenticated");
     }
@@ -173,3 +173,5 @@ export async function syncCategorias(categorias: Categoria[]): Promise<void> {
     throw error;
   }
 }
+
+import { getUserLocal } from '@/lib/auth/getUserLocal';

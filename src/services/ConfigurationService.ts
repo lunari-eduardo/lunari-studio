@@ -14,6 +14,7 @@ import type {
   Produto, 
   EtapaTrabalho
 } from '@/types/configuration';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * ConfigurationService - Abstração para persistência de configurações
@@ -58,7 +59,7 @@ class ConfigurationService {
     if (this.initialized && this.asyncAdapter) return;
 
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       
       if (user.user) {
         console.log('User authenticated, enabling async Supabase adapter');

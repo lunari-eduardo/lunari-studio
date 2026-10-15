@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Update appointment link in existing session
@@ -8,7 +9,7 @@ export async function linkAppointmentToSession(
   appointmentId: string,
 ) {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user?.user) throw new Error("User not authenticated");
 
     const { error } = await supabase
@@ -37,7 +38,7 @@ export async function linkAppointmentToSession(
  */
 export async function getSessionsForMonth(month: number, year: number) {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user?.user) throw new Error("User not authenticated");
 
     const startDate = `${year}-${month.toString().padStart(2, "0")}-01`;

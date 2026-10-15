@@ -6,10 +6,11 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { GoalsRepo, SetGoalInput } from "../../ports/goalsRepo";
 import { rowToMeta } from "./mappers";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export const supabaseGoalsRepo: GoalsRepo = {
   async listByYear(ano) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) throw new Error("Not authenticated");
     const { data, error } = await supabase
       .from("metas_personalizadas")
@@ -22,7 +23,7 @@ export const supabaseGoalsRepo: GoalsRepo = {
   },
 
   async set(input: SetGoalInput) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) throw new Error("Not authenticated");
 
     const payload = {

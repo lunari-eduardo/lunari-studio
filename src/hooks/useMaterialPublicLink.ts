@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function useMaterialPublicLink(materialId: string | undefined) {
   const queryClient = useQueryClient();
@@ -30,7 +31,7 @@ export function useMaterialPublicLink(materialId: string | undefined) {
     mutationFn: async () => {
       if (!materialId) throw new Error('ID do material não fornecido');
       
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       // Tenta gerar usando a function supabase, mas como não temos RPC pronta para isso,

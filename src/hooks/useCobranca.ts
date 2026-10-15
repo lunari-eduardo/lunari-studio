@@ -4,6 +4,7 @@ import { Cobranca, TipoCobranca, CobrancaResponse, CreateCobrancaRequest, Proved
 import { toast } from 'sonner';
 import { buildPaymentShareUrl } from '@/utils/domainUtils';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface UseCobrancaOptions {
   clienteId?: string;
@@ -339,7 +340,7 @@ export function useCobranca(options: UseCobrancaOptions = {}) {
     let cancelled = false;
 
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user || cancelled) return;
 
       const channelId = crypto.randomUUID();

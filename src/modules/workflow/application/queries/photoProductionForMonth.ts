@@ -3,6 +3,7 @@ import { defineQuery } from "@/shared/capability";
 import { domainError, err, ok } from "@/shared/result";
 import { supabase } from "@/integrations/supabase/client";
 import { photoProductionCache } from "@/features/workflow/data/photoProductionCache";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Capability `workflow.photoProductionForMonth`
@@ -41,7 +42,7 @@ export const photoProductionForMonth = defineQuery({
   output: Output,
   permissions: ["workflow:read"],
   async handler({ year, month, categoria }, ctx) {
-    const { data: auth } = await supabase.auth.getUser();
+    const { data: auth } = await getUserLocal();
     const userId = auth.user?.id ?? ctx.user?.id;
     if (!userId) return err(domainError("UNAUTHENTICATED", "Sessão expirada."));
 

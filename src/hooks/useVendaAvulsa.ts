@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { hydrateProduto } from '@/features/workflow/domain/productFlow';
 import { workflowStore } from '@/features/workflow/store/workflowStore';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 
 export interface VendaAvulsaProduto {
@@ -32,7 +33,7 @@ export function useVendaAvulsa() {
   const criarVendaAvulsa = useCallback(async (input: VendaAvulsaInput) => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       const sessionId = `VA-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

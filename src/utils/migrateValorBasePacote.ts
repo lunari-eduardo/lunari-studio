@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * FASE 4: Migration utility to fix valor_base_pacote for existing sessions
@@ -12,7 +13,7 @@ export async function migrateValorBasePacoteForClient(clienteId: string): Promis
   try {
     console.log('🔧 [Migration] Starting valor_base_pacote migration for client:', clienteId);
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) throw new Error('User not authenticated');
 
     // Fetch sessions with valor_base_pacote = 0 or NULL
@@ -106,7 +107,7 @@ export async function migrateAllValorBasePacote(): Promise<{ total: number; corr
   try {
     console.log('🔧 [Migration] Starting global valor_base_pacote migration...');
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) throw new Error('User not authenticated');
 
     // Fetch all sessions with valor_base_pacote = 0 or NULL

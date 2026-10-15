@@ -6,6 +6,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { ClienteDocumento } from '@/types/cliente-supabase';
 import { resolveR2SignedUrl, deleteR2Object } from '@/hooks/useR2SignedUrl';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export class ClienteSupabaseService {
   
@@ -17,7 +18,7 @@ export class ClienteSupabaseService {
     descricao?: string
   ): Promise<ClienteDocumento> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('User not authenticated');
 
       const ALLOWED_DOCUMENT_TYPES = [

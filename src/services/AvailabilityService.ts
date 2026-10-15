@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Availability Service - FASE 2
@@ -11,7 +12,7 @@ export class AvailabilityService {
    */
   static async occupyAvailableSlot(date: Date, time: string): Promise<void> {
     try {
-      const user = await supabase.auth.getUser();
+      const user = await getUserLocal();
       if (!user.data.user) {
         console.warn('⚠️ Usuário não autenticado');
         return;
@@ -60,7 +61,7 @@ export class AvailabilityService {
    */
   static async releaseSlot(date: Date, time: string, duration: number = 60): Promise<void> {
     try {
-      const user = await supabase.auth.getUser();
+      const user = await getUserLocal();
       if (!user.data.user) {
         console.warn('⚠️ Usuário não autenticado');
         return;

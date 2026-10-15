@@ -5,6 +5,7 @@ import { WorkflowSession } from '@/features/workflow';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { hydrateProduto, isEntregue } from '@/features/workflow/domain/productFlow';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 const isPendente = (p: any) => !isEntregue(hydrateProduto(p).etapas);
 
@@ -57,7 +58,7 @@ export function useProductionReminders(): ProductionReminder[] {
   // Fetch inicial LIMITADO em janela + projeção enxuta (sem contato do cliente,
   // sem SELECT *). Antes: query sem filtro de data com SELECT * — 87s totais em 24h.
   const fetchRecentPendingProducts = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
 
     abortRef.current?.abort();

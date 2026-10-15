@@ -1,11 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Migrate localStorage data to Supabase
  */
 export async function migrateLocalStorageData(): Promise<{ migrated: number; skipped: number }> {
   try {
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user?.user) throw new Error("User not authenticated");
 
     const savedSessions = localStorage.getItem("workflow_sessions");
@@ -99,7 +100,7 @@ export async function repairAppointmentsSessionsMismatch(
   try {
     console.log("🔧 [Repair] Iniciando reparo de divergências...");
 
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user?.user) {
       console.log("⚠️ [Repair] User not authenticated, skipping repair");
       return;

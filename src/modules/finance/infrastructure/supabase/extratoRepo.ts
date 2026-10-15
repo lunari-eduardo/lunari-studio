@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { LinhaExtrato } from "@/types/extrato";
 import type { ExtratoRepo, ExtratoPage, ExtratoSummary, ListExtratoInput } from "../../ports/extratoRepo";
 import type { RegimeContabil } from "../../domain/types";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 function mapLinha(row: any, regime: RegimeContabil): LinhaExtrato {
   const dataExibida = regime === "competencia" ? row.data_competencia || row.data : row.data;
@@ -37,7 +38,7 @@ function mapLinha(row: any, regime: RegimeContabil): LinhaExtrato {
 }
 
 async function buildQuery(input: ListExtratoInput, opts: { count?: boolean } = {}) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user } } = await getUserLocal();
   if (!user) throw new Error("Not authenticated");
 
   const regime: RegimeContabil = input.regime ?? "caixa";

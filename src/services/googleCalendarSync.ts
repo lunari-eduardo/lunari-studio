@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Sincroniza um agendamento com o Google Calendar
@@ -9,7 +10,7 @@ export async function syncAppointmentToGoogleCalendar(
   action: 'create' | 'update' | 'delete'
 ): Promise<boolean> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) {
       console.log('[GoogleCalendarSync] User not authenticated');
       return false;

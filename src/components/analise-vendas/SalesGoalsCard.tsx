@@ -8,6 +8,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useMetasPersonalizadas } from '@/hooks/useMetasPersonalizadas';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface SalesGoalsCardProps {
   selectedYear: number;
@@ -25,7 +26,7 @@ export function SalesGoalsCard({ selectedYear, selectedMonth, selectedCategory =
   // Load session categories for name→UUID mapping
   useEffect(() => {
     const loadCategorias = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
       const { data } = await supabase
         .from('categorias')

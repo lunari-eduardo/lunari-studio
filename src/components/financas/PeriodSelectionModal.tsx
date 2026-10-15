@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { DadosExportacaoExtrato, RegimeContabil } from '@/types/extrato';
 import { formatDateForStorage, parseDateFromStorage } from '@/utils/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface PeriodSelectionModalProps {
   isOpen: boolean;
@@ -128,7 +129,7 @@ export default function PeriodSelectionModal({
 
     const fetchCount = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getUserLocal();
         if (!user) {
           if (isMounted) {
             const localCount = dadosExtrato?.linhas?.filter(linha => 

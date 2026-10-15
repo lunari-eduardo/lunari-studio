@@ -9,6 +9,7 @@ import { getUnifiedPaymentSettings } from '@/utils/paymentSettingsContext';
 import { type NormalizedAsaasFees } from '@/lib/anticipationUtils';
 import { ChargeModalProps, AsaasSettingsState } from './types';
 import { buildBindingPayload, persistPayerToCrm, calcularLiquidoEstimado } from './chargeHelpers';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export function useChargeModalState(props: ChargeModalProps) {
   const {
@@ -119,7 +120,7 @@ export function useChargeModalState(props: ChargeModalProps) {
     if (selectedProvider !== 'asaas') return;
     (async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await getUserLocal();
         if (!user) return;
         const response = await supabase.functions.invoke('asaas-fetch-fees', {
           body: { userId: user.id },
@@ -216,7 +217,7 @@ export function useChargeModalState(props: ChargeModalProps) {
     }
     setAsaasMode('options');
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
       const { data } = await supabase
         .from('usuarios_integracoes')

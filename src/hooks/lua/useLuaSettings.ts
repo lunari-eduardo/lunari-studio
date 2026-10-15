@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface LuaDnaProfile {
   id: string;
@@ -36,7 +37,7 @@ export function useLuaSettings() {
   const profileQuery = useQuery({
     queryKey: ['lua_dna_profile_active'],
     queryFn: async (): Promise<LuaDnaProfile | null> => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -60,7 +61,7 @@ export function useLuaSettings() {
   const knowledgeQuery = useQuery({
     queryKey: ['lua_studio_knowledge'],
     queryFn: async (): Promise<LuaStudioKnowledge | null> => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return null;
 
       const { data, error } = await supabase
@@ -80,7 +81,7 @@ export function useLuaSettings() {
 
   const upsertKnowledgeMutation = useMutation({
     mutationFn: async (payload: Partial<LuaStudioKnowledge>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Não autenticado');
 
       // Check if exists

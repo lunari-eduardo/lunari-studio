@@ -6,6 +6,7 @@ import { useWorkflowMetrics } from '@/hooks/useWorkflowMetrics';
 import { useOpeningBalance } from '@/hooks/useOpeningBalance';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
 import { TransacaoComItem } from './types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export const useDashboardQueries = () => {
   const { getAvailableYears } = useWorkflowMetrics();
@@ -22,7 +23,7 @@ export const useDashboardQueries = () => {
     queryFn: async () => {
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await getUserLocal();
       if (!user) return [];
 
       const { data: sessoesYears } = await supabase

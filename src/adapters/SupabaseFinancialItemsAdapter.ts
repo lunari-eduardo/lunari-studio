@@ -6,6 +6,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ItemFinanceiro, GrupoPrincipal } from '@/types/financas';
 import { getCurrentDateString } from '@/utils/dateUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export interface ItemFinanceiroSupabase extends ItemFinanceiro {
   created_at?: string;
@@ -128,7 +129,7 @@ export class SupabaseFinancialItemsAdapter {
    */
   static async getAllItems(): Promise<ItemFinanceiroSupabase[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await supabase
@@ -168,7 +169,7 @@ export class SupabaseFinancialItemsAdapter {
    */
   static async getAllItemsIncludingArchived(): Promise<ItemFinanceiroSupabase[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase
@@ -208,7 +209,7 @@ export class SupabaseFinancialItemsAdapter {
    */
   static async createItem(nome: string, grupo_principal: GrupoPrincipal): Promise<ItemFinanceiroSupabase> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       const nomeTrim = nome.trim();
@@ -371,7 +372,7 @@ export class SupabaseFinancialItemsAdapter {
    */
   static async getItemsByGroup(grupo: GrupoPrincipal): Promise<ItemFinanceiroSupabase[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Usuário não autenticado');
 
       const { data, error } = await supabase

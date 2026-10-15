@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { CUSTOM_FLOW_DEFAULT } from "@/features/workflow/domain/productFlow";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * Preferências do Workflow armazenadas em `user_preferences.configuracoes_workflow`.
@@ -22,7 +23,7 @@ export function useWorkflowPreferences() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) { if (!cancelled) setIsReady(true); return; }
       const { data } = await supabase
         .from("user_preferences")
@@ -46,7 +47,7 @@ export function useWorkflowPreferences() {
     const clean = nomes.map((n) => (n || "").trim()).filter(Boolean);
     if (clean.length === 0) return;
     setPrefs((p) => ({ ...p, ultimoFluxoCustom: clean }));
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await getUserLocal();
     if (!user) return;
     const { data: existing } = await supabase
       .from("user_preferences")

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getOAuthRedirectUri, getAppBaseUrl } from '@/utils/domainUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 type GoogleCalendarStatus = 'conectado' | 'desconectado' | 'pendente' | 'erro';
 
@@ -54,7 +55,7 @@ export function useGoogleCalendarIntegration(): UseGoogleCalendarReturn {
 
   const fetchIntegration = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) {
         setLoading(false);
         return;
@@ -210,7 +211,7 @@ export function useGoogleCalendarIntegration(): UseGoogleCalendarReturn {
     if (!integration) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
 
       const newDadosExtras = {

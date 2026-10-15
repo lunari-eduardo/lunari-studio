@@ -1,12 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateForStorage } from '@/utils/dateUtils';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 /**
  * One-time utility to repair date/time mismatches between appointments and sessions
  * This ensures data_sessao and hora_sessao match the appointment's date and time
  */
 export async function repairAppointmentSessionDates() {
-  const { data: user } = await supabase.auth.getUser();
+  const { data: user } = await getUserLocal();
   if (!user?.user) return { repaired: 0, errors: 0, total: 0 };
 
   let repaired = 0;

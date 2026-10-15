@@ -15,6 +15,7 @@ import {
 import { EQUIPMENT_SYNC_EVENT, type EquipmentCandidate, markTransactionAsProcessed } from '@/hooks/useEquipmentSync';
 import { EquipmentSyncModal } from './EquipmentSyncModal';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 interface QueuedEquipment extends EquipmentCandidate {
   id: string;
@@ -63,7 +64,7 @@ export function EquipmentSyncNotification() {
     
     // Persistir no Supabase para multi-dispositivo (todos os IDs)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (user) {
         // Inserir todos os IDs de uma vez
         const inserts = equipment.allTransactionIds.map(transactionId => ({

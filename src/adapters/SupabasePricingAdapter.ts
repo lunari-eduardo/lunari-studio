@@ -11,6 +11,7 @@ import type {
   TabelaPrecos,
   FaixaPreco
 } from '@/types/pricing';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export class SupabasePricingAdapter implements PricingStorageAdapter {
   // ============= INTERNAL CACHE =============
@@ -31,7 +32,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async loadConfigurationAsync(): Promise<ConfiguracaoPrecificacao> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -72,7 +73,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async saveConfiguration(config: ConfiguracaoPrecificacao): Promise<void> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -121,7 +122,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async loadGlobalTableAsync(): Promise<TabelaPrecos | null> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -168,7 +169,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async saveGlobalTable(table: TabelaPrecos): Promise<void> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -257,7 +258,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async loadCategoryTableAsync(categoryId: string): Promise<TabelaPrecos | null> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -305,7 +306,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async saveCategoryTable(categoryId: string, table: TabelaPrecos): Promise<void> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }
@@ -404,7 +405,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
   async getAllCategoryTables(): Promise<Record<string, TabelaPrecos>> {
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user } = await getUserLocal();
       if (!user.user) {
         throw new Error('User not authenticated');
       }

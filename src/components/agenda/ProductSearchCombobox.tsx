@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { sortProdutos } from '@/utils/produtoSort';
 import { cn } from '@/lib/utils';
 import { DROPDOWN_PANEL, DROPDOWN_ITEM } from '@/lib/dialogTokens';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 
 const normalizeText = (text: string): string => {
@@ -41,7 +42,7 @@ export default function ProductSearchCombobox({
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return;
       const { data } = await supabase
         .from('produtos')

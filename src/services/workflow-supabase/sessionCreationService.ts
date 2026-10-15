@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateUniversalSessionId } from "@/types/appointments-supabase";
 import { formatDateForStorage } from "@/utils/dateUtils";
 import { hydrateStubSession } from "./stubHydrationService";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export { hydrateStubSession };
 
@@ -22,7 +23,7 @@ async function _createSessionInternal(
       appointmentData,
     );
 
-    const { data: user } = await supabase.auth.getUser();
+    const { data: user } = await getUserLocal();
     if (!user?.user) throw new Error("User not authenticated");
 
     const { data: existingSessions } = await supabase

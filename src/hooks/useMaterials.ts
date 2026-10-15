@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TemplateVars } from '@/pages/comercial/blocks/normalization';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 // Template padrão de blocos (V2) para um novo material
 const DEFAULT_TEMPLATE = [
@@ -79,7 +80,7 @@ export function useMaterials() {
 
   const createMaterial = useMutation({
     mutationFn: async ({ title, categoria_id, initialContent, template_id, cover_image_url, vars }: { title: string; categoria_id?: string; initialContent?: any; template_id?: string; cover_image_url?: string; vars?: TemplateVars }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Não autenticado');
 
       // 1. Criar o material
@@ -211,7 +212,7 @@ export function useMaterials() {
 
   const duplicateMaterial = useMutation({
     mutationFn: async (id: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Não autenticado');
 
       // 1. Buscar material original

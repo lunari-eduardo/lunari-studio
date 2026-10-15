@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Json } from '@/integrations/supabase/types';
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 
 export type TemplateStep = 'primeiro_contato' | 'orcamento' | 'follow_up' | 'pre_ensaio' | 'financeiro' | 'pos_venda' | 'entrega' | 'geral';
 
@@ -123,7 +124,7 @@ export function useConversasTemplates() {
   const query = useQuery({
     queryKey: ['conversas_templates'],
     queryFn: async (): Promise<ConversasTemplate[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) return [];
 
       const { data, error } = await supabase
@@ -176,7 +177,7 @@ export function useConversasTemplates() {
   uso_interno?: boolean;
       ordem?: number;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Não autenticado');
 
       const { data, error } = await supabase
@@ -284,7 +285,7 @@ export function useConversasTemplates() {
 
   const seedDefaultsMutation = useMutation({
     mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await getUserLocal();
       if (!user) throw new Error('Não autenticado');
 
       const toInsert = DEFAULT_TEMPLATES_SUGGESTIONS.map(t => ({

@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { getUserLocal } from '@/lib/auth/getUserLocal';
 import type { PricingStorageAdapter, StorageConfig } from "./PricingStorageAdapter";
 import type {
   EstruturaCustosFixos,
@@ -54,7 +55,7 @@ export class SupabasePricingAdapter implements PricingStorageAdapter {
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await getUserLocal();
     if (!user) throw new Error("Usuário não autenticado");
 
     this.userId = user.id;
