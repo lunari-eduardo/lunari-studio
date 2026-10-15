@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import {
   Trash2,
   Copy,
-  Pin,
   DownloadCloud,
   Loader2,
   Image as ImageIcon,
@@ -42,8 +41,7 @@ import { EYEBROW, FOCUS_RING, useTextsFormOpen } from './panel/panelStyles';
 import { TextsOnCanvas } from './panel/TextsOnCanvas';
 import { ListItemDetail } from './panel/ItemDetail';
 import { InspectorNavContext, type InspectorNav } from './panel/InspectorNav';
-import { resolveItem, sameRef, type ItemRef, type PanelMemory, type PinRef, type ResolvedPin } from '../../blocks/inspectorFocus';
-import { PinnedBar } from './panel/PinnedBar';
+import { resolveItem, type ItemRef, type PanelMemory } from '../../blocks/inspectorFocus';
 
 export interface PropertiesSidebarProps {
   block: BlockData;
@@ -72,12 +70,6 @@ export interface PropertiesSidebarProps {
    */
   memory?: PanelMemory;
   onMemoryChange?: (patch: Partial<PanelMemory>) => void;
-  /** Item fixado da proposta (1 por vez), já resolvido (ausente = nada fixado ou o item não existe mais). */
-  pin?: PinRef | null;
-  pinInfo?: ResolvedPin | null;
-  onPinChange?: (pin: PinRef | null) => void;
-  /** Leva ao item fixado (seleciona a seção, rola a arte e abre o detalhe). */
-  onGoToPin?: () => void;
 }
 
 // ============================================================
@@ -149,10 +141,6 @@ export function PropertiesSidebar({
   headerClassName,
   memory,
   onMemoryChange,
-  pin,
-  pinInfo,
-  onPinChange,
-  onGoToPin,
 }: PropertiesSidebarProps) {
   const { pacotes, produtos } = useConfigurationContext();
   const collection = useProposalCollection();
@@ -268,13 +256,6 @@ export function PropertiesSidebar({
   const groupKeys = groups.map((g) => g.key as string);
   const accordionValue = openGroup === '' || groupKeys.includes(openGroup) ? openGroup : groupKeys[0] ?? '';
 
-  // ---- Fixar (1 por vez): fixar outro substitui; fixar o que já está fixado desafixa ----
-  const pinnedHere: ItemRef | null = pin?.blockId === block.id ? pin.item ?? null : null;
-  const sectionPinned = pin?.blockId === block.id && !pin.item;
-  const togglePinItem = (ref: ItemRef) =>
-    onPinChange?.(sameRef(pinnedHere, ref) ? null : { blockId: block.id!, item: ref });
-  const toggleSectionPin = () => onPinChange?.(sectionPinned ? null : { blockId: block.id! });
-
   // ---- Detalhe de um item (pacote, grupo, adicional, depoimento): cobre o corpo; a lista fica montada por baixo ----
   const detailRef: ItemRef | null = memory?.item ?? null;
   const detailLists = def?.fields.filter((f) => f.kind === 'list') ?? [];
@@ -295,12 +276,10 @@ export function PropertiesSidebar({
           onImport={openImport}
           onOpen={openDetail}
           onBack={closeDetail}
-          pinned={pinnedHere}
-          onTogglePin={onPinChange ? togglePinItem : undefined}
         />
       );
     } else if (listField?.presentation === 'detail') {
-      detailNode = <ListItemDetail content={content} field={listField} ctx={ctx} refItem={detailRef} onChange={setContent} onOpen={openDetail} onBack={closeDetail} pinned={pinnedHere} onTogglePin={onPinChange ? togglePinItem : undefined} />;
+      detailNode = <ListItemDetail content={content} field={listField} ctx={ctx} refItem={detailRef} onChange={setContent} onOpen={openDetail} onBack={closeDetail} />;
     }
   }
   const hasDetail = !!detailNode;
@@ -311,8 +290,6 @@ export function PropertiesSidebar({
         openItem: openDetail,
         collapsed: memory?.collapsed,
         setCollapsed: (keys) => onMemoryChange({ collapsed: keys }),
-        pinned: pinnedHere,
-        togglePin: togglePinItem,
       }
     : null;
 
@@ -378,12 +355,6 @@ export function PropertiesSidebar({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onPinChange && (
-                  <DropdownMenuItem onClick={toggleSectionPin} className="gap-2 cursor-pointer">
-                    <Pin className="h-4 w-4" />
-                    {sectionPinned ? 'Desafixar seção' : 'Fixar seção'}
-                  </DropdownMenuItem>
-                )}
                 {onDuplicateBlock && (
                   <>
                     <DropdownMenuItem onClick={() => onDuplicateBlock(blockIndex)} className="gap-2 cursor-pointer">
@@ -404,18 +375,6 @@ export function PropertiesSidebar({
             </DropdownMenu>
           </div>
         </div>
-
-        {/* ITEM FIXADO: 1 linha fora da rolagem; clicar leva ao item (mesmo de outra seção) */}
-        {pin && pinInfo && onGoToPin && onPinChange && (
-          <PinnedBar
-            label={pinInfo.label}
-            context={pinInfo.context}
-            thumb={pinInfo.thumb}
-            current={pin.blockId === block.id && (pin.item ? sameRef(detailRef, pin.item) : !hasDetail)}
-            onGo={onGoToPin}
-            onUnpin={() => onPinChange(null)}
-          />
-        )}
 
         {/* CORPO: grupos (um aberto por vez) e, por cima, o detalhe do item aberto */}
         <InspectorNavContext.Provider value={nav}>

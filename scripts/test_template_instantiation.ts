@@ -6,7 +6,7 @@ import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS, backgroundSwat
 import { applyBackgroundToAll } from '../src/pages/comercial/blocks/sectionBackground';
 import { fillGallerySlots, packageGroupItem, editedOnCanvas, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
 import { featureIcon, computePackageNumberOffsets, displayPrice, priceEditPath, splitPrice, splitLeadingNumber, buildPackagePages, packageGroupKey, slicePad, reorderWithin, movePackageToGroup, removeGroupKeepingPackages, duplicatePackageAfter } from '../src/pages/comercial/blocks/pricing';
-import { resolveItem, displayOrder, neighbors, patchItem, sameRef, resolvePin } from '../src/pages/comercial/blocks/inspectorFocus';
+import { resolveItem, displayOrder, neighbors, patchItem, sameRef } from '../src/pages/comercial/blocks/inspectorFocus';
 import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
 import { createBlock, getSectionTitle } from '../src/pages/comercial/blocks/registry';
 import { forCollection, optionsFor, templateCollection } from '../src/pages/comercial/blocks/collections';
@@ -699,32 +699,6 @@ async function runTests() {
   assert(noG1.groups.map((g) => g.key).join() === 'g2' && noG1.packages.length === 5 && noG1.packages.filter((p) => p.group_id).map((p) => p.id).join() === 'a,d', 'Remover grupo mantém os pacotes, que ficam sem grupo');
   const dupPkgs = duplicatePackageAfter(tree.packages, 'c', 'c2');
   assert(dupPkgs.map((p) => p.id).join() === 'a,b,c,c2,d,e' && dupPkgs[3].group_id === 'g1' && dupPkgs[3].name === 'C' && dupPkgs[3] !== dupPkgs[2], 'Duplicar: cópia logo abaixo, mesmo grupo, id novo');
-
-  // 32. Item fixado: resolve por id (nome, contexto, miniatura), some se a seção/item não existe e volta com o undo
-  const pinBlocks: any[] = [
-    { type: 'CoverBlock', id: 'cover-1', content: { title: 'Sessões de', title_italic: 'Natal' } },
-    {
-      type: 'PricingTable',
-      id: 'price-1',
-      content: {
-        title: 'Pacotes',
-        groups: [{ key: 'g1', title: 'LOTE 1' }],
-        packages: [{ id: 'p1', name: 'Premium', group_id: 'g1', image_ref: 'x.jpg' }, { id: 'p2', name: '' }],
-      },
-    },
-    { type: 'AddonsBlock', id: 'add-1', content: { title: 'Adicionais', items: [{ id: 'a1', name: 'Foto extra', image_ref: 'f.jpg' }] } },
-  ];
-  const pinSection = resolvePin(pinBlocks, { blockId: 'cover-1' })!;
-  assert(pinSection.index === 0 && pinSection.label === 'Sessões de Natal' && pinSection.context === 'Capa', 'Fixar a seção: título composto e tipo como contexto');
-  const pinPkg = resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'p1' } })!;
-  assert(pinPkg.label === 'Premium' && pinPkg.context === 'LOTE 1 · Pacotes' && pinPkg.thumb === 'x.jpg', 'Fixar um pacote: nome, "grupo · seção" e miniatura');
-  assert(resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'p2' } })!.label === 'Novo pacote', 'Pacote sem nome usa "Novo pacote"');
-  assert(resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'groups', key: 'g1' } })!.label === 'LOTE 1', 'Fixar um grupo: título do grupo');
-  const pinAddon = resolvePin(pinBlocks, { blockId: 'add-1', item: { list: 'items', key: 'a1' } })!;
-  assert(pinAddon.label === 'Foto extra' && pinAddon.thumb === 'f.jpg' && pinAddon.index === 2, 'Fixar item de lista genérica: nome e foto pelo schema');
-  assert(resolvePin(pinBlocks, { blockId: 'gone' }) === null && resolvePin(pinBlocks, { blockId: 'price-1', item: { list: 'packages', key: 'zz' } }) === null && resolvePin(pinBlocks, null) === null, 'Seção ou item inexistente: sem fixado');
-  const movedBlocks = [pinBlocks[2], pinBlocks[0], pinBlocks[1]];
-  assert(resolvePin(movedBlocks, { blockId: 'price-1' })!.index === 2, 'Mover seções não quebra o fixado (por id, nunca por índice)');
 
   console.log('✅ All tests passed successfully!');
 }

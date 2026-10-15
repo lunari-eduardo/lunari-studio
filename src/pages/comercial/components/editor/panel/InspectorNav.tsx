@@ -13,10 +13,6 @@ export interface InspectorNav {
   /** Grupos da árvore de pacotes recolhidos pelo fotógrafo (ausente = regra padrão). */
   collapsed?: string[];
   setCollapsed: (keys: string[]) => void;
-  /** Item desta seção que está fixado (ou null). */
-  pinned: ItemRef | null;
-  /** Fixa o item (substitui o fixado atual) ou, se já é o fixado, desafixa. */
-  togglePin: (ref: ItemRef) => void;
 }
 
 export const InspectorNavContext = createContext<InspectorNav | null>(null);

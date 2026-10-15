@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { ChevronDown, ChevronLeft, ChevronUp, Copy, MoreHorizontal, Pin, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronUp, Copy, MoreHorizontal, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { FieldEditor } from '../../../blocks/FieldEditor';
 import { ITEM_SECTIONS, editedOnCanvas, type BlockField, type FieldCtx } from '../../../blocks/registryDefinitions';
-import { itemTitle, neighbors, patchItem, resolveItem, sameRef, type ItemRef } from '../../../blocks/inspectorFocus';
+import { itemTitle, neighbors, patchItem, resolveItem, type ItemRef } from '../../../blocks/inspectorFocus';
 import { TextsOnCanvas } from './TextsOnCanvas';
 import { EYEBROW, FOCUS_RING, useTextsFormOpen } from './panelStyles';
 
@@ -23,16 +23,14 @@ interface ItemDetailShellProps {
   onNext?: () => void;
   /** Itens do menu ⋯. */
   menu?: React.ReactNode;
-  /** Botão "Fixar no topo" (1 item fixado por vez). */
-  pin?: { pinned: boolean; onToggle: () => void };
   children: React.ReactNode;
 }
 
 /**
- * Página de detalhe de um item de lista: cobre o corpo do inspetor (a identidade da seção e o fixado
- * continuam em cima). Cabeçalho fixo com voltar, caminho, título, ↑/↓ entre itens e ⋯; formulário rola.
+ * Página de detalhe de um item de lista: cobre o corpo do inspetor (a identidade da seção continua em
+ * cima). Cabeçalho fixo com voltar, caminho, título, ↑/↓ entre itens e ⋯; formulário rola.
  */
-export function ItemDetailShell({ itemId, trail, title, position, onBack, onPrev, onNext, menu, pin, children }: ItemDetailShellProps) {
+export function ItemDetailShell({ itemId, trail, title, position, onBack, onPrev, onNext, menu, children }: ItemDetailShellProps) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     titleRef.current?.focus({ preventScroll: true }); // leitor de tela anuncia o item; Tab segue para os controles
@@ -78,19 +76,6 @@ export function ItemDetailShell({ itemId, trail, title, position, onBack, onPrev
                 <ChevronDown />
               </Button>
             </>
-          )}
-          {pin && (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={pin.onToggle}
-              aria-pressed={pin.pinned}
-              aria-label={pin.pinned ? 'Desafixar do topo' : 'Fixar no topo'}
-              title={pin.pinned ? 'Desafixar do topo' : 'Fixar no topo'}
-            >
-              <Pin className={cn(pin.pinned && 'fill-current text-accent-gold')} />
-            </Button>
           )}
           {menu && (
             <DropdownMenu>
@@ -182,13 +167,10 @@ interface ListItemDetailProps {
   onChange: (updates: Record<string, any>) => void;
   onOpen: (ref: ItemRef) => void;
   onBack: () => void;
-  /** Item fixado desta seção e alternância (1 por vez). */
-  pinned?: ItemRef | null;
-  onTogglePin?: (ref: ItemRef) => void;
 }
 
 /** Detalhe de um item de lista rica sem grupos (adicionais, depoimentos). Edita por `id`, sem reordenar a lista. */
-export function ListItemDetail({ content, field, ctx, refItem, onChange, onOpen, onBack, pinned, onTogglePin }: ListItemDetailProps) {
+export function ListItemDetail({ content, field, ctx, refItem, onChange, onOpen, onBack }: ListItemDetailProps) {
   const resolved = resolveItem(content, refItem);
   if (!resolved) return null;
   const items: any[] = content[field.key] ?? [];
@@ -211,7 +193,6 @@ export function ListItemDetail({ content, field, ctx, refItem, onChange, onOpen,
       onBack={onBack}
       onPrev={pos.prev ? () => onOpen(pos.prev!) : undefined}
       onNext={pos.next ? () => onOpen(pos.next!) : undefined}
-      pin={onTogglePin ? { pinned: sameRef(pinned, refItem), onToggle: () => onTogglePin(refItem) } : undefined}
       menu={
         <>
           <DropdownMenuItem className="cursor-pointer gap-2" onClick={duplicate}>

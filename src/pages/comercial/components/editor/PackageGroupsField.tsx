@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Copy, DownloadCloud, FolderInput, FolderPlus, GripVertical, MoreHorizontal, Pin, Plus, Settings2, Trash2 } from 'lucide-react';
+import { ChevronDown, Copy, DownloadCloud, FolderInput, FolderPlus, GripVertical, MoreHorizontal, Plus, Settings2, Trash2 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -48,28 +48,18 @@ const countLabel = (n: number) => `${n} ${n === 1 ? 'pacote' : 'pacotes'}`;
 function PackageActions({
   groups,
   currentGroup,
-  pinned,
-  onTogglePin,
   onDuplicate,
   onMove,
   onRemove,
 }: {
   groups: PackageGroup[];
   currentGroup: string;
-  pinned?: boolean;
-  onTogglePin?: () => void;
   onDuplicate: () => void;
   onMove: (groupKey: string) => void;
   onRemove: () => void;
 }) {
   return (
     <>
-      {onTogglePin && (
-        <DropdownMenuItem className="cursor-pointer gap-2" onClick={onTogglePin}>
-          <Pin className="h-4 w-4" />
-          {pinned ? 'Desafixar do topo' : 'Fixar no topo'}
-        </DropdownMenuItem>
-      )}
       <DropdownMenuItem className="cursor-pointer gap-2" onClick={onDuplicate}>
         <Copy className="h-4 w-4" />
         Duplicar
@@ -323,8 +313,6 @@ export function PackageGroupsField({
                     <PackageActions
                       groups={groups}
                       currentGroup={packageGroupKey(e.pkg, groups)}
-                      pinned={sameRef(nav?.pinned, { list: 'packages', key: e.pkg.id })}
-                      onTogglePin={nav ? () => nav.togglePin({ list: 'packages', key: e.pkg.id }) : undefined}
                       onDuplicate={() => duplicatePackage(e.pkg.id)}
                       onMove={(key) => onChange({ packages: movePackageToGroup(packages, e.pkg.id, key) })}
                       onRemove={() => onChange({ packages: packages.filter((p) => p.id !== e.pkg.id) })}
@@ -376,12 +364,6 @@ export function PackageGroupsField({
                       onSettings={() => open({ list: 'groups', key: g.key })}
                       menu={
                         <>
-                          {nav && (
-                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => nav.togglePin({ list: 'groups', key: g.key })}>
-                              <Pin className="h-4 w-4" />
-                              {sameRef(nav.pinned, { list: 'groups', key: g.key }) ? 'Desafixar do topo' : 'Fixar no topo'}
-                            </DropdownMenuItem>
-                          )}
                           {onImport && (
                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onImport(g.key)}>
                               <DownloadCloud className="h-4 w-4" />
@@ -465,13 +447,10 @@ interface PackageDetailProps {
   onImport?: (groupKey: string) => void;
   onOpen: (ref: ItemRef) => void;
   onBack: () => void;
-  /** Item fixado desta seção e alternância (1 por vez). */
-  pinned?: ItemRef | null;
-  onTogglePin?: (ref: ItemRef) => void;
 }
 
 /** Detalhe de um pacote ou de um grupo (página que cobre o corpo do inspetor). */
-export function PackageDetail({ content, field, ctx, refItem, onChange, onImport, onOpen, onBack, pinned, onTogglePin }: PackageDetailProps) {
+export function PackageDetail({ content, field, ctx, refItem, onChange, onImport, onOpen, onBack }: PackageDetailProps) {
   const groups = asGroups(content);
   const packages = asPackages(content);
   const resolved = resolveItem(content, refItem);
@@ -482,7 +461,6 @@ export function PackageDetail({ content, field, ctx, refItem, onChange, onImport
     onPrev: pos.prev ? () => onOpen(pos.prev!) : undefined,
     onNext: pos.next ? () => onOpen(pos.next!) : undefined,
     onBack,
-    pin: onTogglePin ? { pinned: sameRef(pinned, refItem), onToggle: () => onTogglePin(refItem) } : undefined,
   };
 
   if (refItem.list === 'groups') {

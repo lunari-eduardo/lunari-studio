@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, Copy, Pin, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown, UploadCloud, X } from 'lucide-react';
+import { Trash2, Copy, Loader2, Image as ImageIcon, GripVertical, Plus, Sparkles, Wand2, AlignLeft, AlignCenter, AlignRight, AlignJustify, Pipette, ChevronDown, UploadCloud, X } from 'lucide-react';
 import { toast } from 'sonner';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { Accordion, AccordionContent, AccordionItem } from '@/components/ui/accordion';
@@ -962,12 +962,6 @@ export function ListField({ field, value, onChange, ctx }: FieldEditorProps) {
                     onOpen={() => openDetail(idx)}
                     menu={
                       <>
-                        {item.id && (
-                          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => detail.togglePin({ list: field.key, key: item.id })}>
-                            <Pin className="h-4 w-4" />
-                            {sameRef(detail.pinned, { list: field.key, key: item.id }) ? 'Desafixar do topo' : 'Fixar no topo'}
-                          </DropdownMenuItem>
-                        )}
                         <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => duplicateItem(idx)}>
                           <Copy className="h-4 w-4" />
                           Duplicar

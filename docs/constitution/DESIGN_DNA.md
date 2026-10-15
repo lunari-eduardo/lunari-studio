@@ -158,7 +158,7 @@ Essas cores **nunca** são substituídas pelo dourado.
 | Logo | Foco de input |
 | Loading pequeno / tooltip premium | Header, tabela, badge, switch, checkbox marcado |
 | Conquistas e badges especiais | Grandes áreas de preenchimento |
-| Glifo de item fixado (pin das Conversas e do editor de propostas) | Fundo ou contorno do item fixado |
+| Glifo de item fixado (pin das Conversas) | Fundo ou contorno do item fixado |
 
 Qualquer novo uso do dourado exige atualização deste documento **antes** de ir para o código.
 

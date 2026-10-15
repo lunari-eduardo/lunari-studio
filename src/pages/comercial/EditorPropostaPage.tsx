@@ -29,8 +29,7 @@ import { getSectionTitle } from './blocks/registry';
 import { ProposalCollectionContext } from './blocks/collections';
 import { DEFAULT_DESIGN_TOKENS } from './blocks/design';
 import { applyBackgroundToAll } from './blocks/sectionBackground';
-import { resolveItem, resolvePin, type PanelMemory } from './blocks/inspectorFocus';
-import { usePin } from './components/editor/panel/usePin';
+import { resolveItem, type PanelMemory } from './blocks/inspectorFocus';
 
 // Zoom do preview: de "bem longe" (vê a proposta toda) a 2×
 const MIN_ZOOM = 0.25;
@@ -73,8 +72,6 @@ export default function EditorMaterialPage() {
       .querySelector(`#section-block-${activeIndex} [data-item="${openItemKey}"]`)
       ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [openItemKey, activeIndex]);
-  // Item fixado no topo do painel (1 por vez): preferência do aparelho, por proposta
-  const [pin, setPin] = usePin(id);
   // Com um detalhe aberto, rolar a arte não troca a seção (o painel não expulsa o fotógrafo da edição)
   const detailOpenRef = useRef(false);
   // ≥ 1024 px = breakpoint `lg` das colunas: acima dele os painéis são colunas, abaixo são Sheets
@@ -462,14 +459,6 @@ export default function EditorMaterialPage() {
     if (!resolveItem(block.content, ref)) return;
     setPanelMemory((m) => ({ ...m, [block.id!]: { ...m[block.id!], item: ref, last: ref } }));
   };
-  const pinInfo = resolvePin(editorState.blocks, pin);
-  // Seleciona a seção do fixado (rolando a arte) e abre o detalhe do item, ou a lista se for a própria seção
-  const goToPin = () => {
-    if (!pin || !pinInfo) return;
-    setPanelMemory((m) => ({ ...m, [pin.blockId]: { ...m[pin.blockId], item: pin.item ?? null, ...(pin.item && { last: pin.item }) } }));
-    handleSelectBlock(pinInfo.index);
-    setMobilePanel((p) => (p === 'none' ? p : 'properties'));
-  };
   detailOpenRef.current = !!activeBlock && !!resolveItem(activeBlock.content, activeMemory?.item);
 
   // A seção nova/movida/duplicada só existe no DOM após o render: seleciona e rola em seguida
@@ -597,10 +586,6 @@ export default function EditorMaterialPage() {
   const renderPropertiesPanel = (inSheet = false) => activeBlock ? (
     <PropertiesSidebar
       headerClassName={inSheet ? 'pr-12' : undefined}
-      pin={pin}
-      pinInfo={pinInfo}
-      onPinChange={setPin}
-      onGoToPin={goToPin}
       memory={activeMemory}
       onMemoryChange={(patch) => setPanelMemory((m) => ({ ...m, [activeBlock.id!]: { ...m[activeBlock.id!], ...patch } }))}
       block={activeBlock}
