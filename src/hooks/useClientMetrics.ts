@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Cliente } from '@/types/cliente';
 import { supabase } from '@/integrations/supabase/client';
+import { onTableChange } from '@/shared/realtime/onTableChange';
 
 export interface ClientMetrics {
   id: string;
@@ -91,36 +92,8 @@ export function useClientMetrics(clientes: Cliente[]): ClientMetrics[] {
 
     fetchMetrics();
 
-    // Subscribe to sessions changes
-    const sessionsChannel = supabase
-      .channel('all_sessions_metrics')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_sessoes'
-      }, () => {
-        console.log('🔄 Sessões alteradas, recalculando métricas...');
-        fetchMetrics();
-      })
-      .subscribe();
-
-    // Subscribe to transactions changes
-    const transactionsChannel = supabase
-      .channel('all_transactions_metrics')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_transacoes'
-      }, () => {
-        console.log('🔄 Transações alteradas, recalculando métricas...');
-        fetchMetrics();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(sessionsChannel);
-      supabase.removeChannel(transactionsChannel);
-    };
+    // Sessões/transações alteradas → recalcula (canal compartilhado + debounce)
+    return onTableChange(['clientes_sessoes', 'clientes_transacoes'], fetchMetrics);
   }, [clientes]);
 
   return metrics;

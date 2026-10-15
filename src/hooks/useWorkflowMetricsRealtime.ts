@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onTableChange } from "@/shared/realtime/onTableChange";
 import { useAuth } from "@/contexts/AuthContext";
 import { USE_METRICS_EVENT_BUS } from "@/features/workflow/config";
 import { eventBus } from "@/shared/event-bus";
@@ -206,21 +207,25 @@ export function useWorkflowMetricsRealtime(
       };
     }
 
-    const channel = supabase
-      .channel(`workflow-metrics-${year}-${month || "all"}-${startDateOverride || ""}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "clientes_sessoes" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "clientes_transacoes" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "cliente_creditos_ledger" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "gateway_cash_movements" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "cobrancas" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "cobranca_parcelas" }, invalidateAndReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "galerias" }, invalidateAndReload)
-      .subscribe();
+    // invalidateAndReload já coalesce (300ms): debounce 0 no barramento.
+    const offTables = onTableChange(
+      [
+        "clientes_sessoes",
+        "clientes_transacoes",
+        "cliente_creditos_ledger",
+        "gateway_cash_movements",
+        "cobrancas",
+        "cobranca_parcelas",
+        "galerias",
+      ],
+      invalidateAndReload,
+      0,
+    );
 
     return () => {
       cancelled = true;
       abortCtrl.abort();
-      supabase.removeChannel(channel);
+      offTables();
     };
 
   }, [userId, year, month, startDateOverride, endDateOverride, usingOverride]);

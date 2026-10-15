@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { onTableChange } from '@/shared/realtime/onTableChange';
 import { USE_METRICS_EVENT_BUS } from '@/features/workflow/config';
 import { eventBus } from '@/shared/event-bus';
 import { useCurrentUserId } from '@/hooks/useCurrentUserId';
@@ -118,29 +119,7 @@ export function useWorkflowMetricsByYear(year: number): WorkflowMetricsByYear {
       };
     }
 
-    const channel = supabase
-      .channel(`workflow-metrics-year-${year}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_sessoes'
-      }, () => {
-        console.log('🔄 [WorkflowMetricsByYear] Session changed, reloading...');
-        loadMetrics();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_transacoes'
-      }, () => {
-        console.log('💰 [WorkflowMetricsByYear] Transaction changed, reloading...');
-        loadMetrics();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return onTableChange(['clientes_sessoes', 'clientes_transacoes'], loadMetrics);
   }, [year, userId]);
 
   // Calcular totais anuais

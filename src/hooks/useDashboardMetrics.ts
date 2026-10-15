@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { onTableChange } from '@/shared/realtime/onTableChange';
 
 interface TopCategoria {
   name: string;
@@ -141,35 +142,8 @@ export function useDashboardMetrics(): DashboardMetrics {
 
     loadMetrics();
 
-    // Realtime subscriptions para atualizar automaticamente
-    const channel = supabase
-      .channel('dashboard-metrics')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_sessoes'
-      }, () => {
-        loadMetrics();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes_transacoes'
-      }, () => {
-        loadMetrics();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'clientes'
-      }, () => {
-        loadMetrics();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Realtime: atualiza automaticamente (canal compartilhado + debounce)
+    return onTableChange(['clientes_sessoes', 'clientes_transacoes', 'clientes'], loadMetrics);
   }, []);
 
   // Calcular progresso da meta

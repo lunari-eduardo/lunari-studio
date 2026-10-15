@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { onTableChange } from "@/shared/realtime/onTableChange";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,11 +53,7 @@ export default function AssistenteAprovacoes() {
 
   useEffect(() => {
     load();
-    const ch = supabase
-      .channel("assistant_approvals_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "assistant_approvals" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return onTableChange("assistant_approvals", load);
   }, []);
 
   async function decide(id: string, approve: boolean) {

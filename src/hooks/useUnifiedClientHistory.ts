@@ -154,72 +154,25 @@ export function useUnifiedClientHistory(clienteId: string) {
   useEffect(() => {
     if (!clienteId) return;
 
-    const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Subscribe to appointments changes
-      const appointmentsChannel = supabase
-        .channel('client_appointments_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'appointments',
-            filter: `cliente_id=eq.${clienteId}`,
-          },
-          () => {
-            console.log('🔄 Client appointment changed, reloading history');
-            loadHistory();
-          }
-        )
-        .subscribe();
-
-      // Subscribe to sessions changes
-      const sessionsChannel = supabase
-        .channel('client_sessions_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'clientes_sessoes',
-            filter: `cliente_id=eq.${clienteId}`,
-          },
-          () => {
-            console.log('🔄 Client session changed, reloading history');
-            loadHistory();
-          }
-        )
-        .subscribe();
-
-      // Subscribe to transactions changes
-      const transactionsChannel = supabase
-        .channel('client_transactions_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'clientes_transacoes',
-            filter: `cliente_id=eq.${clienteId}`,
-          },
-          () => {
-            console.log('🔄 Client transaction changed, reloading history');
-            loadHistory();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(appointmentsChannel);
-        supabase.removeChannel(sessionsChannel);
-        supabase.removeChannel(transactionsChannel);
-      };
+    // Um canal com 3 bindings (antes: 3 canais, e o cleanup do async era descartado
+    // pelo useEffect — canais vazavam a cada troca de cliente). RLS já isola o usuário.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timer = null; loadHistory(); }, 400);
     };
+    const filter = `cliente_id=eq.${clienteId}`;
+    const channel = supabase
+      .channel(`client_history_${clienteId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_sessoes', filter }, reload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes_transacoes', filter }, reload)
+      .subscribe();
 
-    setupRealtime();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
   }, [clienteId, loadHistory]);
 
   // Load initial data

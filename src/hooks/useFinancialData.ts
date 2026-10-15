@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { onTableChange } from '@/shared/realtime/onTableChange';
 import { 
   SupabaseFinancialItemsAdapter,
   ItemFinanceiroSupabase 
@@ -217,46 +217,16 @@ export function useFinancialData(): UseFinancialDataReturn {
   
   // ============= REALTIME SUBSCRIPTIONS =============
   
+  // Canal compartilhado por tabela, filtrado por user_id e com debounce:
+  // criar 24 parcelas = 1 refetch (antes: 24 refetches completos por aba).
   useEffect(() => {
-    const channel = supabase
-      .channel('financial-data-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'fin_items_master'
-      }, () => {
-        console.log('🔄 Realtime: fin_items_master changed');
-        loadItems();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'fin_transactions'
-      }, () => {
-        console.log('🔄 Realtime: fin_transactions changed');
-        loadTransactions();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'fin_credit_cards'
-      }, () => {
-        console.log('🔄 Realtime: fin_credit_cards changed');
-        loadCards();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'fin_recurring_blueprints'
-      }, () => {
-        console.log('🔄 Realtime: fin_recurring_blueprints changed');
-        loadBlueprints();
-      })
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const offs = [
+      onTableChange('fin_items_master', loadItems),
+      onTableChange('fin_transactions', loadTransactions),
+      onTableChange('fin_credit_cards', loadCards),
+      onTableChange('fin_recurring_blueprints', loadBlueprints),
+    ];
+    return () => offs.forEach((off) => off());
   }, [loadItems, loadTransactions, loadCards, loadBlueprints]);
   
   // ============= CRUD - FINANCIAL ITEMS =============

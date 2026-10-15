@@ -7,10 +7,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { SupabaseCreditCardsAdapter, CreditCardDB } from '@/adapters/SupabaseCreditCardsAdapter';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { acquireChannel, releaseChannel } from '@/shared/realtime/channelRegistry';
+import { onTableChange } from '@/shared/realtime/onTableChange';
 
-const CREDIT_CARDS_CHANNEL_KEY = 'credit-cards-changes';
 
 export interface CartaoCredito {
   id: string;
@@ -50,23 +48,11 @@ export function useCreditCardsSupabase() {
 
   // ============= REALTIME SUBSCRIPTION (singleton via registry) =============
   useEffect(() => {
-    acquireChannel(CREDIT_CARDS_CHANNEL_KEY, () => {
-      let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-      return supabase
-        .channel(CREDIT_CARDS_CHANNEL_KEY)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'fin_credit_cards' },
-          () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-              queryClient.invalidateQueries({ queryKey: ['credit-cards'] });
-            }, 500);
-          },
-        )
-        .subscribe();
-    });
-    return () => releaseChannel(CREDIT_CARDS_CHANNEL_KEY);
+    return onTableChange(
+      'fin_credit_cards',
+      () => queryClient.invalidateQueries({ queryKey: ['credit-cards'] }),
+      500,
+    );
   }, [queryClient]);
 
   // ============= CRIAR CARTÃO =============
