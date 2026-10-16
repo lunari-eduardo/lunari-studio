@@ -6,6 +6,7 @@ import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fa, fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
 import { infoIcon, resolveIconKey } from '../../../blocks/icons';
+import { resolveFieldInfo } from '../../../blocks/textFields';
 import { LABEL, ProposalIcon, Rule, SubsectionHeader, accentOn } from './kit';
 
 /**
@@ -21,7 +22,7 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || {};
@@ -86,18 +87,51 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
         )}
       </div>
     );
-  } else {
+  } else if (variant === 'columns') {
+    const accent = accentOn(p);
     list = (
-      <div
-        className={cn(
-          variant === 'columns' ? 'grid grid-cols-1 @2xl:grid-cols-2 gap-x-12 gap-y-12' : 'flex flex-col gap-12 @md:gap-14'
-        )}
-      >
+      <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-x-12 gap-y-10 @md:gap-y-12">
         {items.map((it, i) =>
           !editable && !filled(it) ? null : (
-            <article key={it.id || i}>
+            <article
+              key={it.id || i}
+              className="border-t border-[color:color-mix(in_srgb,currentColor_14%,transparent)] pt-6"
+            >
+              <span
+                aria-hidden
+                className={cn('mb-2.5 block text-[11px] tracking-[0.28em] opacity-75 lining-nums', accent, headAlign)}
+                style={fa()}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </span>
               {itemTitle(it, i)}
               {itemBody(it, i, 'mt-3')}
+            </article>
+          )
+        )}
+      </div>
+    );
+  } else {
+    const accent = accentOn(p);
+    list = (
+      <div className="flex flex-col">
+        {items.map((it, i) =>
+          !editable && !filled(it) ? null : (
+            <article
+              key={it.id || i}
+              className="border-t border-[color:color-mix(in_srgb,currentColor_14%,transparent)] py-7 @md:py-9 last:border-b @2xl:grid @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.65fr)] @2xl:gap-12 @2xl:items-baseline"
+            >
+              <div className="min-w-0">
+                <span
+                  aria-hidden
+                  className={cn('mb-2 block text-[11px] tracking-[0.28em] opacity-75 lining-nums', accent, headAlign)}
+                  style={fa()}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                {itemTitle(it, i)}
+              </div>
+              {itemBody(it, i, 'mt-3 @2xl:mt-0')}
             </article>
           )
         )}
@@ -113,7 +147,7 @@ export function InfoRenderer({ content, props }: { content?: any; props?: any })
         textColorClass(p.text_color, p.background, 'white')
       )}
     >
-      <div className={cn('mx-auto', variant === 'columns' ? 'max-w-[960px]' : 'max-w-[760px]')}>
+      <div className={cn('mx-auto', variant === 'accordion' ? 'max-w-[780px]' : 'max-w-[960px]')}>
         {hasBanner && (
           <div className="relative mb-12 @md:mb-16 aspect-[4/3] @md:aspect-[21/9] w-full overflow-hidden rounded-[var(--pa-r-media,0px)]">
             <EditableImage

@@ -54,7 +54,10 @@ export function VariantPicker({
           type="button"
           role="radio"
           aria-checked={value === v.value}
-          onClick={() => onChange(v.value)}
+          onClick={() => {
+            (document.activeElement as HTMLElement)?.blur?.();
+            onChange(v.value);
+          }}
           className={cn(
             'flex flex-col items-start gap-0.5 rounded-xl border p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
             value === v.value

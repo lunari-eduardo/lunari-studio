@@ -178,6 +178,28 @@ export function normalizeBlock(raw: any): BlockData | null {
         props: { background: 'cream' },
       });
 
+    // Alias de modelos antigos: FAQBlock vira InfoBlock em acordeão
+    case 'FAQBlock': {
+      const c = raw.content ?? d;
+      const items = Array.isArray(c.items)
+        ? c.items.map((it: any) => ({
+            id: it?.id || crypto.randomUUID(),
+            title: it?.title ?? it?.question ?? '',
+            body: it?.body ?? it?.answer ?? '',
+          }))
+        : [];
+      return withId({
+        id: raw.id,
+        type: 'InfoBlock',
+        content: {
+          eyebrow: c.eyebrow || '',
+          title: c.title || c.title_regular || 'Dúvidas Frequentes',
+          items,
+        },
+        props: { ...(raw.props ?? {}), variant: 'accordion', background: raw.props?.background || 'white' },
+      });
+    }
+
     default:
       console.warn("%s", `Tipo de bloco desconhecido na normalização: ${type}`, raw);
       // Tipo desconhecido: preserva como bloco de texto livre para não perder conteúdo
@@ -189,7 +211,7 @@ export function normalizeBlock(raw: any): BlockData | null {
   }
 }
 
-const LEGACY_TYPES = new Set([V1_COVER, V1_ABOUT, V1_PACKAGE, V1_PORTFOLIO, 'ContactBlock']);
+const LEGACY_TYPES = new Set([V1_COVER, V1_ABOUT, V1_PACKAGE, V1_PORTFOLIO, 'ContactBlock', 'FAQBlock']);
 
 /**
  * Versão pública: mesma normalização do editor (paridade do que o fotógrafo vê com o que o
@@ -318,6 +340,17 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         content.items = renewIds(content.items);
         content.image_url = '';
         break;
+      case 'FAQBlock':
+        content.items = renewIds(
+          Array.isArray(content.items)
+            ? content.items.map((it: any) => ({
+                ...it,
+                title: it?.title ?? it?.question ?? '',
+                body: it?.body ?? it?.answer ?? '',
+              }))
+            : []
+        );
+        break;
       case 'TestimonialBlock':
         // Depoimentos do autor do modelo nunca chegam ao cliente final como se fossem reais.
         content.items = [];
@@ -333,7 +366,8 @@ export function instantiateTemplateBlocks(rawBlocks: any[], vars: TemplateVars =
         break;
     }
 
-    return { ...block, id: newId, content, props };
+    // slot_id: preserva o ID estável do bloco no modelo para mapeamento de fotos de exemplo
+    return { ...block, id: newId, content, props: { ...props, slot_id: props.slot_id ?? block.id } };
   }).filter((b) => b !== DROP);
 }
 
@@ -362,12 +396,30 @@ export interface TemplateSwitchResult {
   added: string[];
 }
 
+const EQUIVALENT_TYPES: Record<string, string[]> = {
+  EditorialBlock: ['EditorialComposition'],
+  EditorialComposition: ['EditorialBlock'],
+  CoverBlock: ['cover'],
+  cover: ['CoverBlock'],
+};
+
+function getMatchingCurrentBlock(pool: Map<string, BlockData[]>, targetType: string): BlockData | undefined {
+  const direct = pool.get(targetType)?.shift();
+  if (direct) return direct;
+  const alternates = EQUIVALENT_TYPES[targetType] || [];
+  for (const alt of alternates) {
+    const candidate = pool.get(alt)?.shift();
+    if (candidate) return candidate;
+  }
+  return undefined;
+}
+
 /**
  * Troca de modelo preservando o que o fotógrafo preencheu.
  * `templateBlocks` = `instantiateTemplateBlocks(blocks_json, { photographerName })`, SEM `packages`
  * (a regra de pacotes reais do hidratador apagaria grupos de preços e quebraria o pareamento).
  *
- * - Pareamento por tipo e ordem: cada seção do modelo pega a próxima seção ainda livre do mesmo tipo.
+ * - Pareamento por tipo e ordem: cada seção do modelo pega a próxima seção ainda livre do mesmo tipo (ou equivalente semântico).
  * - content: do modelo, e todo valor não vazio da proposta vence (textos, listas, fotos).
  * - props: do modelo (variante, layout, fundo…; ajustes finos de tamanho da variante antiga caem),
  *   exceto as fotos dos slots `photo_a/photo_b`, que ganham a geometria do modelo.
@@ -383,7 +435,7 @@ export function applyTemplate(current: BlockData[], templateBlocks: any[]): Temp
   const out: BlockData[] = [];
 
   for (const t of normalizeBlocks(templateBlocks)) {
-    const cur = pool.get(t.type)?.shift();
+    const cur = getMatchingCurrentBlock(pool, t.type);
     if (!cur) {
       if (t.type === 'PricingTable' && hasRealPackages) continue;
       added.push(t.id!);
@@ -392,11 +444,36 @@ export function applyTemplate(current: BlockData[], templateBlocks: any[]): Temp
     }
     const content: Record<string, any> = { ...t.content };
     for (const [k, v] of Object.entries(cur.content ?? {})) if (!isEmptyValue(v)) content[k] = v;
+
+    // Preservação inteligente de campos de capa (title / title_regular, subtitle / photographer_name)
+    if (t.type === 'CoverBlock' || t.type === 'cover') {
+      if (cur.content?.title_regular && !content.title) {
+        content.title = cur.content.title_regular;
+      }
+      if (cur.content?.title && !content.title_regular) {
+        content.title_regular = cur.content.title;
+      }
+      if (cur.content?.photographer_name && isEmptyValue(content.subtitle)) {
+        content.subtitle = cur.content.photographer_name;
+      }
+      if (cur.content?.subtitle && isEmptyValue(content.photographer_name)) {
+        content.photographer_name = cur.content.subtitle;
+      }
+    }
+
     const props: Record<string, any> = { ...t.props };
     for (const k of ['photo_a', 'photo_b']) {
       const ref = cur.props?.[k]?.image_ref;
       if (ref) props[k] = { ...(t.props?.[k] ?? cur.props?.[k]), image_ref: ref };
     }
+
+    // Migração de imagem entre EditorialComposition (content.image_url) e EditorialBlock (props.photo_a)
+    if (cur.content?.image_url && !props.photo_a?.image_ref && props.photo_a) {
+      props.photo_a = { ...props.photo_a, image_ref: cur.content.image_url };
+    } else if (cur.props?.photo_a?.image_ref && !content.image_url && t.content && 'image_url' in t.content) {
+      content.image_url = cur.props.photo_a.image_ref;
+    }
+
     const merged = { ...t, id: cur.id ?? t.id, content, props };
     placed.set(cur, merged);
     out.push(merged);

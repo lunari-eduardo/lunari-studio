@@ -17,6 +17,8 @@ interface FullscreenPreviewModalProps {
   viewMode: 'desktop' | 'mobile';
   setViewMode: (mode: 'desktop' | 'mobile') => void;
   designTokens?: ProposalDesignTokens;
+  /** Opção da proposta "manter proporção de desktop no celular": a moldura do celular mostra o desenho de desktop reduzido. */
+  keepDesktopOnMobile?: boolean;
 }
 
 export function FullscreenPreviewModal({
@@ -29,6 +31,7 @@ export function FullscreenPreviewModal({
   viewMode,
   setViewMode,
   designTokens,
+  keepDesktopOnMobile = false,
 }: FullscreenPreviewModalProps) {
   if (!isOpen) return null;
 
@@ -81,6 +84,8 @@ export function FullscreenPreviewModal({
             viewMode={viewMode}
             mode="public"
             designTokens={designTokens}
+            // Desktop: mantém a composição de desktop (como no editor) mesmo em janela estreita, em vez de reorganizar as colunas
+            fitDesktop={viewMode === 'desktop' || keepDesktopOnMobile}
           />
         ) : (
           pdfUrl ? (

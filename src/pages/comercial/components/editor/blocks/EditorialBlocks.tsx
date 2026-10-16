@@ -5,6 +5,7 @@ import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, fh, alignClass, sectionBg, textColorClass } from './helpers';
 import { infoIcon, resolveIconKey } from '../../../blocks/icons';
+import { resolveFieldInfo } from '../../../blocks/textFields';
 import { LABEL, ProposalIcon, Rule, ShapedMedia, Snowfall, Sprig, Starburst, accentOn, useEt, type Et } from './kit';
 
 export function EditorialOverlapBlend({
@@ -22,7 +23,7 @@ export function EditorialOverlapBlend({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || data || {};
@@ -40,6 +41,7 @@ export function EditorialOverlapBlend({
       alt={label}
       onCommit={(url) => inline?.set(`props.${slotKey}.image_ref`, url)}
       className="rounded-[var(--pa-r-media,3px)] overflow-hidden"
+      publicEmptyClassName="w-full h-full bg-gradient-to-br from-[var(--pa-linen,#E8DCCB)] to-[var(--pa-stone,#C9B7A2)]"
       style={style}
     />
   );
@@ -156,7 +158,7 @@ export function EditorialSplitPortrait({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || data || {};
@@ -233,6 +235,7 @@ export function EditorialSplitPortrait({
               onCommit={(url) => inline?.set('props.photo_a.image_ref', url)}
               className="relative w-full h-full"
               imgClassName="object-cover w-full h-full"
+              publicEmptyClassName="w-full h-full bg-gradient-to-br from-[var(--pa-linen,#E8DCCB)] to-[var(--pa-stone,#C9B7A2)]"
             />
           </div>
         </div>
@@ -256,7 +259,7 @@ export function EditorialTextOnly({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || data || {};
@@ -346,7 +349,7 @@ export function EditorialArchPortrait({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || data || {};
@@ -476,7 +479,7 @@ export function EditorialLightIntro({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || data || {};

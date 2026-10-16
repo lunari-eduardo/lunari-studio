@@ -7,6 +7,7 @@ import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fd, fb, alignClass, sectionBg, textColorClass } from './helpers';
 import { fillGallerySlots } from '../../../blocks/registryDefinitions';
 import { isHexColor } from '../../../blocks/design';
+import { resolveFieldInfo } from '../../../blocks/textFields';
 import { LABEL, SubsectionHeader, useEt } from './kit';
 
 export function DefaultRenderer({ block }: { block: BlockData }) {
@@ -15,7 +16,7 @@ export function DefaultRenderer({ block }: { block: BlockData }) {
     editable: inline?.editable ?? false,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const v = block.content ?? block.data ?? {};
   const align = alignClass(block.props?.align, 'center');
@@ -61,7 +62,7 @@ export function GalleryRenderer({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const images: any[] = c.images || [];
@@ -345,7 +346,7 @@ export function DividerRenderer({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const style = props?.style || 'hairline';

@@ -395,7 +395,7 @@ export function PackageGroupsField({
       {groups.length === 0 ? (
         <Button variant="outline" className="h-9 w-full gap-2 rounded-xl border-dashed text-xs" onClick={() => addGroup()}>
           <FolderPlus className="h-3.5 w-3.5" />
-          Novo grupo
+          Novo grupo de pacote
         </Button>
       ) : (
         // Com grupos, o novo pode nascer vazio, copiado de um existente (lotes) ou com pacotes cadastrados
@@ -403,7 +403,7 @@ export function PackageGroupsField({
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="h-9 w-full gap-2 rounded-xl border-dashed text-xs">
               <FolderPlus className="h-3.5 w-3.5" />
-              Novo grupo
+              Novo grupo de pacote
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>

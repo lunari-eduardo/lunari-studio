@@ -5,6 +5,7 @@ import { EditableText } from './EditableText';
 import { EditableImage } from './EditableImage';
 import { fontDisplayCss, fontBodyCss } from './design';
 import { sectionBg, textColorClass, fh } from '../components/editor/blocks/helpers';
+import { resolveFieldInfo } from './textFields';
 
 interface EditorialCompositionProps {
   content: any;
@@ -23,7 +24,7 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const c = content || {};
@@ -61,7 +62,7 @@ export function EditorialComposition({ content, props }: EditorialCompositionPro
             style={fd}
           >
             <EditableText {...et('title', c.title)} placeholder="Título" />
-            {c.title_italic && (
+            {(c.title_italic || editable) && (
               <em className="block italic opacity-90 -mt-2 @md:-mt-4" style={fh()}>
                 <EditableText {...et('title_italic', c.title_italic)} placeholder="Itálico" />
               </em>

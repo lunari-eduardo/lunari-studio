@@ -15,6 +15,8 @@ import { fa, fb, fd, fh, fsc } from './helpers';
 // Só container queries: a moldura "Celular" do editor = celular real.
 // ============================================================
 
+import { resolveFieldInfo } from '../../../blocks/textFields';
+
 /** Props do EditableText montadas pelo bloco: et(path, value). */
 export type EtProps = { editable: boolean; value: string; onCommit: (v: string) => void; fieldKey?: string };
 export type Et = (path: string, value: string | undefined) => EtProps;
@@ -27,7 +29,7 @@ export function useEt() {
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   return { editable, et, set: (path: string, value: any) => inline?.set(path, value) };
 }

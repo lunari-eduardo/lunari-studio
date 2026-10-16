@@ -49,6 +49,50 @@ const subscribe = (l: () => void) => {
 /** Últimas cores livres confirmadas, mais recente primeiro (minúsculas, #rrggbb). */
 export const useRecentColors = () => useSyncExternalStore(subscribe, read, () => EMPTY);
 
+// ============================================================
+// ÚLTIMA COR DE TEXTO USADA (seletor flutuante de texto)
+// Mantém fixa no seletor de texto a cor mais recentemente escolhida
+// ============================================================
+
+const TEXT_COLOR_KEY = 'lunari:proposal:recent-text-color';
+const textListeners = new Set<() => void>();
+let textColorCache: string | null = null;
+
+function readTextColor(): string | null {
+  if (textColorCache !== null) return textColorCache;
+  try {
+    const raw = localStorage.getItem(TEXT_COLOR_KEY);
+    textColorCache = isHexColor(raw) ? raw.toLowerCase() : null;
+  } catch {
+    textColorCache = null;
+  }
+  return textColorCache;
+}
+
+export function getLastTextColor(): string | null {
+  return readTextColor();
+}
+
+export function setLastTextColor(hex: string) {
+  if (!isHexColor(hex)) return;
+  const h = hex.toLowerCase();
+  textColorCache = h;
+  try {
+    localStorage.setItem(TEXT_COLOR_KEY, h);
+  } catch {}
+  textListeners.forEach((l) => l());
+}
+
+const subscribeTextColor = (l: () => void) => {
+  textListeners.add(l);
+  return () => {
+    textListeners.delete(l);
+  };
+};
+
+/** Última cor de texto confirmada pelo fotógrafo (fixa no seletor da barra flutuante). */
+export const useLastTextColor = () => useSyncExternalStore(subscribeTextColor, readTextColor, () => null);
+
 /**
  * Ref de `<input type="color">`: grava nos recentes quando o seletor nativo confirma.
  * O `onChange` do React dispara a cada arrasto; só o evento `change` nativo marca a escolha final.
@@ -56,3 +100,11 @@ export const useRecentColors = () => useSyncExternalStore(subscribe, read, () =>
 export const commitRecentOnChange = (el: HTMLInputElement | null) => {
   el?.addEventListener('change', () => pushRecentColor(el.value));
 };
+
+/**
+ * Ref de `<input type="color">` para texto: grava a última cor quando o seletor nativo confirma.
+ */
+export const commitRecentTextColorOnChange = (el: HTMLInputElement | null) => {
+  el?.addEventListener('change', () => setLastTextColor(el.value));
+};
+

@@ -319,10 +319,15 @@ export function EditorHeader({
               variant="default"
               size="sm"
               onClick={onSaveDraft}
-              className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm gap-2"
+              disabled={saveStatus === 'saving'}
+              className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm gap-2 disabled:opacity-70"
             >
-              <Save className="h-3.5 w-3.5" />
-              Salvar Rascunho
+              {saveStatus === 'saving' ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {saveStatus === 'saving' ? 'Salvando...' : 'Salvar Rascunho'}
             </Button>
             <Button size="sm" onClick={onPublish} className="gap-2 bg-primary">
               <UploadCloud className="h-3.5 w-3.5" />
@@ -344,7 +349,7 @@ export function EditorHeader({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-64">
             {onShare && (
               <DropdownMenuItem onClick={onShare} className="gap-2 font-medium text-primary focus:text-primary">
                 <Share2 className="h-4 w-4" /> Compartilhar Proposta
@@ -384,6 +389,17 @@ export function EditorHeader({
               <MessageCircle className="h-4 w-4 mr-2 text-green-600" />
               Botão Flutuante do WhatsApp
             </DropdownMenuCheckboxItem>
+            {state.format === 'blocks' && (
+              <DropdownMenuCheckboxItem
+                checked={!!state.globalSettings?.keep_desktop_on_mobile}
+                onCheckedChange={(checked) => onUpdateGlobalSettings({ keep_desktop_on_mobile: !!checked })}
+                className="gap-2 cursor-pointer"
+                title="No celular, o cliente vê o mesmo desenho do desktop, reduzido, em vez do layout reorganizado"
+              >
+                <Smartphone className="h-4 w-4 mr-2 text-muted-foreground" />
+                Proporção de desktop no celular
+              </DropdownMenuCheckboxItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDiscardChanges} disabled={!hasChanges} className="gap-2 text-destructive">
               Descartar Alterações

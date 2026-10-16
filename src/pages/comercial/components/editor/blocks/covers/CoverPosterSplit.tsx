@@ -49,7 +49,7 @@ export function CoverPosterSplit({
         onCommit={(url) => inline?.set('image_url', url)}
         className="absolute inset-0 w-full h-full"
         imgClassName="object-cover w-full h-full"
-        publicEmptyClassName="w-full h-full"
+        publicEmptyClassName="w-full h-full bg-gradient-to-b from-[var(--pa-cream,#F3F0EA)] via-[var(--pa-linen,#E8DCCB)] to-[var(--pa-stone,#C9B7A2)]"
       />
 
       {/* Gradiente cream → transparente no topo */}
@@ -82,9 +82,9 @@ export function CoverPosterSplit({
           style={s.title}
         >
           <EditableText {...et('title', title)} placeholder="TÍTULO" />
-          {titleItalic && (
+          {(titleItalic || editable) && (
             <em className="italic opacity-70 block text-[0.6em] tracking-[0.06em] mt-1" style={s.italic}>
-              <EditableText {...et('title_italic', titleItalic)} />
+              <EditableText {...et('title_italic', titleItalic)} placeholder="EM ITÁLICO" />
             </em>
           )}
         </h1>
@@ -99,7 +99,7 @@ export function CoverPosterSplit({
         />
 
         {/* Botão CTA */}
-        {btnText && (
+        {(btnText || editable) && (
           <div className="mt-8">
             {editable ? (
               <div

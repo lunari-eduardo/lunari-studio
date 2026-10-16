@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useInlineEdit } from './inlineContext';
-import { fluidPx, typographyKey } from '../components/editor/blocks/helpers';
+import { fluidPx, typographyKey, typographyColorKey } from '../components/editor/blocks/helpers';
 
 interface EditableTextProps {
   value: string | undefined;
@@ -12,7 +12,7 @@ interface EditableTextProps {
   placeholder?: string;
   multiline?: boolean;
   editable?: boolean;
-  /** Chave do campo para o popover de tamanho de texto (ex: 'title', 'eyebrow'). */
+  /** Chave do campo para a barra flutuante de texto (ex: 'title', 'subtitle', 'description'). */
   fieldKey?: string;
 }
 
@@ -20,16 +20,6 @@ interface EditableTextProps {
 // EDIÇÃO INLINE NA ARTE
 // Duplo clique no texto ativa contentEditable; commit no blur,
 // Enter (Ctrl+Enter se multiline) ou toolbar; Esc cancela.
-//
-// Regras de robustez:
-// - O foco/seleção acontece num useEffect disparado APÓS o
-//   React aplicar contentEditable no DOM (nada de rAF adiantado).
-// - O texto NUNCA é children do React enquanto editável: o DOM é
-//   gerenciado imperativamente e sincronizado apenas fora da
-//   edição — nenhum re-render pode resetar o que foi digitado.
-// - Campos vazios ficam visíveis e clicáveis via CSS :empty
-//   (regra .pa-editable-text em index.css) + placeholder.
-// - O caret é posicionado no ponto do duplo clique.
 // ============================================================
 
 export function EditableText({
@@ -49,9 +39,22 @@ export function EditableText({
   const clickPointRef = useRef<{ x: number; y: number } | null>(null);
   const text = value ?? '';
   const inline = useInlineEdit();
-  // Tamanho escolhido no popover (props.typography) vale para qualquer bloco, no editor e no público
-  const sizeOverride = fieldKey ? fluidPx(inline?.typography?.[typographyKey(fieldKey)]) : undefined;
-  style = sizeOverride ? { ...style, ...sizeOverride } : style;
+
+  // Tamanho e cor escolhidos no popover (props.typography) valem no editor e no público
+  const canonicalSizeKey = fieldKey ? typographyKey(fieldKey) : undefined;
+  const canonicalColorKey = fieldKey ? typographyColorKey(fieldKey) : undefined;
+  const rawSize = canonicalSizeKey
+    ? (inline?.typography?.[canonicalSizeKey] ?? inline?.typography?.[`${fieldKey}Size`])
+    : undefined;
+  const sizeOverride = typeof rawSize === 'number' ? fluidPx(rawSize) : undefined;
+
+  const rawColor = canonicalColorKey
+    ? (inline?.typography?.[canonicalColorKey] ?? inline?.typography?.[`${fieldKey}Color`])
+    : undefined;
+  const colorOverride = typeof rawColor === 'string' ? rawColor : undefined;
+
+  if (sizeOverride) style = { ...style, ...sizeOverride };
+  if (colorOverride) style = { ...style, color: colorOverride };
 
   // Sincroniza o DOM apenas fora da edição (nunca pula o caret).
   // useLayoutEffect: texto presente já na primeira pintura (sem flash).
@@ -62,6 +65,32 @@ export function EditableText({
     const el = ref.current;
     if (el && el.textContent !== text) el.textContent = text;
   }, [text, editing, editable]);
+
+  const isEditingRef = useRef(editing);
+  isEditingRef.current = editing;
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const textRef = useRef(text);
+  textRef.current = text;
+  const multilineRef = useRef(multiline);
+  multilineRef.current = multiline;
+
+  // Proteção vital contra perda de texto: se o componente for desmontado enquanto
+  // estiver em edição (ex: troca de layout/variante, alternância de modo ou navegação),
+  // faz o commit imediato do que o usuário digitou no DOM antes de desmontar.
+  useEffect(() => {
+    return () => {
+      if (isEditingRef.current && ref.current && !cancelledRef.current) {
+        const el = ref.current;
+        const next = multilineRef.current
+          ? (el.innerText ?? '')
+          : (el.textContent ?? '').replace(/\n/g, ' ');
+        if (next !== textRef.current) {
+          onCommitRef.current(next.trim() === '' && !multilineRef.current ? '' : next);
+        }
+      }
+    };
+  }, []);
 
   // Foca e posiciona o caret DEPOIS de contentEditable estar no DOM
   useEffect(() => {

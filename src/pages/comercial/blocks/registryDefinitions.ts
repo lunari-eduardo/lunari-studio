@@ -194,7 +194,7 @@ export const packageItem = () => ({
   features: [],
 });
 /** `key`, não `id`: duplicar a seção e instanciar modelos renovam todo `id` de lista e quebrariam `packages[].group_id`. */
-export const packageGroupItem = () => ({ key: crypto.randomUUID(), title: 'Novo grupo', composition: 'editorial' });
+export const packageGroupItem = () => ({ key: crypto.randomUUID(), title: 'Novo grupo de pacote', composition: 'editorial' });
 
 export const PACKAGE_GROUP_COMPOSITIONS: { value: PackageGroupComposition; label: string }[] = [
   { value: 'editorial', label: 'Título editorial' },
@@ -205,17 +205,16 @@ export const PACKAGE_GROUP_COMPOSITIONS: { value: PackageGroupComposition; label
 /** Campos do grupo no painel (todos opcionais: datas só para quem usa lotes). `showIf` lê o próprio grupo em `content`. */
 export const PACKAGE_GROUP_FIELDS: BlockField[] = [
   // Título, subtítulo e período têm gêmeo na arte (cabeçalho do grupo); os textos longos seguem visíveis
-  { key: 'title', label: 'Título do grupo', kind: 'text', placeholder: 'Primeiro lote', section: 'texts' },
-  { key: 'subtitle', label: 'Subtítulo (opcional)', kind: 'text', placeholder: 'Pacotes para estúdio', section: 'texts' },
+  { key: 'title', label: 'Título do grupo', kind: 'text', section: 'texts' },
+  { key: 'subtitle', label: 'Subtítulo (opcional)', kind: 'text', section: 'texts' },
   { key: 'composition', label: 'Composição do título', kind: 'select', options: PACKAGE_GROUP_COMPOSITIONS, section: 'layout' },
   { key: 'new_page', label: 'Começar em nova página', kind: 'boolean', section: 'layout' },
-  { key: 'period', label: 'Período ou validade (opcional)', kind: 'text', placeholder: 'Até 15 de outubro', section: 'texts' },
-  { key: 'note', label: 'Texto explicativo (opcional)', kind: 'textarea', placeholder: 'Valores promocionais do primeiro lote.', section: 'texts', longform: true },
+  { key: 'period', label: 'Período ou validade (opcional)', kind: 'text', section: 'texts' },
+  { key: 'note', label: 'Texto explicativo (opcional)', kind: 'textarea', section: 'texts', longform: true },
   {
     key: 'price_note',
     label: 'Observação sobre os preços (opcional)',
     kind: 'textarea',
-    placeholder: 'A partir de 16 de outubro os valores passam para o segundo lote.',
     section: 'texts',
     longform: true,
   },

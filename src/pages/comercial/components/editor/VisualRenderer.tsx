@@ -3,8 +3,10 @@ import { BlockData } from '@/hooks/useMaterialEditor';
 import { cn } from '@/lib/utils';
 import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, onColor, accentOver, cardVeil, DEFAULT_DESIGN_TOKENS } from '../../blocks/design';
 import { InlineEditContext } from '../../blocks/inlineContext';
+import { stripExamplePhotos } from '../../blocks/examplePhotos';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
-import { BlockObserver, typographyKey } from './blocks/helpers';
+import { BlockObserver, typographyKey, typographyColorKey } from './blocks/helpers';
+import { type TextRole } from '../../blocks/textFields';
 import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
 import { PricingTableRenderer, PackageRenderer } from './blocks/PricingBlocks';
@@ -15,6 +17,7 @@ import { TestimonialRenderer, CtaRenderer, FooterTermsRenderer } from './blocks/
 import { InfoRenderer } from './blocks/InfoBlocks';
 import { TextSizeFloatingPopover } from './TextSizeFloatingPopover';
 import { SectionToolbar, InsertSectionButton, GalleryImageToolbar } from './CanvasToolbars';
+import { useDesktopFitScale, DESKTOP_DOC_REM } from './useDesktopFitScale';
 
 // Altura da "tela" onde a capa ancora: viewport real (público/editor) ou a moldura do celular (812px - bordas).
 const HERO_HEIGHT = { desktop: '100svh', mobile: '788px' } as const;
@@ -32,6 +35,8 @@ export interface VisualRendererProps {
   onCtaClick?: (ctx: { blockType: string; label?: string }) => void;
   /** Paleta/tipografia do template (proposal_templates.design_tokens). */
   designTokens?: ProposalDesignTokens;
+  /** Callback para atualizar design tokens globalmente (ex.: troca de fonte da categoria na barra flutuante). */
+  onUpdateDesignTokens?: (tokens: ProposalDesignTokens) => void;
   /** Edição de textos/imagens direto na arte (duplo clique) — desktop do editor. */
   inlineEditing?: boolean;
   /** Edição granular de campo por camada pontuada ("details.0.label", "props.photo_a.image_ref"). */
@@ -51,6 +56,13 @@ export interface VisualRendererProps {
   selectedItem?: string | null;
   /** Clique no cartão de um item ("packages:ID", "groups:KEY", "items:ID"): o painel abre o detalhe dele. */
   onSelectItem?: (blockIndex: number, item: string) => void;
+  /** Se verdadeiro, permite renderizar fotos de exemplo de coleções temáticas (ex: vitrine de modelos) */
+  showExamplePhotos?: boolean;
+  /**
+   * Diagrama a arte na largura nominal de desktop e a reduz (zoom) quando o espaço é menor, em vez de
+   * reorganizar as colunas para celular. Preview em desktop e opção "manter proporção de desktop".
+   */
+  fitDesktop?: boolean;
 }
 
 export function VisualRenderer({
@@ -62,14 +74,26 @@ export function VisualRenderer({
   mode = 'edit',
   onCtaClick,
   designTokens,
+  onUpdateDesignTokens,
   inlineEditing = false,
   onUpdateField,
   sectionActions,
   uiScale = 1,
   selectedItem = null,
   onSelectItem,
+  showExamplePhotos = false,
+  fitDesktop = false,
 }: VisualRendererProps) {
   const isEditing = mode === 'edit';
+  const docRef = React.useRef<HTMLDivElement>(null);
+  const fitScale = useDesktopFitScale(docRef, fitDesktop);
+  const isFitted = fitDesktop && fitScale < 1;
+  // Com zoom, vh/px do conteúdo também encolhem: a altura da capa é pré-compensada para continuar ocupando a tela
+  const heroHeight = isFitted
+    ? viewMode === 'desktop'
+      ? `calc(100svh / ${fitScale})`
+      : `calc(788px / ${fitScale})`
+    : HERO_HEIGHT[viewMode];
   // Bloco sintético de configurações nunca é renderizado como seção
   const visibleBlocks = blocks.filter((b) => b.type !== 'global_settings');
   // Numeração contínua dos pacotes "Revista" entre grupos (ordem real do documento)
@@ -125,7 +149,7 @@ export function VisualRenderer({
   }, [blockOrder]);
   const selectedGallery = imageSel ? blocks[imageSel.blockIndex] : undefined;
   const selectedImages: any[] = selectedGallery?.content?.images ?? [];
-  const setImages = (next: any[]) => imageSel && onUpdateField?.(imageSel.blockIndex, 'images', next);
+  const setImages = (next: any[]) => imageSel && onUpdateField?.(imageSel.blockIndex, 'images', stripExamplePhotos(next));
 
   const handleTextSizeChange = useCallback(
     (fieldKey: string, size: number | undefined) => {
@@ -136,14 +160,41 @@ export function VisualRenderer({
     [textSizeState.blockIndex, onUpdateField]
   );
 
+  const handleTextColorChange = useCallback(
+    (fieldKey: string, color: string | undefined) => {
+      if (textSizeState.blockIndex < 0) return;
+      const propColorKey = typographyColorKey(fieldKey);
+      onUpdateField?.(textSizeState.blockIndex, `props.typography.${propColorKey}`, color);
+    },
+    [textSizeState.blockIndex, onUpdateField]
+  );
+
+  const handleFontCategoryChange = useCallback(
+    (role: TextRole, font: string) => {
+      if (!onUpdateDesignTokens) return;
+      const baseTokens = designTokens ?? { ...DEFAULT_DESIGN_TOKENS };
+      const updated = {
+        ...baseTokens,
+        typography: {
+          ...(baseTokens.typography ?? {}),
+          [role]: font,
+        },
+      };
+      onUpdateDesignTokens(updated);
+      ensureFontLoaded(font);
+    },
+    [designTokens, onUpdateDesignTokens]
+  );
+
   const typo = designTokens?.typography;
   React.useEffect(() => {
     ensureFontLoaded(typo?.display);
+    ensureFontLoaded(typo?.subtitle);
     ensureFontLoaded(typo?.body);
     ensureFontLoaded(typo?.accent);
     ensureFontLoaded(typo?.highlight);
     ensureFontLoaded(typo?.script);
-  }, [typo?.display, typo?.body, typo?.accent, typo?.highlight, typo?.script]);
+  }, [typo?.display, typo?.subtitle, typo?.body, typo?.accent, typo?.highlight, typo?.script]);
 
   return (
     <div
@@ -155,6 +206,7 @@ export function VisualRenderer({
       style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}
     >
       <div
+        ref={docRef}
         className={cn(
           'pa-doc @container relative transition-all duration-500 origin-top flex flex-col w-full bg-[var(--pa-white,#FFFFFF)] text-[var(--pa-on-white,#1A1714)]',
           viewMode === 'desktop'
@@ -166,9 +218,15 @@ export function VisualRenderer({
         data-title-case={designTokens?.typography?.title_case}
         style={{
           ...tokensToCssVars(designTokens),
-          ['--pa-hero-h' as any]: HERO_HEIGHT[viewMode],
+          ['--pa-hero-h' as any]: heroHeight,
         }}
       >
+        {/* fitDesktop: o conteúdo é diagramado em 64rem (contêiner próprio, dispara as colunas de desktop) e reduzido por zoom até caber.
+            Desligado: `contents` deixa o wrapper invisível ao layout (as seções seguem filhas diretas do flex do documento). */}
+        <div
+          className={fitDesktop ? '@container w-full flex flex-col' : 'contents'}
+          style={isFitted ? { width: `${DESKTOP_DOC_REM}rem`, zoom: fitScale } : undefined}
+        >
         {visibleBlocks.map((block, index) => {
           const realIndex = blocks.indexOf(block);
           const blockIdx = realIndex !== -1 ? realIndex : index;
@@ -184,6 +242,7 @@ export function VisualRenderer({
             selectedImage: imageSel?.blockIndex === blockIdx ? imageSel.imageIndex : null,
             onSelectImage: handleSelectImage(blockIdx),
             selectedItem: isActive ? selectedItem : null,
+            showExamples: isEditing || Boolean(showExamplePhotos),
           };
 
           const content = (
@@ -306,6 +365,7 @@ export function VisualRenderer({
             <p className="text-muted-foreground font-medium">A proposta está vazia. Adicione seções.</p>
           </div>
         )}
+        </div>
       </div>
 
       {/* Barra da foto da galeria (clique simples numa foto) */}
@@ -332,7 +392,7 @@ export function VisualRenderer({
         />
       )}
 
-      {/* Popover flutuante de tamanho de texto */}
+      {/* Popover flutuante de tamanho, cor e fonte de texto */}
       {isEditing && inlineEditing && textSizeState.fieldKey && textSizeState.anchorEl && (
         <TextSizeFloatingPopover
           fieldKey={textSizeState.fieldKey}
@@ -343,8 +403,18 @@ export function VisualRenderer({
             const canonicalKey = typographyKey(textSizeState.fieldKey);
             return typo[canonicalKey] ?? typo[`${textSizeState.fieldKey}Size`];
           })()}
+          currentColor={(() => {
+            if (textSizeState.blockIndex < 0) return undefined;
+            const typo = (blocks[textSizeState.blockIndex]?.props as any)?.typography;
+            if (!typo) return undefined;
+            const canonicalColorKey = typographyColorKey(textSizeState.fieldKey);
+            return typo[canonicalColorKey] ?? typo[`${textSizeState.fieldKey}Color`];
+          })()}
+          designTokens={designTokens}
           anchorEl={textSizeState.anchorEl}
           onChange={handleTextSizeChange}
+          onColorChange={handleTextColorChange}
+          onFontCategoryChange={onUpdateDesignTokens ? handleFontCategoryChange : undefined}
           onClose={() => setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 })}
         />
       )}

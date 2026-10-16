@@ -4,6 +4,7 @@ import { EditableText } from '../../../blocks/EditableText';
 import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit, useItemAnchor } from '../../../blocks/inlineContext';
 import { displayPrice, priceEditPath, featureIcon, slicePad, buildPackagePages, type PackageSlice } from '../../../blocks/pricing';
+import { resolveFieldInfo } from '../../../blocks/textFields';
 import { fd, fb, fa, alignClass, sectionBg, textColorClass, HERO_MIN_H } from './helpers';
 import { PricingPhotoCards, PricingPhotoRows, PricingArchCards } from './PricingCollectionBlocks';
 import { PackageGroupHeader, PathScope } from './PackageGroups';
@@ -62,7 +63,7 @@ export function PricingClassic({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -170,7 +171,7 @@ export function PricingCardsMinimal({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -279,7 +280,7 @@ export function PricingNumberedEditorial({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];
@@ -451,7 +452,7 @@ export function PricingMagazine({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   const c = content || data || {};
   const packages: any[] = c.packages || [];

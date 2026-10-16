@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMaterialEditor } from '@/hooks/useMaterialEditor';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ import { ProposalCollectionContext } from './blocks/collections';
 import { DEFAULT_DESIGN_TOKENS } from './blocks/design';
 import { applyBackgroundToAll } from './blocks/sectionBackground';
 import { resolveItem, type PanelMemory } from './blocks/inspectorFocus';
+import { withExamplePhotos, stripExamplePhotos } from './blocks/examplePhotos';
 
 // Zoom do preview: de "bem longe" (vê a proposta toda) a 2×
 const MIN_ZOOM = 0.25;
@@ -117,6 +118,11 @@ export default function EditorMaterialPage() {
   const { data: proposalTemplates = [] } = useProposalTemplates(editorState?.format === 'blocks');
   const sourceTemplateId: string | undefined = editorState?.globalSettings?.source_template_id;
   const currentTemplateName = proposalTemplates.find((t) => t.template_id === sourceTemplateId)?.name;
+  const collection = editorState?.globalSettings?.collection;
+  const displayBlocks = useMemo(
+    () => withExamplePhotos(editorState?.blocks ?? [], collection),
+    [editorState?.blocks, collection]
+  );
 
   // Geração/atualização da capa do material.
   // - PDF: ao abrir uma proposta PDF, captura a primeira página e sobe como
@@ -513,6 +519,7 @@ export default function EditorMaterialPage() {
 
   // Um único passo de histórico; a seleção acompanha a seção ativa pelo id
   const handleApplyTemplate = ({ blocks, settings, added, templateName }: TemplateSwitch) => {
+    (document.activeElement as HTMLElement)?.blur?.();
     const activeId = editorState.blocks[activeIndex]?.id;
     editor.replaceDocument(blocks, settings);
     setActiveIndex(Math.max(0, blocks.findIndex((b) => b.id === activeId)));
@@ -712,13 +719,14 @@ export default function EditorMaterialPage() {
                   style={viewMode === 'desktop' ? { zoom: scale, ...(scale > autoScale && { width: '66rem', flexShrink: 0 }) } : undefined}
                 >
                   <VisualRenderer
-                    blocks={editorState.blocks}
+                    blocks={displayBlocks}
                     activeIndex={activeIndex}
                     onSelectBlock={handleSelectBlock}
                     viewMode={viewMode}
                     designTokens={designTokens}
+                    onUpdateDesignTokens={editor.updateDesignTokens}
                     inlineEditing={inlineEditing}
-                    onUpdateField={editor.updateBlockField}
+                    onUpdateField={(index, path, value) => editor.updateBlockField(index, path, stripExamplePhotos(value))}
                     uiScale={scale}
                     selectedItem={selectedItemKey}
                     onSelectItem={handleSelectItem}
@@ -798,6 +806,7 @@ export default function EditorMaterialPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         designTokens={designTokens}
+        keepDesktopOnMobile={Boolean(editorState.globalSettings?.keep_desktop_on_mobile)}
       />
 
       {/* MODAL SALVAR COMO MODELO */}

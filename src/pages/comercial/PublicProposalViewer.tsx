@@ -76,6 +76,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
   const pdfUrl = isPdfFormat ? contentData.url : '';
   let blocks = isPdfFormat ? [] : (contentData || []);
   let hideWhatsApp = false;
+  let keepDesktopOnMobile = false;
   let designTokens: any = undefined;
   if (isPdfFormat && contentData?.settings) {
     hideWhatsApp = contentData.settings.hideWhatsApp;
@@ -84,6 +85,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
     const settingsBlock = blocks.find((b: any) => b.type === 'global_settings');
     if (settingsBlock) {
       hideWhatsApp = settingsBlock.data?.hideWhatsApp;
+      keepDesktopOnMobile = Boolean(settingsBlock.data?.keep_desktop_on_mobile);
       designTokens = settingsBlock.data?.design_tokens;
       blocks = blocks.filter((b: any) => b.type !== 'global_settings');
     }
@@ -160,6 +162,7 @@ export default function PublicProposalViewer({ mode }: { mode: 'public' | 'track
           mode="public"
           onCtaClick={({ label, blockType }) => handleWhatsAppClick(label, blockType)}
           designTokens={designTokens}
+          fitDesktop={keepDesktopOnMobile}
           onSectionView={(blockId, blockType, position) => {
             trackEvent('section_view', { blockId, blockType, position });
           }}

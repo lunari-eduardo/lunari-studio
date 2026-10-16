@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeBlocks } from './blocks/normalization';
 import { PROPOSAL_COLLECTIONS, templateCollection } from './blocks/collections';
 import { ProposalDesignTokens } from './blocks/design';
+import { withExamplePhotos } from './blocks/examplePhotos';
 import { VisualRenderer } from './components/editor/VisualRenderer';
 import { TemplateCard } from './biblioteca/components/wizard/StepTemplateGallery';
 import { useCreateMaterialWizard, useProposalTemplatePreview } from './biblioteca/hooks/useCreateMaterialWizard';
@@ -68,9 +69,10 @@ export default function NovaPropostaPage() {
   const visibleTemplates = dbTemplates.filter((t) => (templateCollection(t.tags) ?? '') === collectionTab);
 
   const templatePreview = useProposalTemplatePreview(selectedDbTemplate?.template_id);
+  const selectedCollection = templateCollection(selectedDbTemplate?.tags);
   const previewBlocks = useMemo(
-    () => normalizeBlocks(templatePreview.data?.blocks_json),
-    [templatePreview.data?.blocks_json]
+    () => withExamplePhotos(normalizeBlocks(templatePreview.data?.blocks_json), selectedCollection),
+    [templatePreview.data?.blocks_json, selectedCollection]
   );
   const previewTokens = useMemo(() => {
     if (templatePreview.data?.design_tokens) {
@@ -354,6 +356,7 @@ export default function NovaPropostaPage() {
                 viewMode={viewMode}
                 designTokens={previewTokens}
                 onCtaClick={() => undefined}
+                showExamplePhotos
               />
             )}
           </div>

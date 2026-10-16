@@ -19,6 +19,9 @@ export interface ProposalDesignTokens {
   };
   typography?: {
     display?: string;
+    /** Subtítulos, rótulos (eyebrows) e frases de apoio. Ausente = herda do corpo ou títulos. */
+    subtitle?: string;
+    /** Descrições longas, textos conceituais e parágrafos de leitura. */
     body?: string;
     /** Serifa de destaque (numeração e preços). Ausente = usa a fonte de títulos. */
     accent?: string;
@@ -119,6 +122,7 @@ export const DEFAULT_DESIGN_TOKENS: Required<Pick<ProposalDesignTokens, 'colors'
 export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSProperties {
   const c = { ...DEFAULT_DESIGN_TOKENS.colors, ...(tokens?.colors ?? {}) };
   const displayFont = tokens?.typography?.display || 'Playfair Display';
+  const subtitleFont = tokens?.typography?.subtitle || tokens?.typography?.body || 'Inter';
   const bodyFont = tokens?.typography?.body || 'Inter';
   const accentFont = tokens?.typography?.accent;
   const highlightFont = tokens?.typography?.highlight;
@@ -126,6 +130,7 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
 
   // Garante carregamento das fontes caso não sejam as padrão
   ensureFontLoaded(displayFont);
+  ensureFontLoaded(subtitleFont);
   ensureFontLoaded(bodyFont);
   ensureFontLoaded(accentFont);
   ensureFontLoaded(highlightFont);
@@ -163,6 +168,7 @@ export function tokensToCssVars(tokens?: ProposalDesignTokens): React.CSSPropert
     ['--pa-veil-on-taupe' as any]: cardVeil(c.taupe, c.ink, c.white),
     ['--pa-veil-on-ink' as any]: cardVeil(c.ink, c.ink, c.white),
     ['--pa-font-display' as any]: displayFont,
+    ['--pa-font-subtitle' as any]: subtitleFont,
     ['--pa-font-body' as any]: bodyFont,
     // Sem accent a variável não existe e fontAccentCss() cai na fonte de títulos
     ...(accentFont && { ['--pa-font-accent' as any]: accentFont }),
@@ -245,6 +251,11 @@ export function ensureFontLoaded(fontFamily?: string): void {
 
 export function fontDisplayCss(): string {
   return "var(--pa-font-display, 'Playfair Display'), 'Playfair Display', Georgia, serif";
+}
+
+/** Subtítulos, rótulos e apoios: sem token próprio = herda do corpo. */
+export function fontSubtitleCss(): string {
+  return "var(--pa-font-subtitle, var(--pa-font-body, 'Inter')), 'Inter', system-ui, sans-serif";
 }
 
 export function fontAccentCss(): string {

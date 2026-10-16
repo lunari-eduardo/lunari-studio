@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Camera, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadProposalImage, uploadMultipleProposalImages } from './uploadImage';
+import { useInlineEdit } from './inlineContext';
+import { isExamplePhoto } from './examplePhotos';
 
 interface EditableImageProps {
   value: string | null | undefined;
@@ -76,7 +78,12 @@ export function EditableImage({
     }
   };
 
-  const imgSrc = value || null;
+  const inline = useInlineEdit();
+  const isExample = isExamplePhoto(value);
+  const showExamples = inline?.showExamples ?? false;
+  // Foto de exemplo só é renderizada se showExamples for verdadeiro (editor ou vitrine de modelos).
+  // Em links públicos ou tela cheia (simulação do cliente), ela é tratada estritamente como vazia.
+  const imgSrc = isExample ? (showExamples ? value : null) : (value || null);
 
   // Ação explícita de 1 clique (o duplo clique na imagem continua valendo)
   const pickButton = (text: string) => (
@@ -115,7 +122,7 @@ export function EditableImage({
       className={cn('group/img relative', className)}
       style={style}
       onClick={
-        onSelect && imgSrc
+        onSelect && imgSrc && !isExample
           ? (e) => {
               e.stopPropagation();
               onSelect(e.currentTarget);
@@ -123,8 +130,13 @@ export function EditableImage({
           : undefined
       }
       onDoubleClick={pick}
-      title={imgSrc ? 'Trocar foto (ou duplo clique na imagem)' : 'Enviar foto'}
+      title={isExample ? 'Enviar sua foto (ou duplo clique na imagem)' : (imgSrc ? 'Trocar foto (ou duplo clique na imagem)' : 'Enviar foto')}
     >
+      {imgSrc && isExample && (
+        <span className="pointer-events-none absolute left-2.5 top-2.5 z-20 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium tracking-wide text-white/95 backdrop-blur-sm shadow-sm">
+          Exemplo
+        </span>
+      )}
       {imgSrc ? (
         <img
           src={imgSrc}
@@ -169,7 +181,7 @@ export function EditableImage({
               onSelect && 'opacity-0 transition-opacity group-hover/img:opacity-100 focus-within:opacity-100'
             )}
           >
-            {pickButton('Trocar foto')}
+            {pickButton(isExample ? 'Enviar sua foto' : 'Trocar foto')}
           </div>
         </>
       )}

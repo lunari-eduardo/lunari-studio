@@ -19,7 +19,7 @@ export function useProposalTemplates(enabled = true) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('proposal_templates')
-        .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url')
+        .select('id, template_id, name, description, tags, preview_html_path, thumbnail_url, design_tokens')
         .eq('is_active', true)
         .order('name'); // ordem estável na vitrine (sem ORDER BY a do banco não é garantida)
 

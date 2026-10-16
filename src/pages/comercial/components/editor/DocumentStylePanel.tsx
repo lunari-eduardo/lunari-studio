@@ -38,7 +38,7 @@ const PALETTE: { key: ColorKey; role: string }[] = [
 // Caligráficas ficam fora de títulos e corpo (legibilidade de textos longos); fontes só de
 // caixa-alta (sem itálico) ficam fora dos destaques. `empty` = papel opcional que herda de outro.
 const FONT_ROLES: {
-  key: 'display' | 'highlight' | 'script' | 'body' | 'accent';
+  key: 'display' | 'subtitle' | 'body' | 'highlight' | 'script' | 'accent';
   label: string;
   fallback: string;
   kinds: FontKind[];
@@ -47,9 +47,10 @@ const FONT_ROLES: {
   sample: string;
 }[] = [
   { key: 'display', label: 'Títulos', fallback: 'Playfair Display', kinds: ['serif', 'sans'], allowDisplayOnly: true, sample: 'Sessões de Natal' },
+  { key: 'subtitle', label: 'Subtítulos e apoio', fallback: '', kinds: ['serif', 'sans'], allowDisplayOnly: true, empty: 'Igual às descrições', sample: 'Memórias que iluminam todas as estações' },
+  { key: 'body', label: 'Descrições e textos', fallback: 'Inter', kinds: ['serif', 'sans'], allowDisplayOnly: false, sample: 'Momentos em família para guardar sempre' },
   { key: 'highlight', label: 'Destaques em itálico', fallback: '', kinds: ['serif', 'script'], allowDisplayOnly: false, empty: 'Itálico dos títulos', sample: 'memórias' },
   { key: 'script', label: 'Caligrafia (capa e assinatura)', fallback: '', kinds: ['script'], allowDisplayOnly: false, empty: 'Igual aos destaques', sample: 'Natal' },
-  { key: 'body', label: 'Corpo do texto', fallback: 'Inter', kinds: ['serif', 'sans'], allowDisplayOnly: false, sample: 'Momentos em família' },
   { key: 'accent', label: 'Números e preços', fallback: '', kinds: ['serif', 'sans'], allowDisplayOnly: true, empty: 'Igual aos títulos', sample: 'R$ 1.190' },
 ];
 

@@ -6,6 +6,7 @@ import { EditableImage } from '../../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../../blocks/inlineContext';
 import { coverStyles, HERO_MIN_H, CtaHandler } from '../helpers';
 import { HighlightsStrip, LABEL, Rule, TitleLockup, type TitleStyle } from '../kit';
+import { resolveFieldInfo } from '../../../../blocks/textFields';
 
 // Véu uniforme (sem degradê) + halo nas letras: a foto respira e o texto pequeno segue legível em trechos claros
 const VEIL = 'color-mix(in srgb, var(--pa-ink, #1F2620) 56%, transparent)';
@@ -30,7 +31,7 @@ export function CoverNightHero({
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
 
   const s = coverStyles(props?.typography);

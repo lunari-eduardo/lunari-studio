@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { createBlock, normalizeBlocks } from '@/pages/comercial/blocks/registry';
+import { stripExamplePhotos } from '@/pages/comercial/blocks/examplePhotos';
 
 export interface BlockData {
   type: string;
@@ -11,6 +12,66 @@ export interface BlockData {
   id?: string;
   content?: Record<string, any>;
   props?: Record<string, any>;
+}
+
+const DRAFT_STORAGE_PREFIX = 'lunari_proposal_draft_';
+
+/** Executa uma Promise com tempo limite para nunca travar a UI em redes instáveis/tablets. */
+async function withTimeout<T = any>(
+  promise: Promise<T> | PromiseLike<T> | any,
+  timeoutMs = 15000,
+  errorMsg = 'Tempo limite de rede esgotado ao salvar.'
+): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(errorMsg)), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function saveLocalDraft(materialId: string, state: MaterialEditorState) {
+  try {
+    const payload = {
+      timestamp: Date.now(),
+      revision: state.revision,
+      state: {
+        materialId: state.materialId,
+        title: state.title,
+        versionId: state.versionId,
+        versionNumber: state.versionNumber,
+        isPublished: state.isPublished,
+        format: state.format,
+        blocks: state.blocks,
+        pdfUrl: state.pdfUrl,
+        globalSettings: state.globalSettings,
+        coverImageUrl: state.coverImageUrl,
+        revision: state.revision,
+      },
+    };
+    localStorage.setItem(`${DRAFT_STORAGE_PREFIX}${materialId}`, JSON.stringify(payload));
+  } catch {
+    // Quota do localStorage ou modo anônimo restritivo
+  }
+}
+
+function loadLocalDraft(materialId: string): { state: MaterialEditorState; timestamp: number; revision: number } | null {
+  try {
+    const raw = localStorage.getItem(`${DRAFT_STORAGE_PREFIX}${materialId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearLocalDraft(materialId: string) {
+  try {
+    localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}${materialId}`);
+  } catch {}
 }
 
 export interface MaterialEditorState {
@@ -133,6 +194,7 @@ export function useMaterialEditor(materialId: string | undefined) {
   const savedRef = useRef<{ state: MaterialEditorState; revision: number } | null>(null);
   const stateRef = useRef<MaterialEditorState | null>(null);
   const savingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
   // O autosave tenta de novo a cada 2.5s após falha: avisa por toast uma vez por sequência
   const draftErrorNotifiedRef = useRef(false);
   // Coalescência do histórico: edições rápidas no mesmo campo viram 1 entrada de undo
@@ -140,9 +202,12 @@ export function useMaterialEditor(materialId: string | undefined) {
 
   useEffect(() => {
     stateRef.current = state;
-  }, [state]);
+    if (state && hasChanges) {
+      saveLocalDraft(state.materialId, state);
+    }
+  }, [state, hasChanges]);
 
-  // Reavalia "sujo" sempre que o documento muda (comparação com o último persistido)
+  // Reavalia "sujo" sempre que o documento muda (comparação rápida por revisão)
   useEffect(() => {
     const saved = savedRef.current?.state;
     if (!state || !saved) {
@@ -150,14 +215,13 @@ export function useMaterialEditor(materialId: string | undefined) {
       return;
     }
     const dirty =
-      JSON.stringify(state.blocks) !== JSON.stringify(saved.blocks) ||
+      state.revision !== savedRef.current?.revision ||
       state.title !== saved.title ||
-      state.pdfUrl !== saved.pdfUrl ||
-      JSON.stringify(state.globalSettings) !== JSON.stringify(saved.globalSettings);
+      state.pdfUrl !== saved.pdfUrl;
     setHasChanges(dirty);
     if (!dirty) setSaveStatus('saved');
     else if (saveStatus !== 'saving') setSaveStatus('idle');
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state, saveStatus]);
 
   // Bloqueia fechamento/navegação com alterações não salvas
   useEffect(() => {
@@ -175,20 +239,20 @@ export function useMaterialEditor(materialId: string | undefined) {
     if (!materialId) return;
     setIsLoading(true);
     try {
-      const { data: material, error: matErr } = await (supabase as any)
+      const { data: material, error: matErr } = await withTimeout((supabase as any)
         .from('commercial_materials')
         .select('*')
         .eq('id', materialId)
-        .single();
+        .single(), 15000);
 
       if (matErr) throw matErr;
 
-      const { data: versions, error: verErr } = await (supabase as any)
+      const { data: versions, error: verErr } = await withTimeout((supabase as any)
         .from('material_versions')
         .select('*')
         .eq('material_id', materialId)
         .order('version_number', { ascending: false })
-        .limit(1);
+        .limit(1), 15000);
 
       if (verErr) throw verErr;
 
@@ -225,6 +289,30 @@ export function useMaterialEditor(materialId: string | undefined) {
         coverImageUrl: material.cover_image_url ?? null,
         revision: 0,
       };
+
+      // Recuperação offline: se o tablet salvou um rascunho local de emergência não sincronizado
+      const localDraft = loadLocalDraft(material.id);
+      if (
+        localDraft &&
+        localDraft.state &&
+        localDraft.state.versionId === version.id &&
+        localDraft.revision > 0 &&
+        localDraft.timestamp > new Date(version.created_at || 0).getTime()
+      ) {
+        console.info('[useMaterialEditor] Rascunho local recuperado do tablet/dispositivo');
+        const restoredState: MaterialEditorState = {
+          ...localDraft.state,
+          materialId: material.id,
+          versionId: version.id,
+          versionNumber: version.version_number,
+        };
+        dispatch({ type: 'LOAD', state: restoredState });
+        savedRef.current = { state: JSON.parse(JSON.stringify(loadedState)), revision: 0 };
+        setHasChanges(true);
+        setSaveStatus('idle');
+        toast.info('Rascunho não sincronizado recuperado do seu dispositivo.');
+        return;
+      }
 
       dispatch({ type: 'LOAD', state: loadedState });
       savedRef.current = { state: JSON.parse(JSON.stringify(loadedState)), revision: 0 };
@@ -334,6 +422,7 @@ export function useMaterialEditor(materialId: string | undefined) {
       if (!source) return prev;
       const copy: BlockData = JSON.parse(JSON.stringify(source));
       copy.id = `${source.type}-${crypto.randomUUID().slice(0, 8)}`;
+      if (copy.props?.slot_id) delete copy.props.slot_id;
       for (const list of Object.values(copy.content ?? {})) {
         if (Array.isArray(list)) list.forEach((item) => item && typeof item === 'object' && 'id' in item && (item.id = crypto.randomUUID()));
       }
@@ -392,7 +481,10 @@ export function useMaterialEditor(materialId: string | undefined) {
   //    Compartilhamentos antigos ficam congelados na versão em que foram enviados.
   //
   const persist = useCallback(async (publish: boolean) => {
-    if (savingRef.current) return;
+    if (savingRef.current) {
+      pendingSaveRef.current = true;
+      return;
+    }
     const current = stateRef.current;
     if (!current) return;
     if (!publish && !hasChanges) return;
@@ -402,7 +494,7 @@ export function useMaterialEditor(materialId: string | undefined) {
     try {
       const contentToSave = current.format === 'pdf'
         ? { type: 'pdf', url: current.pdfUrl, settings: current.globalSettings }
-        : [...current.blocks, { type: 'global_settings', data: current.globalSettings }];
+        : [...stripExamplePhotos(current.blocks), { type: 'global_settings', data: current.globalSettings }];
 
       let resultingVersion = { id: current.versionId, versionNumber: current.versionNumber, isPublished: current.isPublished };
 
@@ -411,7 +503,7 @@ export function useMaterialEditor(materialId: string | undefined) {
         let attempt = 0;
         while (true) {
           attempt++;
-          const { data: newVersion, error: insertError } = await (supabase as any)
+          const { data: newVersion, error: insertError } = await withTimeout((supabase as any)
             .from('material_versions')
             .insert({
               material_id: current.materialId,
@@ -420,7 +512,7 @@ export function useMaterialEditor(materialId: string | undefined) {
               ...(publish ? { published_at: new Date().toISOString() } : {}),
             })
             .select()
-            .single();
+            .single(), 15000);
 
           if (insertError) {
             // Conflito de version_number (edição concorrente): tenta o próximo número
@@ -438,18 +530,18 @@ export function useMaterialEditor(materialId: string | undefined) {
         });
       } else {
         // Rascunho da própria versão: update in-place
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await withTimeout((supabase as any)
           .from('material_versions')
           .update({ content: contentToSave })
-          .eq('id', current.versionId);
+          .eq('id', current.versionId), 15000);
         if (updateError) throw updateError;
       }
 
       if (savedRef.current?.state.title !== current.title) {
-        const { error: titleError } = await (supabase as any)
+        const { error: titleError } = await withTimeout((supabase as any)
           .from('commercial_materials')
           .update({ title: current.title })
-          .eq('id', current.materialId);
+          .eq('id', current.materialId), 15000);
         if (titleError) throw titleError;
       }
 
@@ -467,26 +559,43 @@ export function useMaterialEditor(materialId: string | undefined) {
       }));
       savedRef.current = { state: persistedSnapshot, revision: savedRevision };
       draftErrorNotifiedRef.current = false;
+      
+      // Limpa backup offline local do rascunho persistido
+      clearLocalDraft(current.materialId);
+
       const latest = stateRef.current;
       if (latest && latest.revision === savedRevision) {
         setHasChanges(false);
         setSaveStatus('saved');
+      } else {
+        // Houve alterações enquanto o salvamento estava no ar!
+        setHasChanges(true);
+        setSaveStatus('idle'); // Libera o status e autosave para a próxima gravação
       }
 
       // Rascunho (autosave) não dispara toast: o EditorHeader mostra o status inline.
       if (publish) {
         toast.success(`Versão ${resultingVersion.versionNumber} publicada! Links antigos continuam vendo a versão em que foram enviados.`);
       }
-    } catch {
+    } catch (err: any) {
+      console.error('[useMaterialEditor] Erro ao persistir rascunho:', err);
       setSaveStatus('error');
       if (publish) {
         toast.error('Erro ao publicar versão');
       } else if (!draftErrorNotifiedRef.current) {
         draftErrorNotifiedRef.current = true;
-        toast.error('Erro ao salvar rascunho');
+        toast.error('Instabilidade ao sincronizar rascunho com a nuvem. Suas alterações permanecem salvas neste dispositivo.');
       }
     } finally {
       savingRef.current = false;
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        setTimeout(() => {
+          if (stateRef.current && stateRef.current.revision !== savedRef.current?.revision) {
+            persist(false);
+          }
+        }, 300);
+      }
     }
   }, [hasChanges, queryClient]);
 

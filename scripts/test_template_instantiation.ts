@@ -1,7 +1,7 @@
 // Rodar: npm run test:proposals
 import fs from 'fs';
 import path from 'path';
-import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
+import { instantiateTemplateBlocks, pacoteToProposalPackage, normalizeBlock, normalizeBlocks, normalizePublicBlocks, applyTemplate, isEmptyValue, BLOCK_UNKNOWN_FALLBACK_TITLE } from '../src/pages/comercial/blocks/normalization';
 import { onColor, contrastRatio, tokensToCssVars, PROPOSAL_FONTS, backgroundSwatchColor } from '../src/pages/comercial/blocks/design';
 import { applyBackgroundToAll } from '../src/pages/comercial/blocks/sectionBackground';
 import { fillGallerySlots, packageGroupItem, editedOnCanvas, BLOCK_REGISTRY } from '../src/pages/comercial/blocks/registryDefinitions';
@@ -10,6 +10,14 @@ import { resolveItem, displayOrder, neighbors, patchItem, sameRef } from '../src
 import { PROPOSAL_ICONS, ICON_NONE, resolveIconKey, suggestIcon, addonIcon, infoIcon } from '../src/pages/comercial/blocks/icons';
 import { createBlock, getSectionTitle } from '../src/pages/comercial/blocks/registry';
 import { forCollection, optionsFor, templateCollection } from '../src/pages/comercial/blocks/collections';
+import {
+  EXAMPLE_PHOTO_BASE,
+  isExamplePhoto,
+  withExamplePhotos,
+  stripExamplePhotos,
+  EXAMPLE_PHOTOS,
+  getTemplateExampleThumbnail,
+} from '../src/pages/comercial/blocks/examplePhotos';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -699,6 +707,114 @@ async function runTests() {
   assert(noG1.groups.map((g) => g.key).join() === 'g2' && noG1.packages.length === 5 && noG1.packages.filter((p) => p.group_id).map((p) => p.id).join() === 'a,d', 'Remover grupo mantém os pacotes, que ficam sem grupo');
   const dupPkgs = duplicatePackageAfter(tree.packages, 'c', 'c2');
   assert(dupPkgs.map((p) => p.id).join() === 'a,b,c,c2,d,e' && dupPkgs[3].group_id === 'g1' && dupPkgs[3].name === 'C' && dupPkgs[3] !== dupPkgs[2], 'Duplicar: cópia logo abaixo, mesmo grupo, id novo');
+
+  // Testes de examplePhotos (manifesto, overlay e higienização)
+  EXAMPLE_PHOTOS.teste = {
+    slot_capa: {
+      image_url: `${EXAMPLE_PHOTO_BASE}teste/capa.jpg`,
+      'props.photo_a.image_ref': `${EXAMPLE_PHOTO_BASE}teste/photo_a.jpg`,
+    },
+  };
+
+  assert(isExamplePhoto(`${EXAMPLE_PHOTO_BASE}natal/capa.jpg`), 'isExamplePhoto reconhece URL do sistema');
+  assert(!isExamplePhoto('https://media.lunarihub.com/gestao/proposals/u1/foto.jpg'), 'isExamplePhoto rejeita URL de proposta real');
+  assert(!isExamplePhoto(''), 'isExamplePhoto rejeita string vazia');
+
+  const bOriginal: any[] = [{ id: 'b1', type: 'CoverBlock' }];
+  assert(withExamplePhotos(bOriginal, undefined) === bOriginal, 'Sem coleção mantém mesma referência');
+  assert(withExamplePhotos(bOriginal, 'inexistente') === bOriginal, 'Coleção sem manifest mantém mesma referência');
+
+  const bComExemplo: any[] = [
+    {
+      id: 'b1',
+      type: 'CoverBlock',
+      props: { slot_id: 'slot_capa', photo_a: { image_ref: null } },
+      content: { image_url: '' },
+    },
+  ];
+  const overlayRes = withExamplePhotos(bComExemplo, 'teste');
+  assert(overlayRes !== bComExemplo, 'Overlay cria novo array quando há alteração');
+  assert(overlayRes[0].content.image_url === `${EXAMPLE_PHOTO_BASE}teste/capa.jpg`, 'Overlay preenche image_url vazia');
+  assert(overlayRes[0].props.photo_a.image_ref === `${EXAMPLE_PHOTO_BASE}teste/photo_a.jpg`, 'Overlay preenche props.photo_a.image_ref');
+
+  // Foto real nunca é substituída
+  const bComFotoReal: any[] = [
+    {
+      id: 'b1',
+      type: 'CoverBlock',
+      props: { slot_id: 'slot_capa', photo_a: { image_ref: 'https://r2.me/minha.jpg' } },
+      content: { image_url: 'https://r2.me/capa.jpg' },
+    },
+  ];
+  assert(withExamplePhotos(bComFotoReal, 'teste') === bComFotoReal, 'Foto real nunca é substituída por exemplo');
+
+  // stripExamplePhotos limpa recursivamente
+  const sujo = {
+    capa: `${EXAMPLE_PHOTO_BASE}natal/capa.jpg`,
+    real: 'https://r2.me/foto.jpg',
+    itens: [`${EXAMPLE_PHOTO_BASE}natal/item.jpg`, { pic: `${EXAMPLE_PHOTO_BASE}natal/p.jpg`, n: 'Pacote' }],
+  };
+  const limpo: any = stripExamplePhotos(sujo);
+  assert(limpo.capa === '', 'stripExamplePhotos limpa URL de exemplo em campo simples');
+  assert(limpo.real === 'https://r2.me/foto.jpg', 'stripExamplePhotos preserva foto real');
+  assert(limpo.itens[0] === '', 'stripExamplePhotos limpa array');
+  assert(limpo.itens[1].pic === '', 'stripExamplePhotos limpa objeto dentro de array');
+  assert(limpo.itens[1].n === 'Pacote', 'stripExamplePhotos preserva outros campos');
+
+  // 32. FAQBlock legado → InfoBlock (accordion) e Família de Modelos Padrão (4 capas e composições distintas, esqueleto 1:1)
+  const legacyFaq = {
+    id: 'faq-1',
+    type: 'FAQBlock',
+    content: {
+      eyebrow: 'Dúvidas Frequentes',
+      title: 'Tudo o que você precisa saber',
+      items: [{ id: 'q1', question: 'Como reservar?', answer: 'Com sinal de 30%.' }],
+    },
+    props: { align: 'left' },
+  };
+  const normFaq = normalizeBlock(legacyFaq)!;
+  assert(normFaq.type === 'InfoBlock' && normFaq.props?.variant === 'accordion', 'FAQBlock normalizes to InfoBlock accordion');
+  assert(
+    normFaq.content?.items?.[0]?.title === 'Como reservar?' && normFaq.content?.items?.[0]?.body === 'Com sinal de 30%.',
+    'FAQBlock maps question/answer to title/body'
+  );
+  assert(normalizePublicBlocks([legacyFaq]).length === 1 && normalizePublicBlocks([legacyFaq])[0].type === 'InfoBlock', 'Public view keeps and normalizes FAQBlock');
+
+  const stdSql = fs.readFileSync(path.resolve('supabase/migrations/20270103000000_upgrade_standard_proposal_templates.sql'), 'utf-8');
+  const stdLiterals = [...stdSql.matchAll(/'((?:[^']|'')*)'::jsonb/g)].map((m) => JSON.parse(m[1].replace(/''/g, "'")));
+  const stdSeeds: { blocks: any[]; tokens: any }[] = [];
+  for (let i = 0; i + 1 < stdLiterals.length; i += 2) stdSeeds.push({ blocks: stdLiterals[i], tokens: stdLiterals[i + 1] });
+  assert(stdSeeds.length === 4 && stdLiterals.length === 8, `Standard seed has the 4 models (got ${stdSeeds.length})`);
+
+  const stdSkeleton = (s: { blocks: any[] }) => s.blocks.map((b) => `${b.id}:${b.type}`).join();
+  assert(stdSeeds.every((s) => stdSkeleton(s) === stdSkeleton(stdSeeds[0])), 'Standard models share the 10-section skeleton for 1:1 switching');
+
+  for (const { blocks, tokens } of stdSeeds) {
+    for (const b of blocks) {
+      const def = BLOCK_REGISTRY[b.type];
+      assert(!!def && !def.collection, `Standard model block is standard: ${b.type}`);
+      const variant = def.variants?.find((v) => v.value === b.props?.variant);
+      assert(!b.props?.variant || (!!variant && !variant.collection), `Standard model variant is standard: ${b.type}/${b.props?.variant}`);
+    }
+    assert(!normalizeBlocks(blocks).some((b) => b.content?.title === BLOCK_UNKNOWN_FALLBACK_TITLE), 'No standard block falls back to legacy text');
+    const testimonials = blocks.find((b) => b.type === 'TestimonialBlock');
+    assert(testimonials?.content?.items?.length === 3, 'Standard model preview brings 3 example testimonials');
+    const infos = blocks.filter((b) => b.type === 'InfoBlock');
+    assert(infos.length === 3 && infos.every((inf) => inf.content?.items?.length >= 4), 'Standard model brings populated tips, booking steps and FAQ');
+    const inst = instantiateTemplateBlocks(blocks, { photographerName: 'Estúdio Luz' });
+    assert(inst.find((b: any) => b.type === 'TestimonialBlock').content.items.length === 0, 'Instantiated standard model clears template testimonials');
+    const { typography: ty } = tokens;
+    assert(
+      [ty.display, ty.body, ty.script, ty.accent, ty.highlight].filter(Boolean).every((f: string) => !!PROPOSAL_FONTS[f]),
+      'Standard model fonts exist in catalog'
+    );
+  }
+
+  // Cada um dos 4 modelos padrão usa uma capa, uma introdução editorial e uma tabela de preços distintas
+  for (const id of ['std_cover', 'std_intro', 'std_pricing']) {
+    const variants = stdSeeds.map((s) => s.blocks.find((b) => b.id === id)?.props?.variant);
+    assert(new Set(variants).size === 4, `Each Standard model uses a distinct variant for ${id}: ${variants.join(',')}`);
+  }
 
   console.log('✅ All tests passed successfully!');
 }

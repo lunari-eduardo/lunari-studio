@@ -1,7 +1,10 @@
 import React from 'react';
-import { fontDisplayCss, fontBodyCss, fontAccentCss, fontHighlightCss, fontScriptCss, isHexColor } from '../../../blocks/design';
+import { fontDisplayCss, fontSubtitleCss, fontBodyCss, fontAccentCss, fontHighlightCss, fontScriptCss, isHexColor } from '../../../blocks/design';
 
 export const fd = () => ({ fontFamily: fontDisplayCss() });
+/** Subtítulo, apoios, rótulos e botões do tema. */
+export const fs = () => ({ fontFamily: fontSubtitleCss() });
+/** Textos longos, descrições conceituais e parágrafos de leitura. */
 export const fb = () => ({ fontFamily: fontBodyCss() });
 /** Serifa de destaque do tema (numeração, preços); sem accent = fonte de títulos. */
 export const fa = () => ({ fontFamily: fontAccentCss() });
@@ -36,20 +39,52 @@ export function typographyKey(fieldKey: string): string {
       return 'ctaSize';
     case 'title_italic':
       return 'titleItalicSize';
+    case 'body':
+    case 'description':
+      return 'descriptionSize';
+    case 'detail_label':
+      return 'detailLabelSize';
+    case 'detail_value':
+      return 'detailValueSize';
+    case 'feature':
+      return 'featureSize';
     default:
       return `${fieldKey}Size`;
+  }
+}
+
+/** Chave da cor de um campo em props.typography. */
+export function typographyColorKey(fieldKey: string): string {
+  switch (fieldKey) {
+    case 'photographer_name':
+      return 'photographerColor';
+    case 'btnText':
+      return 'ctaColor';
+    case 'title_italic':
+      return 'titleItalicColor';
+    case 'body':
+    case 'description':
+      return 'descriptionColor';
+    case 'detail_label':
+      return 'detailLabelColor';
+    case 'detail_value':
+      return 'detailValueColor';
+    case 'feature':
+      return 'featureColor';
+    default:
+      return `${fieldKey}Color`;
   }
 }
 
 /** Estilos tipográficos das capas (fontes do tema + tamanhos do popover). */
 export function coverStyles(t: Record<string, number | undefined> = {}) {
   return {
-    eyebrow: fluidPx(t.eyebrowSize),
+    eyebrow: { ...fs(), ...fluidPx(t.eyebrowSize) },
     title: { ...fd(), ...fluidPx(t.titleSize) },
     italic: { ...fh(), ...fluidPx(t.titleItalicSize) },
-    subtitle: { ...fb(), ...fluidPx(t.subtitleSize) },
-    btn: fluidPx(t.btnTextSize || t.ctaSize),
-    photographer: { ...fb(), ...fluidPx(t.photographer_nameSize || t.photographerSize) },
+    subtitle: { ...fs(), ...fluidPx(t.subtitleSize) },
+    btn: { ...fs(), ...fluidPx(t.btnTextSize || t.ctaSize) },
+    photographer: { ...fs(), ...fluidPx(t.photographer_nameSize || t.photographerSize) },
   };
 }
 

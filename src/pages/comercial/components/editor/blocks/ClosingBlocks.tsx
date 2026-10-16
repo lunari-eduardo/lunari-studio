@@ -7,6 +7,7 @@ import { EditableImage } from '../../../blocks/EditableImage';
 import { useInlineEdit } from '../../../blocks/inlineContext';
 import { fa, fd, fb, fh, fsc, alignClass, sectionBg, textColorClass, CtaHandler } from './helpers';
 import { LABEL, Rule, accentOn } from './kit';
+import { resolveFieldInfo } from '../../../blocks/textFields';
 
 // Seções de fechamento da landing page: prova social, chamada final e rodapé.
 // Formato de dados herdado dos seeds de proposal_templates (TestimonialBlock, CTABlock, FooterTerms).
@@ -18,7 +19,7 @@ function useEt() {
     editable,
     value: value ?? '',
     onCommit: (v: string) => inline?.set(path, v),
-    fieldKey: path.includes('.') ? undefined : path, // tamanho ajustável por clique (campos de topo)
+    fieldKey: resolveFieldInfo(path).fieldKey,
   });
   return { editable, et, set: (path: string, value: any) => inline?.set(path, value) };
 }
@@ -106,8 +107,29 @@ function TestimonialCarousel({ count, label, children }: { count: number; label:
   );
 }
 
+const SAMPLE_TESTIMONIALS = [
+  {
+    id: 'sample-1',
+    quote: 'A direção foi tão leve que esquecemos da câmera nos primeiros cinco minutos. Quando abrimos a galeria, nos emocionamos com cada detalhe registrado.',
+    author: 'Mariana & Lucas',
+    service: 'Ensaio Autoral',
+  },
+  {
+    id: 'sample-2',
+    quote: 'Desde o guia de looks até a entrega final, tudo foi impecável. As fotos têm uma luz e uma verdade que nunca tínhamos visto antes.',
+    author: 'Carolina Mendes',
+    service: 'Sessão em Família',
+  },
+  {
+    id: 'sample-3',
+    quote: 'Uma experiência acolhedora, pontual e de extremo bom gosto. Hoje nossas fotografias estão emolduradas na sala e são a nossa memória mais querida.',
+    author: 'Fernanda & Rafael',
+    service: 'Coleção Completa',
+  },
+];
+
 export function TestimonialRenderer({ content, props }: { content?: any; props?: any }) {
-  const { editable, et } = useEt();
+  const { editable, et, set } = useEt();
   const c = content || {};
   const items: any[] = c.items || [];
   const align = alignClass(props?.align, 'center');
@@ -115,10 +137,16 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
 
   if (!editable && items.length === 0) return null;
 
-  // Mesma ficha nos dois layouts; o carrossel dá mais escala à citação
+  // Mesma ficha nos dois layouts; o carrossel dá mais escala à citação, e colunas criam cartões editoriais suaves
   const quote = (t: any, idx: number) => (
-    <figure className={carousel ? cn('mx-auto max-w-[40rem]', align) : 'break-inside-avoid mb-12'}>
-      <span className={cn('block leading-none opacity-20 mb-2', carousel ? 'text-6xl' : 'text-5xl')} style={fd()} aria-hidden>
+    <figure
+      className={
+        carousel
+          ? cn('mx-auto max-w-[42rem] py-2', align)
+          : 'break-inside-avoid mb-6 rounded-[var(--pa-r-card,0.75rem)] border border-[color:color-mix(in_srgb,currentColor_12%,transparent)] bg-[var(--pa-veil-on-cream)] p-7 @md:p-8'
+      }
+    >
+      <span className={cn('block leading-none opacity-25 mb-2', carousel ? 'text-6xl' : 'text-5xl')} style={fd()} aria-hidden>
         “
       </span>
       <EditableText
@@ -128,7 +156,7 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
         placeholder="Depoimento do cliente"
         className={cn(
           'italic font-light leading-relaxed opacity-85 mb-6',
-          carousel ? 'text-xl @md:text-3xl' : 'text-lg @md:text-xl'
+          carousel ? 'text-xl @md:text-3xl' : 'text-lg @md:text-[1.15rem]'
         )}
         style={fd()}
       />
@@ -136,7 +164,7 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
       <figcaption className="text-[10px] tracking-[0.28em] uppercase" style={fb()}>
         <EditableText {...et(`items.${idx}.author`, t.author)} placeholder="Nome do cliente" />
         {(t.service || editable) && (
-          <span className="block mt-1 opacity-50">
+          <span className="block mt-1 opacity-55">
             <EditableText {...et(`items.${idx}.service`, t.service)} placeholder="Serviço" />
           </span>
         )}
@@ -161,7 +189,25 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
         <EditableText as="h2" {...et('title', c.title)} className="text-4xl @md:text-5xl mb-12 @md:mb-16" style={fd()} />
 
         {items.length === 0 ? (
-          <p className="text-sm italic opacity-50">Adicione depoimentos reais de clientes no painel de propriedades.</p>
+          <div className="mx-auto max-w-lg rounded-2xl border border-dashed border-[color:color-mix(in_srgb,currentColor_22%,transparent)] px-6 py-8 text-center">
+            <p className="text-sm opacity-65">
+              Os depoimentos do modelo são ocultados automaticamente para o cliente até você preencher os seus.
+            </p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                set(
+                  'items',
+                  SAMPLE_TESTIMONIALS.map((item) => ({ ...item, id: crypto.randomUUID() }))
+                );
+              }}
+              className="mt-4 inline-flex items-center justify-center rounded-full border border-current px-5 py-2 text-[11px] uppercase tracking-[0.2em] opacity-80 transition-opacity hover:opacity-100"
+              style={fb()}
+            >
+              + Inserir depoimentos de exemplo para editar
+            </button>
+          </div>
         ) : carousel ? (
           <TestimonialCarousel count={items.length} label={c.title || 'Depoimentos'}>
             {items.map((t: any, idx: number) => (
@@ -170,7 +216,7 @@ export function TestimonialRenderer({ content, props }: { content?: any; props?:
           </TestimonialCarousel>
         ) : (
           // Colunas: depoimentos de tamanhos diferentes se acomodam sem buracos e crescem para baixo
-          <div className="columns-1 @2xl:columns-2 @4xl:columns-3 gap-10 text-left">
+          <div className="columns-1 @2xl:columns-2 @4xl:columns-3 gap-6 text-left">
             {items.map((t: any, idx: number) => (
               <React.Fragment key={t.id || idx}>{quote(t, idx)}</React.Fragment>
             ))}
