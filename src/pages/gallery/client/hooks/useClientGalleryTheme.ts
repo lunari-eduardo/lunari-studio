@@ -89,58 +89,65 @@ export function useClientGalleryTheme({
   const themeStyles = useMemo(() => {
     const theme = galleryResponse?.theme;
     const backgroundMode: 'light' | 'dark' = (galleryResponse?.clientMode === 'dark' || theme?.backgroundMode === 'dark') ? 'dark' : 'light';
-    const customPrimary = theme?.primaryColor || undefined;
-    
-    // Resolve standard gallery tokens (--gallery-primary, --gallery-primary-fg, etc.)
-    const galleryTokens = resolveGalleryColorTokens(backgroundMode, customPrimary);
-    
-    // Base colors depend on background mode (always applied, even for system theme)
-    const baseColors = backgroundMode === 'dark' ? {
-      '--background': '0 0% 5%',
-      '--foreground': '0 0% 95%',
-      '--card': '0 0% 9%',
-      '--card-foreground': '0 0% 95%',
-      '--muted': '0 0% 14%',
-      '--muted-foreground': '0 0% 60%',
-      '--border': '0 0% 16%',
-      '--primary-foreground': '0 0% 5%',
-      '--popover': '0 0% 9%',
-      '--popover-foreground': '0 0% 95%',
-      // Gradients for dark mode
-      '--gradient-card': 'linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 7%) 100%)',
-    } : {
-      '--background': '30 25% 97%',
-      '--foreground': '25 20% 15%',
-      '--card': '30 20% 99%',
-      '--card-foreground': '25 20% 15%',
-      '--muted': '30 15% 92%',
-      '--muted-foreground': '25 10% 45%',
-      '--border': '30 15% 88%',
-      '--primary-foreground': '30 25% 98%',
-      '--popover': '30 20% 99%',
-      '--popover-foreground': '25 20% 15%',
-      // Gradients for light mode
-      '--gradient-card': 'linear-gradient(180deg, hsl(30 20% 99%) 0%, hsl(30 15% 96%) 100%)',
-    };
-    
-    const primaryHex = customPrimary || galleryTokens['--gallery-primary'];
-    const primaryHsl = hexToHsl(primaryHex);
-    const accentHsl = theme?.accentColor ? hexToHsl(theme.accentColor) : null;
-    
-    return {
-      ...baseColors,
-      ...galleryTokens,
-      '--gallery-primary': primaryHex,
-      '--gallery-primary-fg': galleryTokens['--gallery-primary-fg'],
-      '--gallery-primary-foreground': galleryTokens['--gallery-primary-fg'],
-      '--primary': primaryHsl || '39 35% 60%',
-      '--accent': accentHsl || '39 35% 60%',
-      '--ring': primaryHsl || '39 35% 60%',
-    } as React.CSSProperties;
+    return buildClientThemeStyles(backgroundMode, theme?.primaryColor || undefined, theme?.accentColor);
   }, [galleryResponse?.theme, galleryResponse?.clientMode]);
 
   return {
     effectiveBackgroundMode,
     themeStyles,
   };
+}
+
+/** Variáveis CSS da galeria pública de Seleção — também usadas pelo preview do Studio. */
+export function buildClientThemeStyles(
+  backgroundMode: 'light' | 'dark',
+  customPrimary?: string,
+  accentColor?: string | null
+): React.CSSProperties {
+  // Resolve standard gallery tokens (--gallery-primary, --gallery-primary-fg, etc.)
+  const galleryTokens = resolveGalleryColorTokens(backgroundMode, customPrimary);
+
+  // Base colors depend on background mode (always applied, even for system theme)
+  const baseColors = backgroundMode === 'dark' ? {
+    '--background': '0 0% 5%',
+    '--foreground': '0 0% 95%',
+    '--card': '0 0% 9%',
+    '--card-foreground': '0 0% 95%',
+    '--muted': '0 0% 14%',
+    '--muted-foreground': '0 0% 60%',
+    '--border': '0 0% 16%',
+    '--primary-foreground': '0 0% 5%',
+    '--popover': '0 0% 9%',
+    '--popover-foreground': '0 0% 95%',
+    // Gradients for dark mode
+    '--gradient-card': 'linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 7%) 100%)',
+  } : {
+    '--background': '30 25% 97%',
+    '--foreground': '25 20% 15%',
+    '--card': '30 20% 99%',
+    '--card-foreground': '25 20% 15%',
+    '--muted': '30 15% 92%',
+    '--muted-foreground': '25 10% 45%',
+    '--border': '30 15% 88%',
+    '--primary-foreground': '30 25% 98%',
+    '--popover': '30 20% 99%',
+    '--popover-foreground': '25 20% 15%',
+    // Gradients for light mode
+    '--gradient-card': 'linear-gradient(180deg, hsl(30 20% 99%) 0%, hsl(30 15% 96%) 100%)',
+  };
+
+  const primaryHex = customPrimary || galleryTokens['--gallery-primary'];
+  const primaryHsl = hexToHsl(primaryHex);
+  const accentHsl = accentColor ? hexToHsl(accentColor) : null;
+
+  return {
+    ...baseColors,
+    ...galleryTokens,
+    '--gallery-primary': primaryHex,
+    '--gallery-primary-fg': galleryTokens['--gallery-primary-fg'],
+    '--gallery-primary-foreground': galleryTokens['--gallery-primary-fg'],
+    '--primary': primaryHsl || '39 35% 60%',
+    '--accent': accentHsl || '39 35% 60%',
+    '--ring': primaryHsl || '39 35% 60%',
+  } as React.CSSProperties;
 }

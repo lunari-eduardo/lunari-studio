@@ -16,7 +16,6 @@ import { useGalleryCreateForm } from './create/hooks/useGalleryCreateForm';
 import { Step1Client } from './create/steps/Step1Client';
 import { Step2Sale } from './create/steps/Step2Sale';
 import { Step3Settings } from './create/steps/Step3Settings';
-import { Step4Visual } from './create/steps/Step4Visual';
 import { Step4Photos } from './create/steps/Step4Photos';
 import { Step5Message } from './create/steps/Step5Message';
 import { Step6Review } from './create/steps/Step6Review';
@@ -133,14 +132,6 @@ export default function GalleryCreate() {
         );
       case 4:
         return (
-          <Step4Visual
-            coverId={form.selectedCoverId}
-            setCoverId={form.setSelectedCoverId}
-            settings={form.settings}
-          />
-        );
-      case 5:
-        return (
           <Step4Photos
             supabaseGalleryId={form.supabaseGalleryId}
             activeFolderId={form.activeFolderId}
@@ -167,7 +158,7 @@ export default function GalleryCreate() {
             isUploadingPhotos={form.photoManager.isUploadingPhotos}
           />
         );
-      case 6:
+      case 5:
         return (
           <Step5Message
             welcomeMessageEnabled={form.welcomeMessageEnabled}
@@ -177,7 +168,7 @@ export default function GalleryCreate() {
             settings={form.settings}
           />
         );
-      case 7:
+      case 6:
         return (
           <Step6Review
             selectedClient={form.selectedClient}
@@ -327,13 +318,13 @@ export default function GalleryCreate() {
             >
               {form.isAdvancing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {form.isAdvancing
-                ? form.currentStep === 7
+                ? form.currentStep === 6
                   ? 'Criando galeria...'
                   : 'Avançando...'
-                : form.currentStep === 7
+                : form.currentStep === 6
                 ? 'Criar Galeria'
                 : 'Próximo'}
-              {!form.isAdvancing && form.currentStep < 7 && (
+              {!form.isAdvancing && form.currentStep < 6 && (
                 <ArrowRight className="h-4 w-4 ml-2" />
               )}
             </Button>

@@ -14,6 +14,8 @@ interface ClientAlbumsViewProps {
   localPhotos: GalleryPhoto[];
   studioLogoUrl?: string | null;
   studioName?: string | null;
+  /** Capa padrão de Seleção do estúdio (Personalização). Seleção não tem capa por galeria. */
+  selectionCoverId?: string | null;
   themeStyles: React.CSSProperties;
   effectiveBackgroundMode: 'light' | 'dark';
   onSelectFolder: (folderId: string) => void;
@@ -25,11 +27,12 @@ export function ClientAlbumsView({
   localPhotos,
   studioLogoUrl,
   studioName,
+  selectionCoverId,
   themeStyles,
   effectiveBackgroundMode,
   onSelectFolder,
 }: ClientAlbumsViewProps) {
-  const effectiveCoverId = resolveCoverId(gallery.settings.coverId, SELECTION_COVER_REGISTRY, DEFAULT_SELECTION_COVER_ID);
+  const effectiveCoverId = resolveCoverId(selectionCoverId, SELECTION_COVER_REGISTRY, DEFAULT_SELECTION_COVER_ID);
   const firstPhoto = localPhotos[0];
   const demoPhoto = getDemoCoverPhoto('horizontal');
   const coverPhoto = firstPhoto

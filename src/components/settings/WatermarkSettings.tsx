@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Shield, ShieldOff, ImageIcon, Info } from 'lucide-react';
+import { ShieldOff, Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OptionList } from '@/components/ui/option-list';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { WatermarkUploader } from './WatermarkUploader';
 import { useWatermarkSettings, WatermarkMode } from '@/hooks/useWatermarkSettings';
-import { cn } from '@/lib/utils';
 
 export function WatermarkSettings() {
   const { 
@@ -27,7 +26,7 @@ export function WatermarkSettings() {
   }, [settings.opacity]);
 
   const handleModeChange = async (mode: WatermarkMode) => {
-    await saveSettings({ mode }, { successMessage: 'Proteção de imagem salva.' });
+    await saveSettings({ mode });
   };
 
   const handleOpacityChange = (value: number[]) => {
@@ -35,7 +34,7 @@ export function WatermarkSettings() {
   };
 
   const handleOpacityCommit = async (value: number[]) => {
-    await saveSettings({ opacity: value[0] }, { successMessage: 'Opacidade salva.' });
+    await saveSettings({ opacity: value[0] });
   };
 
   if (isLoading) {
@@ -52,87 +51,21 @@ export function WatermarkSettings() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5 text-primary" />
-        <h4 className="font-medium">Proteção de Imagem</h4>
-      </div>
-
-      {/* Mode Selection */}
-      <div className="space-y-3">
-        <Label className="text-sm text-muted-foreground">Tipo de proteção</Label>
-        <RadioGroup
-          value={settings.mode}
-          onValueChange={(value) => handleModeChange(value as WatermarkMode)}
-          disabled={isSaving}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-        >
-          {/* System */}
-          <label
-            className={cn(
-              "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
-              settings.mode === 'system' 
-                ? "border-primary bg-primary/5" 
-                : "border-border hover:bg-muted/50"
-            )}
-          >
-            <RadioGroupItem value="system" className="sr-only" />
-            <Shield className={cn(
-              "h-5 w-5",
-              settings.mode === 'system' ? "text-primary" : "text-muted-foreground"
-            )} />
-            <div>
-              <p className="font-medium text-sm">Padrão do Sistema</p>
-              <p className="text-xs text-muted-foreground">Proteção completa</p>
-            </div>
-          </label>
-
-          {/* Custom */}
-          <label
-            className={cn(
-              "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
-              settings.mode === 'custom' 
-                ? "border-primary bg-primary/5" 
-                : "border-border hover:bg-muted/50"
-            )}
-          >
-            <RadioGroupItem value="custom" className="sr-only" />
-            <ImageIcon className={cn(
-              "h-5 w-5",
-              settings.mode === 'custom' ? "text-primary" : "text-muted-foreground"
-            )} />
-            <div>
-              <p className="font-medium text-sm">Minha Marca</p>
-              <p className="text-xs text-muted-foreground">Logo personalizado</p>
-            </div>
-          </label>
-
-          {/* None */}
-          <label
-            className={cn(
-              "flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors",
-              settings.mode === 'none' 
-                ? "border-primary bg-primary/5" 
-                : "border-border hover:bg-muted/50"
-            )}
-          >
-            <RadioGroupItem value="none" className="sr-only" />
-            <ShieldOff className={cn(
-              "h-5 w-5",
-              settings.mode === 'none' ? "text-primary" : "text-muted-foreground"
-            )} />
-            <div>
-              <p className="font-medium text-sm">Nenhuma</p>
-              <p className="text-xs text-muted-foreground">Sem proteção</p>
-            </div>
-          </label>
-        </RadioGroup>
-      </div>
+    <div className="space-y-5">
+      <OptionList
+        aria-label="Tipo de proteção"
+        items={[
+          { value: 'system', label: 'Padrão do sistema', description: 'Marca d’água Lunari, proteção completa', disabled: isSaving },
+          { value: 'custom', label: 'Minha marca', description: 'Seu logo aplicado sobre as fotos', disabled: isSaving },
+          { value: 'none', label: 'Nenhuma', description: 'Fotos sem marca d’água', disabled: isSaving },
+        ]}
+        value={settings.mode}
+        onValueChange={(value) => handleModeChange(value as WatermarkMode)}
+      />
 
       {/* Custom Watermark Upload */}
       {settings.mode === 'custom' && (
-        <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-border/50">
+        <div className="space-y-4 rounded-xl border border-border bg-muted/30 p-4">
           <Label className="text-sm">Sua marca d'água</Label>
           <WatermarkUploader
             currentPath={settings.path}
@@ -147,21 +80,22 @@ export function WatermarkSettings() {
           {settings.path && (
             <div className="space-y-2">
               <Label className="text-sm">Tamanho da marca</Label>
-              <ToggleGroup
-                type="single"
+              <SegmentedControl
+                aria-label="Tamanho da marca"
+                variant="subtle"
+                size="sm"
+                options={[
+                  { value: 'small', label: 'Pequeno' },
+                  { value: 'medium', label: 'Médio' },
+                  { value: 'large', label: 'Grande' },
+                ]}
                 value={settings.scale === 15 ? 'small' : settings.scale === 40 ? 'large' : 'medium'}
                 onValueChange={(value) => {
-                  if (!value) return;
+                  if (isSaving) return;
                   const scaleMap = { small: 15, medium: 25, large: 40 };
-                  saveSettings({ scale: scaleMap[value as 'small' | 'medium' | 'large'] }, { successMessage: 'Tamanho da marca salvo.' });
+                  saveSettings({ scale: scaleMap[value as 'small' | 'medium' | 'large'] });
                 }}
-                disabled={isSaving}
-                className="justify-start w-fit border border-border rounded-md p-1 bg-background"
-              >
-                <ToggleGroupItem value="small" size="sm" className="px-3 text-xs">Pequeno</ToggleGroupItem>
-                <ToggleGroupItem value="medium" size="sm" className="px-3 text-xs">Médio</ToggleGroupItem>
-                <ToggleGroupItem value="large" size="sm" className="px-3 text-xs">Grande</ToggleGroupItem>
-              </ToggleGroup>
+              />
             </div>
           )}
 

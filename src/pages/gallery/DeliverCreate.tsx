@@ -68,11 +68,22 @@ export default function DeliverCreate() {
           <DeliverCreateStep2Visual
             coverId={state.coverId}
             setCoverId={state.setCoverId}
-            settings={state.settings}
-            photoSpacing={state.photoSpacing}
-            setPhotoSpacing={state.setPhotoSpacing}
+            useCustomTheme={state.useCustomTheme}
+            setUseCustomTheme={state.setUseCustomTheme}
+            activeThemeId={state.activeThemeId}
+            setActiveThemeId={state.setActiveThemeId}
+            sessionFont={state.sessionFont}
+            setSessionFont={state.setSessionFont}
+            titleCaseMode={state.titleCaseMode}
+            setTitleCaseMode={state.setTitleCaseMode}
             clientMode={state.clientMode}
             setClientMode={state.setClientMode}
+            photoSpacing={state.photoSpacing}
+            settings={state.settings}
+            sessionName={state.sessionName}
+            subtitle={state.subtitle}
+            category={state.category}
+            eventDate={state.eventDate}
           />
         );
 

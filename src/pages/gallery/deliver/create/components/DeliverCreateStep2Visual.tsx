@@ -1,133 +1,186 @@
-import { Sparkles, Sun, Moon, Film } from 'lucide-react';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { CoverCatalog } from '@/components/deliver/CoverCatalog';
-import { COVER_REGISTRY } from '@/components/deliver/covers/registry';
-import { cn } from '@/lib/utils';
+import { useState, type ReactNode } from 'react';
+import type { PreviewView } from '@/components/gallery/preview/GalleryLivePreview';
+import { Moon, Sun } from 'lucide-react';
+import { FontSelect } from '@/components/FontSelect';
+import { OptionList } from '@/components/ui/option-list';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { GalleryPreviewDrawer, GalleryPreviewPanel } from '@/components/gallery/preview/GalleryPreviewPanel';
+import { COVER_LIST, COVER_REGISTRY, DEFAULT_COVER_ID } from '@/components/deliver/covers/registry';
+import { GRID_STYLE_OPTIONS } from '@/components/gallery/themes/glyphs';
+import { DEFAULT_THEME_ID } from '@/components/gallery/themes/registry';
+import type { GlobalSettings, TitleCaseMode } from '@/types/gallery';
+
+const INHERIT = '__studio_default';
 
 interface DeliverCreateStep2VisualProps {
   coverId: string | null;
   setCoverId: (id: string | null) => void;
-  settings: any;
-  photoSpacing: number;
-  setPhotoSpacing: (gap: number) => void;
+  useCustomTheme: boolean;
+  setUseCustomTheme: (custom: boolean) => void;
+  activeThemeId: string;
+  setActiveThemeId: (id: string) => void;
+  sessionFont: string;
+  setSessionFont: (font: string) => void;
+  titleCaseMode: TitleCaseMode;
+  setTitleCaseMode: (mode: TitleCaseMode) => void;
   clientMode: 'light' | 'dark';
   setClientMode: (mode: 'light' | 'dark') => void;
+  photoSpacing: number;
+  settings?: GlobalSettings;
+  sessionName: string;
+  subtitle?: string;
+  category?: string;
+  eventDate?: Date;
+}
+
+function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <header>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+      </header>
+      {children}
+    </section>
+  );
 }
 
 export function DeliverCreateStep2Visual({
   coverId,
   setCoverId,
-  settings,
-  photoSpacing,
-  setPhotoSpacing,
+  useCustomTheme,
+  setUseCustomTheme,
+  activeThemeId,
+  setActiveThemeId,
+  sessionFont,
+  setSessionFont,
+  titleCaseMode,
+  setTitleCaseMode,
   clientMode,
   setClientMode,
+  photoSpacing,
+  settings,
+  sessionName,
+  subtitle,
+  category,
+  eventDate,
 }: DeliverCreateStep2VisualProps) {
+  const studioCoverId = settings?.defaultCoverId || DEFAULT_COVER_ID;
+  const studioCover = COVER_REGISTRY[studioCoverId] ?? COVER_REGISTRY[DEFAULT_COVER_ID];
+  const studioThemeId = settings?.defaultThemeId || DEFAULT_THEME_ID;
+  const studioTheme = GRID_STYLE_OPTIONS.find((t) => t.value === studioThemeId) ?? GRID_STYLE_OPTIONS[0];
+  const accountOverrides = ((settings?.themeOverrides as any) || {}) as Record<string, any>;
+
+  const effectiveCoverId = coverId ?? studioCoverId;
+  const [view, setView] = useState<PreviewView>('cover');
+
+  // Mesma resolução da galeria pública (gallery-access): tema herdado usa os ajustes da conta.
+  const previewProps = {
+    type: 'entrega' as const,
+    view,
+    onViewChange: setView,
+    coverId: effectiveCoverId,
+    sessionName: sessionName.trim() || 'Ensaio Fotográfico',
+    subtitle,
+    category,
+    sessionDate: eventDate,
+    studioName: settings?.studioName || 'Lunari Studio',
+    studioLogoUrl: settings?.studioLogo,
+    fontId: sessionFont,
+    titleCaseMode,
+    themeId: useCustomTheme ? activeThemeId : studioThemeId,
+    themeOverrides: useCustomTheme ? {} : accountOverrides,
+    gap: useCustomTheme ? photoSpacing : accountOverrides.layout?.gap ?? photoSpacing,
+    primaryColor: settings?.customTheme?.primaryColor,
+    backgroundMode: clientMode,
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="border-b border-border/40 pb-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-[#cbb384]" />
-          <h2 className="text-lg font-semibold text-foreground">Design e Personalização Visual</h2>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start">
+      <div className="min-w-0 space-y-8">
+        <div className="lg:hidden">
+          <GalleryPreviewDrawer {...previewProps} />
         </div>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Escolha a capa que vai impactar o cliente no primeiro acesso. Tema e tipografia seguem o
-          padrão da sua conta — ajuste depois em <strong>Design & Temas</strong>, na edição da galeria.
-        </p>
-      </div>
 
-      {/* Capa da Galeria de Entrega (Hero) */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[#cbb384]" />
-          <Label className="text-base font-semibold">Capa da Galeria (Hero)</Label>
-          <span className="text-[10px] uppercase tracking-wider bg-[#ddd1b6]/50 text-[#7a6035] dark:text-[#e4d5b7] px-2.5 py-0.5 rounded-full border border-[#cbb384]/30 font-medium ml-auto">
-            Hero
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground -mt-2">
-          Apresentação inicial da galeria para impactar no primeiro acesso.
-        </p>
-        <CoverCatalog
-          selectedCoverId={coverId}
-          onSelect={setCoverId}
-          inheritLabel={
-            settings?.defaultCoverId
-              ? `Usar capa padrão do meu estúdio (${
-                  COVER_REGISTRY[settings.defaultCoverId]?.name ?? settings.defaultCoverId
-                })`
-              : 'Usar capa padrão do meu estúdio'
-          }
-        />
-
-        {coverId === 'cinema' && (
-          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3 mt-3 animate-fade-in">
-            <Film className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h5 className="font-semibold text-sm">Capa Cinematográfica Ativa</h5>
-              <p className="text-xs text-muted-foreground">
-                Esta capa exibe um vídeo em loop em tela cheia na entrada da galeria. <strong>Na próxima etapa (Fotos)</strong>, você poderá enviar o arquivo de vídeo. Detalhes visuais poderão ser ajustados depois em <strong>Design & Temas</strong>.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Layout e Espaçamento */}
-      <div className="grid gap-6 md:grid-cols-2 pt-4 border-t border-border/40">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-semibold">Espaçamento do Grid</Label>
-            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded-md text-foreground">
-              {photoSpacing}px
-            </span>
-          </div>
-          <Slider
-            value={[photoSpacing]}
-            onValueChange={(vals) => setPhotoSpacing(vals[0])}
-            min={0}
-            max={40}
-            step={1}
-            className="py-1"
+        <Block title="Capa" description="A primeira tela que o cliente vê.">
+          <OptionList
+            aria-label="Capa da galeria"
+            items={[
+              {
+                value: INHERIT,
+                label: 'Padrão do estúdio',
+                description: `${studioCover.name} — definido em Personalização`,
+                glyph: studioCover.Thumbnail,
+                tag: 'Padrão',
+              },
+              ...COVER_LIST.map((c) => ({ value: c.id, label: c.name, description: c.description, glyph: c.Thumbnail })),
+            ]}
+            value={coverId ?? INHERIT}
+            onValueChange={(v) => {
+              setView('cover');
+              setCoverId(v === INHERIT ? null : v);
+            }}
           />
-        </div>
+          {effectiveCoverId === 'cinema' && (
+            <p className="rounded-xl bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
+              O vídeo da capa é enviado na próxima etapa, junto com as fotos.
+            </p>
+          )}
+        </Block>
 
-        <div className="space-y-3">
-          <Label className="text-sm font-semibold">Modo de Cor do Cliente</Label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={clientMode === 'light' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setClientMode('light')}
-              className={cn(
-                'gap-1.5 rounded-xl transition-all',
-                clientMode === 'light' &&
-                  'bg-[#cbb384] hover:bg-[#bfa574] text-white shadow-sm border-transparent'
-              )}
-            >
-              <Sun className="h-3.5 w-3.5" />
-              Claro
-            </Button>
-            <Button
-              type="button"
-              variant={clientMode === 'dark' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setClientMode('dark')}
-              className={cn(
-                'gap-1.5 rounded-xl transition-all',
-                clientMode === 'dark' &&
-                  'bg-neutral-900 dark:bg-card text-foreground border-[#cbb384]/50 shadow-sm'
-              )}
-            >
-              <Moon className="h-3.5 w-3.5" />
-              Escuro
-            </Button>
-          </div>
-        </div>
+        <Block title="Formato da grade" description="Como as fotos se organizam abaixo da capa.">
+          <OptionList
+            aria-label="Formato da grade de fotos"
+            items={[
+              {
+                value: INHERIT,
+                label: 'Padrão do estúdio',
+                description: `${studioTheme.label} — definido em Personalização`,
+                glyph: studioTheme.glyph,
+                tag: 'Padrão',
+              },
+              ...GRID_STYLE_OPTIONS,
+            ]}
+            value={useCustomTheme ? activeThemeId : INHERIT}
+            onValueChange={(v) => {
+              setView('photos');
+              if (v === INHERIT) {
+                setUseCustomTheme(false);
+              } else {
+                setUseCustomTheme(true);
+                setActiveThemeId(v);
+              }
+            }}
+          />
+        </Block>
+
+        <Block title="Tipografia do título">
+          <FontSelect
+            value={sessionFont}
+            onChange={setSessionFont}
+            previewText={sessionName.trim() || 'Ensaio Fotográfico'}
+            titleCaseMode={titleCaseMode}
+            onTitleCaseModeChange={setTitleCaseMode}
+          />
+        </Block>
+
+        <Block title="Modo de exibição">
+          <SegmentedControl
+            aria-label="Modo de exibição"
+            variant="subtle"
+            options={[
+              { value: 'light', label: 'Claro', icon: Sun },
+              { value: 'dark', label: 'Escuro', icon: Moon },
+            ]}
+            value={clientMode}
+            onValueChange={(v) => setClientMode(v as 'light' | 'dark')}
+          />
+        </Block>
       </div>
+
+      <aside className="hidden lg:sticky lg:top-6 lg:block">
+        <GalleryPreviewPanel {...previewProps} />
+      </aside>
     </div>
   );
 }

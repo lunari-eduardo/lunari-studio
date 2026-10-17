@@ -118,8 +118,7 @@ export function useGallerySettings() {
           default_theme_id: defaultSettings.defaultThemeId,
           theme_overrides: defaultSettings.themeOverrides,
           default_cover_id: defaultSettings.defaultCoverId,
-          default_selection_cover_id: defaultSettings.defaultSelectionCoverId,
-        } as any);
+        });
 
       if (settingsError && settingsError.code !== '23505') { // Ignore unique constraint violation
         throw settingsError;

@@ -60,7 +60,6 @@ interface UseGallerySubmitProps {
   allowDownload: boolean;
   allowExtraPhotos: boolean;
   selectedThemeId?: string;
-  selectedCoverId?: string | null;
   clientMode: 'light' | 'dark';
   sessionFont: string;
   titleCaseMode: TitleCaseMode;
@@ -117,7 +116,6 @@ export function useGallerySubmit({
   allowDownload,
   allowExtraPhotos,
   selectedThemeId,
-  selectedCoverId,
   clientMode,
   sessionFont,
   titleCaseMode,
@@ -230,7 +228,6 @@ export function useGallerySubmit({
         venda_pagamento_provedor: getEffectivePaymentMethod(),
         venda_tipo_cobranca: chargeType,
         configuracoes: getConfig(),
-        coverId: selectedCoverId,
       });
 
       if (result?.id) {
@@ -286,7 +283,7 @@ export function useGallerySubmit({
     if (isAdvancing || isSavingDraft || isGoingBack) return;
     setIsAdvancing(true);
     try {
-      if (currentStep < 7) {
+      if (currentStep < 6) {
         if (currentStep === 2 && saleMode !== 'no_sale') {
           const hasSessionRegras = regrasCongeladas && !overridePricing;
           const resolved = hasSessionRegras
@@ -304,7 +301,7 @@ export function useGallerySubmit({
           }
         }
 
-        if (currentStep === 4 && !supabaseGalleryId) {
+        if (currentStep === 3 && !supabaseGalleryId) {
           if (galleryPermission === 'private' && !selectedClient) {
             toast.error('Selecione um cliente primeiro');
             setCurrentStep(1);
@@ -320,7 +317,7 @@ export function useGallerySubmit({
           if (!ok) return;
         }
 
-        if (currentStep === 5) {
+        if (currentStep === 4) {
           if (photoManager.isUploadingPhotos) {
             toast.error('Aguarde finalizar os uploads antes de prosseguir.');
             return;
@@ -349,7 +346,6 @@ export function useGallerySubmit({
                 venda_modo: saleMode,
                 venda_pagamento_provedor: getEffectivePaymentMethod(),
                 venda_tipo_cobranca: chargeType,
-                coverId: selectedCoverId,
                 ...(finalRegrasCongeladas && {
                   regrasCongeladas: finalRegrasCongeladas,
                 }),
@@ -420,7 +416,6 @@ export function useGallerySubmit({
             venda_modo: saleMode,
             venda_pagamento_provedor: getEffectivePaymentMethod(),
             venda_tipo_cobranca: chargeType,
-            coverId: selectedCoverId,
             ...(finalRegrasCongeladas && {
               regrasCongeladas: finalRegrasCongeladas,
             }),
@@ -448,7 +443,6 @@ export function useGallerySubmit({
           venda_modo: saleMode,
           venda_pagamento_provedor: getEffectivePaymentMethod(),
           venda_tipo_cobranca: chargeType,
-          coverId: selectedCoverId,
         });
         if (result?.id) {
           navigate('/app/gallery/list');

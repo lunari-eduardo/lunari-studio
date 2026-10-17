@@ -480,6 +480,7 @@ export default function ClientGallery() {
         localPhotos={selection.localPhotos}
         studioLogoUrl={galleryResponse?.studioSettings?.studio_logo_url}
         studioName={galleryResponse?.studioSettings?.studio_name}
+        selectionCoverId={galleryResponse?.studioSettings?.default_selection_cover_id}
         themeStyles={themeStyles}
         effectiveBackgroundMode={effectiveBackgroundMode}
         onSelectFolder={(folderId) => {

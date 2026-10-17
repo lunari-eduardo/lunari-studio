@@ -34,12 +34,12 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '4',
-    storageKey: 'demo-casamento-horizontal',
-    originalFilename: 'casamento-04.jpg',
-    width: 1500,
-    height: 1000,
-    previewPath: 'https://images.unsplash.com/photo-1465495910483-0d6749ee9f4a?q=80&w=1500&auto=format&fit=crop',
-    thumbPath: 'https://images.unsplash.com/photo-1465495910483-0d6749ee9f4a?q=80&w=600&auto=format&fit=crop',
+    storageKey: 'demo-estudio-horizontal',
+    originalFilename: 'default-cover-horizontal.jpg',
+    width: 1024,
+    height: 731,
+    previewPath: '/images/covers/default-cover-horizontal.jpg',
+    thumbPath: '/images/covers/default-cover-horizontal.jpg',
     peso_visual: 1
   },
   {
@@ -80,11 +80,11 @@ export const DEMO_PHOTOS = [
   },
   {
     id: '9',
-    storageKey: 'demo-casamento-vertical-3',
-    originalFilename: 'casamento-09.jpg',
-    width: 1000,
-    height: 1500,
-    previewPath: 'https://images.unsplash.com/photo-1522673607200-16489de436c3?q=80&w=1000&auto=format&fit=crop',
-    thumbPath: 'https://images.unsplash.com/photo-1522673607200-16489de436c3?q=80&w=400&auto=format&fit=crop',
+    storageKey: 'demo-estudio-vertical',
+    originalFilename: 'default-cover-vertical.jpg',
+    width: 576,
+    height: 1024,
+    previewPath: '/images/covers/default-cover-vertical.jpg',
+    thumbPath: '/images/covers/default-cover-vertical.jpg',
   }
 ];

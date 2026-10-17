@@ -1,27 +1,31 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 interface IframePreviewProps extends React.IframeHTMLAttributes<HTMLIFrameElement> {
   children: React.ReactNode;
   viewport?: 'desktop' | 'mobile';
+  /** Força o esquema da galeria no iframe; sem isso ele herda o tema do Studio (claro/escuro). */
+  colorScheme?: 'light' | 'dark';
 }
 
 export function IframePreview({
   children,
   title = 'Preview',
   viewport,
+  colorScheme,
   ...props
 }: IframePreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
-  const [scale, setScale] = useState(1);
+  // null até a primeira medição: evita pintar o viewport virtual em escala 1 (flash gigante).
+  const [scale, setScale] = useState<number | null>(viewport ? null : 1);
 
   const virtualWidth = viewport === 'desktop' ? 1280 : 375;
   const virtualHeight = viewport === 'desktop' ? 720 : 667;
 
   // Atualiza o fator de escala dinamicamente baseado no tamanho físico do container
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!viewport) {
       setScale(1);
       return;
@@ -134,6 +138,13 @@ export function IframePreview({
     };
   }, []);
 
+  useEffect(() => {
+    if (!colorScheme || !mountNode) return;
+    const root = mountNode.ownerDocument.documentElement;
+    root.classList.toggle('dark', colorScheme === 'dark');
+    root.classList.toggle('light', colorScheme === 'light');
+  }, [colorScheme, mountNode]);
+
   return (
     <div
       ref={containerRef}
@@ -149,8 +160,9 @@ export function IframePreview({
             ? {
                 width: `${virtualWidth}px`,
                 height: `${virtualHeight}px`,
-                transform: `scale(${scale})`,
+                transform: `scale(${scale ?? 1})`,
                 transformOrigin: 'center center',
+                visibility: scale === null ? 'hidden' : 'visible',
                 transition: 'transform 0.2s ease-out',
               }
             : {

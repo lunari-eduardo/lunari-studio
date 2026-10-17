@@ -21,7 +21,6 @@ import { PhotosTab } from './detail/components/PhotosTab';
 import { SelectionTab } from './detail/components/SelectionTab';
 import { VisitorsTab } from './detail/components/VisitorsTab';
 import { DetailsTab } from './detail/components/DetailsTab';
-import { SelectionDesignTab } from './detail/components/SelectionDesignTab';
 
 export default function GalleryDetail() {
   const { id } = useParams();
@@ -177,7 +176,6 @@ export default function GalleryDetail() {
         <TabsList>
           <TabsTrigger value="photos">Fotos ({data.transformedPhotos.length})</TabsTrigger>
           <TabsTrigger value="selection">Seleção ({data.selectedPhotos.length})</TabsTrigger>
-          <TabsTrigger value="design">Design & Temas</TabsTrigger>
           {isPublicGallery && (
             <TabsTrigger value="visitors">
               <Users className="h-4 w-4 mr-1" />
@@ -222,10 +220,6 @@ export default function GalleryDetail() {
             onDetailsTabClick={() => setActiveTab('details')}
             onStatusUpdated={handleStatusUpdated}
           />
-        </TabsContent>
-
-        <TabsContent value="design" className="space-y-4">
-          <SelectionDesignTab gallery={data.supabaseGallery} photos={data.supabasePhotos} />
         </TabsContent>
 
         {isPublicGallery && (

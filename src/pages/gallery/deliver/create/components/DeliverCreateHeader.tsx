@@ -24,7 +24,7 @@ export function DeliverCreateHeader({ currentStep }: DeliverCreateHeaderProps) {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold">Nova Entrega</h1>
           <p className="text-muted-foreground text-sm">
-            Passo {currentStep} de {DELIVER_STEPS.length} · {DELIVER_STEPS[currentStep - 1]?.name}
+            Passo {currentStep} de {DELIVER_STEPS.length}
           </p>
         </div>
       </div>

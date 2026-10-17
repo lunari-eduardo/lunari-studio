@@ -84,8 +84,6 @@ export interface GallerySettings {
   titleCaseMode?: TitleCaseMode;
   photoSpacing?: number;
   subtitulo?: string;
-  /** Capa escolhida para a galeria (Seleção: SELECTION_COVER_REGISTRY). null/undefined = usar padrão do estúdio. */
-  coverId?: string | null;
   coverVideo?: {
     desktopKey: string;
     mobileKey?: string | null;
