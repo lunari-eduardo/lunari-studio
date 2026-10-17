@@ -1,25 +1,23 @@
-import { useState } from 'react';
-import { Smartphone, Monitor, Eye, Save, Sparkles, LayoutTemplate } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Eye, Moon, Save, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
-import { CoverCatalog } from '@/components/deliver/CoverCatalog';
-import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
-import { getFallbackCoverPhoto } from '@/components/deliver/covers/defaultPhotos';
-import { IframePreview } from '@/components/deliver/IframePreview';
-import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
-import { THEME_REGISTRY } from '@/components/gallery/themes/registry';
-import { FontSelect, getFontFamilyById } from '@/components/FontSelect';
-import { PRESET_COLORS } from '@/components/settings/customization/CustomizationAppearanceTab';
+import { Slider } from '@/components/ui/slider';
+import { OptionList } from '@/components/ui/option-list';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { FontSelect } from '@/components/FontSelect';
 import { CoverVideoUploader } from '@/components/deliver/CoverVideoUploader';
+import { GalleryPreviewDrawer, GalleryPreviewPanel } from '@/components/gallery/preview/GalleryPreviewPanel';
+import type { PreviewView } from '@/components/gallery/preview/GalleryLivePreview';
+import { COVER_LIST, COVER_REGISTRY, DEFAULT_COVER_ID } from '@/components/deliver/covers/registry';
+import { GRID_STYLE_OPTIONS } from '@/components/gallery/themes/glyphs';
+import { DEFAULT_THEME_ID } from '@/components/gallery/themes/registry';
 import { GaleriaPhoto } from '@/hooks/useSupabaseGalleries';
-import { TitleCaseMode } from '@/types/gallery';
-import { PhotoPaths } from '@/lib/photoUrl';
-import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { generatePublicLink } from '@/utils/publicLinks';
+import type { GlobalSettings, TitleCaseMode } from '@/types/gallery';
+
+const INHERIT = '__studio_default';
 
 interface DeliverDesignTabProps {
   galleryId: string;
@@ -35,23 +33,35 @@ interface DeliverDesignTabProps {
   setCoverVideo?: (data: any) => void;
   coverCinema?: any;
   setCoverCinema?: (data: any) => void;
-  previewViewport: 'mobile' | 'tablet' | 'desktop';
-  setPreviewViewport: (vp: 'mobile' | 'tablet' | 'desktop') => void;
   photos: GaleriaPhoto[];
   publicToken?: string | null;
-  sessionFont?: string;
-  setSessionFont?: (font: string) => void;
+  sessionFont: string;
+  setSessionFont: (font: string) => void;
+  titleCaseMode: TitleCaseMode;
+  setTitleCaseMode: (mode: TitleCaseMode) => void;
+  clientMode: 'light' | 'dark';
+  setClientMode: (mode: 'light' | 'dark') => void;
   sessionName?: string;
-  titleCaseMode?: TitleCaseMode;
-  setTitleCaseMode?: (mode: TitleCaseMode) => void;
   subtitle?: string;
   category?: string;
   eventDate?: Date;
   coverPhotoId?: string | null;
-  studioSettings?: any;
+  studioSettings?: GlobalSettings;
   saving: boolean;
   onSave: () => void;
   onUpdateCoverVideo?: (v: any) => Promise<void>;
+}
+
+function Block({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <header>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
+      </header>
+      {children}
+    </section>
+  );
 }
 
 export function DeliverDesignTab({
@@ -68,15 +78,15 @@ export function DeliverDesignTab({
   setCoverVideo,
   coverCinema,
   setCoverCinema,
-  previewViewport,
-  setPreviewViewport,
   photos,
   publicToken,
-  sessionFont = 'playfair',
+  sessionFont,
   setSessionFont,
-  sessionName = 'Ensaio Fotográfico',
-  titleCaseMode = 'normal',
+  titleCaseMode,
   setTitleCaseMode,
+  clientMode,
+  setClientMode,
+  sessionName = 'Ensaio Fotográfico',
   subtitle,
   category,
   eventDate,
@@ -86,529 +96,262 @@ export function DeliverDesignTab({
   onSave,
   onUpdateCoverVideo,
 }: DeliverDesignTabProps) {
-  const [previewTab, setPreviewTab] = useState<'cover' | 'grid'>('cover');
   const { profile } = useUserProfile();
+  const [view, setView] = useState<PreviewView>('cover');
 
-  const activeTheme = THEME_REGISTRY[activeThemeId] || THEME_REGISTRY['lunari'];
-  const isDarkTheme = (activeTheme as any)?.backgroundMode === 'dark' || themeOverrides?.backgroundMode === 'dark';
+  const studioCoverId = studioSettings?.defaultCoverId || DEFAULT_COVER_ID;
+  const studioCover = COVER_REGISTRY[studioCoverId] ?? COVER_REGISTRY[DEFAULT_COVER_ID];
+  const studioThemeId = studioSettings?.defaultThemeId || DEFAULT_THEME_ID;
+  const studioTheme = GRID_STYLE_OPTIONS.find((t) => t.value === studioThemeId) ?? GRID_STYLE_OPTIONS[0];
+  const accountOverrides = ((studioSettings?.themeOverrides as any) || {}) as Record<string, any>;
+  const effectiveCoverId = coverId ?? studioCoverId;
+  const customGap = themeOverrides?.layout?.gap ?? 8;
 
-  const photographerCustomColor =
-    studioSettings?.customTheme?.primaryColor ||
-    studioSettings?.cor_primaria ||
-    studioSettings?.themeOverrides?.palette?.primary ||
-    studioSettings?.primaryColor;
+  const activeCoverPhoto = photos.find((p) => p.id === coverPhotoId) || photos[0];
+  const coverPhoto =
+    activeCoverPhoto?.storageKey && !activeCoverPhoto.storageKey.includes('placeholder.svg')
+      ? {
+          storageKey: activeCoverPhoto.storageKey,
+          width: activeCoverPhoto.width,
+          height: activeCoverPhoto.height,
+          mimeType: activeCoverPhoto.mimeType,
+        }
+      : undefined;
 
-  const primaryColor = useCustomTheme
-    ? (themeOverrides?.palette?.primary || themeOverrides?.primaryColor || photographerCustomColor || (activeTheme as any)?.palette?.primary || '#C6A36A')
-    : (photographerCustomColor || (activeTheme as any)?.palette?.primary || '#C6A36A');
-  const resolvedFontFamily = getFontFamilyById(sessionFont);
+  // Mesma resolução da galeria pública (gallery-access + ClientDeliverGallery).
+  const previewProps = {
+    type: 'entrega' as const,
+    view,
+    onViewChange: setView,
+    coverId: effectiveCoverId,
+    coverPhoto,
+    photos: photos.slice(0, 24),
+    galleryId,
+    sessionName: sessionName || 'Ensaio Fotográfico',
+    subtitle,
+    category,
+    sessionDate: eventDate,
+    studioName: studioSettings?.studioName || 'Lunari Studio',
+    studioLogoUrl: studioSettings?.studioLogo,
+    fontId: sessionFont,
+    titleCaseMode,
+    themeId: useCustomTheme ? activeThemeId : studioThemeId,
+    themeOverrides: useCustomTheme ? themeOverrides : accountOverrides,
+    gap: useCustomTheme ? customGap : accountOverrides.layout?.gap ?? studioSettings?.defaultPhotoSpacing ?? 8,
+    primaryColor: studioSettings?.customTheme?.primaryColor,
+    backgroundMode: clientMode,
+    coverVideo,
+    ctaLabel: coverCinema?.ctaLabel,
+    contentPosition: coverCinema?.contentPosition,
+    overlayIntensity: coverCinema?.overlayIntensity,
+  };
 
-  // Foto de capa selecionada ou fallback fotográfico de alta qualidade
-  const activeCoverPhoto = photos.find((p) => p.id === coverPhotoId) || photos[0] || null;
-  const fallbackPhoto = getFallbackCoverPhoto(previewViewport === 'mobile' ? 'vertical' : 'horizontal');
-
-  const hasValidPhoto = Boolean(
-    activeCoverPhoto &&
-    (( (activeCoverPhoto as any).preview_path && (activeCoverPhoto as any).preview_path.trim() !== '' && !(activeCoverPhoto as any).preview_path.includes('placeholder.svg')) ||
-     ( (activeCoverPhoto as any).previewPath && (activeCoverPhoto as any).previewPath.trim() !== '' && !(activeCoverPhoto as any).previewPath.includes('placeholder.svg')) ||
-     (activeCoverPhoto.storageKey && activeCoverPhoto.storageKey.trim() !== '' && !activeCoverPhoto.storageKey.includes('placeholder.svg')))
-  );
-
-  const coverPhotoPaths: PhotoPaths = hasValidPhoto && activeCoverPhoto
-    ? {
-        storageKey: activeCoverPhoto.storageKey || fallbackPhoto.storageKey,
-        previewPath: (activeCoverPhoto as any).preview_path || (activeCoverPhoto as any).previewPath || activeCoverPhoto.storageKey || fallbackPhoto.previewPath,
-        width: activeCoverPhoto.width || fallbackPhoto.width,
-        height: activeCoverPhoto.height || fallbackPhoto.height,
-      }
-    : fallbackPhoto;
-
-  const viewportContainerStyles = {
-    mobile: 'w-[320px] sm:w-[340px] aspect-[9/16] max-h-full rounded-[28px] ring-1 ring-border/50 shadow-2xl',
-    tablet: 'w-full max-w-[768px] aspect-[4/3] max-h-full rounded-xl shadow-2xl border border-border/40',
-    desktop: 'w-full max-w-[960px] aspect-[16/9] max-h-full rounded-xl shadow-2xl border border-border/40',
+  const saveVideo = async (patch: Record<string, unknown>) => {
+    const next = { ...coverVideo, ...patch };
+    if (onUpdateCoverVideo) await onUpdateCoverVideo(next);
+    else setCoverVideo?.(next);
   };
 
   return (
-    <div className="space-y-8 mt-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Coluna da Esquerda: Controles de Customização */}
-        <div className="lg:col-span-1 space-y-8">
-          {/* Herança de Tema */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Herança de Tema</h3>
-            <p className="text-sm text-muted-foreground">
-              Decida se esta galeria segue as regras da sua conta ou tem estilo próprio.
-            </p>
+    <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] lg:items-start">
+      <div className="min-w-0 space-y-8">
+        <div className="lg:hidden">
+          <GalleryPreviewDrawer {...previewProps} />
+        </div>
 
-            <div className="space-y-3">
-              <div
-                className={cn(
-                  'p-4 border rounded-xl cursor-pointer transition-all',
-                  !useCustomTheme
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border hover:bg-muted'
-                )}
-                onClick={() => setUseCustomTheme(false)}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                      !useCustomTheme ? 'border-primary' : 'border-muted-foreground'
-                    )}
-                  >
-                    {!useCustomTheme && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Herdar tema padrão</p>
-                    <p className="text-xs text-muted-foreground">
-                      Usa o tema definido nas configurações da sua conta.
-                    </p>
-                  </div>
-                </div>
-              </div>
+        <Block title="Capa" description="A primeira tela que o cliente vê.">
+          <OptionList
+            aria-label="Capa da galeria"
+            items={[
+              {
+                value: INHERIT,
+                label: 'Padrão do estúdio',
+                description: `${studioCover.name} — definido em Personalização`,
+                glyph: studioCover.Thumbnail,
+                tag: 'Padrão',
+              },
+              ...COVER_LIST.map((c) => ({ value: c.id, label: c.name, description: c.description, glyph: c.Thumbnail })),
+            ]}
+            value={coverId ?? INHERIT}
+            onValueChange={(v) => {
+              setView('cover');
+              setCoverId(v === INHERIT ? null : v);
+            }}
+          />
+        </Block>
 
-              <div
-                className={cn(
-                  'p-4 border rounded-xl cursor-pointer transition-all',
-                  useCustomTheme
-                    ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                    : 'border-border hover:bg-muted'
-                )}
-                onClick={() => setUseCustomTheme(true)}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-4 h-4 rounded-full border-2 flex items-center justify-center',
-                      useCustomTheme ? 'border-primary' : 'border-muted-foreground'
-                    )}
-                  >
-                    {useCustomTheme && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Personalizar esta galeria</p>
-                    <p className="text-xs text-muted-foreground">
-                      Escolha um tema e ajustes específicos apenas para este trabalho.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Preset de Tema (quando personalizado) */}
-          {useCustomTheme && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Selecione o Preset</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.values(THEME_REGISTRY).map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => setActiveThemeId(t.id)}
-                      className={cn(
-                        'flex flex-col gap-2 p-3 border rounded-xl cursor-pointer transition-all text-center',
-                        activeThemeId === t.id
-                          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                          : 'hover:border-primary/50'
-                      )}
-                    >
-                      <span className="text-sm font-medium">{t.name}</span>
-                      <span className="text-[10px] text-muted-foreground uppercase">
-                        {t.layout.engine === 'editorial-grid' ? 'Editorial' : 'Classic'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                <Label className="text-base font-semibold">Ajustes Visuais</Label>
-
-                {/* Seletor de Cor Primária / Destaque */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Cor de Destaque / Botões</Label>
-                    <span className="text-xs font-mono uppercase text-muted-foreground">{primaryColor}</span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {PRESET_COLORS.map((c) => (
-                      <button
-                        key={c.value}
-                        type="button"
-                        onClick={() =>
-                          setThemeOverrides({
-                            ...themeOverrides,
-                            palette: { ...(themeOverrides.palette || {}), primary: c.value },
-                          })
-                        }
-                        className={cn(
-                          'w-6 h-6 rounded-full border transition-all cursor-pointer hover:scale-110 flex items-center justify-center',
-                          primaryColor.toLowerCase() === c.value.toLowerCase()
-                            ? 'ring-2 ring-primary ring-offset-2 scale-110 border-transparent'
-                            : 'border-border/60 opacity-85 hover:opacity-100'
-                        )}
-                        style={{ backgroundColor: c.value }}
-                        title={c.label}
-                      />
-                    ))}
-                    <div className="relative flex items-center" title="Cor personalizada">
-                      <input
-                        type="color"
-                        value={primaryColor.startsWith('#') ? primaryColor : `#${primaryColor}`}
-                        onChange={(e) =>
-                          setThemeOverrides({
-                            ...themeOverrides,
-                            palette: { ...(themeOverrides.palette || {}), primary: e.target.value },
-                          })
-                        }
-                        className="w-6 h-6 rounded-full p-0 border border-border/60 cursor-pointer overflow-hidden opacity-90 hover:opacity-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm">Espaçamento (Gap)</Label>
-                    <span className="text-xs font-mono">{themeOverrides?.layout?.gap ?? 8}px</span>
-                  </div>
-                  <Slider
-                    value={[themeOverrides?.layout?.gap ?? 8]}
-                    onValueChange={(vals) =>
-                      setThemeOverrides({
-                        ...themeOverrides,
-                        layout: { ...(themeOverrides.layout || {}), gap: vals[0] },
-                      })
-                    }
-                    min={0}
-                    max={40}
-                    step={1}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Capa da Galeria de Entrega (Hero) */}
-          <div className="space-y-4 pt-4 border-t">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#cbb384]" />
-              <Label className="text-base font-semibold">Capa da Galeria (Hero)</Label>
-            </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              Apresentação inicial em tela cheia independente do tema de fotos.
-            </p>
-            <CoverCatalog selectedCoverId={coverId} onSelect={setCoverId} />
-          </div>
-
-          {/* Configuração de Vídeo para Capa Cinema */}
-          {coverId === 'cinema' && (
-            <div className="space-y-6 pt-6 border-t animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Configuração do Vídeo</Label>
-                
-                <CoverVideoUploader
-                  galleryId={galleryId}
-                  contextType="gallery-cover-video"
-                  value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
-                  onChange={async (data) => {
-                    const novoCoverVideo = { 
-                      ...coverVideo, 
-                      desktopKey: data?.key || null,
-                      desktopSize: data?.sizeBytes || null
-                    };
-                    if (onUpdateCoverVideo) {
-                      await onUpdateCoverVideo(novoCoverVideo);
-                    } else {
-                      setCoverVideo?.(novoCoverVideo);
-                    }
-                    if (data?.key) {
-                      toast.success('Vídeo desktop salvo com sucesso!');
-                    } else {
-                      toast.info('Vídeo desktop removido!');
-                    }
-                  }}
-                  accept="video/mp4,video/webm,video/quicktime"
-                  maxSizeMB={50}
-                  label="Vídeo Principal (Desktop)"
-                  description="Formato paisagem (16:9). Obrigatório."
-                />
-
-                <CoverVideoUploader
-                  galleryId={galleryId}
-                  contextType="gallery-cover-video"
-                  value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
-                  onChange={async (data) => {
-                    const novoCoverVideo = { 
-                      ...coverVideo, 
-                      mobileKey: data?.key || null,
-                      mobileSize: data?.sizeBytes || null
-                    };
-                    if (onUpdateCoverVideo) {
-                      await onUpdateCoverVideo(novoCoverVideo);
-                    } else {
-                      setCoverVideo?.(novoCoverVideo);
-                    }
-                    if (data?.key) {
-                      toast.success('Vídeo mobile salvo com sucesso!');
-                    } else {
-                      toast.info('Vídeo mobile removido!');
-                    }
-                  }}
-                  accept="video/mp4,video/webm,video/quicktime"
-                  maxSizeMB={50}
-                  label="Vídeo Vertical (Celular)"
-                  description="Recomendado para melhor enquadramento (9:16). Opcional."
-                />
-
-                <CoverVideoUploader
-                  galleryId={galleryId}
-                  contextType="gallery-cover-poster"
-                  value={coverVideo?.posterKey ? { key: coverVideo.posterKey, url: undefined } : null}
-                  onChange={async (data) => {
-                    const novoCoverVideo = { 
-                      ...coverVideo, 
-                      posterKey: data?.key || null 
-                    };
-                    if (onUpdateCoverVideo) {
-                      await onUpdateCoverVideo(novoCoverVideo);
-                    } else {
-                      setCoverVideo?.(novoCoverVideo);
-                    }
-                    if (data?.key) {
-                      toast.success('Poster salvo com sucesso!');
-                    } else {
-                      toast.info('Poster removido!');
-                    }
-                  }}
-                  accept="image/jpeg,image/png,image/webp"
-                  maxSizeMB={2}
-                  label="Poster"
-                  description="Mostrado antes do vídeo carregar. Se não enviado, usa a foto de capa da galeria."
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Texto e Posição</Label>
-                
-                <div className="space-y-2">
-                  <Label className="text-xs">Texto do Botão (CTA)</Label>
-                  <Input
-                    placeholder="Ver galeria"
-                    maxLength={24}
-                    value={coverCinema?.ctaLabel || ''}
-                    onChange={(e) => setCoverCinema?.({ ...coverCinema, ctaLabel: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Posição do Conteúdo</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'bottom-left', label: 'Inferior Esq.' },
-                      { id: 'bottom-center', label: 'Inferior Centro' },
-                      { id: 'center', label: 'Centro' }
-                    ].map(pos => (
-                      <Button
-                        key={pos.id}
-                        type="button"
-                        variant={(coverCinema?.contentPosition || 'bottom-left') === pos.id ? 'default' : 'outline'}
-                        className="text-xs px-2"
-                        onClick={() => setCoverCinema?.({ ...coverCinema, contentPosition: pos.id })}
-                      >
-                        {pos.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-xs">Escurecimento do Vídeo</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'soft', label: 'Suave' },
-                      { id: 'medium', label: 'Médio' },
-                      { id: 'strong', label: 'Forte' }
-                    ].map(intensity => (
-                      <Button
-                        key={intensity.id}
-                        type="button"
-                        variant={(coverCinema?.overlayIntensity || 'medium') === intensity.id ? 'default' : 'outline'}
-                        className="text-xs px-2"
-                        onClick={() => setCoverCinema?.({ ...coverCinema, overlayIntensity: intensity.id })}
-                      >
-                        {intensity.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Tipografia da Sessão */}
-          {setSessionFont && (
-            <div className="space-y-4 pt-4 border-t">
-              <div>
-                <Label className="text-base font-semibold">Tipografia da Sessão</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Família tipográfica aplicada ao título da sessão na capa.
-                </p>
-              </div>
-              <FontSelect
-                value={sessionFont}
-                onChange={setSessionFont}
-                previewText={sessionName || 'Ensaio Gestante'}
-                titleCaseMode={titleCaseMode}
-                onTitleCaseModeChange={setTitleCaseMode}
+        {effectiveCoverId === 'cinema' && (
+          <Block title="Vídeo da capa" description="Paisagem (16:9) para computador; vertical (9:16) opcional para celular.">
+            <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
+              <CoverVideoUploader
+                galleryId={galleryId}
+                contextType="gallery-cover-video"
+                value={coverVideo?.desktopKey ? { key: coverVideo.desktopKey, url: undefined } : null}
+                onChange={(data) => saveVideo({ desktopKey: data?.key || null, desktopSize: data?.sizeBytes || null })}
+                accept="video/mp4,video/webm,video/quicktime"
+                maxSizeMB={50}
+                label="Vídeo principal (computador)"
+                description="Formato paisagem (16:9). Obrigatório."
+              />
+              <CoverVideoUploader
+                galleryId={galleryId}
+                contextType="gallery-cover-video"
+                value={coverVideo?.mobileKey ? { key: coverVideo.mobileKey, url: undefined } : null}
+                onChange={(data) => saveVideo({ mobileKey: data?.key || null, mobileSize: data?.sizeBytes || null })}
+                accept="video/mp4,video/webm,video/quicktime"
+                maxSizeMB={50}
+                label="Vídeo vertical (celular)"
+                description="Recomendado para melhor enquadramento (9:16). Opcional."
+              />
+              <CoverVideoUploader
+                galleryId={galleryId}
+                contextType="gallery-cover-poster"
+                value={coverVideo?.posterKey ? { key: coverVideo.posterKey, url: undefined } : null}
+                onChange={(data) => saveVideo({ posterKey: data?.key || null })}
+                accept="image/jpeg,image/png,image/webp"
+                maxSizeMB={2}
+                label="Pôster"
+                description="Mostrado antes do vídeo carregar. Sem ele, usa a foto de capa."
               />
             </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-foreground">Texto do botão</p>
+                <Input
+                  placeholder="Ver galeria"
+                  maxLength={24}
+                  value={coverCinema?.ctaLabel || ''}
+                  onChange={(e) => setCoverCinema?.({ ...coverCinema, ctaLabel: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-foreground">Posição do texto</p>
+                <SegmentedControl
+                  aria-label="Posição do texto"
+                  variant="subtle"
+                  size="sm"
+                  options={[
+                    { value: 'bottom-left', label: 'Inferior esq.' },
+                    { value: 'bottom-center', label: 'Inferior centro' },
+                    { value: 'center', label: 'Centro' },
+                  ]}
+                  value={coverCinema?.contentPosition || 'bottom-left'}
+                  onValueChange={(v) => setCoverCinema?.({ ...coverCinema, contentPosition: v })}
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-foreground">Escurecimento do vídeo</p>
+                <SegmentedControl
+                  aria-label="Escurecimento do vídeo"
+                  variant="subtle"
+                  size="sm"
+                  options={[
+                    { value: 'soft', label: 'Suave' },
+                    { value: 'medium', label: 'Médio' },
+                    { value: 'strong', label: 'Forte' },
+                  ]}
+                  value={coverCinema?.overlayIntensity || 'medium'}
+                  onValueChange={(v) => setCoverCinema?.({ ...coverCinema, overlayIntensity: v })}
+                />
+              </div>
+            </div>
+          </Block>
+        )}
+
+        <Block title="Formato da grade" description="Como as fotos se organizam abaixo da capa.">
+          <OptionList
+            aria-label="Formato da grade de fotos"
+            items={[
+              {
+                value: INHERIT,
+                label: 'Padrão do estúdio',
+                description: `${studioTheme.label} — definido em Personalização`,
+                glyph: studioTheme.glyph,
+                tag: 'Padrão',
+              },
+              ...GRID_STYLE_OPTIONS,
+            ]}
+            value={useCustomTheme ? activeThemeId : INHERIT}
+            onValueChange={(v) => {
+              setView('photos');
+              if (v === INHERIT) {
+                setUseCustomTheme(false);
+              } else {
+                setUseCustomTheme(true);
+                setActiveThemeId(v);
+              }
+            }}
+          />
+          {useCustomTheme && (
+            <div className="space-y-2 pt-1">
+              <p className="text-xs font-medium text-foreground">Espaçamento entre fotos</p>
+              <div className="flex items-center gap-4">
+                <Slider
+                  aria-label="Espaçamento entre fotos"
+                  value={[customGap]}
+                  onValueChange={(vals) => {
+                    setView('photos');
+                    setThemeOverrides({ ...themeOverrides, layout: { ...(themeOverrides?.layout || {}), gap: vals[0] } });
+                  }}
+                  min={0}
+                  max={40}
+                  step={1}
+                  className="flex-1"
+                />
+                <span className="w-12 shrink-0 rounded-md border border-border bg-muted/40 py-1 text-center font-mono text-xs tabular-nums text-foreground">
+                  {customGap}px
+                </span>
+              </div>
+            </div>
           )}
+        </Block>
 
-          {/* Botão de Salvar */}
-          <div className="pt-4 border-t">
-            <Button onClick={onSave} className="w-full gap-2 rounded-xl" disabled={saving}>
-              <Save className="h-4 w-4" />
-              Salvar Design
-            </Button>
-          </div>
-        </div>
+        <Block title="Tipografia do título">
+          <FontSelect
+            value={sessionFont}
+            onChange={setSessionFont}
+            previewText={sessionName || 'Ensaio Fotográfico'}
+            titleCaseMode={titleCaseMode}
+            onTitleCaseModeChange={setTitleCaseMode}
+          />
+        </Block>
 
-        {/* Coluna da Direita: Área de Prévia Dinâmica Fixo na Rolagem */}
-        <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 self-start">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2">
-              {/* Alternador de Modo de Prévia: Capa x Grid */}
-              <div className="flex items-center bg-muted p-1 rounded-lg">
-                <Button
-                  variant={previewTab === 'cover' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={cn(
-                    'h-7 px-3 text-xs font-medium rounded-md gap-1.5',
-                    previewTab === 'cover' && 'bg-background shadow-xs font-semibold'
-                  )}
-                  onClick={() => setPreviewTab('cover')}
-                >
-                  <Sparkles className="h-3.5 w-3.5 text-[#cbb384]" />
-                  Capa (Hero)
-                </Button>
-                <Button
-                  variant={previewTab === 'grid' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={cn(
-                    'h-7 px-3 text-xs font-medium rounded-md gap-1.5',
-                    previewTab === 'grid' && 'bg-background shadow-xs font-semibold'
-                  )}
-                  onClick={() => setPreviewTab('grid')}
-                >
-                  <LayoutTemplate className="h-3.5 w-3.5" />
-                  Grid de Fotos
-                </Button>
-              </div>
+        <Block title="Modo de exibição">
+          <SegmentedControl
+            aria-label="Modo de exibição"
+            variant="subtle"
+            options={[
+              { value: 'light', label: 'Claro', icon: Sun },
+              { value: 'dark', label: 'Escuro', icon: Moon },
+            ]}
+            value={clientMode}
+            onValueChange={(v) => setClientMode(v as 'light' | 'dark')}
+          />
+        </Block>
 
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                {previewTab === 'cover' ? 'Visualização da Capa' : activeTheme?.name}
-              </span>
-            </div>
-
-            {/* Alternador de Viewport (Smartphone 9:16 x Desktop 16:9) */}
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
-              <Button
-                variant={previewViewport === 'mobile' ? 'secondary' : 'ghost'}
-                size="sm"
-                className={cn(
-                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
-                  previewViewport === 'mobile' && 'bg-background shadow-xs font-semibold'
-                )}
-                onClick={() => setPreviewViewport('mobile')}
-                title="Visualização Smartphone (9:16)"
-              >
-                <Smartphone className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Smartphone</span>
-              </Button>
-              <Button
-                variant={previewViewport === 'desktop' ? 'secondary' : 'ghost'}
-                size="sm"
-                className={cn(
-                  'h-7 px-2.5 text-xs font-medium rounded-md gap-1.5',
-                  previewViewport === 'desktop' && 'bg-background shadow-xs font-semibold'
-                )}
-                onClick={() => setPreviewViewport('desktop')}
-                title="Visualização Desktop (16:9)"
-              >
-                <Monitor className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Desktop</span>
-              </Button>
-            </div>
-          </div>
-
-          {/* Canvas da Prévia com Dimensões Proporcionais */}
-          <div className="min-h-[580px] h-[calc(100vh-160px)] max-h-[760px] bg-zinc-950/85 dark:bg-black/95 rounded-2xl border border-border/60 overflow-hidden relative group shadow-2xl flex items-center justify-center p-3 sm:p-6">
-            <div
-              className={cn(
-                'bg-background overflow-hidden transition-all duration-300 ease-in-out relative flex flex-col',
-                viewportContainerStyles[previewViewport]
-              )}
+        <div className="flex flex-col gap-2 border-t border-border pt-6 sm:flex-row">
+          <Button onClick={onSave} disabled={saving} className="gap-2 rounded-xl sm:flex-1">
+            <Save className="h-4 w-4" />
+            Salvar design
+          </Button>
+          {publicToken && (
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-2 rounded-xl"
+              onClick={() => window.open(generatePublicLink({ type: 'gallery', token: publicToken, profile }), '_blank')}
             >
-              {previewTab === 'cover' ? (
-                /* Prévia Interativa da Capa com Paridade Total usando Iframe com resolução nativa escalada */
-                <IframePreview
-                  title="Preview da Capa"
-                  viewport={previewViewport === 'desktop' ? 'desktop' : 'mobile'}
-                >
-                  <CoverRenderer
-                    coverId={coverId}
-                    coverPhoto={coverPhotoPaths}
-                    sessionName={sessionName || 'Ensaio Fotográfico'}
-                    subtitle={subtitle}
-                    sessionDate={eventDate}
-                    category={category}
-                    studioName={studioSettings?.studio_name || 'Lunari Studio'}
-                    sessionFont={resolvedFontFamily}
-                    titleCaseMode={titleCaseMode}
-                    isDark={isDarkTheme}
-                    primaryColor={primaryColor}
-                    coverVideo={coverVideo}
-                    ctaLabel={coverCinema?.ctaLabel}
-                    contentPosition={coverCinema?.contentPosition}
-                    overlayIntensity={coverCinema?.overlayIntensity}
-                    onEnter={() => setPreviewTab('grid')}
-                  />
-                </IframePreview>
-              ) : (
-                /* Prévia do Grid de Fotos do Tema */
-                <div className="w-full h-full relative overflow-hidden flex flex-col">
-                  <ThemePreviewCanvas
-                    themeId={activeThemeId}
-                    themeOverrides={themeOverrides}
-                    viewport={previewViewport}
-                    skipHero={true}
-                    isBlueprint={false}
-                    previewPhotos={photos.slice(0, 12)}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Ação rápida para ver link público em nova aba */}
-            {publicToken && (
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-30 pointer-events-none group-hover:pointer-events-auto">
-                <Button
-                  variant="secondary"
-                  className="gap-2 rounded-full shadow-lg"
-                  onClick={() => window.open(generatePublicLink({ type: 'gallery', token: publicToken, profile }), '_blank')}
-                >
-                  <Eye className="h-4 w-4" />
-                  Ver link público
-                </Button>
-              </div>
-            )}
-          </div>
+              <Eye className="h-4 w-4" />
+              Ver link público
+            </Button>
+          )}
         </div>
       </div>
+
+      <aside className="hidden lg:sticky lg:top-6 lg:block">
+        <GalleryPreviewPanel {...previewProps} />
+      </aside>
     </div>
   );
 }

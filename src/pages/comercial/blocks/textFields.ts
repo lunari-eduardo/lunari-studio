@@ -146,6 +146,21 @@ export function resolveFieldInfo(path: string): FieldInfo {
     };
   }
 
+  // Nome de cada pacote: cartão próprio, não deve herdar nem compartilhar tamanho/cor
+  // com o Título Principal da seção nem com os demais pacotes (chave única por índice,
+  // sem ponto — a chave vira sufixo literal em props.typography, não um caminho aninhado).
+  const packageNameMatch = /^packages\.(\d+)\.name$/.exec(path);
+  if (packageNameMatch) {
+    return {
+      fieldKey: `package_${packageNameMatch[1]}_name`,
+      role: 'display',
+      label: 'Nome do Pacote',
+      min: 14,
+      max: 64,
+      defaultSize: 24,
+    };
+  }
+
   // Remove índices numéricos e limpa segmentos
   const segments = path.split('.').filter((s) => !/^\d+$/.test(s));
   const last = segments[segments.length - 1] || path;

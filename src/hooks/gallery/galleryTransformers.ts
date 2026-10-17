@@ -118,6 +118,8 @@ export function transformPhoto(row: any): GaleriaPhoto {
     width: row.width,
     height: row.height,
     storageKey: row.storage_key,
+    thumbPath: row.thumb_path ?? null,
+    previewPath: row.preview_path ?? null,
     isSelected: row.is_selected,
     isFavorite: row.is_favorite ?? false,
     comment: row.comment,

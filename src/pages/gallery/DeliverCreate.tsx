@@ -101,7 +101,7 @@ export default function DeliverCreate() {
             coverPhotoId={state.coverPhotoId}
             onCoverChange={actions.handleCoverChange}
             onPhotosChange={state.setPhotoCount}
-            coverModel={state.coverId}
+            coverModel={state.coverId ?? state.settings?.defaultCoverId}
             coverVideo={state.coverVideo}
             setCoverVideo={state.setCoverVideo}
           />

@@ -99,7 +99,7 @@ export default function DeliverDetail() {
             photos={data.photos}
             photosLoading={data.photosLoading}
             coverPhotoId={data.coverPhotoId}
-            coverModel={data.coverId}
+            coverModel={data.coverId ?? data.settings?.defaultCoverId}
             coverVideo={data.coverVideo}
             setCoverVideo={data.setCoverVideo}
             setCoverId={data.setCoverId}
@@ -132,8 +132,6 @@ export default function DeliverDetail() {
             setCoverVideo={data.setCoverVideo}
             coverCinema={data.coverCinema}
             setCoverCinema={data.setCoverCinema}
-            previewViewport={data.previewViewport}
-            setPreviewViewport={data.setPreviewViewport}
             photos={data.photos}
             publicToken={data.gallery.publicToken}
             sessionFont={data.sessionFont}
@@ -141,6 +139,8 @@ export default function DeliverDetail() {
             sessionName={data.sessionName}
             titleCaseMode={data.titleCaseMode}
             setTitleCaseMode={data.setTitleCaseMode}
+            clientMode={data.clientMode}
+            setClientMode={data.setClientMode}
             subtitle={data.subtitle}
             category={data.category}
             eventDate={data.eventDate}

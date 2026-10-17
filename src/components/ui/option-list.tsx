@@ -32,7 +32,8 @@ export function OptionList({ items, value, onValueChange, className, ...aria }: 
       value={value}
       onValueChange={onValueChange}
       aria-label={aria['aria-label']}
-      className={cn('grid gap-1.5', className)}
+      // minmax(0,1fr): sem isso a coluna implícita cresce até o texto truncado e estoura no celular.
+      className={cn('grid w-full grid-cols-[minmax(0,1fr)] gap-1.5', className)}
     >
       {items.map((item) => {
         const Glyph = item.glyph;
@@ -67,7 +68,7 @@ export function OptionList({ items, value, onValueChange, className, ...aria }: 
                 )}
               </span>
               {item.description && (
-                <span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.description}</span>
+                <span className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{item.description}</span>
               )}
             </span>
             <span

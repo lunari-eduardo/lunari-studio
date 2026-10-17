@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTransferStorage } from '@/hooks/useTransferStorage';
 import { useSettings } from '@/hooks/useSettings';
 import { DEFAULT_THEME_ID } from '@/components/gallery/themes/registry';
+import type { TitleCaseMode } from '@/types/gallery';
 
 export function useDeliverDetailData() {
   const { id } = useParams<{ id: string }>();
@@ -40,12 +41,14 @@ export function useDeliverDetailData() {
   const [useCustomTheme, setUseCustomTheme] = useState(false);
   const [themeOverrides, setThemeOverrides] = useState<any>({});
   const [coverId, setCoverId] = useState<string | null>(null);
-  const [previewViewport, setPreviewViewport] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
   const [subtitle, setSubtitle] = useState('');
   const [category, setCategory] = useState('');
   const [eventDate, setEventDate] = useState<Date | undefined>(undefined);
   const [coverVideo, setCoverVideo] = useState<any>(null);
   const [coverCinema, setCoverCinema] = useState<any>(null);
+  const [sessionFont, setSessionFont] = useState('playfair');
+  const [titleCaseMode, setTitleCaseMode] = useState<TitleCaseMode>('normal');
+  const [clientMode, setClientMode] = useState<'light' | 'dark'>('light');
 
   // Resolve client ID (from gallery directly, or fallback to session/name search)
   const { data: resolvedClienteId } = useQuery({
@@ -107,6 +110,9 @@ export function useDeliverDetailData() {
       setCoverId((gallery as any).coverId ?? null);
       setCoverVideo((gallery.configuracoes as any)?.coverVideo || null);
       setCoverCinema((gallery.configuracoes as any)?.coverCinema || null);
+      setSessionFont(gallery.configuracoes?.sessionFont || 'playfair');
+      setTitleCaseMode(gallery.configuracoes?.titleCaseMode || 'normal');
+      setClientMode(gallery.configuracoes?.clientMode === 'dark' ? 'dark' : 'light');
 
       // Migrate legacy gap to overrides if needed
       const legacyGap = gallery.configuracoes?.photoSpacing;
@@ -179,8 +185,12 @@ export function useDeliverDetailData() {
     setThemeOverrides,
     coverId,
     setCoverId,
-    previewViewport,
-    setPreviewViewport,
+    sessionFont,
+    setSessionFont,
+    titleCaseMode,
+    setTitleCaseMode,
+    clientMode,
+    setClientMode,
     subtitle,
     setSubtitle,
     category,

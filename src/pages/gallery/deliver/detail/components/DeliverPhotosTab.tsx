@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 
 interface DeliverPhotosTabProps {
   galleryId: string;
-  coverId?: string | null;
+  /** Capa efetiva (já resolvida com o padrão do estúdio). */
+  coverModel?: string | null;
   coverVideo?: any;
   setCoverVideo?: (v: any) => void;
   setCoverId?: (id: string | null) => void;

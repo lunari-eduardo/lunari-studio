@@ -19,6 +19,8 @@ export interface GaleriaPhoto {
   width: number;
   height: number;
   storageKey: string;
+  thumbPath?: string | null;
+  previewPath?: string | null;
   isSelected: boolean;
   isFavorite: boolean;
   comment: string | null;

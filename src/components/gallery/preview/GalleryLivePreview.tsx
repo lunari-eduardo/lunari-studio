@@ -9,6 +9,7 @@ import { buildClientThemeStyles } from '@/pages/gallery/client/hooks/useClientGa
 import { getFontFamilyById } from '@/components/FontSelect';
 import { getDemoCoverPhoto, getDemoGridPhotos } from '@/lib/demoCoverPhoto';
 import type { PhotoPaths } from '@/lib/photoUrl';
+import type { CoverVariantProps } from '@/components/deliver/covers/types';
 import type { Gallery, GalleryPhoto, TitleCaseMode } from '@/types/gallery';
 
 export type PreviewGalleryType = 'entrega' | 'selecao';
@@ -36,6 +37,13 @@ export interface GalleryLivePreviewProps {
   backgroundMode: 'light' | 'dark';
   /** Foto real de capa; sem ela, usa a foto de demonstração. */
   coverPhoto?: PhotoPaths | null;
+  /** Fotos reais da galeria para a grade (Entrega); sem elas, usa as de demonstração. */
+  photos?: any[];
+  galleryId?: string;
+  coverVideo?: CoverVariantProps['coverVideo'];
+  ctaLabel?: string;
+  contentPosition?: CoverVariantProps['contentPosition'];
+  overlayIntensity?: CoverVariantProps['overlayIntensity'];
 }
 
 const DEMO_FOLDERS = [
@@ -108,6 +116,12 @@ function DeliverPreview({
   gap,
   primaryColor,
   backgroundMode,
+  photos,
+  galleryId,
+  coverVideo,
+  ctaLabel,
+  contentPosition,
+  overlayIntensity,
 }: GalleryLivePreviewProps & { view: PreviewView; isDark: boolean; sessionFont: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -123,7 +137,8 @@ function DeliverPreview({
   const scrollToView = (target: PreviewView, smooth: boolean) => {
     const container = scrollRef.current;
     if (!container) return;
-    const top = target === 'photos' ? gridRef.current?.offsetTop ?? 0 : 0;
+    // +2: com o iframe escalado, o arredondamento deixava 1px da capa visível no topo da grade.
+    const top = target === 'photos' ? (gridRef.current?.offsetTop ?? 0) + 2 : 0;
     container.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' });
   };
 
@@ -147,6 +162,10 @@ function DeliverPreview({
           titleCaseMode={titleCaseMode}
           isDark={isDark}
           primaryColor={primaryColor}
+          coverVideo={coverVideo}
+          ctaLabel={ctaLabel}
+          contentPosition={contentPosition}
+          overlayIntensity={overlayIntensity}
           onEnter={() => scrollToView('photos', true)}
         />
       </div>
@@ -158,10 +177,10 @@ function DeliverPreview({
           customPrimaryColor={primaryColor}
         >
           <DeliverPhotoGrid
-            photos={getDemoGridPhotos() as any}
+            photos={(photos && photos.length > 0 ? photos : getDemoGridPhotos()) as any}
             onPhotoClick={() => {}}
             onDownload={() => {}}
-            galleryId="demo"
+            galleryId={galleryId ?? 'demo'}
             bgColor={bg}
           />
         </GalleryThemeProvider>

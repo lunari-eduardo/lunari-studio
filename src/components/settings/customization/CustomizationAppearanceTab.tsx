@@ -29,7 +29,7 @@ interface CustomizationAppearanceTabProps {
 }
 
 // Cores padrão com nomes simples e diretos
-export const PRESET_COLORS = [
+const PRESET_COLORS = [
   { label: 'Dourado Lunari', value: '#D1BE9F' },
   { label: 'Marrom', value: '#804621' },
   { label: 'Terracota', value: '#c46426' },
