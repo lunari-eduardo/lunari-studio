@@ -53,6 +53,11 @@ export function typographyKey(fieldKey: string): string {
   }
 }
 
+/** Chave da fonte própria (override local, não a categoria inteira) de um campo em props.typography. */
+export function typographyFontKey(fieldKey: string): string {
+  return `${fieldKey}Font`;
+}
+
 /** Chave da cor de um campo em props.typography. */
 export function typographyColorKey(fieldKey: string): string {
   switch (fieldKey) {

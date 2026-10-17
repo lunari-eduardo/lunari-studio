@@ -1,7 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useInlineEdit } from './inlineContext';
-import { fluidPx, typographyKey, typographyColorKey } from '../components/editor/blocks/helpers';
+import { fluidPx, typographyKey, typographyColorKey, typographyFontKey } from '../components/editor/blocks/helpers';
+import { ensureFontLoaded } from './design';
 
 interface EditableTextProps {
   value: string | undefined;
@@ -53,8 +54,17 @@ export function EditableText({
     : undefined;
   const colorOverride = typeof rawColor === 'string' ? rawColor : undefined;
 
+  // Fonte própria por instância (ex.: nome de cada pacote) — sobrepõe a fonte da categoria do tema.
+  const rawFont = fieldKey ? inline?.typography?.[typographyFontKey(fieldKey)] : undefined;
+  const fontOverride = typeof rawFont === 'string' ? rawFont : undefined;
+
   if (sizeOverride) style = { ...style, ...sizeOverride };
   if (colorOverride) style = { ...style, color: colorOverride };
+  if (fontOverride) style = { ...style, fontFamily: `'${fontOverride}', sans-serif` };
+
+  useEffect(() => {
+    if (fontOverride) ensureFontLoaded(fontOverride);
+  }, [fontOverride]);
 
   // Sincroniza o DOM apenas fora da edição (nunca pula o caret).
   // useLayoutEffect: texto presente já na primeira pintura (sem flash).

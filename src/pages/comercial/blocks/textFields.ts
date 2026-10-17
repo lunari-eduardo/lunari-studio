@@ -13,6 +13,8 @@ export interface FieldInfo {
   min: number;
   max: number;
   defaultSize: number;
+  /** Fonte própria por instância (ex.: nome de cada pacote), em vez da fonte global da categoria. */
+  localFontOverride?: boolean;
 }
 
 const BOUNDS_BY_KEY: Record<string, Omit<FieldInfo, 'fieldKey'>> = {
@@ -146,18 +148,21 @@ export function resolveFieldInfo(path: string): FieldInfo {
     };
   }
 
-  // Nome de cada pacote: cartão próprio, não deve herdar nem compartilhar tamanho/cor
-  // com o Título Principal da seção nem com os demais pacotes (chave única por índice,
-  // sem ponto — a chave vira sufixo literal em props.typography, não um caminho aninhado).
-  const packageNameMatch = /^packages\.(\d+)\.name$/.exec(path);
-  if (packageNameMatch) {
+  // Nome de cada pacote: cartão próprio, não deve herdar nem compartilhar tamanho/cor/fonte
+  // com o Título Principal da seção nem com os demais pacotes (chave única por índice).
+  // Aceita tanto o caminho bruto ("packages.0.name") quanto a própria fieldKey já resolvida
+  // ("package_0_name") — a barra flutuante chama resolveFieldInfo de novo sobre o valor
+  // resolvido, então a função precisa ser idempotente ou perde o label/role corretos.
+  const idx = /^packages\.(\d+)\.name$/.exec(path)?.[1] ?? /^package_(\d+)_name$/.exec(path)?.[1];
+  if (idx !== undefined) {
     return {
-      fieldKey: `package_${packageNameMatch[1]}_name`,
+      fieldKey: `package_${idx}_name`,
       role: 'display',
       label: 'Nome do Pacote',
       min: 14,
       max: 64,
       defaultSize: 24,
+      localFontOverride: true,
     };
   }
 

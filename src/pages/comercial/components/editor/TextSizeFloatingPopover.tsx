@@ -27,8 +27,12 @@ export interface TextSizePopoverProps {
   onChange: (fieldKey: string, size: number | undefined) => void;
   /** Callback ao mudar a cor; `undefined` remove o override. */
   onColorChange?: (fieldKey: string, color: string | undefined) => void;
-  /** Callback ao mudar a fonte da categoria (ex: role = 'subtitle', font = 'Montserrat'). */
+  /** Callback ao mudar a fonte da categoria inteira (ex: role = 'subtitle', font = 'Montserrat'). */
   onFontCategoryChange?: (role: TextRole, font: string) => void;
+  /** Fonte própria deste campo (do block.props.typography), quando `localFontOverride` está ativo. */
+  currentFont?: string;
+  /** Callback ao mudar a fonte só deste campo; `undefined` remove o override e volta à fonte da categoria. */
+  onFontChange?: (fieldKey: string, font: string | undefined) => void;
   /** Elemento âncora para posicionamento. */
   anchorEl: HTMLElement | null;
   /** Fecha o popover. */
@@ -58,6 +62,8 @@ export function TextSizeFloatingPopover({
   onChange,
   onColorChange,
   onFontCategoryChange,
+  currentFont,
+  onFontChange,
   anchorEl,
   onClose,
 }: TextSizePopoverProps) {
@@ -96,6 +102,10 @@ export function TextSizeFloatingPopover({
       let top = rect.top - popoverHeight - 8;
       let left = rect.left + rect.width / 2;
 
+      // Mantém a barra inteira dentro da tela (celular/tablet): centro limitado pela metade da largura real
+      const half = (popoverRef.current?.offsetWidth ?? 0) / 2 + 8;
+      left = Math.min(Math.max(left, half), window.innerWidth - half);
+
       // Se não couber acima, posiciona logo abaixo
       if (top < 8) {
         top = rect.bottom + 8;
@@ -105,9 +115,13 @@ export function TextSizeFloatingPopover({
     };
 
     updatePosition();
+    // A largura muda com o conteúdo (tamanho, cor, fonte): reposiciona para não escapar da tela
+    const ro = popoverRef.current ? new ResizeObserver(updatePosition) : null;
+    if (ro && popoverRef.current) ro.observe(popoverRef.current);
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
     return () => {
+      ro?.disconnect();
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
     };
@@ -173,7 +187,7 @@ export function TextSizeFloatingPopover({
     { key: 'cream', label: 'Creme', color: palette.cream },
   ];
 
-  // Fonte atual da categoria deste campo
+  // Fonte atual da categoria deste campo (herdada quando não há override local)
   const currentCategoryFont =
     designTokens?.typography?.[fieldInfo.role === 'body' ? 'body' : fieldInfo.role] ||
     (fieldInfo.role === 'subtitle'
@@ -181,6 +195,14 @@ export function TextSizeFloatingPopover({
       : fieldInfo.role === 'display'
       ? designTokens?.typography?.display || 'Playfair Display'
       : 'Inter');
+
+  // Campos com fonte própria (ex.: nome de cada pacote) não mexem na categoria inteira da proposta
+  const isLocalFont = fieldInfo.localFontOverride === true;
+  const effectiveFont = isLocalFont ? currentFont ?? currentCategoryFont : currentCategoryFont;
+  const selectFont = (family: string) => {
+    if (isLocalFont) onFontChange?.(fieldKey, family);
+    else onFontCategoryChange?.(fieldInfo.role, family);
+  };
 
   // Filtro de fontes compatíveis com este papel
   const isBodyRole = fieldInfo.role === 'body';
@@ -196,7 +218,10 @@ export function TextSizeFloatingPopover({
   return createPortal(
     <div
       ref={popoverRef}
-      className="fixed z-[999] flex items-center gap-1.5 rounded-2xl !bg-[#18181b] border border-zinc-700/80 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.5)] select-none text-white transition-all duration-150"
+      className="fixed z-[999] flex max-w-[calc(100vw-1rem)] items-center gap-1.5 overflow-x-auto no-scrollbar rounded-2xl !bg-[#18181b] border border-zinc-700/80 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.5)] select-none text-white [&>*]:shrink-0"
+      onWheel={(e) => {
+        if (e.deltaY && !e.shiftKey) e.currentTarget.scrollLeft += e.deltaY;
+      }}
       style={{
         top: position.top,
         left: position.left,
@@ -296,6 +321,7 @@ export function TextSizeFloatingPopover({
           align="center"
           side="top"
           sideOffset={8}
+          collisionPadding={8}
           className="z-[1000] w-64 rounded-2xl !bg-[#18181b] !opacity-100 !backdrop-blur-none border border-zinc-700/80 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white select-none"
           style={{
             backgroundColor: '#18181b',
@@ -437,20 +463,20 @@ export function TextSizeFloatingPopover({
       </Popover>
 
       {/* Divisória 2 */}
-      {onFontCategoryChange && (
+      {(onFontCategoryChange || (isLocalFont && onFontChange)) && (
         <>
           <div className="h-4 w-px bg-white/15 mx-0.5" />
 
-          {/* SELETOR DE FONTE DA CATEGORIA */}
+          {/* SELETOR DE FONTE (da categoria inteira, ou só deste campo quando tem fonte própria) */}
           <Popover open={fontOpen} onOpenChange={setFontOpen}>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 className="flex items-center gap-1.5 h-6 px-2 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors max-w-[130px]"
-                title={`Fonte de todos os ${CATEGORY_NAMES[fieldInfo.role] || 'textos'} da proposta`}
+                title={isLocalFont ? 'Fonte só deste elemento' : `Fonte de todos os ${CATEGORY_NAMES[fieldInfo.role] || 'textos'} da proposta`}
               >
                 <Type className="h-3 w-3 text-white/60 shrink-0" />
-                <span className="truncate text-[11px] font-sans">{currentCategoryFont}</span>
+                <span className="truncate text-[11px] font-sans">{effectiveFont}</span>
                 <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
               </button>
             </PopoverTrigger>
@@ -458,7 +484,8 @@ export function TextSizeFloatingPopover({
               align="end"
               side="top"
               sideOffset={8}
-              className="z-[1000] w-64 max-h-80 overflow-y-auto custom-scrollbar rounded-2xl !bg-[#18181b] !opacity-100 !backdrop-blur-none border border-zinc-700/80 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white select-none"
+              collisionPadding={8}
+              className="z-[1000] w-64 max-h-[min(20rem,60vh)] overflow-y-auto overscroll-contain scrollbar-dark rounded-2xl !bg-[#18181b] !opacity-100 !backdrop-blur-none border border-zinc-700/80 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white select-none"
               style={{
                 backgroundColor: '#18181b',
                 color: '#ffffff',
@@ -470,10 +497,12 @@ export function TextSizeFloatingPopover({
               <div className="space-y-2.5">
                 <div>
                   <p className="text-xs font-semibold text-white">
-                    {CATEGORY_NAMES[fieldInfo.role]}
+                    {isLocalFont ? bounds.label : CATEGORY_NAMES[fieldInfo.role]}
                   </p>
                   <p className="text-[10px] text-zinc-400 leading-tight">
-                    Aplica a todos os {CATEGORY_NAMES[fieldInfo.role]?.toLowerCase() || 'textos'} da proposta.
+                    {isLocalFont
+                      ? 'Fonte própria deste elemento — não afeta o título nem os demais pacotes.'
+                      : `Aplica a todos os ${CATEGORY_NAMES[fieldInfo.role]?.toLowerCase() || 'textos'} da proposta.`}
                   </p>
                 </div>
 
@@ -490,14 +519,14 @@ export function TextSizeFloatingPopover({
                         </span>
                         <div className="flex flex-col gap-0.5">
                           {families.map(([family, f]) => {
-                            const isSelected = currentCategoryFont === family;
+                            const isSelected = effectiveFont === family;
                             ensureFontLoaded(family);
                             return (
                               <button
                                 key={family}
                                 type="button"
                                 onClick={() => {
-                                  onFontCategoryChange(fieldInfo.role, family);
+                                  selectFont(family);
                                   setFontOpen(false);
                                 }}
                                 className={cn(
@@ -519,6 +548,25 @@ export function TextSizeFloatingPopover({
                     );
                   })}
                 </div>
+
+                {isLocalFont && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onFontChange?.(fieldKey, undefined);
+                      setFontOpen(false);
+                    }}
+                    disabled={currentFont === undefined}
+                    className={cn(
+                      'w-full py-1.5 text-center text-xs rounded-lg transition-colors border',
+                      currentFont === undefined
+                        ? 'bg-transparent text-zinc-600 border-zinc-800 cursor-default'
+                        : 'bg-transparent text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200'
+                    )}
+                  >
+                    Fonte do tema (automática)
+                  </button>
+                )}
               </div>
             </PopoverContent>
           </Popover>

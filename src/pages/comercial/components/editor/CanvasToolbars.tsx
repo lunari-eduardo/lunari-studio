@@ -129,8 +129,11 @@ export function SectionToolbar({ block, index, count, palette, uiScale = 1, onSe
   return (
     <div className="pointer-events-none sticky top-3 z-30 h-0" onClick={stop} onDoubleClick={stop}>
       <div
-        className="pointer-events-auto absolute right-3 top-0 flex items-center gap-0.5 rounded-xl border border-border/70 bg-background/95 p-1 text-foreground shadow-[0_4px_30px_rgba(0,0,0,0.12)] backdrop-blur-sm"
+        className="pointer-events-auto absolute right-3 top-0 flex max-w-[calc(100%-1.5rem)] items-center gap-0.5 overflow-x-auto no-scrollbar [&>*]:shrink-0 rounded-xl border border-border/70 bg-background/95 p-1 text-foreground shadow-[0_4px_30px_rgba(0,0,0,0.12)] backdrop-blur-sm"
         style={uiScale !== 1 ? { zoom: 1 / uiScale } : undefined}
+        onWheel={(e) => {
+          if (e.deltaY && !e.shiftKey && e.currentTarget.scrollWidth > e.currentTarget.clientWidth) e.currentTarget.scrollLeft += e.deltaY;
+        }}
       >
         {layout && (
           <Popover>

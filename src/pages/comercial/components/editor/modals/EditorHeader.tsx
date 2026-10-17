@@ -108,30 +108,102 @@ export function EditorHeader({
 }: EditorHeaderProps) {
   const navigate = useNavigate();
 
+  // Alternador desktop/celular + zoom. No desktop fica centralizado no cabeçalho; abaixo de lg entra na faixa rolável.
+  // No celular o alternador some: o canvas já tem a largura de um celular, a moldura só gastaria espaço.
+  const viewControls = (
+    <>
+      <div className="hidden md:flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setViewMode('desktop')}
+          title="Visualização desktop"
+          aria-label="Visualização desktop"
+          className={cn(
+            'h-8 px-3 rounded-md',
+            viewMode === 'desktop' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Monitor className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setViewMode('mobile')}
+          title="Visualização celular"
+          aria-label="Visualização celular"
+          className={cn(
+            'h-8 px-3 rounded-md',
+            viewMode === 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Smartphone className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {viewMode === 'desktop' && (
+        <div className="hidden md:flex items-center bg-muted/40 rounded-lg p-0.5 border border-border/60">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            onClick={onZoomOut}
+            disabled={zoom <= 0.25}
+            title="Afastar (Ctrl + rolagem)"
+            aria-label="Afastar"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <button
+            type="button"
+            onClick={onZoomFit}
+            disabled={zoomIsFit}
+            title={zoomIsFit ? 'Ajustado à largura' : 'Ajustar à largura'}
+            className="min-w-[3rem] px-1 text-center text-[11px] font-medium tabular-nums text-muted-foreground enabled:hover:text-foreground disabled:cursor-default"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            onClick={onZoomIn}
+            disabled={zoom >= 2}
+            title="Aproximar (Ctrl + rolagem)"
+            aria-label="Aproximar"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </>
+  );
+
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-2 sm:px-4">
       {/* Esquerda: Navegação e Status */}
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 shrink items-center gap-2 sm:gap-4">
         <Button
           variant="ghost"
           size="icon"
+          className="shrink-0"
           onClick={() => navigate('/app/comercial/biblioteca')}
           title="Voltar para a Biblioteca"
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        <div className="h-4 w-px bg-border" />
+        <div className="hidden sm:block h-4 w-px shrink-0 bg-border" />
 
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground font-medium hidden sm:inline-block">
+            <span className="text-sm text-muted-foreground font-medium hidden xl:inline-block whitespace-nowrap">
               Comercial / Biblioteca /
             </span>
             <Input
               value={state.title}
               onChange={(e) => onUpdateTitle(e.target.value)}
-              className="h-7 w-[200px] sm:w-[300px] border-transparent bg-transparent px-1 font-semibold text-foreground shadow-none hover:bg-muted/50 focus-visible:ring-1 p-0 -ml-1 text-sm"
+              className="h-7 w-[7.5rem] sm:w-[11rem] lg:w-[16rem] xl:w-[300px] max-w-full border-transparent bg-transparent px-1 font-semibold text-foreground shadow-none hover:bg-muted/50 focus-visible:ring-1 p-0 -ml-1 text-sm"
               placeholder="Título do Material"
             />
           </div>
@@ -158,194 +230,145 @@ export function EditorHeader({
         </div>
       </div>
 
-      {/* Centro: Toggles de Visualização + Zoom (apenas para construtor de blocos nativo) */}
+      {/* Centro (lg+): Toggles de Visualização + Zoom (apenas para construtor de blocos nativo) */}
       {state.format === 'blocks' && (
-        <div className="absolute left-1/2 top-3 -translate-x-1/2 flex items-center gap-2">
-          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewMode('desktop')}
-              className={cn(
-                'h-8 px-3 rounded-md',
-                viewMode === 'desktop' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Monitor className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setViewMode('mobile')}
-              className={cn(
-                'h-8 px-3 rounded-md',
-                viewMode === 'mobile' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Smartphone className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {viewMode === 'desktop' && (
-            <div className="hidden md:flex items-center bg-muted/40 rounded-lg p-0.5 border border-border/60">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={onZoomOut}
-                disabled={zoom <= 0.25}
-                title="Afastar (Ctrl + rolagem)"
-                aria-label="Afastar"
-              >
-                <ZoomOut className="h-3.5 w-3.5" />
-              </Button>
-              <button
-                type="button"
-                onClick={onZoomFit}
-                disabled={zoomIsFit}
-                title={zoomIsFit ? 'Ajustado à largura' : 'Ajustar à largura'}
-                className="min-w-[3rem] px-1 text-center text-[11px] font-medium tabular-nums text-muted-foreground enabled:hover:text-foreground disabled:cursor-default"
-              >
-                {Math.round(zoom * 100)}%
-              </button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={onZoomIn}
-                disabled={zoom >= 2}
-                title="Aproximar (Ctrl + rolagem)"
-                aria-label="Aproximar"
-              >
-                <ZoomIn className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <div className="absolute left-1/2 top-3 hidden -translate-x-1/2 items-center gap-2 lg:flex">{viewControls}</div>
       )}
 
-      {/* Esquerda (mobile/tablet): botões dos painéis em drawer (apenas para blocos) */}
-      {state.format === 'blocks' && (
-        <div className="flex lg:hidden items-center gap-1">
-          <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileStructure}>
-            <Layers className="h-4 w-4" />
-            Estrutura
-          </Button>
-          {hasActiveBlock && (
-            <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileProperties}>
-              <PanelRight className="h-4 w-4" />
-              Editar
+      {/* Faixa de ações: abaixo de lg rola na horizontal (roda do mouse também), sem cortar nada; o menu ⋯ fica fora dela, sempre visível */}
+      <div
+        className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto no-scrollbar lg:overflow-visible [&>*]:shrink-0"
+        onWheel={(e) => {
+          if (e.deltaY && !e.shiftKey && e.currentTarget.scrollWidth > e.currentTarget.clientWidth) e.currentTarget.scrollLeft += e.deltaY;
+        }}
+      >
+        {/* Painéis em gaveta (abaixo de lg) */}
+        {state.format === 'blocks' && (
+          <div className="flex items-center gap-1 lg:hidden">
+            <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileStructure}>
+              <Layers className="h-4 w-4" />
+              Estrutura
             </Button>
-          )}
-        </div>
-      )}
-
-      {/* Direita: Ações */}
-      <div className="flex items-center gap-2">
-        {state.format === 'blocks' ? (
-          <>
-            <div className="hidden sm:flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={onUndo}
-                disabled={!canUndo}
-                title="Desfazer (Ctrl+Z)"
-              >
-                <Undo2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={onRedo}
-                disabled={!canRedo}
-                title="Refazer (Ctrl+Shift+Z)"
-              >
-                <Redo2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
-              <span className="hidden sm:inline">Pré-visualizar</span>
-              <Maximize className="h-3.5 w-3.5" />
-            </Button>
-          </>
-        ) : (
-          <>
-            {state.pdfUrl && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={() => window.open(state.pdfUrl, '_blank')}
-                title="Abrir PDF em nova aba"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Abrir em nova aba</span>
+            {hasActiveBlock && (
+              <Button variant="outline" size="sm" className="gap-2" onClick={onOpenMobileProperties}>
+                <PanelRight className="h-4 w-4" />
+                Editar
               </Button>
             )}
+          </div>
+        )}
 
-            {onUploadPdf && (
+        {/* Visualização/zoom (tablet); no desktop ficam centralizados acima */}
+        {state.format === 'blocks' && <div className="hidden items-center gap-2 md:flex lg:hidden">{viewControls}</div>}
+
+        {/* Ações (empurradas para a direita quando sobra espaço) */}
+        <div className="ml-auto flex items-center gap-2">
+          {state.format === 'blocks' ? (
+            <>
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                  title="Desfazer (Ctrl+Z)"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                  title="Refazer (Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <Button variant="outline" size="sm" className="gap-2" onClick={onOpenPreview}>
+                <span className="hidden sm:inline">Pré-visualizar</span>
+                <Maximize className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              {state.pdfUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => window.open(state.pdfUrl, '_blank')}
+                  title="Abrir PDF em nova aba"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Abrir em nova aba</span>
+                </Button>
+              )}
+
+              {onUploadPdf && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="relative gap-2"
+                  disabled={isUploadingPdf}
+                  title="Substituir arquivo PDF"
+                >
+                  {isUploadingPdf ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  <span className="hidden sm:inline">Substituir Arquivo</span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    onChange={onUploadPdf}
+                    disabled={isUploadingPdf}
+                  />
+                </Button>
+              )}
+            </>
+          )}
+
+          {hasChanges ? (
+            <>
               <Button
-                variant="outline"
+                variant="default"
                 size="sm"
-                className="relative gap-2"
-                disabled={isUploadingPdf}
-                title="Substituir arquivo PDF"
+                onClick={onSaveDraft}
+                disabled={saveStatus === 'saving'}
+                className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm gap-2 disabled:opacity-70"
               >
-                {isUploadingPdf ? (
+                {saveStatus === 'saving' ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Upload className="h-3.5 w-3.5" />
+                  <Save className="h-3.5 w-3.5" />
                 )}
-                <span className="hidden sm:inline">Substituir Arquivo</span>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  onChange={onUploadPdf}
-                  disabled={isUploadingPdf}
-                />
+                {saveStatus === 'saving' ? 'Salvando...' : <>Salvar<span className="hidden sm:inline"> Rascunho</span></>}
               </Button>
-            )}
-          </>
-        )}
-
-        {hasChanges ? (
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onSaveDraft}
-              disabled={saveStatus === 'saving'}
-              className="bg-amber-600 hover:bg-amber-700 text-white shadow-sm gap-2 disabled:opacity-70"
-            >
-              {saveStatus === 'saving' ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-              {saveStatus === 'saving' ? 'Salvando...' : 'Salvar Rascunho'}
-            </Button>
-            <Button size="sm" onClick={onPublish} className="gap-2 bg-primary">
-              <UploadCloud className="h-3.5 w-3.5" />
-              Publicar Versão
-            </Button>
-          </>
-        ) : (
-          !state.isPublished && (
-            <Button size="sm" onClick={onPublish} className="gap-2 bg-primary">
-              <UploadCloud className="h-3.5 w-3.5" />
-              Publicar Versão
-            </Button>
-          )
-        )}
+              <Button size="sm" onClick={onPublish} className="gap-2 bg-primary">
+                <UploadCloud className="h-3.5 w-3.5" />
+                Publicar<span className="hidden sm:inline"> Versão</span>
+              </Button>
+            </>
+          ) : (
+            !state.isPublished && (
+              <Button size="sm" onClick={onPublish} className="gap-2 bg-primary">
+                <UploadCloud className="h-3.5 w-3.5" />
+                Publicar<span className="hidden sm:inline"> Versão</span>
+              </Button>
+            )
+          )}
+        </div>
+      </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 ml-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Mais opções">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -406,7 +429,6 @@ export function EditorHeader({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
     </header>
   );
 }

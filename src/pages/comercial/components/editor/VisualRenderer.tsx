@@ -5,7 +5,7 @@ import { ProposalDesignTokens, tokensToCssVars, ensureFontLoaded, isHexColor, on
 import { InlineEditContext } from '../../blocks/inlineContext';
 import { stripExamplePhotos } from '../../blocks/examplePhotos';
 import { EditorialComposition } from '../../blocks/EditorialComposition';
-import { BlockObserver, typographyKey, typographyColorKey } from './blocks/helpers';
+import { BlockObserver, typographyKey, typographyColorKey, typographyFontKey } from './blocks/helpers';
 import { type TextRole } from '../../blocks/textFields';
 import { CoverRenderer } from './blocks/CoverBlocks';
 import { EditorialRenderer } from './blocks/EditorialBlocks';
@@ -165,6 +165,14 @@ export function VisualRenderer({
       if (textSizeState.blockIndex < 0) return;
       const propColorKey = typographyColorKey(fieldKey);
       onUpdateField?.(textSizeState.blockIndex, `props.typography.${propColorKey}`, color);
+    },
+    [textSizeState.blockIndex, onUpdateField]
+  );
+
+  const handleTextFontChange = useCallback(
+    (fieldKey: string, font: string | undefined) => {
+      if (textSizeState.blockIndex < 0) return;
+      onUpdateField?.(textSizeState.blockIndex, `props.typography.${typographyFontKey(fieldKey)}`, font);
     },
     [textSizeState.blockIndex, onUpdateField]
   );
@@ -410,11 +418,17 @@ export function VisualRenderer({
             const canonicalColorKey = typographyColorKey(textSizeState.fieldKey);
             return typo[canonicalColorKey] ?? typo[`${textSizeState.fieldKey}Color`];
           })()}
+          currentFont={(() => {
+            if (textSizeState.blockIndex < 0) return undefined;
+            const typo = (blocks[textSizeState.blockIndex]?.props as any)?.typography;
+            return typo?.[typographyFontKey(textSizeState.fieldKey)];
+          })()}
           designTokens={designTokens}
           anchorEl={textSizeState.anchorEl}
           onChange={handleTextSizeChange}
           onColorChange={handleTextColorChange}
           onFontCategoryChange={onUpdateDesignTokens ? handleFontCategoryChange : undefined}
+          onFontChange={handleTextFontChange}
           onClose={() => setTextSizeState({ fieldKey: null, anchorEl: null, blockIndex: -1 })}
         />
       )}
