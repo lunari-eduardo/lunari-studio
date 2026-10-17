@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Palette, Layers } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import { ThemeCatalog } from '@/components/dashboard/themes/ThemeCatalog';
 
 interface ThemeConfigProps {
@@ -46,7 +47,10 @@ export function ThemeConfig({
             <Palette className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-base">Presets de Temas</h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-base">Presets de Temas</h3>
+              <Badge variant="secondary" className="text-[10px]">Ambas (grade de fotos)</Badge>
+            </div>
             <p className="text-sm text-muted-foreground">Escolha a base visual das suas galerias</p>
           </div>
         </div>

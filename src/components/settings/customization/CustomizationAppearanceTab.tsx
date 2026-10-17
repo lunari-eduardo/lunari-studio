@@ -6,7 +6,9 @@ import { FontSelect } from '@/components/FontSelect';
 import { TitleCaseMode } from '@/types/gallery';
 import { ThemeConfig } from '@/components/settings/ThemeConfig';
 import { CoverConfig } from '@/components/settings/CoverConfig';
+import { SelectionCoverConfig } from '@/components/settings/SelectionCoverConfig';
 import { WatermarkSettings } from '@/components/settings/WatermarkSettings';
+import { Badge } from '@/components/ui/badge';
 import { GalleryThemePreviewBlock } from '@/components/settings/customization/GalleryThemePreviewBlock';
 import { CustomColorPickerModal } from '@/components/settings/customization/CustomColorPickerModal';
 import { GlobalSettings } from '@/types/gallery';
@@ -149,8 +151,9 @@ export function CustomizationAppearanceTab({
         {/* Modo Visual da Galeria */}
         <div className="lunari-card p-6 sm:p-7 space-y-5">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-base font-semibold text-foreground">Modo Visual da Galeria</Label>
+              <Badge variant="secondary" className="text-[10px]">Ambas</Badge>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Define como o esquema de cores e contraste é apresentado para os seus clientes
@@ -232,7 +235,10 @@ export function CustomizationAppearanceTab({
         <div className="lunari-card p-6 sm:p-7 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <Label className="text-base font-semibold text-foreground">Cor da Galeria (Botões de Ação)</Label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Label className="text-base font-semibold text-foreground">Cor da Galeria (Botões de Ação)</Label>
+                <Badge variant="secondary" className="text-[10px]">Ambas</Badge>
+              </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                 Cor aplicada nos botões de confirmação, seleções ativas e destaques da galeria
               </p>
@@ -376,15 +382,27 @@ export function CustomizationAppearanceTab({
           />
         </div>
 
-        {/* Watermark */}
+        {/* Selection Cover Config (Header — exclusivo Galerias de Seleção) */}
         <div className="lunari-card p-6 sm:p-7">
+          <SelectionCoverConfig
+            defaultSelectionCoverId={settings.defaultSelectionCoverId || 'minimal-logo'}
+            onUpdate={(data) => updateSettings(data, { successMessage: 'Capa padrão de Seleção atualizada.' })}
+          />
+        </div>
+
+        {/* Watermark */}
+        <div className="lunari-card p-6 sm:p-7 space-y-1">
+          <Badge variant="secondary" className="text-[10px]">Ambas</Badge>
           <WatermarkSettings />
         </div>
 
         {/* Typography */}
         <div className="lunari-card p-6 sm:p-7 space-y-4">
           <div>
-            <Label className="text-base font-semibold text-foreground">Tipografia Padrão</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-base font-semibold text-foreground">Tipografia Padrão</Label>
+              <Badge variant="secondary" className="text-[10px]">Ambas</Badge>
+            </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Estilo de título e fonte aplicado automaticamente em novas galerias
             </p>
@@ -406,7 +424,10 @@ export function CustomizationAppearanceTab({
         {/* Default Grid Spacing */}
         <div className="lunari-card p-6 sm:p-7 space-y-4">
           <div>
-            <Label className="text-base font-semibold text-foreground">Espaçamento entre Fotos (Grid)</Label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Label className="text-base font-semibold text-foreground">Espaçamento entre Fotos (Grid)</Label>
+              <Badge variant="secondary" className="text-[10px]">Ambas</Badge>
+            </div>
             <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Distância em pixels (gap) entre as fotografias na grade da galeria do cliente
             </p>

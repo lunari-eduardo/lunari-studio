@@ -1,14 +1,17 @@
 import { Suspense } from 'react';
 import { COVER_REGISTRY, DEFAULT_COVER_ID } from './registry';
-import type { CoverVariantProps } from './types';
+import type { CoverVariant, CoverVariantProps } from './types';
 import { getPhotoUrl } from '@/lib/photoUrl';
 
 interface Props extends CoverVariantProps {
   coverId?: string | null;
+  /** Catálogo alternativo de capas (ex: SELECTION_COVER_REGISTRY). Default: COVER_REGISTRY (Entrega). */
+  registry?: Record<string, CoverVariant>;
 }
 
-export function CoverRenderer({ coverId, ...props }: Props) {
-  const variant = COVER_REGISTRY[coverId ?? DEFAULT_COVER_ID] ?? COVER_REGISTRY[DEFAULT_COVER_ID];
+export function CoverRenderer({ coverId, registry, ...props }: Props) {
+  const activeRegistry = registry ?? COVER_REGISTRY;
+  const variant = activeRegistry[coverId ?? DEFAULT_COVER_ID] ?? Object.values(activeRegistry)[0];
   const Comp = variant.Component;
 
   // Fallback que usa a foto de capa para evitar flashes

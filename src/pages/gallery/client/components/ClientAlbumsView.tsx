@@ -2,8 +2,11 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { Gallery, GalleryPhoto } from '@/types/gallery';
 import { getFontFamilyById } from '@/components/FontSelect';
-import { applyTitleCase } from '@/lib/textTransform';
 import { cn } from '@/lib/utils';
+import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
+import { resolveCoverId } from '@/components/deliver/covers/registry';
+import { SELECTION_COVER_REGISTRY, DEFAULT_SELECTION_COVER_ID } from '@/components/gallery/covers/registry';
+import { getDemoCoverPhoto } from '@/lib/demoCoverPhoto';
 
 interface ClientAlbumsViewProps {
   gallery: Gallery;
@@ -26,32 +29,40 @@ export function ClientAlbumsView({
   effectiveBackgroundMode,
   onSelectFolder,
 }: ClientAlbumsViewProps) {
+  const effectiveCoverId = resolveCoverId(gallery.settings.coverId, SELECTION_COVER_REGISTRY, DEFAULT_SELECTION_COVER_ID);
+  const firstPhoto = localPhotos[0];
+  const demoPhoto = getDemoCoverPhoto('horizontal');
+  const coverPhoto = firstPhoto
+    ? {
+        storageKey: firstPhoto.previewUrl,
+        previewPath: firstPhoto.previewUrl,
+        width: firstPhoto.width,
+        height: firstPhoto.height,
+      }
+    : demoPhoto;
+
   return (
-    <div 
+    <div
       className={cn(
         "min-h-screen flex flex-col bg-background text-foreground",
         effectiveBackgroundMode === 'dark' && 'dark'
       )}
       style={themeStyles}
     >
-      {studioLogoUrl && (
-        <header className="flex items-center justify-center py-6 sm:py-8">
-          <img 
-            src={studioLogoUrl} 
-            alt={studioName || 'Logo'} 
-            className="h-[86px] sm:h-[100px] md:h-[130px] lg:h-[144px] max-w-[288px] object-contain"
-          />
-        </header>
-      )}
+      <CoverRenderer
+        registry={SELECTION_COVER_REGISTRY}
+        coverId={effectiveCoverId}
+        coverPhoto={coverPhoto}
+        sessionName={gallery.sessionName}
+        studioName={studioName || undefined}
+        studioLogoUrl={studioLogoUrl}
+        sessionFont={getFontFamilyById(gallery.settings.sessionFont)}
+        titleCaseMode={gallery.settings.titleCaseMode}
+        onEnter={() => {}}
+      />
       <main className="flex-1 flex flex-col items-center px-5 py-6">
-        <h2 
-          className="text-3xl sm:text-4xl font-normal mb-1 text-center tracking-tight"
-          style={{ fontFamily: getFontFamilyById(gallery.settings.sessionFont) }}
-        >
-          {applyTitleCase(gallery.sessionName, gallery.settings.titleCaseMode || 'normal')}
-        </h2>
         <p className="text-muted-foreground text-sm mb-10">{localPhotos.length} fotos</p>
-        
+
         <div className={cn(
           "grid gap-5 w-full",
           galleryFolders.length === 1 

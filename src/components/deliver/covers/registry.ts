@@ -56,11 +56,15 @@ export const DEFAULT_COVER_ID = 'fullscreen';
 
 export const COVER_LIST: CoverVariant[] = Object.values(COVER_REGISTRY);
 
-export function resolveCoverId(id?: string | null): string {
-  if (!id) return DEFAULT_COVER_ID;
-  if (COVER_REGISTRY[id]) return id;
+export function resolveCoverId(
+  id?: string | null,
+  registry: Record<string, CoverVariant> = COVER_REGISTRY,
+  defaultId: string = DEFAULT_COVER_ID
+): string {
+  if (!id) return defaultId;
+  if (registry[id]) return id;
   if (import.meta.env?.DEV) {
-    console.warn(`[Cover] ID desconhecido "${id}" — usando fallback "${DEFAULT_COVER_ID}".`);
+    console.warn(`[Cover] ID desconhecido "${id}" — usando fallback "${defaultId}".`);
   }
-  return DEFAULT_COVER_ID;
+  return defaultId;
 }

@@ -265,6 +265,7 @@ export function useGalleryCreateForm() {
     allowDownload: formState.allowDownload,
     allowExtraPhotos: formState.allowExtraPhotos,
     selectedThemeId: formState.selectedThemeId,
+    selectedCoverId: formState.selectedCoverId,
     clientMode: formState.clientMode,
     sessionFont: formState.sessionFont,
     titleCaseMode: formState.titleCaseMode,

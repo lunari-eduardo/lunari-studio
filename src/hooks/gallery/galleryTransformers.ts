@@ -1,4 +1,5 @@
-import { Galeria, GaleriaConfiguracoes, RegrasCongeladas, GaleriaPhoto } from '../useSupabaseGalleries';
+import { Galeria, GaleriaConfiguracoes, GaleriaPhoto } from '../useSupabaseGalleries';
+import type { RegrasCongeladas } from '@/lib/pricingUtils';
 
 export function transformGaleria(row: any): Galeria {
   const configuracoes = (row.configuracoes as GaleriaConfiguracoes) || {};
@@ -45,7 +46,10 @@ export function transformGaleria(row: any): Galeria {
     tipo: row.tipo === 'entrega' ? 'entrega' : 'selecao',
     firstPhotoKey,
     coverPhotoKey,
-    themeId: row.theme_id,
+    // Fallback retrocompatível: colunas dedicadas têm prioridade; se vazias,
+    // cai no legado dentro de `configuracoes` (nunca escrito de novo, só lido) —
+    // necessário para galerias de Seleção criadas antes desta migração.
+    themeId: row.theme_id ?? configuracoes.themeId ?? null,
     useCustomTheme: row.use_custom_theme ?? false,
     themeOverrides: row.theme_overrides ?? {},
     coverId: row.cover_id ?? null,

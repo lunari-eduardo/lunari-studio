@@ -1,7 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { resolveGalleryColorTokens } from '@/components/gallery/themes/tokens';
 import { GlobalSettings } from '@/types/gallery';
-import { Check, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, LayoutTemplate } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { CoverRenderer } from '@/components/deliver/covers/CoverRenderer';
+import { COVER_REGISTRY, DEFAULT_COVER_ID } from '@/components/deliver/covers/registry';
+import { SELECTION_COVER_REGISTRY, DEFAULT_SELECTION_COVER_ID } from '@/components/gallery/covers/registry';
+import { ThemePreviewCanvas } from '@/components/dashboard/themes/ThemePreviewCanvas';
+import { getDemoCoverPhoto, getDemoGridPhotos } from '@/lib/demoCoverPhoto';
 
 interface GalleryThemePreviewBlockProps {
   settings: GlobalSettings;
@@ -12,33 +18,38 @@ interface GalleryThemePreviewBlockProps {
 }
 
 /**
- * Preview compacto e elegante que simula como a galeria será exibida para o cliente
- * com o tema, modo e cor configurados.
+ * Preview real (não mais um mockup com ícones) que mostra como a galeria do
+ * cliente fica com as configurações atuais — com um alternador para visualizar
+ * como Entrega ou como Seleção, já que boa parte da página afeta os dois tipos.
  */
 export function GalleryThemePreviewBlock({
   settings,
   studioName,
   studioLogoUrl,
-  borderRadius = '0px',
   gap = 6,
 }: GalleryThemePreviewBlockProps) {
+  const [previewAs, setPreviewAs] = useState<'entrega' | 'selecao'>('entrega');
+  const [previewTab, setPreviewTab] = useState<'cover' | 'grid'>('cover');
+
   const clientMode = settings.clientTheme === 'system' ? 'light' : (settings.clientTheme || 'light');
   const isDark = clientMode === 'dark';
-
   const primaryColor = settings.customTheme?.primaryColor || '#D1BE9F';
 
   const tokens = useMemo(
     () => resolveGalleryColorTokens(clientMode as 'light' | 'dark', primaryColor),
     [clientMode, primaryColor]
   );
-
   const bg = tokens['--gallery-bg'];
   const bgElevated = tokens['--gallery-bg-elevated'];
   const text = tokens['--gallery-text'];
-  const textMuted = tokens['--gallery-text-muted'];
-  const primary = tokens['--gallery-primary'];
-  const primaryFg = tokens['--gallery-primary-fg'];
   const border = tokens['--gallery-border'];
+
+  const demoCoverPhoto = getDemoCoverPhoto('horizontal');
+  // Reflete o slider "Espaçamento entre Fotos" (defaultPhotoSpacing) ao vivo no preview do grid.
+  const gridThemeOverrides = {
+    ...((settings.themeOverrides as any) || {}),
+    layout: { ...((settings.themeOverrides as any)?.layout || {}), gap },
+  };
 
   return (
     <div className="lunari-card p-5 space-y-4 shadow-sm border-border/70">
@@ -49,138 +60,104 @@ export function GalleryThemePreviewBlock({
         </div>
         <span
           className="text-[11px] px-2.5 py-1 rounded-full font-medium flex items-center gap-1 shadow-2xs border"
-          style={{
-            backgroundColor: bgElevated,
-            color: text,
-            borderColor: border,
-          }}
+          style={{ backgroundColor: bgElevated, color: text, borderColor: border }}
         >
           {isDark ? '🌙 Escuro' : '☀️ Claro'}
         </span>
       </div>
 
-      {/* Frame da Galeria (Browser/Device Mockup) */}
-      <div
-        className="rounded-xl overflow-hidden border shadow-inner transition-all duration-300 flex flex-col min-h-[300px]"
-        style={{ backgroundColor: bg, borderColor: border }}
-      >
-        {/* Header do Mockup */}
-        <div
-          className="px-3.5 py-2.5 flex items-center justify-between border-b"
-          style={{ backgroundColor: bgElevated, borderColor: border }}
+      {/* Ver como: Entrega / Seleção */}
+      <div className="flex items-center bg-muted p-1 rounded-lg w-fit">
+        <button
+          type="button"
+          onClick={() => setPreviewAs('entrega')}
+          className={cn(
+            'h-7 px-3 text-xs font-medium rounded-md transition-colors',
+            previewAs === 'entrega' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+          )}
         >
-          <div className="flex items-center gap-2 overflow-hidden">
-            {studioLogoUrl ? (
-              <img
-                src={studioLogoUrl}
-                alt={studioName || 'Studio'}
-                className="h-4 max-w-[70px] object-contain"
-              />
-            ) : (
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primary }} />
-                <span
-                  className="text-xs font-serif font-semibold tracking-wide truncate"
-                  style={{ color: text }}
-                >
-                  {studioName || 'Lunari Studio'}
-                </span>
-              </div>
-            )}
-          </div>
-          <div
-            className="text-[9px] tracking-widest uppercase font-mono px-2 py-0.5 rounded"
-            style={{ color: textMuted, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
-          >
-            Seleção
-          </div>
-        </div>
-
-        {/* Mock photo grid */}
-        <div 
-          className="p-3.5 grid grid-cols-2 flex-1"
-          style={{ gap: `${gap}px` }}
+          Ver como Entrega
+        </button>
+        <button
+          type="button"
+          onClick={() => setPreviewAs('selecao')}
+          className={cn(
+            'h-7 px-3 text-xs font-medium rounded-md transition-colors',
+            previewAs === 'selecao' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+          )}
         >
-          {/* Foto 1 (Selecionada) */}
-          <div
-            className="relative overflow-hidden group shadow-2xs transition-transform duration-200"
-            style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #252422 0%, #1c1b1a 100%)'
-                : 'linear-gradient(135deg, #ebe7e0 0%, #ded9cf 100%)',
-              aspectRatio: '4/5',
-              borderRadius: borderRadius,
-              border: `1.5px solid ${primary}`,
-            }}
-          >
-            {/* Imagem Placeholder Fictícia */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-25">
-              <ImageIcon className="w-6 h-6" style={{ color: text }} />
-            </div>
-            
-            {/* Badge de Selecionado com a Cor Primária */}
-            <div
-              className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-in zoom-in-75 duration-200"
-              style={{ backgroundColor: primary, color: primaryFg }}
-            >
-              <Check className="w-3 h-3 stroke-[3]" />
-            </div>
+          Ver como Seleção
+        </button>
+      </div>
 
-            <div 
-              className="absolute bottom-1.5 left-2 text-[9px] font-mono tracking-tight font-medium"
-              style={{ color: textMuted }}
-            >
-              #01
-            </div>
-          </div>
-
-          {/* Foto 2 */}
-          <div
-            className="relative overflow-hidden group shadow-2xs"
-            style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #222120 0%, #181716 100%)'
-                : 'linear-gradient(135deg, #e4e0d8 0%, #d8d3c7 100%)',
-              aspectRatio: '4/5',
-              borderRadius: borderRadius,
-              border: `1px solid ${border}`,
-            }}
-          >
-            <div className="absolute inset-0 flex items-center justify-center opacity-20">
-              <ImageIcon className="w-6 h-6" style={{ color: text }} />
-            </div>
-
-            <div 
-              className="absolute bottom-1.5 left-2 text-[9px] font-mono tracking-tight font-medium"
-              style={{ color: textMuted }}
-            >
-              #02
-            </div>
-          </div>
-        </div>
-
-        {/* Footer / CTA Bar da Galeria */}
-        <div
-          className="px-3.5 py-2.5 flex items-center justify-between border-t mt-auto shadow-2xs"
-          style={{ backgroundColor: bgElevated, borderColor: border }}
-        >
-          <div>
-            <div className="text-[11px] font-medium leading-none" style={{ color: text }}>
-              1 foto selecionada
-            </div>
-            <div className="text-[9px] mt-0.5" style={{ color: textMuted }}>
-              Mínimo de 10 fotos
-            </div>
-          </div>
+      {previewAs === 'entrega' && (
+        <div className="flex items-center bg-muted p-1 rounded-lg w-fit">
           <button
             type="button"
-            className="px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide shadow-xs transition-opacity hover:opacity-90 active:scale-95 duration-150 cursor-default"
-            style={{ backgroundColor: primary, color: primaryFg }}
+            onClick={() => setPreviewTab('cover')}
+            className={cn(
+              'h-6 px-2.5 text-[11px] font-medium rounded-md gap-1 flex items-center transition-colors',
+              previewTab === 'cover' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+            )}
           >
-            Confirmar Seleção
+            <Sparkles className="h-3 w-3 text-[#cbb384]" />
+            Capa
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewTab('grid')}
+            className={cn(
+              'h-6 px-2.5 text-[11px] font-medium rounded-md gap-1 flex items-center transition-colors',
+              previewTab === 'grid' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+            )}
+          >
+            <LayoutTemplate className="h-3 w-3" />
+            Grid
           </button>
         </div>
+      )}
+
+      {/* Frame da Galeria */}
+      <div
+        className="relative rounded-xl overflow-hidden border shadow-inner aspect-[3/4]"
+        style={{ backgroundColor: bg, borderColor: border }}
+      >
+        {previewAs === 'selecao' || previewTab === 'cover' ? (
+          <div className="absolute inset-0 scale-[0.35] origin-top-left w-[286%] h-[286%] pointer-events-none">
+            <CoverRenderer
+              registry={previewAs === 'selecao' ? SELECTION_COVER_REGISTRY : COVER_REGISTRY}
+              coverId={
+                previewAs === 'selecao'
+                  ? settings.defaultSelectionCoverId || DEFAULT_SELECTION_COVER_ID
+                  : settings.defaultCoverId || DEFAULT_COVER_ID
+              }
+              coverPhoto={demoCoverPhoto}
+              fallbackPhoto={demoCoverPhoto}
+              sessionName="Ensaio Fotográfico"
+              studioName={studioName || 'Lunari Studio'}
+              studioLogoUrl={studioLogoUrl}
+              primaryColor={primaryColor}
+              isDark={isDark}
+              onEnter={() => {}}
+            />
+          </div>
+        ) : (
+          <ThemePreviewCanvas
+            themeId={settings.defaultThemeId || 'lunari'}
+            themeOverrides={gridThemeOverrides}
+            viewport="desktop"
+            skipHero={true}
+            isBlueprint={false}
+            previewPhotos={getDemoGridPhotos()}
+          />
+        )}
       </div>
+
+      {previewAs === 'selecao' && (
+        <p className="text-[11px] text-muted-foreground">
+          A grade de fotos de Seleção usa o layout padrão da plataforma — este preview mostra só a capa.
+        </p>
+      )}
 
       {/* Paleta de Cores e Tokens */}
       <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
@@ -199,14 +176,12 @@ export function GalleryThemePreviewBlock({
             />
             <div
               className="w-4 h-4 rounded-full border shadow-2xs ring-1 ring-background"
-              style={{ backgroundColor: primary, borderColor: border }}
-              title={`Cor Primária (${primary})`}
+              style={{ backgroundColor: primaryColor, borderColor: border }}
+              title={`Cor Primária (${primaryColor})`}
             />
           </div>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground uppercase">
-          {primary}
-        </span>
+        <span className="text-[10px] font-mono text-muted-foreground uppercase">{primaryColor}</span>
       </div>
     </div>
   );

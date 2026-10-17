@@ -60,6 +60,7 @@ export function useGalleryFormState() {
   const [allowDownload, setAllowDownload] = useState(false);
   const [allowExtraPhotos, setAllowExtraPhotos] = useState(true);
   const [selectedThemeId, setSelectedThemeId] = useState<string | undefined>();
+  const [selectedCoverId, setSelectedCoverId] = useState<string | null>(null);
   const [clientMode, setClientMode] = useState<'light' | 'dark'>('light');
 
   // User touched refs
@@ -188,6 +189,8 @@ export function useGalleryFormState() {
     setAllowExtraPhotos,
     selectedThemeId,
     setSelectedThemeId,
+    selectedCoverId,
+    setSelectedCoverId,
     clientMode,
     setClientMode,
     userTouchedSaleModeRef,

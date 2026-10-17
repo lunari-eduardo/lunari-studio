@@ -36,6 +36,7 @@ export const defaultSettings: Omit<GlobalSettings, 'customTheme' | 'emailTemplat
   defaultThemeId: 'lunari',
   themeOverrides: {},
   defaultCoverId: 'fullscreen',
+  defaultSelectionCoverId: 'minimal-logo',
 };
 
 export const defaultEmailTemplates: Omit<EmailTemplate, 'id'>[] = [
@@ -131,6 +132,7 @@ export function rowsToSettings(
     defaultThemeId: settingsRow.default_theme_id ?? 'lunari',
     themeOverrides: settingsRow.theme_overrides || {},
     defaultCoverId: settingsRow.default_cover_id ?? 'fullscreen',
+    defaultSelectionCoverId: (settingsRow as any).default_selection_cover_id ?? 'minimal-logo',
   } : defaultSettings;
 
   const customTheme: CustomTheme | undefined = theme ? {

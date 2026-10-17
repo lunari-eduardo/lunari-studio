@@ -1,26 +1,12 @@
-import { Sparkles, Palette, Sun, Moon, Film } from 'lucide-react';
+import { Sparkles, Sun, Moon, Film } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { FontSelect } from '@/components/FontSelect';
-import { ThemeCatalog } from '@/components/dashboard/themes/ThemeCatalog';
 import { CoverCatalog } from '@/components/deliver/CoverCatalog';
 import { COVER_REGISTRY } from '@/components/deliver/covers/registry';
-import { TitleCaseMode } from '@/types/gallery';
 import { cn } from '@/lib/utils';
 
 interface DeliverCreateStep2VisualProps {
-  sessionFont: string;
-  setSessionFont: (font: string) => void;
-  sessionName: string;
-  titleCaseMode: TitleCaseMode;
-  setTitleCaseMode: (mode: TitleCaseMode) => void;
-  useCustomTheme: boolean;
-  setUseCustomTheme: (custom: boolean) => void;
-  activeThemeId: string;
-  setActiveThemeId: (id: string) => void;
-  themeOverrides: any;
-  setThemeOverrides: (overrides: any) => void;
   coverId: string | null;
   setCoverId: (id: string | null) => void;
   settings: any;
@@ -31,17 +17,6 @@ interface DeliverCreateStep2VisualProps {
 }
 
 export function DeliverCreateStep2Visual({
-  sessionFont,
-  setSessionFont,
-  sessionName,
-  titleCaseMode,
-  setTitleCaseMode,
-  useCustomTheme,
-  setUseCustomTheme,
-  activeThemeId,
-  setActiveThemeId,
-  themeOverrides,
-  setThemeOverrides,
   coverId,
   setCoverId,
   settings,
@@ -58,84 +33,13 @@ export function DeliverCreateStep2Visual({
           <h2 className="text-lg font-semibold text-foreground">Design e Personalização Visual</h2>
         </div>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Escolha a tipografia, estilo de apresentação e layout editorial para encantar o cliente.
+          Escolha a capa que vai impactar o cliente no primeiro acesso. Tema e tipografia seguem o
+          padrão da sua conta — ajuste depois em <strong>Design & Temas</strong>, na edição da galeria.
         </p>
       </div>
 
-      {/* Font Select */}
-      <div className="space-y-3">
-        <Label className="text-sm font-semibold text-foreground">Tipografia do Título</Label>
-        <FontSelect
-          value={sessionFont}
-          onChange={setSessionFont}
-          previewText={sessionName || 'Ensaio Editorial'}
-          titleCaseMode={titleCaseMode}
-          onTitleCaseModeChange={setTitleCaseMode}
-        />
-      </div>
-
-      {/* Tema da Galeria */}
-      <div className="space-y-4 pt-4 border-t border-border/40">
-        <div className="flex items-center gap-2">
-          <Palette className="h-4 w-4 text-[#cbb384]" />
-          <Label className="text-base font-semibold">Tema da Galeria</Label>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 max-w-md">
-          <div
-            className={cn(
-              'p-3.5 border rounded-xl cursor-pointer transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-sm',
-              !useCustomTheme
-                ? 'border-[#cbb384] bg-[#ddd1b6]/20 ring-1 ring-[#cbb384]/30'
-                : 'border-border/60 hover:border-[#cbb384]/40 hover:bg-muted/40'
-            )}
-            onClick={() => setUseCustomTheme(false)}
-          >
-            <p
-              className={cn(
-                'font-semibold text-sm',
-                !useCustomTheme ? 'text-[#7a6035] dark:text-[#e4d5b7]' : 'text-foreground'
-              )}
-            >
-              Herdar Padrão
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Configurações da conta</p>
-          </div>
-          <div
-            className={cn(
-              'p-3.5 border rounded-xl cursor-pointer transition-all duration-200 text-center hover:-translate-y-0.5 hover:shadow-sm',
-              useCustomTheme
-                ? 'border-[#cbb384] bg-[#ddd1b6]/20 ring-1 ring-[#cbb384]/30'
-                : 'border-border/60 hover:border-[#cbb384]/40 hover:bg-muted/40'
-            )}
-            onClick={() => setUseCustomTheme(true)}
-          >
-            <p
-              className={cn(
-                'font-semibold text-sm',
-                useCustomTheme ? 'text-[#7a6035] dark:text-[#e4d5b7]' : 'text-foreground'
-              )}
-            >
-              Personalizar
-            </p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Estilo exclusivo</p>
-          </div>
-        </div>
-
-        {useCustomTheme && (
-          <div className="pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <ThemeCatalog
-              selectedThemeId={activeThemeId}
-              onSelect={setActiveThemeId}
-              onThemeOverridesChange={setThemeOverrides}
-              initialOverrides={themeOverrides}
-            />
-          </div>
-        )}
-      </div>
-
       {/* Capa da Galeria de Entrega (Hero) */}
-      <div className="space-y-4 pt-4 border-t border-border/40">
+      <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#cbb384]" />
           <Label className="text-base font-semibold">Capa da Galeria (Hero)</Label>
@@ -177,21 +81,12 @@ export function DeliverCreateStep2Visual({
           <div className="flex items-center justify-between">
             <Label className="text-sm font-semibold">Espaçamento do Grid</Label>
             <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded-md text-foreground">
-              {useCustomTheme ? (themeOverrides?.layout?.gap ?? 8) : photoSpacing}px
+              {photoSpacing}px
             </span>
           </div>
           <Slider
-            value={[useCustomTheme ? (themeOverrides?.layout?.gap ?? 8) : photoSpacing]}
-            onValueChange={(vals) => {
-              if (useCustomTheme) {
-                setThemeOverrides({
-                  ...themeOverrides,
-                  layout: { ...(themeOverrides.layout || {}), gap: vals[0] },
-                });
-              } else {
-                setPhotoSpacing(vals[0]);
-              }
-            }}
+            value={[photoSpacing]}
+            onValueChange={(vals) => setPhotoSpacing(vals[0])}
             min={0}
             max={40}
             step={1}

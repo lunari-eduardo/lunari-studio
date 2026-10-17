@@ -84,6 +84,8 @@ export interface GallerySettings {
   titleCaseMode?: TitleCaseMode;
   photoSpacing?: number;
   subtitulo?: string;
+  /** Capa escolhida para a galeria (Seleção: SELECTION_COVER_REGISTRY). null/undefined = usar padrão do estúdio. */
+  coverId?: string | null;
   coverVideo?: {
     desktopKey: string;
     mobileKey?: string | null;
@@ -211,6 +213,7 @@ export interface GlobalSettings {
   defaultThemeId: string; // Tema padrão global da conta (persiste em gallery_settings)
   themeOverrides: Json; // Overrides globais de tema da conta (persiste em gallery_settings)
   defaultCoverId: string; // Capa padrão das Galerias de Entrega (persiste em gallery_settings.default_cover_id)
+  defaultSelectionCoverId?: string; // Capa padrão das Galerias de Seleção (persiste em gallery_settings.default_selection_cover_id)
 }
 
 

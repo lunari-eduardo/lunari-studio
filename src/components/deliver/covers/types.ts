@@ -14,6 +14,8 @@ export interface CoverVariantProps {
   category?: string;
   issueNumber?: string;
   studioName?: string;
+  /** URL do logo do estúdio (usado pelo modelo "Minimalista" de Seleção). */
+  studioLogoUrl?: string | null;
   sessionFont?: string;
   titleCaseMode?: TitleCaseMode;
   isDark?: boolean;
@@ -38,4 +40,6 @@ export interface CoverVariant {
   /** Aceita componente estático ou lazy — ambos renderizam em JSX. */
   Component: ComponentType<CoverVariantProps> | LazyExoticComponent<ComponentType<CoverVariantProps>>;
   Thumbnail: ComponentType<{ className?: string }>;
+  /** Imagem estática opcional usada como thumbnail no catálogo, no lugar do Thumbnail/preview real. */
+  imagePreview?: string;
 }

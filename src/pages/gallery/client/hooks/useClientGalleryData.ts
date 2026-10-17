@@ -300,6 +300,8 @@ export function useClientGalleryData({
         sessionFont: config?.sessionFont as string | undefined,
         titleCaseMode: (config?.titleCaseMode as TitleCaseMode) || 'normal',
         photoSpacing: (isEdgeFunctionFormat ? supabaseGallery.settings?.photoSpacing : supabaseGallery.configuracoes?.photoSpacing) ?? (galleryResponse?.settings?.photoSpacing ?? 6),
+        // Capa escolhida (gallery-access já resolve `coverId`/`cover_id`, com fallback — ver tokenResolver.ts).
+        coverId: (isEdgeFunctionFormat ? (supabaseGallery as any).coverId : (supabaseGallery as any).cover_id) ?? null,
       },
       photos: [],
       actions: [],

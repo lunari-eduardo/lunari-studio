@@ -66,17 +66,6 @@ export default function DeliverCreate() {
       case 2:
         return (
           <DeliverCreateStep2Visual
-            sessionFont={state.sessionFont}
-            setSessionFont={state.setSessionFont}
-            sessionName={state.sessionName}
-            titleCaseMode={state.titleCaseMode}
-            setTitleCaseMode={state.setTitleCaseMode}
-            useCustomTheme={state.useCustomTheme}
-            setUseCustomTheme={state.setUseCustomTheme}
-            activeThemeId={state.activeThemeId}
-            setActiveThemeId={state.setActiveThemeId}
-            themeOverrides={state.themeOverrides}
-            setThemeOverrides={state.setThemeOverrides}
             coverId={state.coverId}
             setCoverId={state.setCoverId}
             settings={state.settings}

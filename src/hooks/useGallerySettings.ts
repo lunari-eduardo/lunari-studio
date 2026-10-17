@@ -118,7 +118,8 @@ export function useGallerySettings() {
           default_theme_id: defaultSettings.defaultThemeId,
           theme_overrides: defaultSettings.themeOverrides,
           default_cover_id: defaultSettings.defaultCoverId,
-        });
+          default_selection_cover_id: defaultSettings.defaultSelectionCoverId,
+        } as any);
 
       if (settingsError && settingsError.code !== '23505') { // Ignore unique constraint violation
         throw settingsError;
@@ -192,6 +193,7 @@ export function useGallerySettings() {
       if (data.defaultThemeId !== undefined) updateData.default_theme_id = data.defaultThemeId;
       if (data.themeOverrides !== undefined) updateData.theme_overrides = data.themeOverrides;
       if (data.defaultCoverId !== undefined) updateData.default_cover_id = data.defaultCoverId || 'fullscreen';
+      if (data.defaultSelectionCoverId !== undefined) updateData.default_selection_cover_id = data.defaultSelectionCoverId || 'minimal-logo';
 
       if (Object.keys(updateData).length > 0) {
         if (existing) {
