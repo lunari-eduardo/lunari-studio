@@ -196,17 +196,19 @@ export function TextSizeFloatingPopover({
   return createPortal(
     <div
       ref={popoverRef}
-      className="fixed z-[999] flex items-center gap-1.5 rounded-2xl bg-neutral-900/95 backdrop-blur-md px-3 py-2 shadow-2xl border border-white/10 select-none text-white transition-all duration-150"
+      className="fixed z-[999] flex items-center gap-1.5 rounded-2xl !bg-[#18181b] border border-zinc-700/80 px-3 py-2 shadow-[0_16px_50px_rgba(0,0,0,0.5)] select-none text-white transition-all duration-150"
       style={{
         top: position.top,
         left: position.left,
         transform: 'translateX(-50%)',
+        backgroundColor: '#18181b',
+        color: '#ffffff',
       }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Rótulo da Categoria */}
-      <span className="text-[10px] font-semibold text-white/50 tracking-wider uppercase whitespace-nowrap mr-0.5">
+      <span className="text-[10px] font-semibold text-zinc-400 tracking-wider uppercase whitespace-nowrap mr-0.5">
         {bounds.label}
       </span>
 
@@ -294,32 +296,37 @@ export function TextSizeFloatingPopover({
           align="center"
           side="top"
           sideOffset={8}
-          className="z-[1000] w-64 rounded-2xl bg-neutral-900/98 border border-white/10 p-3 shadow-2xl text-white select-none backdrop-blur-md"
+          className="z-[1000] w-64 rounded-2xl !bg-[#18181b] !opacity-100 !backdrop-blur-none border border-zinc-700/80 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white select-none"
+          style={{
+            backgroundColor: '#18181b',
+            color: '#ffffff',
+            opacity: 1,
+          }}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
           <div className="space-y-3">
             {/* ÚLTIMA COR USADA (FIXA EM DESTAQUE) */}
             {lastTextColor && (
-              <div className="space-y-1.5 pb-2.5 border-b border-white/10">
-                <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider block">
+              <div className="space-y-1.5 pb-2.5 border-b border-zinc-800">
+                <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
                   Última cor usada
                 </span>
                 <button
                   type="button"
                   onClick={() => applyColor(lastTextColor)}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 transition-colors text-left"
                 >
                   <div className="flex items-center gap-2">
                     <span
-                      className="h-4 w-4 rounded-full border border-white/30 shadow-xs shrink-0"
+                      className="h-4 w-4 rounded-full border border-white/40 shadow-xs shrink-0"
                       style={{ backgroundColor: lastTextColor }}
                     />
                     <span className="text-xs font-mono font-medium tracking-wider text-white">
                       {lastTextColor.toUpperCase()}
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase font-semibold text-white/50 tracking-wider">
+                  <span className="text-[10px] uppercase font-semibold text-zinc-400 tracking-wider">
                     Aplicar
                   </span>
                 </button>
@@ -328,7 +335,7 @@ export function TextSizeFloatingPopover({
 
             {/* CORES DA PROPOSTA (PALETA ATIVA) */}
             <div className="space-y-1.5">
-              <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider block">
+              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
                 Cores da Proposta
               </span>
               <div className="grid grid-cols-7 gap-1.5">
@@ -343,8 +350,8 @@ export function TextSizeFloatingPopover({
                       className={cn(
                         'h-6 w-6 rounded-lg border flex items-center justify-center transition-all',
                         isSelected
-                          ? 'border-white scale-110 shadow-md ring-2 ring-white/30'
-                          : 'border-white/20 hover:scale-105'
+                          ? 'border-white scale-110 shadow-md ring-2 ring-white/40'
+                          : 'border-zinc-700 hover:scale-105'
                       )}
                       style={{ backgroundColor: swatch.color }}
                     >
@@ -357,7 +364,7 @@ export function TextSizeFloatingPopover({
 
             {/* CORES RÁPIDAS & COR LIVRE */}
             <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wider block">
+              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">
                 Cor Livre & Essenciais
               </span>
               <div className="flex items-center gap-2">
@@ -370,7 +377,7 @@ export function TextSizeFloatingPopover({
                     'h-7 px-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors',
                     currentColor?.toLowerCase() === '#ffffff'
                       ? 'bg-white text-black border-white'
-                      : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
+                      : 'bg-zinc-800 text-zinc-200 border-zinc-700/80 hover:bg-zinc-700 hover:text-white'
                   )}
                 >
                   <span className="h-2.5 w-2.5 rounded-full bg-white border border-black/20" />
@@ -384,8 +391,8 @@ export function TextSizeFloatingPopover({
                   className={cn(
                     'h-7 px-2 rounded-lg border text-xs font-medium flex items-center gap-1.5 transition-colors',
                     currentColor?.toLowerCase() === '#1a1714'
-                      ? 'bg-neutral-800 text-white border-white'
-                      : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
+                      ? 'bg-zinc-900 text-white border-white ring-1 ring-white/30'
+                      : 'bg-zinc-800 text-zinc-200 border-zinc-700/80 hover:bg-zinc-700 hover:text-white'
                   )}
                 >
                   <span className="h-2.5 w-2.5 rounded-full bg-[#1A1714] border border-white/30" />
@@ -404,8 +411,8 @@ export function TextSizeFloatingPopover({
                     className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                     title="Seletor com conta-gotas"
                   />
-                  <div className="h-7 w-full flex items-center justify-center rounded-lg border border-white/15 bg-white/5 text-xs text-white/80 hover:bg-white/10 transition-colors">
-                    <Palette className="h-3.5 w-3.5 mr-1 text-white/60" />
+                  <div className="h-7 w-full flex items-center justify-center rounded-lg border border-zinc-700/80 bg-zinc-800 text-xs text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors">
+                    <Palette className="h-3.5 w-3.5 mr-1 text-zinc-400" />
                     <span className="text-[11px] font-mono">Hex</span>
                   </div>
                 </div>
@@ -419,8 +426,8 @@ export function TextSizeFloatingPopover({
               className={cn(
                 'w-full py-1.5 text-center text-xs rounded-lg transition-colors border',
                 currentColor === undefined
-                  ? 'bg-white/10 text-white/90 border-white/20'
-                  : 'bg-transparent text-white/50 border-white/5 hover:bg-white/5 hover:text-white/80'
+                  ? 'bg-zinc-800 text-white border-zinc-600'
+                  : 'bg-transparent text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200'
               )}
             >
               Cor do tema (automática)
@@ -451,7 +458,12 @@ export function TextSizeFloatingPopover({
               align="end"
               side="top"
               sideOffset={8}
-              className="z-[1000] w-64 max-h-80 overflow-y-auto custom-scrollbar rounded-2xl bg-neutral-900/98 border border-white/10 p-3 shadow-2xl text-white select-none backdrop-blur-md"
+              className="z-[1000] w-64 max-h-80 overflow-y-auto custom-scrollbar rounded-2xl !bg-[#18181b] !opacity-100 !backdrop-blur-none border border-zinc-700/80 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.6)] text-white select-none"
+              style={{
+                backgroundColor: '#18181b',
+                color: '#ffffff',
+                opacity: 1,
+              }}
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -460,7 +472,7 @@ export function TextSizeFloatingPopover({
                   <p className="text-xs font-semibold text-white">
                     {CATEGORY_NAMES[fieldInfo.role]}
                   </p>
-                  <p className="text-[10px] text-white/50 leading-tight">
+                  <p className="text-[10px] text-zinc-400 leading-tight">
                     Aplica a todos os {CATEGORY_NAMES[fieldInfo.role]?.toLowerCase() || 'textos'} da proposta.
                   </p>
                 </div>
@@ -473,7 +485,7 @@ export function TextSizeFloatingPopover({
                     if (!families.length) return null;
                     return (
                       <div key={kind} className="space-y-1">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block">
                           {KIND_LABEL[kind]}
                         </span>
                         <div className="flex flex-col gap-0.5">
@@ -491,8 +503,8 @@ export function TextSizeFloatingPopover({
                                 className={cn(
                                   'flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors',
                                   isSelected
-                                    ? 'bg-white/20 text-white font-medium'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                    ? 'bg-zinc-800 text-white font-medium border border-zinc-700/70'
+                                    : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-white'
                                 )}
                               >
                                 <span style={{ fontFamily: `'${family}', sans-serif` }}>
